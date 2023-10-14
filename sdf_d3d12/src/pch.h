@@ -19,6 +19,9 @@
 	#define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers.
 #endif
 
+// MUST BE INCLUDED BEFORE WINDOWS SDK/GRAPHICS API !!!
+#include <directx/d3dx12.h>
+
 #include <windows.h>
 
 #include <d3d12.h>

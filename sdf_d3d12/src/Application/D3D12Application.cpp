@@ -6,6 +6,8 @@
 
 D3D12Application::D3D12Application(UINT width, UINT height, const std::wstring& name)
 	: BaseApplication(width, height, name)
+	, m_FenceEvent(nullptr)
+	, m_FenceValue(0)
 {
 	
 }
@@ -73,12 +75,12 @@ void D3D12Application::LoadPipeline()
 	swapChainDesc.Height = m_Height;
 	swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 	swapChainDesc.SampleDesc.Count = 1;
 
 	ComPtr<IDXGISwapChain1> swapChain;
 	THROW_IF_FAIL(factory->CreateSwapChainForHwnd(
-		m_CommandQueue.Get(),
+		m_CommandQueue.Get(),        // Swap chain needs the queue so that it can force a flush on it.
 		Win32Application::GetHwnd(),
 		&swapChainDesc,
 		nullptr,
@@ -106,8 +108,19 @@ void D3D12Application::LoadPipeline()
 
 	// Create frame resources
 	{
-		
+		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_RTVHeap->GetCPUDescriptorHandleForHeapStart());
+
+		// Create an RTV for each frame
+		for (UINT n = 0; n < s_FrameCount; n++)
+		{
+			THROW_IF_FAIL(m_SwapChain->GetBuffer(n, IID_PPV_ARGS(&m_RenderTargets[n])));
+			m_Device->CreateRenderTargetView(m_RenderTargets[n].Get(), nullptr, rtvHandle);
+			rtvHandle.Offset(1, m_RTVDescriptorSize);
+		}
 	}
+
+	// Create command allocator
+	THROW_IF_FAIL(m_Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_CommandAllocator)));
 }
 
 void D3D12Application::LoadAssets()
