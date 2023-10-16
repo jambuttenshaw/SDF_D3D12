@@ -98,12 +98,22 @@ void D3D12Application::LoadPipeline()
 	{
 		// Describe and create a render target view (RTV) descriptor heap
 		D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
-		rtvHeapDesc.NumDescriptors = s_FrameCount;
 		rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+		rtvHeapDesc.NumDescriptors = s_FrameCount;
 		rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 		THROW_IF_FAIL(m_Device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_RTVHeap)));
 
 		m_RTVDescriptorSize = m_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+		// Create a descriptor heap for CBVs, SRVs, and UAVs for each frame
+		for (UINT n = 0; n < s_FrameCount; n++)
+		{
+			D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+			heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+			heapDesc.NumDescriptors = 1;
+			heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+			THROW_IF_FAIL(m_Device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_MainDescriptorHeaps[n])));
+		}
 	}
 
 	// Create frame resources
@@ -126,14 +136,40 @@ void D3D12Application::LoadPipeline()
 
 void D3D12Application::LoadAssets()
 {
-	// Create an empty root signature
+	// Create root signature
 	{
-		CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
-		rootSignatureDesc.Init(0, nullptr, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+		// At the moment, we only need to provide the constant buffer to the pixel shader
+		// Create a root signature consisting of a descriptor table with a single CBV
+
+		D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
+		featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
+		if (FAILED(m_Device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
+		{
+			featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
+		}
+
+		CD3DX12_DESCRIPTOR_RANGE1 ranges[1];
+		CD3DX12_ROOT_PARAMETER1 rootParameters[1];
+
+		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE);
+		rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_VERTEX);
+
+		// Allow input layout and deny unnecessary access to certain pipeline stages
+		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
+			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS;
+
+		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
+		rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr, rootSignatureFlags);
 
 		ComPtr<ID3DBlob> signature;
 		ComPtr<ID3DBlob> error;
-		THROW_IF_FAIL(D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error));
+		THROW_IF_FAIL(D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, &error));
 		THROW_IF_FAIL(m_Device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_RootSignature)));
 	}
 
@@ -237,6 +273,41 @@ void D3D12Application::LoadAssets()
 		m_VertexBufferView.SizeInBytes = vertexBufferSize;
 	}
 
+	// Create the constant buffers
+	// One constant buffer is required for each frame, so that it can be read from while the next frame writes the new data
+	{
+		constexpr UINT constantBufferSize = sizeof(ConstantBufferType);
+		static_assert(constantBufferSize % 256 == 0); // must be 256-byte aligned
+
+		// Define heap properties and resource description for the constant buffers
+		CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_UPLOAD);
+		auto bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(constantBufferSize);
+
+		for (UINT n = 0; n < s_FrameCount; n++)
+		{
+			// Create the buffer
+			THROW_IF_FAIL(m_Device->CreateCommittedResource(
+				&heapProperties,
+				D3D12_HEAP_FLAG_NONE,
+				&bufferDesc,
+				D3D12_RESOURCE_STATE_GENERIC_READ,
+				nullptr,
+				IID_PPV_ARGS(&m_ConstantBuffers[n])));
+
+			// Create the buffer view
+			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+			cbvDesc.BufferLocation = m_ConstantBuffers[n]->GetGPUVirtualAddress();
+			cbvDesc.SizeInBytes = constantBufferSize;
+			m_Device->CreateConstantBufferView(&cbvDesc, m_MainDescriptorHeaps[n]->GetCPUDescriptorHandleForHeapStart());
+
+			// Map and initialize the constant buffer
+			// This buffer is kept mapped for its entire lifetime
+			CD3DX12_RANGE readRange(0, 0); // We do not intend on reading from this resource on the CPU
+			THROW_IF_FAIL(m_ConstantBuffers[n]->Map(0, &readRange, reinterpret_cast<void**>(&m_ConstantBufferGPUAddress[n])));
+			memcpy(m_ConstantBufferGPUAddress[n], &m_ConstantBufferData, sizeof(m_ConstantBufferData));
+		}
+	}
+
 	// Close the command list and execute it to begin the initial GPU setup
 	THROW_IF_FAIL(m_CommandList->Close());
 	ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
@@ -263,7 +334,32 @@ void D3D12Application::LoadAssets()
 
 void D3D12Application::OnUpdate()
 {
-	
+	static float rIncrement = 0.002f;
+	static float gIncrement = 0.006f;
+	static float bIncrement = 0.009f;
+
+	m_ConstantBufferData.colorMultiplier.x += rIncrement;
+	m_ConstantBufferData.colorMultiplier.y += gIncrement;
+	m_ConstantBufferData.colorMultiplier.z += bIncrement;
+
+	if (m_ConstantBufferData.colorMultiplier.x >= 1.0f || m_ConstantBufferData.colorMultiplier.x <= 0.0f)
+	{
+		m_ConstantBufferData.colorMultiplier.x = m_ConstantBufferData.colorMultiplier.x >= 1.0f ? 1.0f : 0.0f;
+		rIncrement = -rIncrement;
+	}
+	if (m_ConstantBufferData.colorMultiplier.y >= 1.0f || m_ConstantBufferData.colorMultiplier.y <= 0.0f)
+	{
+		m_ConstantBufferData.colorMultiplier.y = m_ConstantBufferData.colorMultiplier.y >= 1.0f ? 1.0f : 0.0f;
+		gIncrement = -gIncrement;
+	}
+	if (m_ConstantBufferData.colorMultiplier.z >= 1.0f || m_ConstantBufferData.colorMultiplier.z <= 0.0f)
+	{
+		m_ConstantBufferData.colorMultiplier.z = m_ConstantBufferData.colorMultiplier.z >= 1.0f ? 1.0f : 0.0f;
+		bIncrement = -bIncrement;
+	}
+
+	// copy our const buffer data into the const buffer
+	memcpy(m_ConstantBufferGPUAddress[m_FrameIndex], &m_ConstantBufferData, sizeof(m_ConstantBufferData));
 }
 
 void D3D12Application::OnRender()
@@ -301,6 +397,13 @@ void D3D12Application::PopulateCommandList()
 
 	// Set necessary state
 	m_CommandList->SetGraphicsRootSignature(m_RootSignature.Get());
+
+	// Setup descriptor heaps
+	ID3D12DescriptorHeap* ppHeaps[] = {m_MainDescriptorHeaps[m_FrameIndex].Get()};
+	m_CommandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
+
+	m_CommandList->SetGraphicsRootDescriptorTable(0, m_MainDescriptorHeaps[m_FrameIndex]->GetGPUDescriptorHandleForHeapStart());
+
 	m_CommandList->RSSetViewports(1, &m_Viewport);
 	m_CommandList->RSSetScissorRects(1, &m_ScissorRect);
 

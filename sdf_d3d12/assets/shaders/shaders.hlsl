@@ -9,6 +9,12 @@
 //
 //*********************************************************
 
+cbuffer ConstantBuffer : register(b0)
+{
+	float4 colorMultiplier;
+	float padding[60];
+};
+
 struct PSInput
 {
 	float4 position : SV_POSITION;
@@ -20,7 +26,7 @@ PSInput VSMain(float4 position : POSITION, float4 color : COLOR)
 	PSInput result;
 
 	result.position = position;
-	result.color = color;
+	result.color = color * colorMultiplier;
 
 	return result;
 }
