@@ -183,10 +183,9 @@ void D3D12Application::LoadAssets()
 		m_CommandAllocators[m_FrameIndex].Get(), nullptr,
 		IID_PPV_ARGS(&m_CommandList)));
 
-	// Close the command list, as the main loop expects it to be closed
-	THROW_IF_FAIL(m_CommandList->Close());
 
 	// Create the vertex buffer
+	ComPtr<ID3D12Resource> vbUploadHeap;
 	{
 		// Define the geometry for a triangle.
 		Vertex triangleVertices[] =
@@ -198,29 +197,50 @@ void D3D12Application::LoadAssets()
 
 		constexpr UINT vertexBufferSize = sizeof(triangleVertices);
 
-		CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_UPLOAD);
-		auto resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize);
+		// Create a buffer (with default heap usage)
+		CD3DX12_HEAP_PROPERTIES defaultHeapProperties(D3D12_HEAP_TYPE_DEFAULT);
+		auto vbDesc = CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize);
 
 		THROW_IF_FAIL(m_Device->CreateCommittedResource(
-			&heapProperties,
+			&defaultHeapProperties,
 			D3D12_HEAP_FLAG_NONE,
-			&resourceDesc,
-			D3D12_RESOURCE_STATE_GENERIC_READ,
+			&vbDesc,
+			D3D12_RESOURCE_STATE_COPY_DEST,
 			nullptr,
 			IID_PPV_ARGS(&m_VertexBuffer)));
 
-		// Copy the triangle data to the vertex buffer
-		UINT8* pVertexDataBegin;
-		CD3DX12_RANGE readRange(0, 0); // We do not intend to read from this resource on the CPU
-		THROW_IF_FAIL(m_VertexBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pVertexDataBegin)));
-		memcpy(pVertexDataBegin, triangleVertices, sizeof(triangleVertices));
-		m_VertexBuffer->Unmap(0, nullptr);
+		// Create an intermediate buffer (with upload heap usage)
+		CD3DX12_HEAP_PROPERTIES uploadHeapProperties(D3D12_HEAP_TYPE_UPLOAD);
+		auto intermediateDesc = CD3DX12_RESOURCE_DESC::Buffer(GetRequiredIntermediateSize(m_VertexBuffer.Get(), 0, 1));
+
+		THROW_IF_FAIL(m_Device->CreateCommittedResource(
+			&uploadHeapProperties,
+			D3D12_HEAP_FLAG_NONE,
+			&intermediateDesc,
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(&vbUploadHeap)));
+
+		D3D12_SUBRESOURCE_DATA vbData = {};
+		vbData.pData = &triangleVertices[0];
+		vbData.RowPitch = vertexBufferSize;
+		vbData.SlicePitch = vertexBufferSize;
+
+		UpdateSubresources(m_CommandList.Get(), m_VertexBuffer.Get(), vbUploadHeap.Get(), 0, 0, 1, &vbData);
+
+		const auto resourceBarrier = CD3DX12_RESOURCE_BARRIER::Transition(m_VertexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+		m_CommandList->ResourceBarrier(1, &resourceBarrier);
 
 		// Initialize the vertex buffer view
 		m_VertexBufferView.BufferLocation = m_VertexBuffer->GetGPUVirtualAddress();
 		m_VertexBufferView.StrideInBytes = sizeof(Vertex);
 		m_VertexBufferView.SizeInBytes = vertexBufferSize;
 	}
+
+	// Close the command list and execute it to begin the initial GPU setup
+	THROW_IF_FAIL(m_CommandList->Close());
+	ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
+	m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
 	// Create synchronization objects
 	{
