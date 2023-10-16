@@ -125,7 +125,28 @@ void D3D12Application::LoadPipeline()
 
 void D3D12Application::LoadAssets()
 {
+	// Create the command list
+	THROW_IF_FAIL(m_Device->CreateCommandList(0,
+		D3D12_COMMAND_LIST_TYPE_DIRECT,
+		m_CommandAllocator.Get(), nullptr,
+		IID_PPV_ARGS(&m_CommandList)));
 
+	// Close the command list, as the main loop expects it to be closed
+	THROW_IF_FAIL(m_CommandList->Close());
+
+	// Create synchronization objects
+	{
+		THROW_IF_FAIL(m_Device->CreateFence(0,
+			D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence)));
+		m_FenceValue = 1;
+
+		// Create an event handle to use for frame synchronization
+		m_FenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+		if (m_FenceEvent == nullptr)
+		{
+			THROW_IF_FAIL(HRESULT_FROM_WIN32(GetLastError()));
+		}
+	}
 }
 
 
@@ -136,20 +157,66 @@ void D3D12Application::OnUpdate()
 
 void D3D12Application::OnRender()
 {
-	
+	// Record all the commands we need to render the scene into the command list
+	PopulateCommandList();
+
+	// Execute the command list
+	ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
+	m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
+	// Present the frame
+	THROW_IF_FAIL(m_SwapChain->Present(1, 0));
+
+	WaitForPreviousFrame();
 }
 
 void D3D12Application::OnDestroy()
 {
+	// Ensure the GPU is no longer references resources that are about
+	// to be cleaned up by the destructor
+	WaitForPreviousFrame();
 
+	CloseHandle(m_FenceEvent);
 }
 
 void D3D12Application::PopulateCommandList()
 {
-	
+	// Command list allocators can only be reset when the associated
+	// command lists have finished execution on the GPU
+	THROW_IF_FAIL(m_CommandAllocator->Reset());
+
+	// Command lists can (and must) be reset after ExecuteCommandList() is called and before it is repopulated
+	THROW_IF_FAIL(m_CommandList->Reset(m_CommandAllocator.Get(), m_PipelineState.Get()));
+
+	// Indicate the back buffer will be used as a render target
+	auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_RenderTargets[m_FrameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	m_CommandList->ResourceBarrier(1, &barrier);
+
+	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_RTVHeap->GetCPUDescriptorHandleForHeapStart(), m_FrameIndex, m_RTVDescriptorSize);
+
+	// record commands
+	constexpr float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
+	m_CommandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+
+	// Indicate that the back buffer will now be used to present
+	barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_RenderTargets[m_FrameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	m_CommandList->ResourceBarrier(1, &barrier);
+
+	THROW_IF_FAIL(m_CommandList->Close());
 }
 
 void D3D12Application::WaitForPreviousFrame()
 {
-	
+	// Signal and increment the fence
+	const UINT64 fence = m_FenceValue;
+	THROW_IF_FAIL(m_CommandQueue->Signal(m_Fence.Get(), fence));
+	m_FenceValue++;
+
+	if (m_Fence->GetCompletedValue() < fence)
+	{
+		THROW_IF_FAIL(m_Fence->SetEventOnCompletion(fence, m_FenceEvent));
+		WaitForSingleObject(m_FenceEvent, INFINITE);
+	}
+
+	m_FrameIndex = m_SwapChain->GetCurrentBackBufferIndex();
 }
