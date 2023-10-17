@@ -17,7 +17,7 @@ class BaseApplication;
 class Win32Application
 {
 public:
-    static int Run(BaseApplication* pSample, HINSTANCE hInstance, int nCmdShow);
+    static int Run(BaseApplication* pSample);
     static HWND GetHwnd() { return m_hwnd; }
 
 protected:

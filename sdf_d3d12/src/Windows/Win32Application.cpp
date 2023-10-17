@@ -12,6 +12,7 @@
 #include "pch.h"
 #include "Win32Application.h"
 
+#include "imgui.h"
 #include "Application/BaseApplication.h"
 
 // Forward declare message handler from imgui_impl_win32.cpp
@@ -20,8 +21,10 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 HWND Win32Application::m_hwnd = nullptr;
 
-int Win32Application::Run(BaseApplication* pApp, HINSTANCE hInstance, int nCmdShow)
+int Win32Application::Run(BaseApplication* pApp)
 {
+    HINSTANCE hInstance = GetModuleHandle(NULL);
+
     // Parse the command line parameters
     int argc;
     LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
@@ -58,7 +61,7 @@ int Win32Application::Run(BaseApplication* pApp, HINSTANCE hInstance, int nCmdSh
     // Initialize the sample. OnInit is defined in each child-implementation of DXSample.
     pApp->OnInit();
 
-    ShowWindow(m_hwnd, nCmdShow);
+    ShowWindow(m_hwnd, SW_SHOWDEFAULT);
 
     // Main sample loop.
     MSG msg = {};
