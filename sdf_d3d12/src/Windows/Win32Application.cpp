@@ -14,6 +14,9 @@
 
 #include "Application/BaseApplication.h"
 
+// Forward declare message handler from imgui_impl_win32.cpp
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 
 HWND Win32Application::m_hwnd = nullptr;
 
@@ -80,11 +83,14 @@ LRESULT CALLBACK Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wP
 {
     auto pApp = reinterpret_cast<BaseApplication*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
 
+    // TODO: Win32Application assumes that ImGui is in use, may be a more graceful way of handling this?
+    ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam);
+
     switch (message)
     {
     case WM_CREATE:
     {
-        // Save the DXSample* passed in to CreateWindow.
+        // Save the BaseApplication* passed in to CreateWindow.
         LPCREATESTRUCT pCreateStruct = reinterpret_cast<LPCREATESTRUCT>(lParam);
         SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pCreateStruct->lpCreateParams));
     }

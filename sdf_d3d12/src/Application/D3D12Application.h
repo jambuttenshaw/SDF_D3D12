@@ -20,9 +20,10 @@ public:
 
 private:
 	void LoadPipeline();
+	void LoadImGui();
 	void LoadAssets();
 
-	void PopulateCommandList();
+	void PopulateCommandList() const;
 
 	void WaitForGPU();
 	void MoveToNextFrame();
@@ -54,7 +55,8 @@ private:
 	ComPtr<ID3D12DescriptorHeap> m_RTVHeap;
 	UINT m_RTVDescriptorSize = 0;
 	// One descriptor heap for every frame in the swap chain
-	ComPtr<ID3D12DescriptorHeap> m_MainDescriptorHeaps[s_FrameCount];
+	ComPtr<ID3D12DescriptorHeap> m_SRVHeap;
+	UINT m_SRVDescriptorSize = 0;
 
 	ComPtr<ID3D12PipelineState> m_PipelineState;
 	ComPtr<ID3D12GraphicsCommandList> m_CommandList;
@@ -64,14 +66,16 @@ private:
 
 	// App resources
 	ComPtr<ID3D12Resource> m_VertexBuffer;
-	D3D12_VERTEX_BUFFER_VIEW m_VertexBufferView;
+	D3D12_VERTEX_BUFFER_VIEW m_VertexBufferView = {};
 
 	// The memory on the GPU in which the constant buffer data is kept
-	ComPtr<ID3D12Resource> m_ConstantBuffers[s_FrameCount];
+	ComPtr<ID3D12Resource> m_ConstantBuffer;
 	// This is the current constant buffer data that will be copied to the GPU each frame
-	ConstantBufferType m_ConstantBufferData;
+	ConstantBufferType m_ConstantBufferData = {};
 	// This is the GPU virtual address for each constant buffer resource on the GPU
-	UINT8* m_ConstantBufferGPUAddress[s_FrameCount] = { nullptr, nullptr };
+	UINT8* m_ConstantBufferMappedAddress = nullptr;
+	// Indices into the descriptor heap for the CBV for each frame
+	UINT32 m_CBVs[s_FrameCount] = { 0, 0 };
 
 	// Synchronization objects
 	UINT m_FrameIndex = 0;

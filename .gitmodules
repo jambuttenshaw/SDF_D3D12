@@ -1,3 +1,6 @@
-[submodule "vendor/DirectX-Headers"]
-	path = vendor/DirectX-Headers
-	url = https://github.com/microsoft/DirectX-Headers/
+[submodule "sdf_d3d12/vendor/DirectX-Headers"]
+	path = sdf_d3d12/vendor/DirectX-Headers
+	url = https://github.com/microsoft/DirectX-Headers
+[submodule "sdf_d3d12/vendor/imgui"]
+	path = sdf_d3d12/vendor/imgui
+	url = https://github.com/ocornut/imgui

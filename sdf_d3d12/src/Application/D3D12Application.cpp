@@ -3,6 +3,9 @@
 
 #include "Windows/Win32Application.h"
 
+#include "backends/imgui_impl_win32.h"
+#include "backends/imgui_impl_dx12.h"
+
 
 D3D12Application::D3D12Application(UINT width, UINT height, const std::wstring& name)
 	: BaseApplication(width, height, name)
@@ -15,6 +18,7 @@ D3D12Application::D3D12Application(UINT width, UINT height, const std::wstring& 
 void D3D12Application::OnInit()
 {
 	LoadPipeline();
+	LoadImGui();
 	LoadAssets();
 }
 
@@ -105,15 +109,14 @@ void D3D12Application::LoadPipeline()
 
 		m_RTVDescriptorSize = m_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
-		// Create a descriptor heap for CBVs, SRVs, and UAVs for each frame
-		for (UINT n = 0; n < s_FrameCount; n++)
-		{
-			D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
-			heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-			heapDesc.NumDescriptors = 1;
-			heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-			THROW_IF_FAIL(m_Device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_MainDescriptorHeaps[n])));
-		}
+		// Create a descriptor heap for CBVs, SRVs, and UAVs
+		D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+		heapDesc.NumDescriptors = 3;
+		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE; // Descriptor heap will also exist on the GPU
+		THROW_IF_FAIL(m_Device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_SRVHeap)));
+
+		m_SRVDescriptorSize = m_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	}
 
 	// Create frame resources
@@ -134,6 +137,34 @@ void D3D12Application::LoadPipeline()
 
 }
 
+void D3D12Application::LoadImGui()
+{
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO();
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+
+	ImGui::StyleColorsDark();
+
+	ImGuiStyle& style = ImGui::GetStyle();
+	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+	{
+		style.WindowRounding = 0.0f;
+		style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+	}
+
+	// Setup platform and renderer back-ends
+	ImGui_ImplWin32_Init(Win32Application::GetHwnd());
+	// TODO: At the moment, the index of the font descriptor is hard-coded
+	const CD3DX12_CPU_DESCRIPTOR_HANDLE cpuHandle(m_SRVHeap->GetCPUDescriptorHandleForHeapStart(), 2, m_SRVDescriptorSize);
+	const CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(m_SRVHeap->GetGPUDescriptorHandleForHeapStart(), 2, m_SRVDescriptorSize);
+	ImGui_ImplDX12_Init(m_Device.Get(), s_FrameCount, DXGI_FORMAT_R8G8B8A8_UNORM,
+		m_SRVHeap.Get(), cpuHandle, gpuHandle);
+}
+
 void D3D12Application::LoadAssets()
 {
 	// Create root signature
@@ -150,8 +181,7 @@ void D3D12Application::LoadAssets()
 
 		CD3DX12_DESCRIPTOR_RANGE1 ranges[1];
 		CD3DX12_ROOT_PARAMETER1 rootParameters[1];
-
-		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE);
+		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC);
 		rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_VERTEX);
 
 		// Allow input layout and deny unnecessary access to certain pipeline stages
@@ -281,31 +311,35 @@ void D3D12Application::LoadAssets()
 
 		// Define heap properties and resource description for the constant buffers
 		CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_UPLOAD);
-		auto bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(constantBufferSize);
+		auto bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(static_cast<UINT64>(constantBufferSize * s_FrameCount));
 
+		// Create the buffer
+		THROW_IF_FAIL(m_Device->CreateCommittedResource(
+			&heapProperties,
+			D3D12_HEAP_FLAG_NONE,
+			&bufferDesc,
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(&m_ConstantBuffer)));
+
+		// Create the buffer views
 		for (UINT n = 0; n < s_FrameCount; n++)
 		{
-			// Create the buffer
-			THROW_IF_FAIL(m_Device->CreateCommittedResource(
-				&heapProperties,
-				D3D12_HEAP_FLAG_NONE,
-				&bufferDesc,
-				D3D12_RESOURCE_STATE_GENERIC_READ,
-				nullptr,
-				IID_PPV_ARGS(&m_ConstantBuffers[n])));
-
-			// Create the buffer view
 			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-			cbvDesc.BufferLocation = m_ConstantBuffers[n]->GetGPUVirtualAddress();
+			cbvDesc.BufferLocation = m_ConstantBuffer->GetGPUVirtualAddress() + constantBufferSize * n;
 			cbvDesc.SizeInBytes = constantBufferSize;
-			m_Device->CreateConstantBufferView(&cbvDesc, m_MainDescriptorHeaps[n]->GetCPUDescriptorHandleForHeapStart());
 
-			// Map and initialize the constant buffer
-			// This buffer is kept mapped for its entire lifetime
-			CD3DX12_RANGE readRange(0, 0); // We do not intend on reading from this resource on the CPU
-			THROW_IF_FAIL(m_ConstantBuffers[n]->Map(0, &readRange, reinterpret_cast<void**>(&m_ConstantBufferGPUAddress[n])));
-			memcpy(m_ConstantBufferGPUAddress[n], &m_ConstantBufferData, sizeof(m_ConstantBufferData));
+			CD3DX12_CPU_DESCRIPTOR_HANDLE descriptor(m_SRVHeap->GetCPUDescriptorHandleForHeapStart(), n, m_SRVDescriptorSize);
+
+			m_Device->CreateConstantBufferView(&cbvDesc, descriptor);
 		}
+
+		// Map and initialize the constant buffer
+		// This buffer is kept mapped for its entire lifetime
+		CD3DX12_RANGE readRange(0, 0); // We do not intend on reading from this resource on the CPU
+		THROW_IF_FAIL(m_ConstantBuffer->Map(0, &readRange, reinterpret_cast<void**>(&m_ConstantBufferMappedAddress)));
+		for (UINT n = 0; n < s_FrameCount; n++)
+			memcpy(m_ConstantBufferMappedAddress + static_cast<size_t>(n * constantBufferSize), &m_ConstantBufferData, sizeof(m_ConstantBufferData));
 	}
 
 	// Close the command list and execute it to begin the initial GPU setup
@@ -334,6 +368,14 @@ void D3D12Application::LoadAssets()
 
 void D3D12Application::OnUpdate()
 {
+	// Begin new ImGui frame
+	ImGui_ImplDX12_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+
+	static bool showDemoWindow = true;
+	ImGui::ShowDemoWindow(&showDemoWindow);
+
 	static float rIncrement = 0.002f;
 	static float gIncrement = 0.006f;
 	static float bIncrement = 0.009f;
@@ -359,7 +401,9 @@ void D3D12Application::OnUpdate()
 	}
 
 	// copy our const buffer data into the const buffer
-	memcpy(m_ConstantBufferGPUAddress[m_FrameIndex], &m_ConstantBufferData, sizeof(m_ConstantBufferData));
+	memcpy(m_ConstantBufferMappedAddress + m_FrameIndex * sizeof(m_ConstantBufferData), &m_ConstantBufferData, sizeof(m_ConstantBufferData));
+
+	ImGui::Render();
 }
 
 void D3D12Application::OnRender()
@@ -370,6 +414,13 @@ void D3D12Application::OnRender()
 	// Execute the command list
 	ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
 	m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
+	const ImGuiIO& io = ImGui::GetIO();
+	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+	{
+		ImGui::UpdatePlatformWindows();
+		ImGui::RenderPlatformWindowsDefault(nullptr, m_CommandList.Get());
+	}
 
 	// Present the frame
 	THROW_IF_FAIL(m_SwapChain->Present(1, 0));
@@ -383,10 +434,15 @@ void D3D12Application::OnDestroy()
 	// to be cleaned up by the destructor
 	WaitForGPU();
 
+	// Cleanup ImGui
+	ImGui_ImplDX12_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
+
 	CloseHandle(m_FenceEvent);
 }
 
-void D3D12Application::PopulateCommandList()
+void D3D12Application::PopulateCommandList() const
 {
 	// Command list allocators can only be reset when the associated
 	// command lists have finished execution on the GPU
@@ -395,33 +451,41 @@ void D3D12Application::PopulateCommandList()
 	// Command lists can (and must) be reset after ExecuteCommandList() is called and before it is repopulated
 	THROW_IF_FAIL(m_CommandList->Reset(m_CommandAllocators[m_FrameIndex].Get(), m_PipelineState.Get()));
 
-	// Set necessary state
-	m_CommandList->SetGraphicsRootSignature(m_RootSignature.Get());
-
-	// Setup descriptor heaps
-	ID3D12DescriptorHeap* ppHeaps[] = {m_MainDescriptorHeaps[m_FrameIndex].Get()};
-	m_CommandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-
-	m_CommandList->SetGraphicsRootDescriptorTable(0, m_MainDescriptorHeaps[m_FrameIndex]->GetGPUDescriptorHandleForHeapStart());
-
-	m_CommandList->RSSetViewports(1, &m_Viewport);
-	m_CommandList->RSSetScissorRects(1, &m_ScissorRect);
+	
 
 	// Indicate the back buffer will be used as a render target
 	auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_RenderTargets[m_FrameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	m_CommandList->ResourceBarrier(1, &barrier);
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_RTVHeap->GetCPUDescriptorHandleForHeapStart(), m_FrameIndex, m_RTVDescriptorSize);
+	const CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_RTVHeap->GetCPUDescriptorHandleForHeapStart(), m_FrameIndex, m_RTVDescriptorSize);
 	m_CommandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
 
-	// record commands
+	// Clear render target
 	constexpr float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
 	m_CommandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+
+
+	// Set necessary state
+	m_CommandList->SetGraphicsRootSignature(m_RootSignature.Get());
+
+	// Setup descriptor heaps
+	ID3D12DescriptorHeap* ppHeaps[] = { m_SRVHeap.Get() };
+	m_CommandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
+
+	// Get gpu virtual address of constant buffer contents to use for rendering
+	const CD3DX12_GPU_DESCRIPTOR_HANDLE cbvHandle(m_SRVHeap->GetGPUDescriptorHandleForHeapStart(), m_FrameIndex, m_SRVDescriptorSize);
+	m_CommandList->SetGraphicsRootDescriptorTable(0, cbvHandle);
+
+	m_CommandList->RSSetViewports(1, &m_Viewport);
+	m_CommandList->RSSetScissorRects(1, &m_ScissorRect);
 
 	// render the triangle
 	m_CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	m_CommandList->IASetVertexBuffers(0, 1, &m_VertexBufferView);
 	m_CommandList->DrawInstanced(3, 1, 0, 0);
+
+	// ImGui Render
+	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_CommandList.Get());
 
 	// Indicate that the back buffer will now be used to present
 	barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_RenderTargets[m_FrameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);

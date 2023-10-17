@@ -108,7 +108,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>src/;$(ProjectDir)/../vendor/DirectX-Headers/include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>src/;vendor/imgui/;vendor/DirectX-Headers/include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -128,7 +128,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>src/;$(ProjectDir)/../vendor/DirectX-Headers/include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>src/;vendor/imgui/;vendor/DirectX-Headers/include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -144,6 +144,13 @@
     <ClCompile Include="src\Application\D3D12Application.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\Windows\Win32Application.cpp" />
+    <ClCompile Include="vendor\imgui\backends\imgui_impl_dx12.cpp" />
+    <ClCompile Include="vendor\imgui\backends\imgui_impl_win32.cpp" />
+    <ClCompile Include="vendor\imgui\imgui.cpp" />
+    <ClCompile Include="vendor\imgui\imgui_demo.cpp" />
+    <ClCompile Include="vendor\imgui\imgui_draw.cpp" />
+    <ClCompile Include="vendor\imgui\imgui_tables.cpp" />
+    <ClCompile Include="vendor\imgui\imgui_widgets.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Application\BaseApplication.h" />
@@ -151,6 +158,14 @@
     <ClInclude Include="src\Core.h" />
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\Windows\Win32Application.h" />
+    <ClInclude Include="vendor\imgui\backends\imgui_impl_dx12.h" />
+    <ClInclude Include="vendor\imgui\backends\imgui_impl_win32.h" />
+    <ClInclude Include="vendor\imgui\imconfig.h" />
+    <ClInclude Include="vendor\imgui\imgui.h" />
+    <ClInclude Include="vendor\imgui\imgui_internal.h" />
+    <ClInclude Include="vendor\imgui\imstb_rectpack.h" />
+    <ClInclude Include="vendor\imgui\imstb_textedit.h" />
+    <ClInclude Include="vendor\imgui\imstb_truetype.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -34,4 +34,6 @@
 #include <wrl.h>
 #include <shellapi.h>
 
+#include <imgui.h>
+
 #include "Core.h"
