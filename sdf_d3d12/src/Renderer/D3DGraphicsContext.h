@@ -7,6 +7,26 @@ using namespace DirectX;
 class D3DGraphicsContext
 {
 public:
+
+	struct FrameResources
+	{
+		ComPtr<ID3D12CommandAllocator> CommandAllocator;
+		UINT64 FenceValue = 0;
+	};
+
+	struct Vertex
+	{
+		XMFLOAT3 position;
+		XMFLOAT4 color;
+	};
+
+	struct ConstantBufferType
+	{
+		XMFLOAT4 colorMultiplier{ 1.0f, 1.0f, 1.0f, 1.0f };
+		float padding[60];
+	};
+
+public:
 	D3DGraphicsContext(HWND window, UINT width, UINT height);
 	~D3DGraphicsContext();
 
@@ -27,6 +47,29 @@ public:
 
 	inline float GetAspectRatio() const { return static_cast<float>(m_ClientWidth) / static_cast<float>(m_ClientHeight); }
 
+	inline static UINT GetBackBufferCount() { return s_FrameCount; }
+	inline DXGI_FORMAT GetBackBufferFormat() const { return m_BackBufferFormat; }
+
+	// For ImGui
+	inline ID3D12DescriptorHeap* GetImGuiDescriptorHeap() const { return m_SRVHeap.Get(); }
+	inline D3D12_CPU_DESCRIPTOR_HANDLE GetImGuiCPUDescriptor() const
+	{
+		return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_SRVHeap->GetCPUDescriptorHandleForHeapStart(), 2, m_SRVDescriptorSize);
+	}
+	inline D3D12_GPU_DESCRIPTOR_HANDLE GetImGuiGPUDescriptor() const
+	{
+		return CD3DX12_GPU_DESCRIPTOR_HANDLE(m_SRVHeap->GetGPUDescriptorHandleForHeapStart(), 2, m_SRVDescriptorSize);
+	}
+
+	// D3D objects
+	inline ID3D12Device* GetDevice() const { return m_Device.Get(); }
+	inline ID3D12GraphicsCommandList* GetCommandList() const { return m_CommandList.Get(); }
+
+
+	// TODO: TEMPORARY CONSTANT BUFFER STUFF
+	inline ConstantBufferType& GetConstantBuffer() { return m_ConstantBufferData; }
+	inline void* GetConstantBufferMappedAddress() const { return m_ConstantBufferMappedAddress + m_FrameIndex * sizeof(m_ConstantBufferData); }
+
 private:
 	// Startup
 	void CreateDevice();
@@ -41,31 +84,12 @@ private:
 	void CreateScissorRect();
 
 	void CreateFence();
-	void LoadImGui() const;
 
 	// Temporary, eventually buffers and their data will be created elsewhere
 	void CreateAssets();
 
 private:
 	static constexpr UINT s_FrameCount = 2;
-
-	struct FrameResources
-	{
-		ComPtr<ID3D12CommandAllocator> CommandAllocator;
-		UINT64 FenceValue = 0;
-	};
-
-	struct Vertex
-	{
-		XMFLOAT3 position;
-		XMFLOAT4 color;
-	};
-
-	struct ConstantBufferType
-	{
-		XMFLOAT4 colorMultiplier{ 1.0f, 1.0f, 1.0f, 1.0f };
-		float padding[60];
-	};
 
 	// Context properties
 	HWND m_WindowHandle;

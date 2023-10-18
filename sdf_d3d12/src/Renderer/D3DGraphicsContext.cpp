@@ -1,8 +1,6 @@
 #include "pch.h"
 #include "D3DGraphicsContext.h"
 
-#include "backends/imgui_impl_dx12.h"
-#include "backends/imgui_impl_win32.h"
 #include "Windows/Win32Application.h"
 
 
@@ -29,8 +27,6 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
 
 	CreateFence();
 
-	LoadImGui();
-
 	CreateAssets();
 
 	// Wait for any GPU work executed on startup to finish before continuing
@@ -42,11 +38,6 @@ D3DGraphicsContext::~D3DGraphicsContext()
 	// Ensure the GPU is no longer references resources that are about
 	// to be cleaned up by the destructor
 	WaitForGPU();
-
-	// Cleanup ImGui
-	ImGui_ImplDX12_Shutdown();
-	ImGui_ImplWin32_Shutdown();
-	ImGui::DestroyContext();
 
 	CloseHandle(m_FenceEvent);
 }
@@ -83,8 +74,6 @@ void D3DGraphicsContext::StartDraw() const
 
 void D3DGraphicsContext::EndDraw() const
 {
-	// ImGui Render
-	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_CommandList.Get());
 
 	// Indicate that the back buffer will now be used to present
 	const auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_RenderTargets[m_FrameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
@@ -96,13 +85,6 @@ void D3DGraphicsContext::EndDraw() const
 	ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
 	m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
-	// For multiple ImGui viewports
-	const ImGuiIO& io = ImGui::GetIO();
-	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-	{
-		ImGui::UpdatePlatformWindows();
-		ImGui::RenderPlatformWindowsDefault(nullptr, m_CommandList.Get());
-	}
 }
 
 void D3DGraphicsContext::PopulateCommandList() const
@@ -323,34 +305,6 @@ void D3DGraphicsContext::CreateFence()
 	{
 		THROW_IF_FAIL(HRESULT_FROM_WIN32(GetLastError()));
 	}
-}
-
-void D3DGraphicsContext::LoadImGui() const
-{
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO();
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
-	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-
-	ImGui::StyleColorsDark();
-
-	ImGuiStyle& style = ImGui::GetStyle();
-	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-	{
-		style.WindowRounding = 0.0f;
-		style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-	}
-
-	// Setup platform and renderer back-ends
-	ImGui_ImplWin32_Init(Win32Application::GetHwnd());
-	// TODO: At the moment, the index of the font descriptor is hard-coded
-	const CD3DX12_CPU_DESCRIPTOR_HANDLE cpuHandle(m_SRVHeap->GetCPUDescriptorHandleForHeapStart(), 2, m_SRVDescriptorSize);
-	const CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(m_SRVHeap->GetGPUDescriptorHandleForHeapStart(), 2, m_SRVDescriptorSize);
-	ImGui_ImplDX12_Init(m_Device.Get(), s_FrameCount, DXGI_FORMAT_R8G8B8A8_UNORM,
-		m_SRVHeap.Get(), cpuHandle, gpuHandle);
 }
 
 void D3DGraphicsContext::CreateAssets()
@@ -585,4 +539,7 @@ void D3DGraphicsContext::CreateAssets()
 	THROW_IF_FAIL(m_CommandList->Close());
 	ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
 	m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
+	// Need to wait as upload heaps may still be in use
+	WaitForGPU();
 }

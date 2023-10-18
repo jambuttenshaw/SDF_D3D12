@@ -147,7 +147,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\Application\BaseApplication.cpp" />
-    <ClCompile Include="src\Application\D3D12Application.cpp" />
+    <ClCompile Include="src\Application\D3DApplication.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\Renderer\D3DGraphicsContext.cpp" />
     <ClCompile Include="src\Windows\Win32Application.cpp" />
@@ -182,7 +182,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Application\BaseApplication.h" />
-    <ClInclude Include="src\Application\D3D12Application.h" />
+    <ClInclude Include="src\Application\D3DApplication.h" />
     <ClInclude Include="src\Core.h" />
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\Renderer\D3DGraphicsContext.h" />
