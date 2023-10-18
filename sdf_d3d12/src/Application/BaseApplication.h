@@ -12,8 +12,13 @@ public:
 	virtual void OnRender() = 0;
 	virtual void OnDestroy() = 0;
 
+	// Input callbacks
 	virtual void OnKeyUp(UINT8 key)		{}
 	virtual void OnKeyDown(UINT8 key)	{}
+
+	// Resize callbacks
+	virtual void Resize(UINT width, UINT height) { m_Width = width; m_Height = height; }
+	virtual void OnResized() {}
 
 	// Getters
 	inline UINT GetWidth() const			{ return m_Width; }

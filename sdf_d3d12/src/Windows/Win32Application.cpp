@@ -92,13 +92,12 @@ LRESULT CALLBACK Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wP
     switch (message)
     {
     case WM_CREATE:
-    {
-        // Save the BaseApplication* passed in to CreateWindow.
-        LPCREATESTRUCT pCreateStruct = reinterpret_cast<LPCREATESTRUCT>(lParam);
-        SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pCreateStruct->lpCreateParams));
-    }
-    return 0;
-
+        {
+            // Save the BaseApplication* passed in to CreateWindow.
+            LPCREATESTRUCT pCreateStruct = reinterpret_cast<LPCREATESTRUCT>(lParam);
+            SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pCreateStruct->lpCreateParams));
+        }
+        return 0;
     case WM_KEYDOWN:
         if (pApp)
         {

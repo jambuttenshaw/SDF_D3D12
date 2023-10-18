@@ -28,8 +28,16 @@ private:
 	void WaitForGPU();
 	void MoveToNextFrame();
 
+	virtual void OnResized() override;
+
 private:
 	static constexpr UINT s_FrameCount = 2;
+
+	struct FrameResources
+	{
+		ComPtr<ID3D12CommandAllocator> CommandAllocator;
+		UINT64 FenceValue = 0;
+	};
 
 	struct Vertex
 	{
@@ -48,8 +56,11 @@ private:
 	ComPtr<ID3D12Device> m_Device;
 	ComPtr<ID3D12Resource> m_RenderTargets[s_FrameCount];
 
-	ComPtr<ID3D12CommandAllocator> m_CommandAllocators[s_FrameCount];
+	ComPtr<ID3D12CommandAllocator> m_DirectCommandAllocator;
 	ComPtr<ID3D12CommandQueue> m_CommandQueue;
+
+	// Frame resources
+	FrameResources m_FrameResources[s_FrameCount];
 
 	ComPtr<ID3D12RootSignature> m_RootSignature;
 	ComPtr<ID3D12DescriptorHeap> m_RTVHeap;
@@ -68,6 +79,10 @@ private:
 	ComPtr<ID3D12Resource> m_VertexBuffer;
 	D3D12_VERTEX_BUFFER_VIEW m_VertexBufferView = {};
 
+	ComPtr<ID3D12Resource> m_IndexBuffer;
+	D3D12_INDEX_BUFFER_VIEW m_IndexBufferView = {};
+
+	// Constant buffer:
 	// The memory on the GPU in which the constant buffer data is kept
 	ComPtr<ID3D12Resource> m_ConstantBuffer;
 	// This is the current constant buffer data that will be copied to the GPU each frame
@@ -81,5 +96,4 @@ private:
 	UINT m_FrameIndex = 0;
 	HANDLE m_FenceEvent;
 	ComPtr<ID3D12Fence> m_Fence;
-	UINT64 m_FenceValues[s_FrameCount] = { 0, 0 };
 };

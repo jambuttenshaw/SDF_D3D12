@@ -119,6 +119,9 @@ void D3D12Application::LoadPipeline()
 		m_SRVDescriptorSize = m_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	}
 
+	// Create command allocator
+	THROW_IF_FAIL(m_Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_DirectCommandAllocator)));
+
 	// Create frame resources
 	{
 		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_RTVHeap->GetCPUDescriptorHandleForHeapStart());
@@ -131,7 +134,7 @@ void D3D12Application::LoadPipeline()
 			rtvHandle.Offset(1, m_RTVDescriptorSize);
 			
 			// Create command allocator
-			THROW_IF_FAIL(m_Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_CommandAllocators[n])));
+			THROW_IF_FAIL(m_Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_FrameResources[n].CommandAllocator)));
 		}
 	}
 
@@ -246,7 +249,7 @@ void D3D12Application::LoadAssets()
 	// Create the command list
 	THROW_IF_FAIL(m_Device->CreateCommandList(0,
 		D3D12_COMMAND_LIST_TYPE_DIRECT,
-		m_CommandAllocators[m_FrameIndex].Get(), nullptr,
+		m_DirectCommandAllocator.Get(), nullptr,
 		IID_PPV_ARGS(&m_CommandList)));
 
 
@@ -288,7 +291,7 @@ void D3D12Application::LoadAssets()
 			IID_PPV_ARGS(&vbUploadHeap)));
 
 		D3D12_SUBRESOURCE_DATA vbData = {};
-		vbData.pData = &triangleVertices[0];
+		vbData.pData = &triangleVertices;
 		vbData.RowPitch = vertexBufferSize;
 		vbData.SlicePitch = vertexBufferSize;
 
@@ -301,6 +304,57 @@ void D3D12Application::LoadAssets()
 		m_VertexBufferView.BufferLocation = m_VertexBuffer->GetGPUVirtualAddress();
 		m_VertexBufferView.StrideInBytes = sizeof(Vertex);
 		m_VertexBufferView.SizeInBytes = vertexBufferSize;
+	}
+
+	// Create the index buffer
+	ComPtr<ID3D12Resource> ibUploadHeap;
+	{
+		// Define indices
+		UINT indices[] = 
+		{
+			0, 1, 2
+		};
+
+		constexpr UINT indexBufferSize = sizeof(indices);
+
+		// Create a buffer (with default heap usage)
+		CD3DX12_HEAP_PROPERTIES defaultHeapProperties(D3D12_HEAP_TYPE_DEFAULT);
+		auto ibDesc = CD3DX12_RESOURCE_DESC::Buffer(indexBufferSize);
+
+		THROW_IF_FAIL(m_Device->CreateCommittedResource(
+			&defaultHeapProperties,
+			D3D12_HEAP_FLAG_NONE,
+			&ibDesc,
+			D3D12_RESOURCE_STATE_COPY_DEST,
+			nullptr,
+			IID_PPV_ARGS(&m_IndexBuffer)));
+
+		// Create an intermediate buffer (with upload heap usage)
+		CD3DX12_HEAP_PROPERTIES uploadHeapProperties(D3D12_HEAP_TYPE_UPLOAD);
+		auto intermediateDesc = CD3DX12_RESOURCE_DESC::Buffer(indexBufferSize);
+
+		THROW_IF_FAIL(m_Device->CreateCommittedResource(
+			&uploadHeapProperties,
+			D3D12_HEAP_FLAG_NONE,
+			&intermediateDesc,
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(&ibUploadHeap)));
+
+		D3D12_SUBRESOURCE_DATA ibData = {};
+		ibData.pData = &indices;
+		ibData.RowPitch = indexBufferSize;
+		ibData.SlicePitch = indexBufferSize;
+
+		UpdateSubresources(m_CommandList.Get(), m_IndexBuffer.Get(), ibUploadHeap.Get(), 0, 0, 1, &ibData);
+
+		const auto resourceBarrier = CD3DX12_RESOURCE_BARRIER::Transition(m_IndexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER);
+		m_CommandList->ResourceBarrier(1, &resourceBarrier);
+
+		// Initialize the index buffer view
+		m_IndexBufferView.BufferLocation = m_IndexBuffer->GetGPUVirtualAddress();
+		m_IndexBufferView.SizeInBytes = indexBufferSize;
+		m_IndexBufferView.Format = DXGI_FORMAT_R32_UINT;
 	}
 
 	// Create the constant buffers
@@ -351,7 +405,7 @@ void D3D12Application::LoadAssets()
 	{
 		THROW_IF_FAIL(m_Device->CreateFence(0,
 			D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence)));
-		m_FenceValues[m_FrameIndex] = 1;
+		m_FrameResources[m_FrameIndex].FenceValue = 1;
 
 		// Create an event handle to use for frame synchronization
 		m_FenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
@@ -373,32 +427,11 @@ void D3D12Application::OnUpdate()
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
-	static bool showDemoWindow = true;
-	ImGui::ShowDemoWindow(&showDemoWindow);
+	ImGui::Begin("Properties");
 
-	static float rIncrement = 0.002f;
-	static float gIncrement = 0.006f;
-	static float bIncrement = 0.009f;
+	ImGui::SliderFloat3("Color multiplier", &m_ConstantBufferData.colorMultiplier.x, 0.0f, 1.0f);
 
-	m_ConstantBufferData.colorMultiplier.x += rIncrement;
-	m_ConstantBufferData.colorMultiplier.y += gIncrement;
-	m_ConstantBufferData.colorMultiplier.z += bIncrement;
-
-	if (m_ConstantBufferData.colorMultiplier.x >= 1.0f || m_ConstantBufferData.colorMultiplier.x <= 0.0f)
-	{
-		m_ConstantBufferData.colorMultiplier.x = m_ConstantBufferData.colorMultiplier.x >= 1.0f ? 1.0f : 0.0f;
-		rIncrement = -rIncrement;
-	}
-	if (m_ConstantBufferData.colorMultiplier.y >= 1.0f || m_ConstantBufferData.colorMultiplier.y <= 0.0f)
-	{
-		m_ConstantBufferData.colorMultiplier.y = m_ConstantBufferData.colorMultiplier.y >= 1.0f ? 1.0f : 0.0f;
-		gIncrement = -gIncrement;
-	}
-	if (m_ConstantBufferData.colorMultiplier.z >= 1.0f || m_ConstantBufferData.colorMultiplier.z <= 0.0f)
-	{
-		m_ConstantBufferData.colorMultiplier.z = m_ConstantBufferData.colorMultiplier.z >= 1.0f ? 1.0f : 0.0f;
-		bIncrement = -bIncrement;
-	}
+	ImGui::End();
 
 	// copy our const buffer data into the const buffer
 	memcpy(m_ConstantBufferMappedAddress + m_FrameIndex * sizeof(m_ConstantBufferData), &m_ConstantBufferData, sizeof(m_ConstantBufferData));
@@ -446,10 +479,10 @@ void D3D12Application::PopulateCommandList() const
 {
 	// Command list allocators can only be reset when the associated
 	// command lists have finished execution on the GPU
-	THROW_IF_FAIL(m_CommandAllocators[m_FrameIndex]->Reset());
+	THROW_IF_FAIL(m_FrameResources[m_FrameIndex].CommandAllocator->Reset());
 
 	// Command lists can (and must) be reset after ExecuteCommandList() is called and before it is repopulated
-	THROW_IF_FAIL(m_CommandList->Reset(m_CommandAllocators[m_FrameIndex].Get(), m_PipelineState.Get()));
+	THROW_IF_FAIL(m_CommandList->Reset(m_FrameResources[m_FrameIndex].CommandAllocator.Get(), m_PipelineState.Get()));
 
 	
 
@@ -482,7 +515,8 @@ void D3D12Application::PopulateCommandList() const
 	// render the triangle
 	m_CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	m_CommandList->IASetVertexBuffers(0, 1, &m_VertexBufferView);
-	m_CommandList->DrawInstanced(3, 1, 0, 0);
+	m_CommandList->IASetIndexBuffer(&m_IndexBufferView);
+	m_CommandList->DrawIndexedInstanced(3, 1, 0, 0, 0);
 
 	// ImGui Render
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_CommandList.Get());
@@ -497,29 +531,72 @@ void D3D12Application::PopulateCommandList() const
 void D3D12Application::WaitForGPU()
 {
 	// Signal and increment the fence
-	THROW_IF_FAIL(m_CommandQueue->Signal(m_Fence.Get(), m_FenceValues[m_FrameIndex]));
+	THROW_IF_FAIL(m_CommandQueue->Signal(m_Fence.Get(), m_FrameResources[m_FrameIndex].FenceValue));
 
-	THROW_IF_FAIL(m_Fence->SetEventOnCompletion(m_FenceValues[m_FrameIndex], m_FenceEvent));
+	THROW_IF_FAIL(m_Fence->SetEventOnCompletion(m_FrameResources[m_FrameIndex].FenceValue, m_FenceEvent));
 	WaitForSingleObject(m_FenceEvent, INFINITE);
 
-	m_FenceValues[m_FrameIndex]++;
+	m_FrameResources[m_FrameIndex].FenceValue++;
 }
 
 void D3D12Application::MoveToNextFrame()
 {
-	const UINT64 currentFenceValue = m_FenceValues[m_FrameIndex];
+	const UINT64 currentFenceValue = m_FrameResources[m_FrameIndex].FenceValue;
 	THROW_IF_FAIL(m_CommandQueue->Signal(m_Fence.Get(), currentFenceValue));
 
 	// Update the frame index
 	m_FrameIndex = m_SwapChain->GetCurrentBackBufferIndex();
 
 	// if the next frame is not ready to be rendered yet, wait until it is ready
-	if (m_Fence->GetCompletedValue() < m_FenceValues[m_FrameIndex])
+	if (m_Fence->GetCompletedValue() < m_FrameResources[m_FrameIndex].FenceValue)
 	{
-		THROW_IF_FAIL(m_Fence->SetEventOnCompletion(m_FenceValues[m_FrameIndex], m_FenceEvent));
+		THROW_IF_FAIL(m_Fence->SetEventOnCompletion(m_FrameResources[m_FrameIndex].FenceValue, m_FenceEvent));
 		WaitForSingleObjectEx(m_FenceEvent, INFINITE, FALSE);
 	}
 
 	// Set the fence value for the next frame
-	m_FenceValues[m_FrameIndex] = currentFenceValue + 1;
+	m_FrameResources[m_FrameIndex].FenceValue = currentFenceValue + 1;
+}
+
+void D3D12Application::OnResized()
+{
+	assert(false && "Not working");
+
+	// Flush all work on GPU as the swap chain will be resized
+	WaitForGPU();
+
+	// Reset command list
+	THROW_IF_FAIL(m_CommandList->Reset(m_DirectCommandAllocator.Get(), nullptr));
+
+	// Release all resources that are about to be recreated
+	for (int n = 0; n < s_FrameCount; n++)
+	{
+		m_RenderTargets[n].Reset();
+	}
+
+	// Resize the swap chain
+	THROW_IF_FAIL(m_SwapChain->ResizeBuffers(s_FrameCount, GetWidth(), GetHeight(), DXGI_FORMAT_R8G8B8A8_UNORM, 0));
+
+	m_FrameIndex = 0;
+
+	// Create render target views
+	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_RTVHeap->GetCPUDescriptorHandleForHeapStart());
+
+	// Create an RTV for each frame
+	for (UINT n = 0; n < s_FrameCount; n++)
+	{
+		THROW_IF_FAIL(m_SwapChain->GetBuffer(n, IID_PPV_ARGS(&m_RenderTargets[n])));
+		m_Device->CreateRenderTargetView(m_RenderTargets[n].Get(), nullptr, rtvHandle);
+		rtvHandle.Offset(1, m_RTVDescriptorSize);
+	}
+
+	// Flush commands
+	THROW_IF_FAIL(m_CommandList->Close());
+	ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
+	m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+	WaitForGPU();
+
+	// Set viewport and scissor
+	m_Viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(GetWidth()), static_cast<float>(GetHeight()));
+	m_ScissorRect = CD3DX12_RECT(0, 0, GetWidth(), GetHeight());
 }
