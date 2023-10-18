@@ -1,7 +1,11 @@
 #include "pch.h"
 #include "D3DGraphicsContext.h"
 
+#include "Memory/D3DMemoryAllocator.h"
 #include "Windows/Win32Application.h"
+
+
+D3DGraphicsContext* g_D3DGraphicsContext = nullptr;
 
 
 D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
@@ -27,6 +31,9 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
 
 	CreateFence();
 
+	m_ImGuiResources = m_SRVHeap->Allocate(1);
+	ASSERT(m_ImGuiResources.IsValid(), "Failed to alloc");
+
 	CreateAssets();
 
 	// Wait for any GPU work executed on startup to finish before continuing
@@ -39,6 +46,13 @@ D3DGraphicsContext::~D3DGraphicsContext()
 	// to be cleaned up by the destructor
 	WaitForGPU();
 
+	// Free allocations
+	m_RTVHeap->Free(m_RTVs);
+	m_SRVHeap->Free(m_ImGuiResources);
+
+	for (UINT n = 0; n < s_FrameCount; n++)
+		ProcessDeferrals(n);
+
 	CloseHandle(m_FenceEvent);
 }
 
@@ -49,6 +63,7 @@ void D3DGraphicsContext::Present()
 	THROW_IF_FAIL(m_SwapChain->Present(1, 0));
 
 	MoveToNextFrame();
+	ProcessDeferrals(m_FrameIndex);
 }
 
 void D3DGraphicsContext::StartDraw() const
@@ -64,12 +79,19 @@ void D3DGraphicsContext::StartDraw() const
 	const auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_RenderTargets[m_FrameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	m_CommandList->ResourceBarrier(1, &barrier);
 
-	const CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_RTVHeap->GetCPUDescriptorHandleForHeapStart(), m_FrameIndex, m_RTVDescriptorSize);
+	const D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_RTVs.GetCPUHandle(m_FrameIndex);
 	m_CommandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
 
 	// Clear render target
 	constexpr float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
 	m_CommandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+
+	m_CommandList->RSSetViewports(1, &m_Viewport);
+	m_CommandList->RSSetScissorRects(1, &m_ScissorRect);
+
+	// Setup descriptor heaps
+	ID3D12DescriptorHeap* ppHeaps[] = { m_SRVHeap->GetHeap() };
+	m_CommandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
 }
 
 void D3DGraphicsContext::EndDraw() const
@@ -84,26 +106,17 @@ void D3DGraphicsContext::EndDraw() const
 	// Execute the command list
 	ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
 	m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
-
 }
 
-void D3DGraphicsContext::PopulateCommandList() const
+void D3DGraphicsContext::PopulateCommandList(D3D12_GPU_DESCRIPTOR_HANDLE cbv) const
 {
 	// These are user commands that draw whatever is desired
 
 	// Set necessary state
 	m_CommandList->SetGraphicsRootSignature(m_RootSignature.Get());
 
-	// Setup descriptor heaps
-	ID3D12DescriptorHeap* ppHeaps[] = { m_SRVHeap.Get() };
-	m_CommandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-
 	// Get gpu virtual address of constant buffer contents to use for rendering
-	const CD3DX12_GPU_DESCRIPTOR_HANDLE cbvHandle(m_SRVHeap->GetGPUDescriptorHandleForHeapStart(), m_FrameIndex, m_SRVDescriptorSize);
-	m_CommandList->SetGraphicsRootDescriptorTable(0, cbvHandle);
-
-	m_CommandList->RSSetViewports(1, &m_Viewport);
-	m_CommandList->RSSetScissorRects(1, &m_ScissorRect);
+	m_CommandList->SetGraphicsRootDescriptorTable(0, cbv);
 
 	// render the triangle
 	m_CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -132,25 +145,6 @@ void D3DGraphicsContext::WaitForGPU()
 	WaitForSingleObject(m_FenceEvent, INFINITE);
 
 	m_FrameResources[m_FrameIndex].FenceValue++;
-}
-
-void D3DGraphicsContext::MoveToNextFrame()
-{
-	const UINT64 currentFenceValue = m_FrameResources[m_FrameIndex].FenceValue;
-	THROW_IF_FAIL(m_CommandQueue->Signal(m_Fence.Get(), currentFenceValue));
-
-	// Update the frame index
-	m_FrameIndex = m_SwapChain->GetCurrentBackBufferIndex();
-
-	// if the next frame is not ready to be rendered yet, wait until it is ready
-	if (m_Fence->GetCompletedValue() < m_FrameResources[m_FrameIndex].FenceValue)
-	{
-		THROW_IF_FAIL(m_Fence->SetEventOnCompletion(m_FrameResources[m_FrameIndex].FenceValue, m_FenceEvent));
-		WaitForSingleObjectEx(m_FenceEvent, INFINITE, FALSE);
-	}
-
-	// Set the fence value for the next frame
-	m_FrameResources[m_FrameIndex].FenceValue = currentFenceValue + 1;
 }
 
 
@@ -194,7 +188,7 @@ void D3DGraphicsContext::CreateDevice()
 		}
 	}
 	// make sure a device was created successfully
-	ASSERT(m_Device);
+	ASSERT(m_Device, "Failed to create any device.");
 }
 
 void D3DGraphicsContext::CreateCommandQueue()
@@ -237,23 +231,8 @@ void D3DGraphicsContext::CreateSwapChain()
 
 void D3DGraphicsContext::CreateDescriptorHeaps()
 {
-	// Describe and create a render target view (RTV) descriptor heap
-	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
-	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-	rtvHeapDesc.NumDescriptors = s_FrameCount;
-	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	THROW_IF_FAIL(m_Device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_RTVHeap)));
-
-	m_RTVDescriptorSize = m_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-
-	// Create a descriptor heap for CBVs, SRVs, and UAVs
-	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
-	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	heapDesc.NumDescriptors = 3;
-	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE; // Descriptor heap will also exist on the GPU
-	THROW_IF_FAIL(m_Device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_SRVHeap)));
-
-	m_SRVDescriptorSize = m_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	m_RTVHeap = std::make_unique<D3DDescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, s_FrameCount, true);
+	m_SRVHeap = std::make_unique<D3DDescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 3, false);
 }
 
 void D3DGraphicsContext::CreateCommandAllocator()
@@ -263,14 +242,14 @@ void D3DGraphicsContext::CreateCommandAllocator()
 
 void D3DGraphicsContext::CreateRenderTargetViews()
 {
-	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_RTVHeap->GetCPUDescriptorHandleForHeapStart());
+	m_RTVs = m_RTVHeap->Allocate(s_FrameCount);
+	ASSERT(m_RTVs.IsValid(), "RTV descriptor alloc failed");
 
 	// Create an RTV for each frame
 	for (UINT n = 0; n < s_FrameCount; n++)
 	{
 		THROW_IF_FAIL(m_SwapChain->GetBuffer(n, IID_PPV_ARGS(&m_RenderTargets[n])));
-		m_Device->CreateRenderTargetView(m_RenderTargets[n].Get(), nullptr, rtvHandle);
-		rtvHandle.Offset(1, m_RTVDescriptorSize);
+		m_Device->CreateRenderTargetView(m_RenderTargets[n].Get(), nullptr, m_RTVs.GetCPUHandle(n));
 	}
 }
 
@@ -496,45 +475,6 @@ void D3DGraphicsContext::CreateAssets()
 		m_IndexBufferView.Format = DXGI_FORMAT_R32_UINT;
 	}
 
-	// Create the constant buffers
-	// One constant buffer is required for each frame, so that it can be read from while the next frame writes the new data
-	{
-		constexpr UINT constantBufferSize = sizeof(ConstantBufferType);
-		static_assert(constantBufferSize % 256 == 0); // must be 256-byte aligned
-
-		// Define heap properties and resource description for the constant buffers
-		CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_UPLOAD);
-		auto bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(static_cast<UINT64>(constantBufferSize * s_FrameCount));
-
-		// Create the buffer
-		THROW_IF_FAIL(m_Device->CreateCommittedResource(
-			&heapProperties,
-			D3D12_HEAP_FLAG_NONE,
-			&bufferDesc,
-			D3D12_RESOURCE_STATE_GENERIC_READ,
-			nullptr,
-			IID_PPV_ARGS(&m_ConstantBuffer)));
-
-		// Create the buffer views
-		for (UINT n = 0; n < s_FrameCount; n++)
-		{
-			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-			cbvDesc.BufferLocation = m_ConstantBuffer->GetGPUVirtualAddress() + constantBufferSize * n;
-			cbvDesc.SizeInBytes = constantBufferSize;
-
-			CD3DX12_CPU_DESCRIPTOR_HANDLE descriptor(m_SRVHeap->GetCPUDescriptorHandleForHeapStart(), n, m_SRVDescriptorSize);
-
-			m_Device->CreateConstantBufferView(&cbvDesc, descriptor);
-		}
-
-		// Map and initialize the constant buffer
-		// This buffer is kept mapped for its entire lifetime
-		CD3DX12_RANGE readRange(0, 0); // We do not intend on reading from this resource on the CPU
-		THROW_IF_FAIL(m_ConstantBuffer->Map(0, &readRange, reinterpret_cast<void**>(&m_ConstantBufferMappedAddress)));
-		for (UINT n = 0; n < s_FrameCount; n++)
-			memcpy(m_ConstantBufferMappedAddress + static_cast<size_t>(n * constantBufferSize), &m_ConstantBufferData, sizeof(m_ConstantBufferData));
-	}
-
 	// Close the command list and execute it to begin the initial GPU setup
 	THROW_IF_FAIL(m_CommandList->Close());
 	ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
@@ -543,3 +483,30 @@ void D3DGraphicsContext::CreateAssets()
 	// Need to wait as upload heaps may still be in use
 	WaitForGPU();
 }
+
+
+void D3DGraphicsContext::MoveToNextFrame()
+{
+	const UINT64 currentFenceValue = m_FrameResources[m_FrameIndex].FenceValue;
+	THROW_IF_FAIL(m_CommandQueue->Signal(m_Fence.Get(), currentFenceValue));
+
+	// Update the frame index
+	m_FrameIndex = m_SwapChain->GetCurrentBackBufferIndex();
+
+	// if the next frame is not ready to be rendered yet, wait until it is ready
+	if (m_Fence->GetCompletedValue() < m_FrameResources[m_FrameIndex].FenceValue)
+	{
+		THROW_IF_FAIL(m_Fence->SetEventOnCompletion(m_FrameResources[m_FrameIndex].FenceValue, m_FenceEvent));
+		WaitForSingleObjectEx(m_FenceEvent, INFINITE, FALSE);
+	}
+
+	// Set the fence value for the next frame
+	m_FrameResources[m_FrameIndex].FenceValue = currentFenceValue + 1;
+}
+
+void D3DGraphicsContext::ProcessDeferrals(UINT frameIndex) const
+{
+	m_RTVHeap->ProcessDeferredFree(frameIndex);
+	m_SRVHeap->ProcessDeferredFree(frameIndex);
+}
+

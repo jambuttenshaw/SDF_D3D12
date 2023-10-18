@@ -31,6 +31,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 #include <wrl.h>
 #include <shellapi.h>
 

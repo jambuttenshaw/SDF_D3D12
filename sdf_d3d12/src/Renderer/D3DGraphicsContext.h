@@ -1,13 +1,17 @@
 #pragma once
 
+#include "Memory/D3DMemoryAllocator.h"
+
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
+
+class D3DGraphicsContext;
+extern D3DGraphicsContext* g_D3DGraphicsContext;
 
 
 class D3DGraphicsContext
 {
-public:
-
+public:            
 	struct FrameResources
 	{
 		ComPtr<ID3D12CommandAllocator> CommandAllocator;
@@ -20,12 +24,6 @@ public:
 		XMFLOAT4 color;
 	};
 
-	struct ConstantBufferType
-	{
-		XMFLOAT4 colorMultiplier{ 1.0f, 1.0f, 1.0f, 1.0f };
-		float padding[60];
-	};
-
 public:
 	D3DGraphicsContext(HWND window, UINT width, UINT height);
 	~D3DGraphicsContext();
@@ -36,11 +34,10 @@ public:
 	void EndDraw() const;
 
 	// Temporary, eventually commands will be submitted by the application
-	void PopulateCommandList() const;
+	void PopulateCommandList(D3D12_GPU_DESCRIPTOR_HANDLE cbv) const;
 
 	void Flush();
 	void WaitForGPU();
-	void MoveToNextFrame();
 
 public:
 	// Getters
@@ -49,26 +46,19 @@ public:
 
 	inline static UINT GetBackBufferCount() { return s_FrameCount; }
 	inline DXGI_FORMAT GetBackBufferFormat() const { return m_BackBufferFormat; }
+	inline UINT GetCurrentBackBuffer() const { return m_FrameIndex; }
+
+	// Descriptor heaps
+	inline D3DDescriptorHeap* GetSRVHeap() const { return m_SRVHeap.get(); }
 
 	// For ImGui
-	inline ID3D12DescriptorHeap* GetImGuiDescriptorHeap() const { return m_SRVHeap.Get(); }
-	inline D3D12_CPU_DESCRIPTOR_HANDLE GetImGuiCPUDescriptor() const
-	{
-		return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_SRVHeap->GetCPUDescriptorHandleForHeapStart(), 2, m_SRVDescriptorSize);
-	}
-	inline D3D12_GPU_DESCRIPTOR_HANDLE GetImGuiGPUDescriptor() const
-	{
-		return CD3DX12_GPU_DESCRIPTOR_HANDLE(m_SRVHeap->GetGPUDescriptorHandleForHeapStart(), 2, m_SRVDescriptorSize);
-	}
+	inline ID3D12DescriptorHeap* GetImGuiResourcesHeap() const { return m_ImGuiResources.GetHeap(); }
+	inline D3D12_CPU_DESCRIPTOR_HANDLE GetImGuiCPUDescriptor() const { return m_ImGuiResources.GetCPUHandle(); }
+	inline D3D12_GPU_DESCRIPTOR_HANDLE GetImGuiGPUDescriptor() const { return m_ImGuiResources.GetGPUHandle(); }
 
 	// D3D objects
 	inline ID3D12Device* GetDevice() const { return m_Device.Get(); }
 	inline ID3D12GraphicsCommandList* GetCommandList() const { return m_CommandList.Get(); }
-
-
-	// TODO: TEMPORARY CONSTANT BUFFER STUFF
-	inline ConstantBufferType& GetConstantBuffer() { return m_ConstantBufferData; }
-	inline void* GetConstantBufferMappedAddress() const { return m_ConstantBufferMappedAddress + m_FrameIndex * sizeof(m_ConstantBufferData); }
 
 private:
 	// Startup
@@ -88,6 +78,10 @@ private:
 	// Temporary, eventually buffers and their data will be created elsewhere
 	void CreateAssets();
 
+
+	void MoveToNextFrame();
+	void ProcessDeferrals(UINT frameIndex) const;
+
 private:
 	static constexpr UINT s_FrameCount = 2;
 
@@ -105,6 +99,7 @@ private:
 
 	ComPtr<IDXGISwapChain3> m_SwapChain;
 	ComPtr<ID3D12Resource> m_RenderTargets[s_FrameCount];
+	D3DDescriptorAllocation m_RTVs;
 
 	ComPtr<ID3D12CommandAllocator> m_DirectCommandAllocator;
 	ComPtr<ID3D12CommandQueue> m_CommandQueue;
@@ -114,10 +109,8 @@ private:
 	FrameResources m_FrameResources[s_FrameCount];
 
 	// Descriptor heaps
-	ComPtr<ID3D12DescriptorHeap> m_RTVHeap;
-	UINT m_RTVDescriptorSize = 0;
-	ComPtr<ID3D12DescriptorHeap> m_SRVHeap;
-	UINT m_SRVDescriptorSize = 0;
+	std::unique_ptr<D3DDescriptorHeap> m_RTVHeap;
+	std::unique_ptr<D3DDescriptorHeap> m_SRVHeap;
 
 	// Synchronization objects
 	UINT m_FrameIndex = 0;
@@ -131,22 +124,13 @@ private:
 	ComPtr<ID3D12RootSignature> m_RootSignature;
 	ComPtr<ID3D12PipelineState> m_PipelineState;
 
+	// ImGui Resources
+	D3DDescriptorAllocation m_ImGuiResources;
+
 	// App resources
 	ComPtr<ID3D12Resource> m_VertexBuffer;
 	D3D12_VERTEX_BUFFER_VIEW m_VertexBufferView = {};
 
 	ComPtr<ID3D12Resource> m_IndexBuffer;
 	D3D12_INDEX_BUFFER_VIEW m_IndexBufferView = {};
-
-	// Constant buffer:
-	// The memory on the GPU in which the constant buffer data is kept
-	ComPtr<ID3D12Resource> m_ConstantBuffer;
-	// This is the current constant buffer data that will be copied to the GPU each frame
-	ConstantBufferType m_ConstantBufferData = {};
-	// This is the GPU virtual address for each constant buffer resource on the GPU
-	UINT8* m_ConstantBufferMappedAddress = nullptr;
-	// Indices into the descriptor heap for the CBV for each frame
-	UINT32 m_CBVs[s_FrameCount] = { 0, 0 };
-
-	inline static D3DGraphicsContext* g_D3DGraphicsContext = nullptr;
 };

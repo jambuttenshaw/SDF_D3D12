@@ -5,6 +5,7 @@
 
 #include "backends/imgui_impl_win32.h"
 #include "backends/imgui_impl_dx12.h"
+#include "Renderer/D3DBuffer.h"
 #include "Renderer/D3DGraphicsContext.h"
 
 
@@ -16,7 +17,9 @@ D3DApplication::D3DApplication(UINT width, UINT height, const std::wstring& name
 void D3DApplication::OnInit()
 {
 	// Create graphics context
-	m_GraphicsContext = std::make_shared<D3DGraphicsContext>(Win32Application::GetHwnd(), GetWidth(), GetHeight());
+	m_GraphicsContext = std::make_unique<D3DGraphicsContext>(Win32Application::GetHwnd(), GetWidth(), GetHeight());
+
+	m_ConstantBuffer = std::make_unique<D3DConstantBuffer>(&m_ConstantBufferData, static_cast<UINT>(sizeof(m_ConstantBufferData)));
 
 	InitImGui();
 }
@@ -30,13 +33,12 @@ void D3DApplication::OnUpdate()
 	
 	ImGui::Begin("Properties");
 
-	D3DGraphicsContext::ConstantBufferType& CB = m_GraphicsContext->GetConstantBuffer();
-	ImGui::SliderFloat3("Color multiplier", &CB.colorMultiplier.x, 0.0f, 1.0f);
+	ImGui::SliderFloat3("Color multiplier", &m_ConstantBufferData.colorMultiplier.x, 0.0f, 1.0f);
 
 	ImGui::End();
 
 	// copy our const buffer data into the const buffer
-	memcpy(m_GraphicsContext->GetConstantBufferMappedAddress(), &CB, sizeof(CB));
+	m_ConstantBuffer->CopyData(&m_ConstantBufferData);
 	
 	ImGui::Render();
 }
@@ -44,7 +46,7 @@ void D3DApplication::OnUpdate()
 void D3DApplication::OnRender()
 {
 	m_GraphicsContext->StartDraw();
-	m_GraphicsContext->PopulateCommandList();
+	m_GraphicsContext->PopulateCommandList(m_ConstantBuffer->GetCBV());
 
 	// ImGui Render
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_GraphicsContext->GetCommandList());
@@ -64,6 +66,9 @@ void D3DApplication::OnRender()
 
 void D3DApplication::OnDestroy()
 {
+	// Release resources used by the graphics context
+	m_ConstantBuffer.reset();
+
 	m_GraphicsContext.reset();
 
 	// Cleanup ImGui
@@ -97,7 +102,7 @@ void D3DApplication::InitImGui() const
 	ImGui_ImplDX12_Init(m_GraphicsContext->GetDevice(),
 		m_GraphicsContext->GetBackBufferCount(),
 		m_GraphicsContext->GetBackBufferFormat(),
-		m_GraphicsContext->GetImGuiDescriptorHeap(),
+		m_GraphicsContext->GetImGuiResourcesHeap(),
 		m_GraphicsContext->GetImGuiCPUDescriptor(),
 		m_GraphicsContext->GetImGuiGPUDescriptor());
 }

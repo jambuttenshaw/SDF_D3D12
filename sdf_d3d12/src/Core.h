@@ -6,7 +6,10 @@
 #ifdef _DEBUG
 
 #define THROW_IF_FAIL(x) if (FAILED(x)) { throw std::exception(); }
-#define ASSERT(x) if (!(x)) { DebugBreak(); }
+
+#define ASSERT(x, msg) if (!(x)) { DebugBreak(); }
+
+#define NOT_IMPLEMENTED ASSERT(false, "Not Implemented")
 
 #else
 
