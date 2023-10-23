@@ -56,6 +56,8 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
 	// Any temporary resources (eg upload heaps) that were created during startup can now be freed
 	// As the gpu will have finished its work
 	m_DeferredReleases.clear();
+
+	LOG_INFO("D3D12 Graphics Context created succesfully.")
 }
 
 D3DGraphicsContext::~D3DGraphicsContext()
@@ -79,7 +81,18 @@ D3DGraphicsContext::~D3DGraphicsContext()
 void D3DGraphicsContext::Present()
 {
 	// TODO: This could fail for a reason, it shouldn't always throw
-	THROW_IF_FAIL(m_SwapChain->Present(1, 0));
+	const HRESULT result = m_SwapChain->Present(1, 0);
+	if (result != S_OK)
+	{
+		if (result == DXGI_ERROR_DEVICE_RESET)
+		{
+			LOG_FATAL("Present failed: Device reset!");
+		}
+		else if (result == DXGI_ERROR_DEVICE_REMOVED)
+		{
+			LOG_FATAL("Present failed: device reset!");
+		}
+	}
 
 	MoveToNextFrame();
 	ProcessDeferrals(m_FrameIndex);
