@@ -5,7 +5,6 @@
 
 #include "backends/imgui_impl_win32.h"
 #include "backends/imgui_impl_dx12.h"
-#include "Renderer/D3DBuffer.h"
 #include "Renderer/D3DGraphicsContext.h"
 
 
@@ -19,8 +18,6 @@ void D3DApplication::OnInit()
 	// Create graphics context
 	m_GraphicsContext = std::make_unique<D3DGraphicsContext>(Win32Application::GetHwnd(), GetWidth(), GetHeight());
 
-	m_ConstantBuffer = std::make_unique<D3DConstantBuffer>(&m_ConstantBufferData, static_cast<UINT>(sizeof(m_ConstantBufferData)));
-
 	InitImGui();
 }
 
@@ -33,20 +30,15 @@ void D3DApplication::OnUpdate()
 	
 	ImGui::Begin("Properties");
 
-	ImGui::SliderFloat3("Color multiplier", &m_ConstantBufferData.colorMultiplier.x, 0.0f, 1.0f);
-
 	ImGui::End();
 
-	// copy our const buffer data into the const buffer
-	m_ConstantBuffer->CopyData(&m_ConstantBufferData);
-	
 	ImGui::Render();
 }
 
 void D3DApplication::OnRender()
 {
 	m_GraphicsContext->StartDraw();
-	m_GraphicsContext->PopulateCommandList(m_ConstantBuffer->GetCBV());
+	m_GraphicsContext->PopulateCommandList();
 
 	// ImGui Render
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_GraphicsContext->GetCommandList());
@@ -67,8 +59,8 @@ void D3DApplication::OnRender()
 void D3DApplication::OnDestroy()
 {
 	// Release resources used by the graphics context
-	m_ConstantBuffer.reset();
 
+	// Release graphics context
 	m_GraphicsContext.reset();
 
 	// Cleanup ImGui

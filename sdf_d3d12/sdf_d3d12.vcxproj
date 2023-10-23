@@ -154,6 +154,7 @@
     </ClCompile>
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\Renderer\D3DBuffer.cpp" />
+    <ClCompile Include="src\Renderer\D3DFrameResources.cpp" />
     <ClCompile Include="src\Renderer\D3DGraphicsContext.cpp" />
     <ClCompile Include="src\Renderer\Memory\D3DMemoryAllocator.cpp" />
     <ClCompile Include="src\Windows\Win32Application.cpp" />
@@ -193,6 +194,7 @@
     <ClInclude Include="src\Core.h" />
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\Renderer\D3DBuffer.h" />
+    <ClInclude Include="src\Renderer\D3DFrameResources.h" />
     <ClInclude Include="src\Renderer\D3DGraphicsContext.h" />
     <ClInclude Include="src\Renderer\Memory\D3DMemoryAllocator.h" />
     <ClInclude Include="src\Windows\Win32Application.h" />

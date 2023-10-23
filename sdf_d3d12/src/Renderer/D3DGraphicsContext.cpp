@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "D3DGraphicsContext.h"
 
+#include "D3DFrameResources.h"
 #include "Memory/D3DMemoryAllocator.h"
 #include "Windows/Win32Application.h"
 
@@ -71,6 +72,12 @@ D3DGraphicsContext::~D3DGraphicsContext()
 	m_DSVHeap->Free(m_DSV);
 	m_SRVHeap->Free(m_ImGuiResources);
 
+	// Free resources that themselves might free more resources
+
+	// Free frame resources
+	for (UINT n = 0; n < s_FrameCount; n++)
+		m_FrameResources[n].reset();
+
 	for (UINT n = 0; n < s_FrameCount; n++)
 		ProcessDeferrals(n);
 
@@ -102,10 +109,10 @@ void D3DGraphicsContext::StartDraw() const
 {
 	// Command list allocators can only be reset when the associated
 	// command lists have finished execution on the GPU
-	THROW_IF_FAIL(m_FrameResources[m_FrameIndex].CommandAllocator->Reset());
+	m_CurrentFrameResources->ResetAllocator();
 
 	// Command lists can (and must) be reset after ExecuteCommandList() is called and before it is repopulated
-	THROW_IF_FAIL(m_CommandList->Reset(m_FrameResources[m_FrameIndex].CommandAllocator.Get(), m_PipelineState.Get()));
+	THROW_IF_FAIL(m_CommandList->Reset(m_CurrentFrameResources->GetCommandAllocator(), m_PipelineState.Get()));
 
 	// Indicate the back buffer will be used as a render target
 	const auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_RenderTargets[m_FrameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -142,7 +149,7 @@ void D3DGraphicsContext::EndDraw() const
 	m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 }
 
-void D3DGraphicsContext::PopulateCommandList(D3D12_GPU_DESCRIPTOR_HANDLE cbv) const
+void D3DGraphicsContext::PopulateCommandList() const
 {
 	// These are user commands that draw whatever is desired
 
@@ -150,7 +157,8 @@ void D3DGraphicsContext::PopulateCommandList(D3D12_GPU_DESCRIPTOR_HANDLE cbv) co
 	m_CommandList->SetGraphicsRootSignature(m_RootSignature.Get());
 
 	// Get gpu virtual address of constant buffer contents to use for rendering
-	m_CommandList->SetGraphicsRootDescriptorTable(0, cbv);
+	m_CommandList->SetGraphicsRootDescriptorTable(0, m_CurrentFrameResources->GetObjectCBV(0));
+	m_CommandList->SetGraphicsRootDescriptorTable(1, m_CurrentFrameResources->GetPassCBV());
 
 	// render the triangle
 	m_CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -161,7 +169,7 @@ void D3DGraphicsContext::PopulateCommandList(D3D12_GPU_DESCRIPTOR_HANDLE cbv) co
 
 
 
-void D3DGraphicsContext::Flush()
+void D3DGraphicsContext::Flush() const
 {
 	THROW_IF_FAIL(m_CommandList->Close());
 	ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
@@ -170,15 +178,15 @@ void D3DGraphicsContext::Flush()
 	WaitForGPU();
 }
 
-void D3DGraphicsContext::WaitForGPU()
+void D3DGraphicsContext::WaitForGPU() const
 {
 	// Signal and increment the fence
-	THROW_IF_FAIL(m_CommandQueue->Signal(m_Fence.Get(), m_FrameResources[m_FrameIndex].FenceValue));
+	THROW_IF_FAIL(m_CommandQueue->Signal(m_Fence.Get(), m_CurrentFrameResources->GetFenceValue()));
 
-	THROW_IF_FAIL(m_Fence->SetEventOnCompletion(m_FrameResources[m_FrameIndex].FenceValue, m_FenceEvent));
+	THROW_IF_FAIL(m_Fence->SetEventOnCompletion(m_CurrentFrameResources->GetFenceValue(), m_FenceEvent));
 	WaitForSingleObject(m_FenceEvent, INFINITE);
 
-	m_FrameResources[m_FrameIndex].FenceValue++;
+	m_CurrentFrameResources->IncrementFence();
 }
 
 
@@ -280,7 +288,12 @@ void D3DGraphicsContext::CreateDescriptorHeaps()
 {
 	m_RTVHeap = std::make_unique<D3DDescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, s_FrameCount, true);
 	m_DSVHeap = std::make_unique<D3DDescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, true);
-	m_SRVHeap = std::make_unique<D3DDescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 3, false);
+
+	// SRV/CBV/UAV heap
+	constexpr UINT CBVCount = s_FrameCount * (1 + 1);	// frame count * (object count + 1)
+	constexpr UINT SRVCount = 1;						// ImGui frame resource
+	constexpr UINT UAVCount = 0;
+	m_SRVHeap = std::make_unique<D3DDescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, CBVCount + SRVCount + UAVCount, false);
 }
 
 void D3DGraphicsContext::CreateCommandAllocator()
@@ -351,11 +364,13 @@ void D3DGraphicsContext::CreateDepthStencilBuffer()
 
 void D3DGraphicsContext::CreateFrameResources()
 {
-	for (UINT n = 0; n < s_FrameCount; n++)
+	m_FrameResources.clear();
+	m_FrameResources.resize(s_FrameCount);
+	for (auto& frameResources : m_FrameResources)
 	{
-		// Create command allocator
-		THROW_IF_FAIL(m_Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_FrameResources[n].CommandAllocator)));
+		frameResources = std::make_unique<D3DFrameResources>();
 	}
+	m_CurrentFrameResources = m_FrameResources[m_FrameIndex].get();
 }
 
 void D3DGraphicsContext::CreateViewport()
@@ -372,7 +387,7 @@ void D3DGraphicsContext::CreateFence()
 {
 	THROW_IF_FAIL(m_Device->CreateFence(0,
 		D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence)));
-	m_FrameResources[m_FrameIndex].FenceValue = 1;
+	m_CurrentFrameResources->IncrementFence();
 
 	// Create an event handle to use for frame synchronization
 	m_FenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
@@ -386,8 +401,7 @@ void D3DGraphicsContext::CreateAssets()
 {
 	// Create root signature
 	{
-		// At the moment, we only need to provide the constant buffer to the pixel shader
-		// Create a root signature consisting of a descriptor table with a single CBV
+		// Create a root signature consisting of two root descriptors for CBVs (per-object and per-pass)
 
 		D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
 		featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
@@ -396,10 +410,12 @@ void D3DGraphicsContext::CreateAssets()
 			featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
 		}
 
-		CD3DX12_DESCRIPTOR_RANGE1 ranges[1];
-		CD3DX12_ROOT_PARAMETER1 rootParameters[1];
-		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC);
+		CD3DX12_DESCRIPTOR_RANGE1 ranges[2];
+		CD3DX12_ROOT_PARAMETER1 rootParameters[2];
+		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// per-object cb
+		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// per-pass cb
 		rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_VERTEX);
+		rootParameters[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_VERTEX);
 
 		// Allow input layout and deny unnecessary access to certain pipeline stages
 		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
@@ -573,21 +589,22 @@ void D3DGraphicsContext::CreateAssets()
 
 void D3DGraphicsContext::MoveToNextFrame()
 {
-	const UINT64 currentFenceValue = m_FrameResources[m_FrameIndex].FenceValue;
+	const UINT64 currentFenceValue = m_CurrentFrameResources->GetFenceValue();
 	THROW_IF_FAIL(m_CommandQueue->Signal(m_Fence.Get(), currentFenceValue));
 
 	// Update the frame index
 	m_FrameIndex = m_SwapChain->GetCurrentBackBufferIndex();
+	m_CurrentFrameResources = m_FrameResources[m_FrameIndex].get();
 
 	// if the next frame is not ready to be rendered yet, wait until it is ready
-	if (m_Fence->GetCompletedValue() < m_FrameResources[m_FrameIndex].FenceValue)
+	if (m_Fence->GetCompletedValue() < m_CurrentFrameResources->GetFenceValue())
 	{
-		THROW_IF_FAIL(m_Fence->SetEventOnCompletion(m_FrameResources[m_FrameIndex].FenceValue, m_FenceEvent));
+		THROW_IF_FAIL(m_Fence->SetEventOnCompletion(m_CurrentFrameResources->GetFenceValue(), m_FenceEvent));
 		WaitForSingleObjectEx(m_FenceEvent, INFINITE, FALSE);
 	}
 
 	// Set the fence value for the next frame
-	m_FrameResources[m_FrameIndex].FenceValue = currentFenceValue + 1;
+	m_CurrentFrameResources->SetFence(currentFenceValue + 1);
 }
 
 void D3DGraphicsContext::ProcessDeferrals(UINT frameIndex) const

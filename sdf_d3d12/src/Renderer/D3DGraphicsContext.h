@@ -2,6 +2,7 @@
 
 #include "Memory/D3DMemoryAllocator.h"
 
+class D3DFrameResources;
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
 
@@ -11,13 +12,7 @@ extern D3DGraphicsContext* g_D3DGraphicsContext;
 
 class D3DGraphicsContext
 {
-public:            
-	struct FrameResources
-	{
-		ComPtr<ID3D12CommandAllocator> CommandAllocator;
-		UINT64 FenceValue = 0;
-	};
-
+public:
 	struct Vertex
 	{
 		XMFLOAT3 position;
@@ -43,10 +38,10 @@ public:
 	void EndDraw() const;
 
 	// Temporary, eventually commands will be submitted by the application
-	void PopulateCommandList(D3D12_GPU_DESCRIPTOR_HANDLE cbv) const;
+	void PopulateCommandList() const;
 
-	void Flush();
-	void WaitForGPU();
+	void Flush() const;
+	void WaitForGPU() const;
 
 public:
 	// Getters
@@ -121,7 +116,8 @@ private:
 	ComPtr<ID3D12GraphicsCommandList> m_CommandList;
 
 	// Frame resources
-	FrameResources m_FrameResources[s_FrameCount];				// Allocators and fence values for each frame
+	std::vector<std::unique_ptr<D3DFrameResources>> m_FrameResources;
+	D3DFrameResources* m_CurrentFrameResources = nullptr;
 
 	// Descriptor heaps
 	std::unique_ptr<D3DDescriptorHeap> m_RTVHeap;

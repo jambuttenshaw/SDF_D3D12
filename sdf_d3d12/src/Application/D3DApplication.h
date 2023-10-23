@@ -4,7 +4,6 @@
 
 // Forward declarations
 class D3DGraphicsContext;
-class D3DConstantBuffer;
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
@@ -12,11 +11,6 @@ using namespace DirectX;
 
 class D3DApplication : public BaseApplication
 {
-	struct ConstantBufferType
-	{
-		XMFLOAT4 colorMultiplier{ 1.0f, 1.0f, 1.0f, 1.0f };
-		float padding[60];
-	};
 public:
 	D3DApplication(UINT width, UINT height, const std::wstring& name);
 	virtual ~D3DApplication() override = default;
@@ -32,7 +26,4 @@ private:
 
 private:
 	std::shared_ptr<D3DGraphicsContext> m_GraphicsContext;
-
-	ConstantBufferType m_ConstantBufferData = {};
-	std::shared_ptr<D3DConstantBuffer> m_ConstantBuffer;
 };

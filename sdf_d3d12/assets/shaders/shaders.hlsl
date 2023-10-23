@@ -1,18 +1,30 @@
-//*********************************************************
-//
-// Copyright (c) Microsoft. All rights reserved.
-// This code is licensed under the MIT License (MIT).
-// THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF
-// ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY
-// IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR
-// PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
-//
-//*********************************************************
 
-cbuffer ConstantBuffer : register(b0)
+cbuffer ObjectCB : register(b0)
 {
-	float4 colorMultiplier;
-	float padding[60];
+	float4x4	gWorldMat;
+};
+
+cbuffer PassCB : register(b1)
+{
+	float4x4	gViewMat;
+	float4x4	gInvView;
+	float4x4	gProj;
+	float4x4	gInvProj;
+	float4x4	gViewProj;
+	float4x4	gInvViewProj;
+	
+	float3		gWorldEyePos;
+	
+	float		gPadding0;
+	
+	float2		gRTSize;
+	float2		gInvRTSize;
+	
+	float		gNearZ;
+	float		gFarZ;
+	
+	float		gTotalTime;
+	float		gDeltaTime;
 };
 
 struct PSInput
@@ -26,7 +38,7 @@ PSInput VSMain(float4 position : POSITION, float4 color : COLOR)
 	PSInput result;
 
 	result.position = position;
-	result.color = color * colorMultiplier;
+	result.color = color;
 
 	return result;
 }
