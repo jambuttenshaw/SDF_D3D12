@@ -28,6 +28,15 @@ public:
 	D3DGraphicsContext(HWND window, UINT width, UINT height);
 	~D3DGraphicsContext();
 
+	// Disable copying
+	D3DGraphicsContext(const D3DGraphicsContext&) = delete;
+	D3DGraphicsContext& operator= (const D3DGraphicsContext&) = delete;
+
+	// Disable moving
+	D3DGraphicsContext(D3DGraphicsContext&&) = delete;
+	D3DGraphicsContext& operator= (D3DGraphicsContext&&) = delete;
+
+
 	void Present();
 
 	void StartDraw() const;

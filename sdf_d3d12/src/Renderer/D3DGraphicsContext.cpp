@@ -15,8 +15,10 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
 	, m_BackBufferFormat(DXGI_FORMAT_R8G8B8A8_UNORM)
 	, m_DepthStencilFormat(DXGI_FORMAT_D24_UNORM_S8_UINT)
 {
-	assert(!g_D3DGraphicsContext && "Cannot initialize a second graphics context!");
+	ASSERT(!g_D3DGraphicsContext, "Cannot initialize a second graphics context!");
 	g_D3DGraphicsContext = this;
+
+	LOG_INFO("Creating D3D12 Graphics Context")
 
 	// Initialize D3D components
 	CreateDevice();
@@ -180,6 +182,8 @@ void D3DGraphicsContext::CreateDevice()
 		debugController->EnableDebugLayer();
 
 		dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
+
+		LOG_INFO("D3D12 Debug Layer Created")
 	}
 #endif
 
@@ -203,11 +207,22 @@ void D3DGraphicsContext::CreateDevice()
 
 		if (SUCCEEDED(D3D12CreateDevice(hardwareAdapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&m_Device))))
 		{
+
+#ifdef _DEBUG
+			std::wstring deviceInfo;
+			deviceInfo += L"Selected device:\n\t";
+			deviceInfo += desc.Description;
+			deviceInfo += L"\n\tAvailable Dedicated Video Memory: ";
+			deviceInfo += std::to_wstring(desc.DedicatedVideoMemory / 1000000000.f);
+			deviceInfo += L" GB";
+			LOG_INFO(deviceInfo.c_str());
+#endif
+
 			break;
 		}
 	}
 	// make sure a device was created successfully
-	ASSERT(m_Device, "Failed to create any device.");
+	ASSERT(m_Device, "Failed to create any device; no hardware device found.");
 }
 
 void D3DGraphicsContext::CreateCommandQueue()
