@@ -1,9 +1,12 @@
 #include "pch.h"
 #include "D3DGraphicsContext.h"
 
-#include "D3DFrameResources.h"
-#include "Memory/D3DMemoryAllocator.h"
 #include "Windows/Win32Application.h"
+
+#include "Memory/D3DMemoryAllocator.h"
+#include "D3DFrameResources.h"
+
+#include "RenderItem.h"
 
 
 D3DGraphicsContext* g_D3DGraphicsContext = nullptr;
@@ -43,6 +46,12 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
 	ASSERT(m_ImGuiResources.IsValid(), "Failed to alloc");
 
 	CreateAssets();
+
+
+	// TODO: temporary
+	// Create a render item
+	m_RenderItems.emplace_back();
+
 
 	// Close the command list and execute it to begin the initial GPU setup
 	// The main loop expects the command list to be closed anyway
@@ -149,24 +158,50 @@ void D3DGraphicsContext::EndDraw() const
 	m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 }
 
-void D3DGraphicsContext::PopulateCommandList() const
+void D3DGraphicsContext::DrawItems() const
 {
 	// These are user commands that draw whatever is desired
 
 	// Set necessary state
 	m_CommandList->SetGraphicsRootSignature(m_RootSignature.Get());
 
-	// Get gpu virtual address of constant buffer contents to use for rendering
-	m_CommandList->SetGraphicsRootDescriptorTable(0, m_CurrentFrameResources->GetObjectCBV(0));
 	m_CommandList->SetGraphicsRootDescriptorTable(1, m_CurrentFrameResources->GetPassCBV());
 
-	// render the triangle
-	m_CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	m_CommandList->IASetVertexBuffers(0, 1, &m_VertexBufferView);
-	m_CommandList->IASetIndexBuffer(&m_IndexBufferView);
-	m_CommandList->DrawIndexedInstanced(3, 1, 0, 0, 0);
+	// Render all items
+	for (const auto& item : m_RenderItems)
+	{
+		m_CommandList->SetGraphicsRootDescriptorTable(0, m_CurrentFrameResources->GetObjectCBV(item.GetObjectIndex()));
+
+		// render the triangle
+		m_CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		m_CommandList->IASetVertexBuffers(0, 1, &m_VertexBufferView);
+		m_CommandList->IASetIndexBuffer(&m_IndexBufferView);
+		m_CommandList->DrawIndexedInstanced(3, 1, 0, 0, 0);
+	}
 }
 
+void D3DGraphicsContext::UpdateObjectCBs() const
+{
+	for (auto renderItem : m_RenderItems)
+	{
+		if (renderItem.IsDirty())
+		{
+			// Copy per-object data into the frame CB
+			ObjectCBType objectCB;
+			objectCB.WorldMat = XMMatrixTranspose(renderItem.GetWorldMatrix());
+
+			m_CurrentFrameResources->CopyObjectData(renderItem.GetObjectIndex(), objectCB);
+
+			renderItem.DecrementDirty();
+		}
+	}
+}
+
+void D3DGraphicsContext::UpdatePassCB() const
+{
+	// Update data in main pass constant buffer
+	m_CurrentFrameResources->CopyPassData(m_MainPassCB);
+}
 
 
 void D3DGraphicsContext::Flush() const
@@ -290,8 +325,8 @@ void D3DGraphicsContext::CreateDescriptorHeaps()
 	m_DSVHeap = std::make_unique<D3DDescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, true);
 
 	// SRV/CBV/UAV heap
-	constexpr UINT CBVCount = s_FrameCount * (1 + 1);	// frame count * (object count + 1)
-	constexpr UINT SRVCount = 1;						// ImGui frame resource
+	constexpr UINT CBVCount = s_FrameCount * (s_MaxObjectCount + 1);	// frame count * (object count + 1)
+	constexpr UINT SRVCount = 1;										// ImGui frame resource
 	constexpr UINT UAVCount = 0;
 	m_SRVHeap = std::make_unique<D3DDescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, CBVCount + SRVCount + UAVCount, false);
 }

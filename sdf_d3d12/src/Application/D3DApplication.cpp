@@ -8,6 +8,7 @@
 #include "Renderer/D3DGraphicsContext.h"
 
 
+
 D3DApplication::D3DApplication(UINT width, UINT height, const std::wstring& name)
 	: BaseApplication(width, height, name)
 {
@@ -37,12 +38,20 @@ void D3DApplication::OnUpdate()
 
 void D3DApplication::OnRender()
 {
+	// Update constant buffers
+	m_GraphicsContext->UpdateObjectCBs();
+	m_GraphicsContext->UpdatePassCB();
+
+	// Begin drawing
 	m_GraphicsContext->StartDraw();
-	m_GraphicsContext->PopulateCommandList();
+
+	// Draw all items
+	m_GraphicsContext->DrawItems();
 
 	// ImGui Render
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_GraphicsContext->GetCommandList());
 
+	// End draw
 	m_GraphicsContext->EndDraw();
 
 	// For multiple ImGui viewports

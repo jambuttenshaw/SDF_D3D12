@@ -1,10 +1,13 @@
 #pragma once
 
 #include "Memory/D3DMemoryAllocator.h"
+#include "D3DCBTypes.h"
 
-class D3DFrameResources;
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
+
+class RenderItem;
+class D3DFrameResources;
 
 class D3DGraphicsContext;
 extern D3DGraphicsContext* g_D3DGraphicsContext;
@@ -38,7 +41,14 @@ public:
 	void EndDraw() const;
 
 	// Temporary, eventually commands will be submitted by the application
-	void PopulateCommandList() const;
+	void DrawItems() const;
+
+	// Render Items
+	inline UINT GetNextObjectIndex() { ASSERT(m_NextRenderItemIndex < s_MaxObjectCount, "Too many render items!"); return m_NextRenderItemIndex++; }
+
+	// Updating constant buffers
+	void UpdateObjectCBs() const;
+	void UpdatePassCB() const;
 
 	void Flush() const;
 	void WaitForGPU() const;
@@ -51,6 +61,8 @@ public:
 	inline static UINT GetBackBufferCount() { return s_FrameCount; }
 	inline DXGI_FORMAT GetBackBufferFormat() const { return m_BackBufferFormat; }
 	inline UINT GetCurrentBackBuffer() const { return m_FrameIndex; }
+
+	inline static UINT GetMaxObjectCount() { return s_MaxObjectCount; }
 
 	// Descriptor heaps
 	inline D3DDescriptorHeap* GetSRVHeap() const { return m_SRVHeap.get(); }
@@ -90,6 +102,7 @@ private:
 
 private:
 	static constexpr UINT s_FrameCount = 2;
+	static constexpr UINT s_MaxObjectCount = 1;
 
 	// Context properties
 	HWND m_WindowHandle;
@@ -119,6 +132,9 @@ private:
 	std::vector<std::unique_ptr<D3DFrameResources>> m_FrameResources;
 	D3DFrameResources* m_CurrentFrameResources = nullptr;
 
+	// Pass CB Data
+	PassCBType m_MainPassCB;
+
 	// Descriptor heaps
 	std::unique_ptr<D3DDescriptorHeap> m_RTVHeap;
 	std::unique_ptr<D3DDescriptorHeap> m_DSVHeap;
@@ -145,6 +161,10 @@ private:
 
 	ComPtr<ID3D12Resource> m_IndexBuffer;
 	D3D12_INDEX_BUFFER_VIEW m_IndexBufferView = {};
+
+	// Render Items
+	UINT m_NextRenderItemIndex = 0;
+	std::vector<RenderItem> m_RenderItems;
 
 	// Temporary
 	// TODO: Implement a robust and re-usable deferred release system

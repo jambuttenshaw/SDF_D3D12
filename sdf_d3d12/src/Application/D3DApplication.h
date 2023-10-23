@@ -2,6 +2,9 @@
 
 #include "BaseApplication.h"
 
+#include "Renderer/RenderItem.h"
+
+
 // Forward declarations
 class D3DGraphicsContext;
 

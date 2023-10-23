@@ -5,30 +5,7 @@ using Microsoft::WRL::ComPtr;
 #include "Memory/D3DMemoryAllocator.h"
 #include "D3DBuffer.h"
 
-
-struct PassCBType
-{
-	XMMATRIX ViewMat;
-	XMMATRIX InvView;
-	XMMATRIX Proj;
-	XMMATRIX InvProj;
-	XMMATRIX ViewProj;
-	XMMATRIX InvViewProj;
-	XMFLOAT3 WorldEyePos;
-	float padding;
-	XMFLOAT2 RTSize;
-	XMFLOAT2 InvRTSize;
-	float NearZ;
-	float FarZ;
-	float TotalTime;
-	float DeltaTime;
-};
-
-
-struct ObjectCBType
-{
-	XMMATRIX WorldMat;
-};
+#include "D3DCBTypes.h"
 
 
 class D3DFrameResources
@@ -44,12 +21,16 @@ public:
 	inline D3D12_GPU_DESCRIPTOR_HANDLE GetPassCBV() const { return m_CBVs.GetGPUHandle(m_PassCBV); }
 	inline D3D12_GPU_DESCRIPTOR_HANDLE GetObjectCBV(UINT objectIndex) const { return m_CBVs.GetGPUHandle(objectIndex); }
 
+	// Reset alloc
+	inline void ResetAllocator() const { THROW_IF_FAIL(m_CommandAllocator->Reset()); }
+
 	// Fence
 	inline void IncrementFence() { m_FenceValue++; }
 	inline void SetFence(UINT64 fence) { m_FenceValue = fence; }
 
-	// Reset alloc
-	inline void ResetAllocator() const { THROW_IF_FAIL(m_CommandAllocator->Reset()); }
+	// Upload new constant buffer data
+	inline void CopyPassData(const PassCBType& passData) const { m_PassCB->CopyData(0, passData); }
+	inline void CopyObjectData(UINT objectIndex, const ObjectCBType& objectData) const { m_ObjectCB->CopyData(objectIndex, objectData); }
 
 private:
 	ComPtr<ID3D12CommandAllocator> m_CommandAllocator;
