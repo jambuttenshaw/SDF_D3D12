@@ -13,6 +13,7 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
 	, m_ClientWidth(width)
 	, m_ClientHeight(height)
 	, m_BackBufferFormat(DXGI_FORMAT_R8G8B8A8_UNORM)
+	, m_DepthStencilFormat(DXGI_FORMAT_D24_UNORM_S8_UINT)
 {
 	assert(!g_D3DGraphicsContext && "Cannot initialize a second graphics context!");
 	g_D3DGraphicsContext = this;
@@ -23,7 +24,11 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
 	CreateSwapChain();
 	CreateDescriptorHeaps();
 	CreateCommandAllocator();
-	CreateRenderTargetViews();
+	CreateCommandList();
+
+	CreateRTVs();
+	CreateDepthStencilBuffer();
+
 	CreateFrameResources();
 
 	CreateViewport();
@@ -36,8 +41,19 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
 
 	CreateAssets();
 
+	// Close the command list and execute it to begin the initial GPU setup
+	// The main loop expects the command list to be closed anyway
+	THROW_IF_FAIL(m_CommandList->Close());
+	ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
+	m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
 	// Wait for any GPU work executed on startup to finish before continuing
 	WaitForGPU();
+
+	// TODO: Implement a robust and re-usable deferred release system
+	// Any temporary resources (eg upload heaps) that were created during startup can now be freed
+	// As the gpu will have finished its work
+	m_DeferredReleases.clear();
 }
 
 D3DGraphicsContext::~D3DGraphicsContext()
@@ -48,6 +64,7 @@ D3DGraphicsContext::~D3DGraphicsContext()
 
 	// Free allocations
 	m_RTVHeap->Free(m_RTVs);
+	m_DSVHeap->Free(m_DSV);
 	m_SRVHeap->Free(m_ImGuiResources);
 
 	for (UINT n = 0; n < s_FrameCount; n++)
@@ -80,11 +97,13 @@ void D3DGraphicsContext::StartDraw() const
 	m_CommandList->ResourceBarrier(1, &barrier);
 
 	const D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_RTVs.GetCPUHandle(m_FrameIndex);
-	m_CommandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
+	const D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = m_DSV.GetCPUHandle();
+	m_CommandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
 
 	// Clear render target
 	constexpr float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
 	m_CommandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+	m_CommandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 	m_CommandList->RSSetViewports(1, &m_Viewport);
 	m_CommandList->RSSetScissorRects(1, &m_ScissorRect);
@@ -207,7 +226,7 @@ void D3DGraphicsContext::CreateSwapChain()
 	swapChainDesc.BufferCount = s_FrameCount;
 	swapChainDesc.Width = m_ClientWidth;
 	swapChainDesc.Height = m_ClientHeight;
-	swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	swapChainDesc.Format = m_BackBufferFormat;
 	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 	swapChainDesc.SampleDesc.Count = 1;
@@ -232,6 +251,7 @@ void D3DGraphicsContext::CreateSwapChain()
 void D3DGraphicsContext::CreateDescriptorHeaps()
 {
 	m_RTVHeap = std::make_unique<D3DDescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, s_FrameCount, true);
+	m_DSVHeap = std::make_unique<D3DDescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, true);
 	m_SRVHeap = std::make_unique<D3DDescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 3, false);
 }
 
@@ -240,7 +260,16 @@ void D3DGraphicsContext::CreateCommandAllocator()
 	THROW_IF_FAIL(m_Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_DirectCommandAllocator)));
 }
 
-void D3DGraphicsContext::CreateRenderTargetViews()
+void D3DGraphicsContext::CreateCommandList()
+{
+	// Create the command list
+	THROW_IF_FAIL(m_Device->CreateCommandList(0,
+		D3D12_COMMAND_LIST_TYPE_DIRECT,
+		m_DirectCommandAllocator.Get(), nullptr,
+		IID_PPV_ARGS(&m_CommandList)));
+}
+
+void D3DGraphicsContext::CreateRTVs()
 {
 	m_RTVs = m_RTVHeap->Allocate(s_FrameCount);
 	ASSERT(m_RTVs.IsValid(), "RTV descriptor alloc failed");
@@ -251,6 +280,45 @@ void D3DGraphicsContext::CreateRenderTargetViews()
 		THROW_IF_FAIL(m_SwapChain->GetBuffer(n, IID_PPV_ARGS(&m_RenderTargets[n])));
 		m_Device->CreateRenderTargetView(m_RenderTargets[n].Get(), nullptr, m_RTVs.GetCPUHandle(n));
 	}
+}
+
+void D3DGraphicsContext::CreateDepthStencilBuffer()
+{
+	D3D12_RESOURCE_DESC desc;
+	desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	desc.Alignment = 0;
+	desc.Width = m_ClientWidth;
+	desc.Height = m_ClientHeight;
+	desc.DepthOrArraySize = 1;
+	desc.MipLevels = 1;
+	desc.Format = m_DepthStencilFormat;
+	desc.SampleDesc.Count = 1;
+	desc.SampleDesc.Quality = 0;
+	desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+	D3D12_CLEAR_VALUE clear;
+	clear.Format = m_DepthStencilFormat;
+	clear.DepthStencil.Depth = 1.0f;
+	clear.DepthStencil.Stencil = 0;
+
+	const CD3DX12_HEAP_PROPERTIES heap(D3D12_HEAP_TYPE_DEFAULT);
+
+	THROW_IF_FAIL(m_Device->CreateCommittedResource(
+		&heap,
+		D3D12_HEAP_FLAG_NONE,
+		&desc,
+		D3D12_RESOURCE_STATE_COMMON,
+		&clear,
+		IID_PPV_ARGS(&m_DepthStencilBuffer)));
+
+	// Resource should be transitioned to be used as a depth stencil buffer
+	const auto transition = CD3DX12_RESOURCE_BARRIER::Transition(m_DepthStencilBuffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+	m_CommandList->ResourceBarrier(1, &transition);
+
+	// Create DSV
+	m_DSV = m_DSVHeap->Allocate(1);
+	m_Device->CreateDepthStencilView(m_DepthStencilBuffer.Get(), nullptr, m_DSV.GetCPUHandle());
 }
 
 void D3DGraphicsContext::CreateFrameResources()
@@ -354,22 +422,15 @@ void D3DGraphicsContext::CreateAssets()
 		psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.Get());
 		psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 		psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-		psoDesc.DepthStencilState.DepthEnable = FALSE;
-		psoDesc.DepthStencilState.StencilEnable = FALSE;
+		psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 		psoDesc.SampleMask = UINT_MAX;
 		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		psoDesc.NumRenderTargets = 1;
-		psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+		psoDesc.RTVFormats[0] = m_BackBufferFormat;
+		psoDesc.DSVFormat = m_DepthStencilFormat;
 		psoDesc.SampleDesc.Count = 1;
 		THROW_IF_FAIL(m_Device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_PipelineState)));
 	}
-
-	// Create the command list
-	THROW_IF_FAIL(m_Device->CreateCommandList(0,
-		D3D12_COMMAND_LIST_TYPE_DIRECT,
-		m_DirectCommandAllocator.Get(), nullptr,
-		IID_PPV_ARGS(&m_CommandList)));
-
 
 	// Create the vertex buffer
 	ComPtr<ID3D12Resource> vbUploadHeap;
@@ -407,6 +468,9 @@ void D3DGraphicsContext::CreateAssets()
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
 			IID_PPV_ARGS(&vbUploadHeap)));
+		// vbUploadHeap must not be released until the GPU has finished its work
+		m_DeferredReleases.push_back(vbUploadHeap);
+
 
 		D3D12_SUBRESOURCE_DATA vbData = {};
 		vbData.pData = &triangleVertices;
@@ -458,6 +522,8 @@ void D3DGraphicsContext::CreateAssets()
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
 			IID_PPV_ARGS(&ibUploadHeap)));
+		// ibUploadHeap must not be released until the GPU has finished its work
+		m_DeferredReleases.push_back(ibUploadHeap);
 
 		D3D12_SUBRESOURCE_DATA ibData = {};
 		ibData.pData = &indices;
@@ -474,14 +540,6 @@ void D3DGraphicsContext::CreateAssets()
 		m_IndexBufferView.SizeInBytes = indexBufferSize;
 		m_IndexBufferView.Format = DXGI_FORMAT_R32_UINT;
 	}
-
-	// Close the command list and execute it to begin the initial GPU setup
-	THROW_IF_FAIL(m_CommandList->Close());
-	ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
-	m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
-
-	// Need to wait as upload heaps may still be in use
-	WaitForGPU();
 }
 
 
@@ -507,6 +565,6 @@ void D3DGraphicsContext::MoveToNextFrame()
 void D3DGraphicsContext::ProcessDeferrals(UINT frameIndex) const
 {
 	m_RTVHeap->ProcessDeferredFree(frameIndex);
+	m_DSVHeap->ProcessDeferredFree(frameIndex);
 	m_SRVHeap->ProcessDeferredFree(frameIndex);
 }
-

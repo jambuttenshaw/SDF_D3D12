@@ -67,7 +67,9 @@ private:
 	void CreateSwapChain();
 	void CreateDescriptorHeaps();
 	void CreateCommandAllocator();
-	void CreateRenderTargetViews();
+	void CreateCommandList();
+	void CreateRTVs();
+	void CreateDepthStencilBuffer();
 	void CreateFrameResources();
 
 	void CreateViewport();
@@ -92,6 +94,7 @@ private:
 
 	// Formats
 	DXGI_FORMAT m_BackBufferFormat;
+	DXGI_FORMAT m_DepthStencilFormat;
 
 	// Pipeline objects
 	ComPtr<IDXGIFactory6> m_Factory;
@@ -101,16 +104,20 @@ private:
 	ComPtr<ID3D12Resource> m_RenderTargets[s_FrameCount];
 	D3DDescriptorAllocation m_RTVs;
 
-	ComPtr<ID3D12CommandAllocator> m_DirectCommandAllocator;
+	ComPtr<ID3D12Resource> m_DepthStencilBuffer;
+	D3DDescriptorAllocation m_DSV;
+
+	ComPtr<ID3D12CommandAllocator> m_DirectCommandAllocator;	// Used for non-frame-specific allocations (startup, resize swap chain, etc)
 	ComPtr<ID3D12CommandQueue> m_CommandQueue;
 	ComPtr<ID3D12GraphicsCommandList> m_CommandList;
 
 	// Frame resources
-	FrameResources m_FrameResources[s_FrameCount];
+	FrameResources m_FrameResources[s_FrameCount];				// Allocators and fence values for each frame
 
 	// Descriptor heaps
 	std::unique_ptr<D3DDescriptorHeap> m_RTVHeap;
-	std::unique_ptr<D3DDescriptorHeap> m_SRVHeap;
+	std::unique_ptr<D3DDescriptorHeap> m_DSVHeap;
+	std::unique_ptr<D3DDescriptorHeap> m_SRVHeap;				// SRV, UAV, and CBV heap (named SRVHeap for brevity)
 
 	// Synchronization objects
 	UINT m_FrameIndex = 0;
@@ -133,4 +140,8 @@ private:
 
 	ComPtr<ID3D12Resource> m_IndexBuffer;
 	D3D12_INDEX_BUFFER_VIEW m_IndexBufferView = {};
+
+	// Temporary
+	// TODO: Implement a robust and re-usable deferred release system
+	std::vector<ComPtr<IUnknown>> m_DeferredReleases;
 };
