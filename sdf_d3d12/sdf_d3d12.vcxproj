@@ -189,7 +189,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\D3DCBTypes.h" />
+    <ClInclude Include="src\Renderer\D3DCBTypes.h" />
     <ClInclude Include="src\Log.h" />
     <ClInclude Include="src\Application\BaseApplication.h" />
     <ClInclude Include="src\Application\D3DApplication.h" />

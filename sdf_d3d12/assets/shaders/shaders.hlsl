@@ -1,12 +1,12 @@
 
 cbuffer ObjectCB : register(b0)
 {
-	float4x4	gWorldMat;
+	float4x4	gWorld;
 };
 
 cbuffer PassCB : register(b1)
 {
-	float4x4	gViewMat;
+	float4x4	gView;
 	float4x4	gInvView;
 	float4x4	gProj;
 	float4x4	gInvProj;
@@ -37,7 +37,8 @@ PSInput VSMain(float4 position : POSITION, float4 color : COLOR)
 {
 	PSInput result;
 
-	result.position = position;
+	float4 worldPosition = mul(position, gWorld);
+	result.position = mul(worldPosition, gViewProj);
 	result.color = color;
 
 	return result;

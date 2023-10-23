@@ -48,7 +48,7 @@ public:
 
 	// Updating constant buffers
 	void UpdateObjectCBs() const;
-	void UpdatePassCB() const;
+	void UpdatePassCB();
 
 	void Flush() const;
 	void WaitForGPU() const;
@@ -93,6 +93,8 @@ private:
 
 	void CreateFence();
 
+	void CreateProjectionMatrix();
+
 	// Temporary, eventually buffers and their data will be created elsewhere
 	void CreateAssets();
 
@@ -102,12 +104,23 @@ private:
 
 private:
 	static constexpr UINT s_FrameCount = 2;
-	static constexpr UINT s_MaxObjectCount = 1;
+	static constexpr UINT s_MaxObjectCount = 2;
 
 	// Context properties
 	HWND m_WindowHandle;
 	UINT m_ClientWidth;
 	UINT m_ClientHeight;
+
+	// Projection properties
+	float m_FOV = 0.25f * XM_PI;
+	float m_NearPlane = 0.1f;
+	float m_FarPlane = 100.0f;
+	XMMATRIX m_ProjectionMatrix;
+
+	// View Info
+	XMFLOAT3 m_EyePos{ 0.0f, 1.0f, -5.0f };
+	XMFLOAT3 m_EyeDirection{ 0.0f, 0.0f, 1.0f };
+	XMFLOAT3 m_EyeUp{ 0.0f, 1.0f, 0.0f };
 
 	// Formats
 	DXGI_FORMAT m_BackBufferFormat;

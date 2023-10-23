@@ -45,12 +45,16 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
 	m_ImGuiResources = m_SRVHeap->Allocate(1);
 	ASSERT(m_ImGuiResources.IsValid(), "Failed to alloc");
 
+	CreateProjectionMatrix();
+
 	CreateAssets();
 
 
 	// TODO: temporary
 	// Create a render item
 	m_RenderItems.emplace_back();
+	m_RenderItems.emplace_back();
+	m_RenderItems.back().SetWorldMatrix(XMMatrixTranslation(1.0f, 0.0f, 0.0f));
 
 
 	// Close the command list and execute it to begin the initial GPU setup
@@ -176,7 +180,7 @@ void D3DGraphicsContext::DrawItems() const
 		m_CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		m_CommandList->IASetVertexBuffers(0, 1, &m_VertexBufferView);
 		m_CommandList->IASetIndexBuffer(&m_IndexBufferView);
-		m_CommandList->DrawIndexedInstanced(3, 1, 0, 0, 0);
+		m_CommandList->DrawIndexedInstanced(36, 1, 0, 0, 0);
 	}
 }
 
@@ -197,9 +201,40 @@ void D3DGraphicsContext::UpdateObjectCBs() const
 	}
 }
 
-void D3DGraphicsContext::UpdatePassCB() const
+void D3DGraphicsContext::UpdatePassCB()
 {
+	// Calculate view matrix
+	const XMVECTOR pos = XMLoadFloat3(&m_EyePos);
+	const XMVECTOR dir = XMLoadFloat3(&m_EyeDirection);
+	const XMVECTOR up = XMLoadFloat3(&m_EyeUp);
+	const XMVECTOR target = XMVectorAdd(pos, dir);
+
+	const XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
+
+	const XMMATRIX viewProj = XMMatrixMultiply(view, m_ProjectionMatrix);
+	const XMMATRIX invView = XMMatrixInverse(nullptr, view);
+	const XMMATRIX invProj = XMMatrixInverse(nullptr, m_ProjectionMatrix);
+	const XMMATRIX invViewProj = XMMatrixInverse(nullptr, viewProj);
+
 	// Update data in main pass constant buffer
+	m_MainPassCB.View = XMMatrixTranspose(view);
+	m_MainPassCB.InvView = XMMatrixTranspose(invView);
+	m_MainPassCB.Proj = XMMatrixTranspose(m_ProjectionMatrix);
+	m_MainPassCB.InvProj = XMMatrixTranspose(invProj);
+	m_MainPassCB.ViewProj = XMMatrixTranspose(viewProj);
+	m_MainPassCB.InvViewProj = XMMatrixTranspose(invViewProj);
+
+	m_MainPassCB.WorldEyePos = m_EyePos;
+
+	m_MainPassCB.RTSize = { static_cast<float>(m_ClientWidth), static_cast<float>(m_ClientHeight) };
+	m_MainPassCB.InvRTSize = { 1.0f / m_MainPassCB.RTSize.x, 1.0f / m_MainPassCB.RTSize.y };
+
+	m_MainPassCB.NearZ = m_NearPlane;
+	m_MainPassCB.FarZ = m_FarPlane;
+
+	m_MainPassCB.TotalTime = 0.0f;
+	m_MainPassCB.DeltaTime = 0.0f;
+
 	m_CurrentFrameResources->CopyPassData(m_MainPassCB);
 }
 
@@ -432,6 +467,12 @@ void D3DGraphicsContext::CreateFence()
 	}
 }
 
+void D3DGraphicsContext::CreateProjectionMatrix()
+{
+	m_ProjectionMatrix = XMMatrixPerspectiveFovLH(m_FOV, GetAspectRatio(), m_NearPlane, m_FarPlane);
+}
+
+
 void D3DGraphicsContext::CreateAssets()
 {
 	// Create root signature
@@ -517,9 +558,14 @@ void D3DGraphicsContext::CreateAssets()
 		// Define the geometry for a triangle.
 		Vertex triangleVertices[] =
 		{
-			{ { 0.0f, 0.25f * GetAspectRatio(), 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}},
-			{ { 0.25f, -0.25f * GetAspectRatio(), 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
-			{ { -0.25f, -0.25f * GetAspectRatio(), 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } }
+			{ { -0.25f,  0.25f, -0.25f }, {1.0f, 0.0f, 0.0f, 1.0f}},
+			{ { -0.25f, -0.25f, -0.25f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
+			{ {  0.25f, -0.25f, -0.25f }, { 0.0f, 0.0f, 1.0f, 1.0f } },
+			{ {  0.25f,  0.25f, -0.25f }, { 1.0f, 1.0f, 1.0f, 1.0f } },
+			{ { -0.25f,  0.25f,  0.25f }, {1.0f, 0.0f, 0.0f, 1.0f}},
+			{ { -0.25f, -0.25f,  0.25f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
+			{ {  0.25f, -0.25f,  0.25f }, { 0.0f, 0.0f, 1.0f, 1.0f } },
+			{ {  0.25f,  0.25f,  0.25f }, { 1.0f, 1.0f, 1.0f, 1.0f } }
 		};
 
 		constexpr UINT vertexBufferSize = sizeof(triangleVertices);
@@ -573,7 +619,18 @@ void D3DGraphicsContext::CreateAssets()
 		// Define indices
 		UINT indices[] =
 		{
-			0, 1, 2
+			0, 2, 1,	// Front face
+			0, 3, 2,
+			7, 5, 6,	// Back face
+			7, 5, 4,
+			4, 1, 5,	// Left face
+			4, 0, 1,
+			3, 6, 2,	// Right face
+			3, 7, 6,
+			4, 3, 0,	// Top face
+			4, 7, 3,
+			1, 6, 5,	// Bottom face
+			1, 2, 6,
 		};
 
 		constexpr UINT indexBufferSize = sizeof(indices);

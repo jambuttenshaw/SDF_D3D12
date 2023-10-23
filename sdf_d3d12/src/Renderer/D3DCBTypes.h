@@ -5,7 +5,7 @@ using namespace DirectX;
 
 struct PassCBType
 {
-	XMMATRIX ViewMat;
+	XMMATRIX View;
 	XMMATRIX InvView;
 	XMMATRIX Proj;
 	XMMATRIX InvProj;
