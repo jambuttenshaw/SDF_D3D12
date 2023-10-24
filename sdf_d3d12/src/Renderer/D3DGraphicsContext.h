@@ -43,11 +43,12 @@ public:
 	void StartDraw() const;
 	void EndDraw() const;
 
-	// Temporary, eventually commands will be submitted by the application
 	void DrawItems() const;
 
 	// Render Items
+
 	inline UINT GetNextObjectIndex() { ASSERT(m_NextRenderItemIndex < s_MaxObjectCount, "Too many render items!"); return m_NextRenderItemIndex++; }
+	RenderItem* CreateRenderItem();
 
 	// Updating constant buffers
 	void UpdateObjectCBs() const;

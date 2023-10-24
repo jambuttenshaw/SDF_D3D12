@@ -57,14 +57,6 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
 	ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
 	m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
-	// Do more CPU setup while the GPU is setting up our resources
-
-	// TODO: temporary
-	// Create a render item
-	m_RenderItems.emplace_back();
-	m_RenderItems.emplace_back();
-	m_RenderItems.back().SetWorldMatrix(XMMatrixTranslation(1.0f, 0.0f, 0.0f));
-
 	// Wait for any GPU work executed on startup to finish before continuing
 	WaitForGPU();
 
@@ -166,8 +158,6 @@ void D3DGraphicsContext::EndDraw() const
 
 void D3DGraphicsContext::DrawItems() const
 {
-	// These are user commands that draw whatever is desired
-
 	// Set necessary state
 	m_CommandList->SetGraphicsRootSignature(m_RootSignature.Get());
 
@@ -185,6 +175,12 @@ void D3DGraphicsContext::DrawItems() const
 		m_CommandList->DrawIndexedInstanced(36, 1, 0, 0, 0);
 	}
 }
+
+RenderItem* D3DGraphicsContext::CreateRenderItem()
+{
+	return &m_RenderItems.emplace_back();
+}
+
 
 void D3DGraphicsContext::UpdateObjectCBs() const
 {
@@ -602,13 +598,13 @@ void D3DGraphicsContext::CreateAssets()
 		// Define the geometry for a triangle.
 		Vertex triangleVertices[] =
 		{
-			{ { -0.25f,  0.25f, -0.25f }, {1.0f, 0.0f, 0.0f, 1.0f}},
-			{ { -0.25f, -0.25f, -0.25f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
-			{ {  0.25f, -0.25f, -0.25f }, { 0.0f, 0.0f, 1.0f, 1.0f } },
-			{ {  0.25f,  0.25f, -0.25f }, { 1.0f, 1.0f, 1.0f, 1.0f } },
-			{ { -0.25f,  0.25f,  0.25f }, {1.0f, 0.0f, 0.0f, 1.0f}},
-			{ { -0.25f, -0.25f,  0.25f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
-			{ {  0.25f, -0.25f,  0.25f }, { 0.0f, 0.0f, 1.0f, 1.0f } },
+			{ { -0.25f,  0.25f, -0.25f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
+			{ { -0.25f, -0.25f, -0.25f }, { 0.0f, 0.0f, 0.0f, 1.0f } },
+			{ {  0.25f, -0.25f, -0.25f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
+			{ {  0.25f,  0.25f, -0.25f }, { 1.0f, 1.0f, 0.0f, 1.0f } },
+			{ { -0.25f,  0.25f,  0.25f }, { 0.0f, 1.0f, 1.0f, 1.0f } },
+			{ { -0.25f, -0.25f,  0.25f }, { 0.0f, 0.0f, 1.0f, 1.0f } },
+			{ {  0.25f, -0.25f,  0.25f }, { 1.0f, 0.0f, 1.0f, 1.0f } },
 			{ {  0.25f,  0.25f,  0.25f }, { 1.0f, 1.0f, 1.0f, 1.0f } }
 		};
 
@@ -666,7 +662,7 @@ void D3DGraphicsContext::CreateAssets()
 			0, 2, 1,	// Front face
 			0, 3, 2,
 			7, 5, 6,	// Back face
-			7, 5, 4,
+			7, 4, 5,
 			4, 1, 5,	// Left face
 			4, 0, 1,
 			3, 6, 2,	// Right face

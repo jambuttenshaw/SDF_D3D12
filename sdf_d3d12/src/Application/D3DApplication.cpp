@@ -6,6 +6,7 @@
 #include "backends/imgui_impl_win32.h"
 #include "backends/imgui_impl_dx12.h"
 #include "Renderer/D3DGraphicsContext.h"
+#include "Renderer/RenderItem.h"
 
 
 D3DApplication::D3DApplication(UINT width, UINT height, const std::wstring& name)
@@ -21,13 +22,20 @@ void D3DApplication::OnInit()
 	InitImGui();
 
 	m_Camera.SetPosition({ 0.0f, 0.0f, -5.0f });
-
 	m_Timer.Reset();
+
+	m_Cube = m_GraphicsContext->CreateRenderItem();
+	ASSERT(m_Cube, "Failed to create cube");
 }
 
 void D3DApplication::OnUpdate()
 {
 	float deltaTime = m_Timer.Tick();
+
+	// Update objects
+	m_CubeRotation += deltaTime;
+	XMMATRIX m = XMMatrixRotationAxis({ 0.77f, 0.77f, 0.0 }, m_CubeRotation);
+	m_Cube->SetWorldMatrix(m);
 
 	// Begin new ImGui frame
 	ImGui_ImplDX12_NewFrame();

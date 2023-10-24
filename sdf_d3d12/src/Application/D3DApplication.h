@@ -8,6 +8,7 @@
 
 // Forward declarations
 class D3DGraphicsContext;
+class RenderItem;
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
@@ -36,4 +37,6 @@ private:
 	GameTimer m_Timer;
 	Camera m_Camera;
 
+	RenderItem* m_Cube = nullptr;
+	float m_CubeRotation = 0.0f;
 };

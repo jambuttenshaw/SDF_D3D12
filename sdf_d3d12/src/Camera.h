@@ -51,8 +51,10 @@ private:
 			const XMFLOAT3 dirF3{ sinY * cosP, sinP, cosY * cosP};
 			const XMVECTOR direction = XMVector3Normalize(XMLoadFloat3(&dirF3));
 
-			const XMFLOAT3 upF3{ -sinY * sinP, cosP, -sinY * sinP };
+			constexpr XMFLOAT3 upF3{ 0.0f, 1.0f, 0.0f };
 			const XMVECTOR up = XMVector3Normalize(XMLoadFloat3(&upF3));
+			if (XMVector3Equal(up, direction))
+				XMVectorSwizzle(up, 0, 2, 1, 3);
 
 			const XMVECTOR target = pos + direction;
 
