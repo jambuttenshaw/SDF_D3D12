@@ -17,8 +17,7 @@ public:
 	virtual void OnKeyDown(UINT8 key)	{}
 
 	// Resize callbacks
-	virtual void Resize(UINT width, UINT height) { m_Width = width; m_Height = height; }
-	virtual void OnResized() {}
+	void Resize(UINT width, UINT height) { m_Width = width; m_Height = height; OnResized(); }
 
 	// Getters
 	inline UINT GetWidth() const			{ return m_Width; }
@@ -28,6 +27,9 @@ public:
 	virtual void ParseCommandLineArgs(WCHAR* argv[], int argc) {}
 
 protected:
+	// Callback event to be implemented by client applications
+	virtual void OnResized() {}
+
 	void SetCustomWindowText(LPCWSTR text) const;
 
 protected:

@@ -111,7 +111,12 @@ LRESULT CALLBACK Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wP
             pApp->OnKeyUp(static_cast<UINT8>(wParam));
         }
         return 0;
-
+    case WM_SIZE:
+        if (pApp)
+        {
+            pApp->Resize(LOWORD(lParam), HIWORD(lParam));
+        }
+        return 0;
     case WM_PAINT:
         if (pApp)
         {
@@ -119,7 +124,6 @@ LRESULT CALLBACK Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wP
             pApp->OnRender();
         }
         return 0;
-
     case WM_DESTROY:
         PostQuitMessage(0);
         return 0;

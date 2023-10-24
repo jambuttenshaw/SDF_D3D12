@@ -2,7 +2,8 @@
 
 #include "BaseApplication.h"
 
-#include "Renderer/RenderItem.h"
+#include "Camera.h"
+#include "GameTimer.h"
 
 
 // Forward declarations
@@ -23,10 +24,16 @@ public:
 	virtual void OnRender() override;
 	virtual void OnDestroy() override;
 
+	virtual void OnResized() override;
+
 private:
 
 	void InitImGui() const;
 
 private:
 	std::shared_ptr<D3DGraphicsContext> m_GraphicsContext;
+
+	GameTimer m_Timer;
+	Camera m_Camera;
+
 };

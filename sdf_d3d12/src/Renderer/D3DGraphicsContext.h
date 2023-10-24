@@ -7,6 +7,9 @@ using Microsoft::WRL::ComPtr;
 using namespace DirectX;
 
 class RenderItem;
+class GameTimer;
+class Camera;
+
 class D3DFrameResources;
 
 class D3DGraphicsContext;
@@ -48,7 +51,7 @@ public:
 
 	// Updating constant buffers
 	void UpdateObjectCBs() const;
-	void UpdatePassCB();
+	void UpdatePassCB(GameTimer* timer, Camera* camera);
 
 	void Flush() const;
 	void WaitForGPU() const;
@@ -116,11 +119,6 @@ private:
 	float m_NearPlane = 0.1f;
 	float m_FarPlane = 100.0f;
 	XMMATRIX m_ProjectionMatrix;
-
-	// View Info
-	XMFLOAT3 m_EyePos{ 0.0f, 1.0f, -5.0f };
-	XMFLOAT3 m_EyeDirection{ 0.0f, 0.0f, 1.0f };
-	XMFLOAT3 m_EyeUp{ 0.0f, 1.0f, 0.0f };
 
 	// Formats
 	DXGI_FORMAT m_BackBufferFormat;

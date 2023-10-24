@@ -20,16 +20,47 @@ void D3DApplication::OnInit()
 	m_GraphicsContext = std::make_unique<D3DGraphicsContext>(Win32Application::GetHwnd(), GetWidth(), GetHeight());
 
 	InitImGui();
+
+	m_Camera.SetPosition({ 0.0f, 0.0f, -5.0f });
+
+	m_Timer.Reset();
 }
 
 void D3DApplication::OnUpdate()
 {
+	float deltaTime = m_Timer.Tick();
+
 	// Begin new ImGui frame
 	ImGui_ImplDX12_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
-	
+
 	ImGui::Begin("Properties");
+	ImGui::Separator();
+
+
+	{
+		ImGui::Text("Timer");
+		ImGui::LabelText("Time", "%.2f", m_Timer.GetTimeSinceReset());
+		ImGui::LabelText("FPS", "%.1f", m_Timer.GetFPS());
+		ImGui::Separator();
+	}
+
+	{
+		ImGui::Text("Camera");
+		auto camPos = m_Camera.GetPosition();
+		auto camYaw = m_Camera.GetYaw();
+		auto camPitch = m_Camera.GetPitch();
+
+		if (ImGui::DragFloat3("Position:", &camPos.x, 0.01f))
+			m_Camera.SetPosition(camPos);
+		if (ImGui::SliderAngle("Yaw:", &camYaw, -180.0f, 180.0f))
+			m_Camera.SetYaw(camYaw);
+		if (ImGui::SliderAngle("Pitch:", &camPitch, -89.9f, 89.9f))
+			m_Camera.SetPitch(camPitch);
+
+		ImGui::Separator();
+	}
 
 	ImGui::End();
 
@@ -40,7 +71,7 @@ void D3DApplication::OnRender()
 {
 	// Update constant buffers
 	m_GraphicsContext->UpdateObjectCBs();
-	m_GraphicsContext->UpdatePassCB();
+	m_GraphicsContext->UpdatePassCB(&m_Timer, &m_Camera);
 
 	// Begin drawing
 	m_GraphicsContext->StartDraw();
@@ -106,5 +137,11 @@ void D3DApplication::InitImGui() const
 		m_GraphicsContext->GetImGuiResourcesHeap(),
 		m_GraphicsContext->GetImGuiCPUDescriptor(),
 		m_GraphicsContext->GetImGuiGPUDescriptor());
+}
+
+
+void D3DApplication::OnResized()
+{
+
 }
 

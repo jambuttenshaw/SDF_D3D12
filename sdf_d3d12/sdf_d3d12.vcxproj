@@ -148,6 +148,7 @@
   <ItemGroup>
     <ClCompile Include="src\Application\BaseApplication.cpp" />
     <ClCompile Include="src\Application\D3DApplication.cpp" />
+    <ClCompile Include="src\GameTimer.cpp" />
     <ClCompile Include="src\Log.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
@@ -189,6 +190,8 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Camera.h" />
+    <ClInclude Include="src\GameTimer.h" />
     <ClInclude Include="src\Renderer\D3DCBTypes.h" />
     <ClInclude Include="src\Log.h" />
     <ClInclude Include="src\Application\BaseApplication.h" />

@@ -7,6 +7,8 @@
 #include "D3DFrameResources.h"
 
 #include "RenderItem.h"
+#include "GameTimer.h"
+#include "Camera.h"
 
 
 D3DGraphicsContext* g_D3DGraphicsContext = nullptr;
@@ -49,19 +51,19 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
 
 	CreateAssets();
 
+	// Close the command list and execute it to begin the initial GPU setup
+	// The main loop expects the command list to be closed anyway
+	THROW_IF_FAIL(m_CommandList->Close());
+	ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
+	m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
+	// Do more CPU setup while the GPU is setting up our resources
 
 	// TODO: temporary
 	// Create a render item
 	m_RenderItems.emplace_back();
 	m_RenderItems.emplace_back();
 	m_RenderItems.back().SetWorldMatrix(XMMatrixTranslation(1.0f, 0.0f, 0.0f));
-
-
-	// Close the command list and execute it to begin the initial GPU setup
-	// The main loop expects the command list to be closed anyway
-	THROW_IF_FAIL(m_CommandList->Close());
-	ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
-	m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
 	// Wait for any GPU work executed on startup to finish before continuing
 	WaitForGPU();
@@ -201,15 +203,12 @@ void D3DGraphicsContext::UpdateObjectCBs() const
 	}
 }
 
-void D3DGraphicsContext::UpdatePassCB()
+void D3DGraphicsContext::UpdatePassCB(GameTimer* timer, Camera* camera)
 {
+	ASSERT(timer, "Must use a valid timer!");
+	ASSERT(camera, "Must use a valid camera!");
 	// Calculate view matrix
-	const XMVECTOR pos = XMLoadFloat3(&m_EyePos);
-	const XMVECTOR dir = XMLoadFloat3(&m_EyeDirection);
-	const XMVECTOR up = XMLoadFloat3(&m_EyeUp);
-	const XMVECTOR target = XMVectorAdd(pos, dir);
-
-	const XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
+	const XMMATRIX view = camera->GetViewMatrix();
 
 	const XMMATRIX viewProj = XMMatrixMultiply(view, m_ProjectionMatrix);
 	const XMMATRIX invView = XMMatrixInverse(nullptr, view);
@@ -224,7 +223,7 @@ void D3DGraphicsContext::UpdatePassCB()
 	m_MainPassCB.ViewProj = XMMatrixTranspose(viewProj);
 	m_MainPassCB.InvViewProj = XMMatrixTranspose(invViewProj);
 
-	m_MainPassCB.WorldEyePos = m_EyePos;
+	m_MainPassCB.WorldEyePos = camera->GetPosition();
 
 	m_MainPassCB.RTSize = { static_cast<float>(m_ClientWidth), static_cast<float>(m_ClientHeight) };
 	m_MainPassCB.InvRTSize = { 1.0f / m_MainPassCB.RTSize.x, 1.0f / m_MainPassCB.RTSize.y };
@@ -232,8 +231,8 @@ void D3DGraphicsContext::UpdatePassCB()
 	m_MainPassCB.NearZ = m_NearPlane;
 	m_MainPassCB.FarZ = m_FarPlane;
 
-	m_MainPassCB.TotalTime = 0.0f;
-	m_MainPassCB.DeltaTime = 0.0f;
+	m_MainPassCB.TotalTime = timer->GetTimeSinceReset();
+	m_MainPassCB.DeltaTime = timer->GetDeltaTime();
 
 	m_CurrentFrameResources->CopyPassData(m_MainPassCB);
 }
