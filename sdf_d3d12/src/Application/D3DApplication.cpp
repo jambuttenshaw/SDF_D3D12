@@ -5,8 +5,7 @@
 
 #include "backends/imgui_impl_win32.h"
 #include "backends/imgui_impl_dx12.h"
-#include "Renderer/D3DGraphicsContext.h"
-#include "Renderer/RenderItem.h"
+#include "Framework/RenderItem.h"
 
 
 D3DApplication::D3DApplication(UINT width, UINT height, const std::wstring& name)
@@ -16,6 +15,9 @@ D3DApplication::D3DApplication(UINT width, UINT height, const std::wstring& name
 
 void D3DApplication::OnInit()
 {
+	// Create input manager
+	m_InputManager = std::make_unique<InputManager>();
+
 	// Create graphics context
 	m_GraphicsContext = std::make_unique<D3DGraphicsContext>(Win32Application::GetHwnd(), GetWidth(), GetHeight());
 
@@ -24,6 +26,8 @@ void D3DApplication::OnInit()
 	m_Camera.SetPosition({ 0.0f, 0.0f, -5.0f });
 	m_Timer.Reset();
 
+	m_CameraController = CameraController{ m_InputManager.get(), &m_Camera };
+
 	m_Cube = m_GraphicsContext->CreateRenderItem();
 	ASSERT(m_Cube, "Failed to create cube");
 }
@@ -31,6 +35,9 @@ void D3DApplication::OnInit()
 void D3DApplication::OnUpdate()
 {
 	float deltaTime = m_Timer.Tick();
+
+	// Update camera
+	m_CameraController.Update(deltaTime);
 
 	// Update objects
 	m_CubeRotation += deltaTime;
@@ -152,4 +159,14 @@ void D3DApplication::InitImGui() const
 void D3DApplication::OnResized()
 {
 	m_GraphicsContext->Resize(m_Width, m_Height);
+}
+
+void D3DApplication::OnKeyDown(UINT8 key)
+{
+	m_InputManager->SetKeyDown(KeyCode{ key });
+}
+
+void D3DApplication::OnKeyUp(UINT8 key)
+{
+	m_InputManager->SetKeyUp(KeyCode{ key });
 }

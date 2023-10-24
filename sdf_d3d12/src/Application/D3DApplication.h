@@ -2,12 +2,14 @@
 
 #include "BaseApplication.h"
 
-#include "Camera.h"
-#include "GameTimer.h"
+#include "Input/InputManager.h"
+#include "Renderer/D3DGraphicsContext.h"
+#include "Framework/Camera.h"
+#include "Framework/CameraController.h"
+#include "Framework/GameTimer.h"
 
 
 // Forward declarations
-class D3DGraphicsContext;
 class RenderItem;
 
 using Microsoft::WRL::ComPtr;
@@ -27,15 +29,21 @@ public:
 
 	virtual void OnResized() override;
 
+	// Input callbacks
+	virtual void OnKeyDown(UINT8 key) override;
+	virtual void OnKeyUp(UINT8 key) override;
+
 private:
 
 	void InitImGui() const;
 
 private:
-	std::shared_ptr<D3DGraphicsContext> m_GraphicsContext;
+	std::unique_ptr<InputManager> m_InputManager;
+	std::unique_ptr<D3DGraphicsContext> m_GraphicsContext;
 
 	GameTimer m_Timer;
 	Camera m_Camera;
+	CameraController m_CameraController;
 
 	RenderItem* m_Cube = nullptr;
 	float m_CubeRotation = 0.0f;

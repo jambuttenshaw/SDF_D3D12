@@ -148,16 +148,19 @@
   <ItemGroup>
     <ClCompile Include="src\Application\BaseApplication.cpp" />
     <ClCompile Include="src\Application\D3DApplication.cpp" />
-    <ClCompile Include="src\GameTimer.cpp" />
-    <ClCompile Include="src\Log.cpp">
+    <ClCompile Include="src\Framework\Camera.cpp" />
+    <ClCompile Include="src\Framework\CameraController.cpp" />
+    <ClCompile Include="src\Framework\GameTimer.cpp" />
+    <ClCompile Include="src\Framework\Log.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\Input\InputManager.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\Renderer\D3DBuffer.cpp" />
     <ClCompile Include="src\Renderer\D3DFrameResources.cpp" />
     <ClCompile Include="src\Renderer\D3DGraphicsContext.cpp" />
-    <ClCompile Include="src\Renderer\RenderItem.cpp" />
+    <ClCompile Include="src\Framework\RenderItem.cpp" />
     <ClCompile Include="src\Renderer\Memory\D3DMemoryAllocator.cpp" />
     <ClCompile Include="src\Windows\Win32Application.cpp" />
     <ClCompile Include="vendor\imgui\backends\imgui_impl_dx12.cpp">
@@ -190,10 +193,13 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Camera.h" />
-    <ClInclude Include="src\GameTimer.h" />
+    <ClInclude Include="src\Framework\Camera.h" />
+    <ClInclude Include="src\Framework\CameraController.h" />
+    <ClInclude Include="src\Framework\GameTimer.h" />
+    <ClInclude Include="src\Input\InputManager.h" />
+    <ClInclude Include="src\Input\KeyCodes.h" />
     <ClInclude Include="src\Renderer\D3DCBTypes.h" />
-    <ClInclude Include="src\Log.h" />
+    <ClInclude Include="src\Framework\Log.h" />
     <ClInclude Include="src\Application\BaseApplication.h" />
     <ClInclude Include="src\Application\D3DApplication.h" />
     <ClInclude Include="src\Core.h" />
@@ -202,7 +208,7 @@
     <ClInclude Include="src\Renderer\D3DFrameResources.h" />
     <ClInclude Include="src\Renderer\D3DGraphicsContext.h" />
     <ClInclude Include="src\Renderer\Memory\D3DMemoryAllocator.h" />
-    <ClInclude Include="src\Renderer\RenderItem.h" />
+    <ClInclude Include="src\Framework\RenderItem.h" />
     <ClInclude Include="src\Windows\Win32Application.h" />
     <ClInclude Include="vendor\imgui\backends\imgui_impl_dx12.h" />
     <ClInclude Include="vendor\imgui\backends\imgui_impl_win32.h" />

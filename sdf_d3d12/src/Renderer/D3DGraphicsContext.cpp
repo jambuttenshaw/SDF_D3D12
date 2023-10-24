@@ -6,9 +6,9 @@
 #include "Memory/D3DMemoryAllocator.h"
 #include "D3DFrameResources.h"
 
-#include "RenderItem.h"
-#include "GameTimer.h"
-#include "Camera.h"
+#include "Framework/RenderItem.h"
+#include "Framework/GameTimer.h"
+#include "Framework/Camera.h"
 
 
 D3DGraphicsContext* g_D3DGraphicsContext = nullptr;
