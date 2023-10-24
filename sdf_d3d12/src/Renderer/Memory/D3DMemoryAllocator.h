@@ -15,7 +15,7 @@ public:
 		UINT count,
 		bool cpuOnly
 	);
-	~D3DDescriptorAllocation();
+	~D3DDescriptorAllocation() = default;
 
 	D3DDescriptorAllocation(const D3DDescriptorAllocation&) = delete;
 	D3DDescriptorAllocation& operator=(const D3DDescriptorAllocation&) = delete;

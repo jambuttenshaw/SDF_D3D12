@@ -16,11 +16,7 @@ D3DDescriptorAllocation::D3DDescriptorAllocation(D3DDescriptorHeap* heap, UINT i
 {
 }
 
-D3DDescriptorAllocation::~D3DDescriptorAllocation()
-{
-}
-
-D3DDescriptorAllocation::D3DDescriptorAllocation(D3DDescriptorAllocation&& other)
+D3DDescriptorAllocation::D3DDescriptorAllocation(D3DDescriptorAllocation&& other) noexcept
 {
 	m_Heap = std::move(other.m_Heap);
 	m_Index = std::move(other.m_Index);
@@ -33,7 +29,7 @@ D3DDescriptorAllocation::D3DDescriptorAllocation(D3DDescriptorAllocation&& other
 	other.Reset();
 }
 
-D3DDescriptorAllocation& D3DDescriptorAllocation::operator=(D3DDescriptorAllocation&& other)
+D3DDescriptorAllocation& D3DDescriptorAllocation::operator=(D3DDescriptorAllocation&& other) noexcept
 {
 	m_Heap = std::move(other.m_Heap);
 	m_Index = std::move(other.m_Index);
