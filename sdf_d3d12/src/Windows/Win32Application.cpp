@@ -111,12 +111,36 @@ LRESULT CALLBACK Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wP
             pApp->OnKeyUp(static_cast<UINT8>(wParam));
         }
         return 0;
+
+    case WM_ENTERSIZEMOVE:
+        if (pApp)
+        {
+            pApp->BeginResize();
+        }
+        return 0;
+
     case WM_SIZE:
         if (pApp)
         {
-            pApp->Resize(LOWORD(lParam), HIWORD(lParam));
+            // Since an enter/exit size move isn't sent
+            if (wParam == SIZE_MAXIMIZED || wParam == SIZE_RESTORED)
+            {
+                pApp->BeginResize();
+				pApp->Resize(LOWORD(lParam), HIWORD(lParam));
+                pApp->EndResize();
+            }
+            else
+				pApp->Resize(LOWORD(lParam), HIWORD(lParam));
         }
         return 0;
+
+    case WM_EXITSIZEMOVE:
+        if (pApp)
+        {
+            pApp->EndResize();
+        }
+        return 0;
+
     case WM_PAINT:
         if (pApp)
         {

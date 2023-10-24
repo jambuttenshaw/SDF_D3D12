@@ -18,3 +18,23 @@ void BaseApplication::SetCustomWindowText(LPCWSTR text) const
 	const std::wstring windowText = m_Title + L": " + text;
 	SetWindowText(Win32Application::GetHwnd(), windowText.c_str());
 }
+
+void BaseApplication::BeginResize()
+{
+	m_PreviousWidth = m_Width;
+	m_PreviousHeight = m_Height;
+}
+
+void BaseApplication::Resize(UINT width, UINT height)
+{
+	m_Width = width;
+	m_Height = height;
+}
+
+void BaseApplication::EndResize()
+{
+	if (m_Width != m_PreviousWidth || m_Height != m_PreviousHeight)
+	{
+		OnResized();
+	}
+}

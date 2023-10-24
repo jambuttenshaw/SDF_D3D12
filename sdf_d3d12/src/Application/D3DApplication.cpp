@@ -8,7 +8,6 @@
 #include "Renderer/D3DGraphicsContext.h"
 
 
-
 D3DApplication::D3DApplication(UINT width, UINT height, const std::wstring& name)
 	: BaseApplication(width, height, name)
 {
@@ -35,10 +34,12 @@ void D3DApplication::OnUpdate()
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
+	// Make viewport dock-able
+	ImGui::DockSpaceOverViewport(ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
+
+	// Build properties GUI
 	ImGui::Begin("Properties");
 	ImGui::Separator();
-
-
 	{
 		ImGui::Text("Timer");
 		ImGui::LabelText("Time", "%.2f", m_Timer.GetTimeSinceReset());
@@ -142,6 +143,5 @@ void D3DApplication::InitImGui() const
 
 void D3DApplication::OnResized()
 {
-
+	m_GraphicsContext->Resize(m_Width, m_Height);
 }
-

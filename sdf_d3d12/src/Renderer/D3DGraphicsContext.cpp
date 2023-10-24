@@ -238,6 +238,51 @@ void D3DGraphicsContext::UpdatePassCB(GameTimer* timer, Camera* camera)
 }
 
 
+void D3DGraphicsContext::Resize(UINT width, UINT height)
+{
+	ASSERT(width && height, "Invalid client size!");
+
+	m_ClientWidth = width;
+	m_ClientHeight = height;
+
+	// Wait for any work currently being performed by the GPU to finish
+	WaitForGPU();
+
+	THROW_IF_FAIL(m_CommandList->Reset(m_DirectCommandAllocator.Get(), nullptr));
+
+	// Release the previous resources that will be recreated
+	for (UINT n = 0; n < s_FrameCount; ++n)
+		m_RenderTargets[n].Reset();
+	m_DepthStencilBuffer.Reset();
+	m_RTVHeap->Free(m_RTVs);
+	m_DSVHeap->Free(m_DSV);
+
+	// Process all deferred frees
+	for (UINT n = 0; n < s_FrameCount; ++n)
+		ProcessDeferrals(n);
+
+	THROW_IF_FAIL(m_SwapChain->ResizeBuffers(s_FrameCount, m_ClientWidth, m_ClientHeight, m_BackBufferFormat, 0));
+
+	m_FrameIndex = 0;
+
+	CreateRTVs();
+	CreateDepthStencilBuffer();
+
+	// Send required work to re-init buffers
+	THROW_IF_FAIL(m_CommandList->Close());
+	ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
+	m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
+	// Recreate other objects while GPU is doing work
+	CreateViewport();
+	CreateScissorRect();
+	CreateProjectionMatrix();
+
+	// Wait for GPU to finish its work before continuing
+	WaitForGPU();
+}
+
+
 void D3DGraphicsContext::Flush() const
 {
 	THROW_IF_FAIL(m_CommandList->Close());

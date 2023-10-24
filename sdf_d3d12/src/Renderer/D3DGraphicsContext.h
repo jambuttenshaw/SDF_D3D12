@@ -53,6 +53,8 @@ public:
 	void UpdateObjectCBs() const;
 	void UpdatePassCB(GameTimer* timer, Camera* camera);
 
+	void Resize(UINT width, UINT height);
+
 	void Flush() const;
 	void WaitForGPU() const;
 

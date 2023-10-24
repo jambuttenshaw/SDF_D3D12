@@ -17,7 +17,9 @@ public:
 	virtual void OnKeyDown(UINT8 key)	{}
 
 	// Resize callbacks
-	void Resize(UINT width, UINT height) { m_Width = width; m_Height = height; OnResized(); }
+	void BeginResize();
+	void Resize(UINT width, UINT height);
+	void EndResize();
 
 	// Getters
 	inline UINT GetWidth() const			{ return m_Width; }
@@ -45,4 +47,8 @@ private:
 
 	// Window title
 	std::wstring m_Title;
+
+	// For detecting if a back buffer resize is actually required
+	UINT m_PreviousWidth = 0,
+		m_PreviousHeight = 0;
 };
