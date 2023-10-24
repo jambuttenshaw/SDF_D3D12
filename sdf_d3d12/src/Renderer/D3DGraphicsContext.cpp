@@ -75,9 +75,9 @@ D3DGraphicsContext::~D3DGraphicsContext()
 	WaitForGPU();
 
 	// Free allocations
-	m_RTVHeap->Free(m_RTVs);
-	m_DSVHeap->Free(m_DSV);
-	m_SRVHeap->Free(m_ImGuiResources);
+	m_RTVs.Free();
+	m_DSV.Free();
+	m_ImGuiResources.Free();
 
 	// Free resources that themselves might free more resources
 
@@ -250,8 +250,8 @@ void D3DGraphicsContext::Resize(UINT width, UINT height)
 	for (UINT n = 0; n < s_FrameCount; ++n)
 		m_RenderTargets[n].Reset();
 	m_DepthStencilBuffer.Reset();
-	m_RTVHeap->Free(m_RTVs);
-	m_DSVHeap->Free(m_DSV);
+	m_RTVs.Free();
+	m_DSV.Free();
 
 	// Process all deferred frees
 	for (UINT n = 0; n < s_FrameCount; ++n)

@@ -15,11 +15,18 @@ public:
 		UINT count,
 		bool cpuOnly
 	);
+	~D3DDescriptorAllocation();
+
+	D3DDescriptorAllocation(const D3DDescriptorAllocation&) = delete;
+	D3DDescriptorAllocation& operator=(const D3DDescriptorAllocation&) = delete;
+	D3DDescriptorAllocation(D3DDescriptorAllocation&& other) noexcept;
+	D3DDescriptorAllocation& operator=(D3DDescriptorAllocation&& other) noexcept;
 
 	D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(UINT index = 0) const;
 	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandle(UINT index = 0) const;
 
 	void Reset();
+	void Free();
 
 	inline bool IsValid() const { return m_IsValid; }
 
@@ -48,7 +55,7 @@ public:
 	D3DDescriptorHeap(const D3DDescriptorHeap&) = delete;
 	D3DDescriptorHeap& operator=(const D3DDescriptorHeap&) = delete;
 	D3DDescriptorHeap(const D3DDescriptorHeap&&) = delete;
-	D3DDescriptorHeap operator=(D3DDescriptorHeap&&) = delete;
+	D3DDescriptorHeap& operator=(D3DDescriptorHeap&&) = delete;
 
 
 	D3DDescriptorAllocation Allocate(UINT countToAlloc);

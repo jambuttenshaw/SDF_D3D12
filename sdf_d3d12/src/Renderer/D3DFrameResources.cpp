@@ -41,5 +41,5 @@ D3DFrameResources::D3DFrameResources()
 D3DFrameResources::~D3DFrameResources()
 {
 	// Free descriptors from heap
-	g_D3DGraphicsContext->GetSRVHeap()->Free(m_CBVs);
+	m_CBVs.Free();
 }

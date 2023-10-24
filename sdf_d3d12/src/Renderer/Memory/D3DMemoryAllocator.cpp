@@ -16,6 +16,39 @@ D3DDescriptorAllocation::D3DDescriptorAllocation(D3DDescriptorHeap* heap, UINT i
 {
 }
 
+D3DDescriptorAllocation::~D3DDescriptorAllocation()
+{
+}
+
+D3DDescriptorAllocation::D3DDescriptorAllocation(D3DDescriptorAllocation&& other)
+{
+	m_Heap = std::move(other.m_Heap);
+	m_Index = std::move(other.m_Index);
+	m_Count = std::move(other.m_Count);
+
+	m_CPUOnly = std::move(other.m_CPUOnly);
+
+	m_IsValid = std::move(other.m_IsValid);
+
+	other.Reset();
+}
+
+D3DDescriptorAllocation& D3DDescriptorAllocation::operator=(D3DDescriptorAllocation&& other)
+{
+	m_Heap = std::move(other.m_Heap);
+	m_Index = std::move(other.m_Index);
+	m_Count = std::move(other.m_Count);
+
+	m_CPUOnly = std::move(other.m_CPUOnly);
+
+	m_IsValid = std::move(other.m_IsValid);
+
+	other.Reset();
+
+	return *this;
+}
+
+
 D3D12_CPU_DESCRIPTOR_HANDLE D3DDescriptorAllocation::GetCPUHandle(UINT index) const
 {
 	ASSERT(m_IsValid, "Cannot get handle on an invalid allocation");
@@ -49,6 +82,14 @@ void D3DDescriptorAllocation::Reset()
 	m_CPUOnly = false;					
 
 	m_IsValid = false;
+}
+
+void D3DDescriptorAllocation::Free()
+{
+	if (m_IsValid && m_Heap)
+	{
+		m_Heap->Free(*this);
+	}
 }
 
 
@@ -97,17 +138,21 @@ D3DDescriptorAllocation D3DDescriptorHeap::Allocate(UINT countToAlloc)
 	ASSERT(countToAlloc > 0, "Invalid quantity of descriptors");
 
 	if (m_Count + countToAlloc > m_Capacity)
+	{
 		return {};
+	}
 
 	// Find the next free block
 	auto freeBlockIt = m_FreeBlocks.begin();
 	for (; freeBlockIt != m_FreeBlocks.end() && freeBlockIt->second < countToAlloc; ++freeBlockIt) {}
 	if (freeBlockIt == m_FreeBlocks.end())
+	{
 		// No space in the heap
 		return {};
+	}
 
 
-	UINT allocIndex = freeBlockIt->first;
+	const UINT allocIndex = freeBlockIt->first;
 
 	// Update the free blocks to reflect the changes
 	UINT newFreeIndex = allocIndex + countToAlloc;
@@ -120,7 +165,8 @@ D3DDescriptorAllocation D3DDescriptorHeap::Allocate(UINT countToAlloc)
 	}
 
 	m_Count += countToAlloc;
-	return { this, allocIndex, countToAlloc, m_CPUOnly };
+
+	return D3DDescriptorAllocation{ this, allocIndex, countToAlloc, m_CPUOnly };
 }
 
 void D3DDescriptorHeap::Free(D3DDescriptorAllocation& allocation)
