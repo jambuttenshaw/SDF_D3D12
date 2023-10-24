@@ -32,6 +32,7 @@ public:
 	// Input callbacks
 	virtual void OnKeyDown(UINT8 key) override;
 	virtual void OnKeyUp(UINT8 key) override;
+	virtual void OnMouseMove(UINT x, UINT y) override;
 
 private:
 

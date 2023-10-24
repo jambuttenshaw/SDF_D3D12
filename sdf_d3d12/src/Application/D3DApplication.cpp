@@ -34,15 +34,15 @@ void D3DApplication::OnInit()
 
 void D3DApplication::OnUpdate()
 {
-	float deltaTime = m_Timer.Tick();
+	const float deltaTime = m_Timer.Tick();
+	m_InputManager->Update(deltaTime);
 
 	// Update camera
 	m_CameraController.Update(deltaTime);
 
 	// Update objects
 	m_CubeRotation += deltaTime;
-	XMMATRIX m = XMMatrixRotationAxis({ 0.77f, 0.77f, 0.0 }, m_CubeRotation);
-	m_Cube->SetWorldMatrix(m);
+	m_Cube->SetWorldMatrix(XMMatrixRotationAxis({ 0.77f, 0.77f, 0.0 }, m_CubeRotation));
 
 	// Begin new ImGui frame
 	ImGui_ImplDX12_NewFrame();
@@ -169,4 +169,9 @@ void D3DApplication::OnKeyDown(UINT8 key)
 void D3DApplication::OnKeyUp(UINT8 key)
 {
 	m_InputManager->SetKeyUp(KeyCode{ key });
+}
+
+void D3DApplication::OnMouseMove(UINT x, UINT y)
+{
+	m_InputManager->SetMousePosition(x, y);
 }

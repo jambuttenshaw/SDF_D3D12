@@ -13,8 +13,9 @@ public:
 	virtual void OnDestroy() = 0;
 
 	// Input callbacks
-	virtual void OnKeyUp(UINT8 key)		{}
-	virtual void OnKeyDown(UINT8 key)	{}
+	virtual void OnKeyUp(UINT8 key)				{}
+	virtual void OnKeyDown(UINT8 key)			{}
+	virtual void OnMouseMove(UINT X, UINT Y)	{}
 
 	// Resize callbacks
 	void BeginResize();

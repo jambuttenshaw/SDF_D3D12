@@ -19,7 +19,6 @@ void CameraController::Update(float deltaTime) const
 		return;
 	}
 
-	
 	// Update camera based on user input
 	if (m_InputManager->IsKeyDown(KEY_A))
 		m_Camera->Translate({ -deltaTime, 0.0f, 0.0f });
@@ -33,4 +32,10 @@ void CameraController::Update(float deltaTime) const
 		m_Camera->Translate({ 0.0f, 0.0f, -deltaTime});
 	if (m_InputManager->IsKeyDown(KEY_W))
 		m_Camera->Translate({ 0.0f, 0.0f, deltaTime });
+
+	// Rotate from mouse input
+	const INT dx = m_InputManager->GetMouseDeltaX();
+	const INT dy = m_InputManager->GetMouseDeltaY();
+	m_Camera->RotateYaw(deltaTime * static_cast<float>(dx));
+	m_Camera->RotatePitch(-deltaTime * static_cast<float>(dy));
 }

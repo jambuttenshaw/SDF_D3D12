@@ -98,6 +98,7 @@ LRESULT CALLBACK Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wP
             SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pCreateStruct->lpCreateParams));
         }
         return 0;
+    // Key events
     case WM_KEYDOWN:
         if (pApp)
         {
@@ -112,6 +113,15 @@ LRESULT CALLBACK Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wP
         }
         return 0;
 
+    // Mouse events
+    case WM_MOUSEMOVE:
+         if (pApp)
+         {
+             pApp->OnMouseMove(LOWORD(lParam), HIWORD(lParam));
+         }
+         return 0;
+
+    // Resize events
     case WM_ENTERSIZEMOVE:
         if (pApp)
         {
