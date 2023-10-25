@@ -20,6 +20,9 @@ public:
     static int Run(BaseApplication* pSample);
     static HWND GetHwnd() { return m_hwnd; }
 
+    static void ShowCursor(bool show) { ::ShowCursor(show); }
+    static void MoveCursorToPos(INT x, INT y);
+
 protected:
     static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 

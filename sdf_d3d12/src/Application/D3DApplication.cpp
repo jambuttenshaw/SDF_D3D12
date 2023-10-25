@@ -16,7 +16,7 @@ D3DApplication::D3DApplication(UINT width, UINT height, const std::wstring& name
 void D3DApplication::OnInit()
 {
 	// Create input manager
-	m_InputManager = std::make_unique<InputManager>();
+	m_InputManager = std::make_unique<InputManager>(this);
 
 	// Create graphics context
 	m_GraphicsContext = std::make_unique<D3DGraphicsContext>(Win32Application::GetHwnd(), GetWidth(), GetHeight());
@@ -81,6 +81,8 @@ void D3DApplication::OnUpdate()
 	ImGui::End();
 
 	ImGui::Render();
+
+	m_InputManager->EndFrame();
 }
 
 void D3DApplication::OnRender()

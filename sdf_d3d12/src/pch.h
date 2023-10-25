@@ -32,6 +32,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <set>
 #include <wrl.h>
 #include <shellapi.h>
 

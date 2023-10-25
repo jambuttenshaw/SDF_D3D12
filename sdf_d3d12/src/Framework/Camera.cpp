@@ -33,3 +33,21 @@ void Camera::RebuildIfDirty()
 		m_Dirty = false;
 	}
 }
+
+void Camera::ClampYaw()
+{
+	if (m_Yaw > 3.1416f)
+		m_Yaw = fmodf(m_Yaw, 3.1416f) - 3.1416f;
+	if (m_Yaw < -3.1416f)
+		m_Yaw = 3.1416f - fmodf(m_Yaw, 3.1416f);
+}
+
+void Camera::ClampPitch()
+{
+	if (m_Pitch < -1.5708f)
+	{
+		m_Pitch = -1.5708f;
+	}
+	if (m_Pitch > 1.5708f)
+		m_Pitch = 1.5708f;
+}

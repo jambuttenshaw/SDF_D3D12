@@ -81,6 +81,15 @@ int Win32Application::Run(BaseApplication* pApp)
     return static_cast<char>(msg.wParam);
 }
 
+
+void Win32Application::MoveCursorToPos(INT x, INT y)
+{
+    POINT p{ x, y };
+    ClientToScreen(m_hwnd, &p);
+    SetCursorPos(p.x, p.y);
+}
+
+
 // Main message handler for the sample.
 LRESULT CALLBACK Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {

@@ -15,4 +15,8 @@ public:
 private:
 	InputManager* m_InputManager = nullptr;
 	Camera* m_Camera = nullptr;
+
+	// Controller properties
+	float m_MoveSpeed = 3.0f;
+	float m_RotateSpeed = 0.2f;
 };

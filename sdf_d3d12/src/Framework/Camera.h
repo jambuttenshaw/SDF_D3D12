@@ -17,12 +17,12 @@ public:
 	inline float GetPitch() const { return m_Pitch; }
 
 	inline void SetPosition(const XMFLOAT3& position) { m_Position = XMLoadFloat3(&position); m_Dirty = true; }
-	inline void SetYaw(float yaw) { m_Yaw = yaw; m_Dirty = true; }
-	inline void SetPitch(float pitch) { m_Pitch = pitch; m_Dirty = true; }
+	void SetYaw(float yaw) { m_Yaw = yaw; ClampYaw(); m_Dirty = true; }
+	void SetPitch(float pitch) { m_Pitch = pitch; ClampPitch(); m_Dirty = true; }
 
 	inline void Translate(const XMFLOAT3& translation) { m_Position += XMLoadFloat3(&translation); m_Dirty = true; }
-	inline void RotateYaw(float deltaYaw) { m_Yaw += deltaYaw; m_Dirty = true; }
-	inline void RotatePitch(float deltaPitch) { m_Pitch += deltaPitch; m_Dirty = true; }
+	void RotateYaw(float deltaYaw) { m_Yaw += deltaYaw; ClampYaw(); m_Dirty = true; }
+	void RotatePitch(float deltaPitch) { m_Pitch += deltaPitch; ClampPitch(); m_Dirty = true; }
 
 	const XMFLOAT3& GetForward()
 	{
@@ -42,6 +42,8 @@ public:
 
 private:
 	void RebuildIfDirty();
+	void ClampYaw();
+	void ClampPitch();
 
 private:
 	XMVECTOR m_Position{ 0.0f, 0.0f, 0.0f };
