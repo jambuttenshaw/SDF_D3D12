@@ -29,6 +29,11 @@ float GameTimer::Tick()
 	const __int64 deltaCounts = m_CurrentCounts - m_LastTickCounts;
 	m_DeltaTime = m_SecondsPerCount * static_cast<double>(deltaCounts);
 
+	// Delta time could potentially be 0 in particular cases
+	// where the scheduler switches the main application from one processor to another
+	if (m_DeltaTime < 0.0f)
+		m_DeltaTime = 0.0f;
+
 	const __int64 countsSinceReset = m_CurrentCounts - m_CountsOnReset;
 	m_TimeSinceReset = m_SecondsPerCount * static_cast<double>(countsSinceReset);
 
