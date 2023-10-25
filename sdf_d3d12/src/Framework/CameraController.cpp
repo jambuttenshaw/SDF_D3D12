@@ -48,7 +48,7 @@ void CameraController::Update(float deltaTime) const
 	}
 
 	// Don't use mouse input if mouse is not hidden
-	if (m_InputManager->IsMouseHidden())
+	if (m_InputManager->IsMouseHidden() || m_InputManager->IsKeyDown(KEY_RBUTTON))
 	{
 		const float mouseMove = m_RotateSpeed * deltaTime;
 
@@ -57,5 +57,13 @@ void CameraController::Update(float deltaTime) const
 		const INT dy = m_InputManager->GetMouseDeltaY();
 		m_Camera->RotateYaw(mouseMove * static_cast<float>(dx));
 		m_Camera->RotatePitch(-mouseMove * static_cast<float>(dy));
+	}
+	else
+	{
+		// Clicking will re-capture the mouse cursor
+		if (m_InputManager->IsKeyPressed(KEY_LBUTTON))
+		{
+			m_InputManager->SetMouseHidden(true);
+		}
 	}
 }

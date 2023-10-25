@@ -15,9 +15,6 @@ D3DApplication::D3DApplication(UINT width, UINT height, const std::wstring& name
 
 void D3DApplication::OnInit()
 {
-	// Create input manager
-	m_InputManager = std::make_unique<InputManager>(this);
-
 	// Create graphics context
 	m_GraphicsContext = std::make_unique<D3DGraphicsContext>(Win32Application::GetHwnd(), GetWidth(), GetHeight());
 
@@ -161,19 +158,4 @@ void D3DApplication::InitImGui() const
 void D3DApplication::OnResized()
 {
 	m_GraphicsContext->Resize(m_Width, m_Height);
-}
-
-void D3DApplication::OnKeyDown(UINT8 key)
-{
-	m_InputManager->SetKeyDown(KeyCode{ key });
-}
-
-void D3DApplication::OnKeyUp(UINT8 key)
-{
-	m_InputManager->SetKeyUp(KeyCode{ key });
-}
-
-void D3DApplication::OnMouseMove(UINT x, UINT y)
-{
-	m_InputManager->SetMousePosition(x, y);
 }

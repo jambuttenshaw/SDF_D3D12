@@ -124,11 +124,53 @@ LRESULT CALLBACK Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wP
 
     // Mouse events
     case WM_MOUSEMOVE:
-         if (pApp)
-         {
-             pApp->OnMouseMove(LOWORD(lParam), HIWORD(lParam));
-         }
-         return 0;
+        if (pApp)
+        {
+            pApp->OnMouseMove(LOWORD(lParam), HIWORD(lParam));
+        }
+        return 0;
+
+    case WM_LBUTTONDOWN:
+        if (pApp)
+        {
+            pApp->OnMouseButtonDown(KEY_LBUTTON);
+        }
+        return 0;
+
+    case WM_MBUTTONDOWN:
+        if (pApp)
+        {
+            pApp->OnMouseButtonDown(KEY_MBUTTON);
+        }
+        return 0;
+
+    case WM_RBUTTONDOWN:
+        if (pApp)
+        {
+            pApp->OnMouseButtonDown(KEY_RBUTTON);
+        }
+        return 0;
+
+    case WM_LBUTTONUP:
+        if (pApp)
+        {
+            pApp->OnMouseButtonUp(KEY_LBUTTON);
+        }
+        return 0;
+
+    case WM_MBUTTONUP:
+        if (pApp)
+        {
+            pApp->OnMouseButtonUp(KEY_MBUTTON);
+        }
+        return 0;
+
+    case WM_RBUTTONUP:
+        if (pApp)
+        {
+            pApp->OnMouseButtonUp(KEY_RBUTTON);
+        }
+        return 0;
 
     // Resize events
     case WM_ENTERSIZEMOVE:
