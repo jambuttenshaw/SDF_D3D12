@@ -19,16 +19,15 @@ void Camera::RebuildIfDirty()
 		const float sinP = sinf(m_Pitch);
 		const float cosP = cosf(m_Pitch);
 
-		const XMVECTOR direction = XMVector3Normalize({ sinY * cosP, sinP, cosY * cosP });
-		const XMVECTOR up = XMVector3Normalize({ 0.0f, 1.0f, 0.0f });
-		if (XMVector3Equal(up, direction))
-			XMVectorSwizzle(up, 0, 2, 1, 3);
+		m_Forward = XMVector3Normalize({ sinY * cosP, sinP, cosY * cosP });
+		m_Up = XMVector3Normalize({ 0.0f, 1.0f, 0.0f });
+		if (XMVector3Equal(m_Up, m_Forward))
+			XMVectorSwizzle(m_Up, 0, 2, 1, 3);
+		m_Right = XMVector3Cross(m_Up, m_Forward);
 
-		const XMVECTOR target = m_Position + direction;
+		const XMVECTOR target = m_Position + m_Forward;
 
-		XMStoreFloat3(&m_Forward, direction);
-		XMStoreFloat3(&m_Up, up);
-		m_ViewMatrix = XMMatrixLookAtLH(m_Position, target, up);
+		m_ViewMatrix = XMMatrixLookAtLH(m_Position, target, m_Up);
 
 		m_Dirty = false;
 	}

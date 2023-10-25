@@ -9,8 +9,6 @@ CameraController::CameraController(InputManager* inputManager, Camera* camera)
 	: m_InputManager(inputManager)
 	, m_Camera(camera)
 {
-	// Mouse hidden by default
-	m_InputManager->SetMouseHidden(true);
 }
 
 void CameraController::Update(float deltaTime) const
@@ -22,20 +20,26 @@ void CameraController::Update(float deltaTime) const
 	}
 
 	const float move = m_MoveSpeed * deltaTime;
+	float strafe = 0.0f;	// how much to move l/r
+	float forward = 0.0f;	// how much to move f/b
 
 	// Update camera based on user input
 	if (m_InputManager->IsKeyDown(KEY_A))
-		m_Camera->Translate({ -move, 0.0f, 0.0f });
+		strafe -= move;
 	if (m_InputManager->IsKeyDown(KEY_D))
-		m_Camera->Translate({ move, 0.0f, 0.0f });
-	if (m_InputManager->IsKeyDown(KEY_Q))
-		m_Camera->Translate({ 0.0f, -move, 0.0f });
-	if (m_InputManager->IsKeyDown(KEY_E))
-		m_Camera->Translate({ 0.0f, move, 0.0f });
+		strafe += move;
 	if (m_InputManager->IsKeyDown(KEY_S))
-		m_Camera->Translate({ 0.0f, 0.0f, -move });
+		forward -= move;
 	if (m_InputManager->IsKeyDown(KEY_W))
-		m_Camera->Translate({ 0.0f, 0.0f, move });
+		forward += move;
+
+	m_Camera->Translate(strafe * m_Camera->GetRight() * XMVECTOR({ 1.0f, 0.0f, 1.0f }));
+	m_Camera->Translate(forward * m_Camera->GetForward() * XMVECTOR({ 1.0f, 0.0f, 1.0f }));
+
+	if (m_InputManager->IsKeyDown(KEY_Q))
+		m_Camera->Translate(XMVECTOR{ 0.0f, -move, 0.0f });
+	if (m_InputManager->IsKeyDown(KEY_E))
+		m_Camera->Translate(XMVECTOR{ 0.0f, move, 0.0f });
 
 	// Escape key toggles and un-toggles mouse cursor
 	if (m_InputManager->IsKeyPressed(KEY_ESCAPE))
