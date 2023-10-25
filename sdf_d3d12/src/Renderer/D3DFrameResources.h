@@ -32,6 +32,9 @@ public:
 	inline void CopyPassData(const PassCBType& passData) const { m_PassCB->CopyData(0, passData); }
 	inline void CopyObjectData(UINT objectIndex, const ObjectCBType& objectData) const { m_ObjectCB->CopyData(objectIndex, objectData); }
 
+	void DeferRelease(const ComPtr<IUnknown>& resource);
+	void ProcessDeferrals();
+
 private:
 	ComPtr<ID3D12CommandAllocator> m_CommandAllocator;
 	UINT64 m_FenceValue = 0;
@@ -43,4 +46,9 @@ private:
 	// Constant buffer views
 	D3DDescriptorAllocation m_CBVs;
 	UINT m_PassCBV = 0;
+
+	// Resources to be released when the GPU is finished with them
+	// A release collection is required per frame resources to ensure that
+	// the GPU is not currently using any of the resources
+	std::vector<ComPtr<IUnknown>> m_DeferredReleases;
 };

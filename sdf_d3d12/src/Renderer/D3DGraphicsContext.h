@@ -15,7 +15,6 @@ class D3DFrameResources;
 class D3DGraphicsContext;
 extern D3DGraphicsContext* g_D3DGraphicsContext;
 
-
 class D3DGraphicsContext
 {
 public:
@@ -107,6 +106,8 @@ private:
 
 	void MoveToNextFrame();
 	void ProcessDeferrals(UINT frameIndex) const;
+	// NOTE: this is only safe to do so when ALL WORK HAS BEEN COMPLETED ON THE GPU!!!
+	void ProcessAllDeferrals() const;
 
 private:
 	static constexpr UINT s_FrameCount = 2;
@@ -179,8 +180,4 @@ private:
 	// Render Items
 	UINT m_NextRenderItemIndex = 0;
 	std::vector<RenderItem> m_RenderItems;
-
-	// Temporary
-	// TODO: Implement a robust and re-usable deferred release system
-	std::vector<ComPtr<IUnknown>> m_DeferredReleases;
 };

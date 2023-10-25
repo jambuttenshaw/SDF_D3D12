@@ -43,3 +43,15 @@ D3DFrameResources::~D3DFrameResources()
 	// Free descriptors from heap
 	m_CBVs.Free();
 }
+
+void D3DFrameResources::DeferRelease(const ComPtr<IUnknown>& resource)
+{
+	m_DeferredReleases.push_back(resource);
+}
+
+void D3DFrameResources::ProcessDeferrals()
+{
+	// As long as the ComPtr's held in the collection aren't held anywhere else,
+	// then the resources pointed to will be automatically released
+	m_DeferredReleases.clear();
+}

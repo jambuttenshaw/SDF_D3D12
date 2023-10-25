@@ -59,11 +59,9 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
 
 	// Wait for any GPU work executed on startup to finish before continuing
 	WaitForGPU();
-
-	// TODO: Implement a robust and re-usable deferred release system
-	// Any temporary resources (eg upload heaps) that were created during startup can now be freed
-	// As the gpu will have finished its work
-	m_DeferredReleases.clear();
+	// Temporary resources that were created during initialization
+	// can now safely be released that the GPU has finished its work
+	ProcessAllDeferrals();
 
 	LOG_INFO("D3D12 Graphics Context created succesfully.")
 }
@@ -79,14 +77,12 @@ D3DGraphicsContext::~D3DGraphicsContext()
 	m_DSV.Free();
 	m_ImGuiResources.Free();
 
-	// Free resources that themselves might free more resources
-
 	// Free frame resources
 	for (UINT n = 0; n < s_FrameCount; n++)
 		m_FrameResources[n].reset();
 
-	for (UINT n = 0; n < s_FrameCount; n++)
-		ProcessDeferrals(n);
+	// Free resources that themselves might free more resources
+	ProcessAllDeferrals();
 
 	CloseHandle(m_FenceEvent);
 }
@@ -254,8 +250,7 @@ void D3DGraphicsContext::Resize(UINT width, UINT height)
 	m_DSV.Free();
 
 	// Process all deferred frees
-	for (UINT n = 0; n < s_FrameCount; ++n)
-		ProcessDeferrals(n);
+	ProcessAllDeferrals();
 
 	THROW_IF_FAIL(m_SwapChain->ResizeBuffers(s_FrameCount, m_ClientWidth, m_ClientHeight, m_BackBufferFormat, 0));
 
@@ -634,7 +629,7 @@ void D3DGraphicsContext::CreateAssets()
 			nullptr,
 			IID_PPV_ARGS(&vbUploadHeap)));
 		// vbUploadHeap must not be released until the GPU has finished its work
-		m_DeferredReleases.push_back(vbUploadHeap);
+		m_CurrentFrameResources->DeferRelease(vbUploadHeap);
 
 
 		D3D12_SUBRESOURCE_DATA vbData = {};
@@ -699,7 +694,7 @@ void D3DGraphicsContext::CreateAssets()
 			nullptr,
 			IID_PPV_ARGS(&ibUploadHeap)));
 		// ibUploadHeap must not be released until the GPU has finished its work
-		m_DeferredReleases.push_back(ibUploadHeap);
+		m_CurrentFrameResources->DeferRelease(ibUploadHeap);
 
 		D3D12_SUBRESOURCE_DATA ibData = {};
 		ibData.pData = &indices;
@@ -741,7 +736,16 @@ void D3DGraphicsContext::MoveToNextFrame()
 
 void D3DGraphicsContext::ProcessDeferrals(UINT frameIndex) const
 {
+	if (m_FrameResources[frameIndex])
+		m_FrameResources[frameIndex]->ProcessDeferrals();
+
 	m_RTVHeap->ProcessDeferredFree(frameIndex);
 	m_DSVHeap->ProcessDeferredFree(frameIndex);
 	m_SRVHeap->ProcessDeferredFree(frameIndex);
+}
+
+void D3DGraphicsContext::ProcessAllDeferrals() const
+{
+	for (UINT n = 0; n < s_FrameCount; ++n)
+		ProcessDeferrals(n);
 }
