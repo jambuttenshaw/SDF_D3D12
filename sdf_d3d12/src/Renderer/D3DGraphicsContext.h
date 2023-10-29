@@ -140,6 +140,7 @@ private:
 	D3DDescriptorAllocation m_DSV;
 
 	ComPtr<ID3D12CommandAllocator> m_DirectCommandAllocator;	// Used for non-frame-specific allocations (startup, resize swap chain, etc)
+
 	ComPtr<ID3D12CommandQueue> m_CommandQueue;
 	ComPtr<ID3D12GraphicsCommandList> m_CommandList;
 
@@ -163,19 +164,16 @@ private:
 	CD3DX12_VIEWPORT m_Viewport{ };
 	CD3DX12_RECT m_ScissorRect{ };
 
-	// Pipeline assets
-	ComPtr<ID3D12RootSignature> m_RootSignature;
-	ComPtr<ID3D12PipelineState> m_PipelineState;
+	// Graphics Pipeline assets
+	ComPtr<ID3D12RootSignature> m_GraphicsRootSignature;
+	ComPtr<ID3D12PipelineState> m_GraphicsPipelineState;
+
+	// Compute Pipeline assets
+	ComPtr<ID3D12RootSignature> m_ComputeRootSignature;
+	ComPtr<ID3D12PipelineState> m_ComputePipelineState;
 
 	// ImGui Resources
 	D3DDescriptorAllocation m_ImGuiResources;
-
-	// App resources
-	ComPtr<ID3D12Resource> m_VertexBuffer;
-	D3D12_VERTEX_BUFFER_VIEW m_VertexBufferView = {};
-
-	ComPtr<ID3D12Resource> m_IndexBuffer;
-	D3D12_INDEX_BUFFER_VIEW m_IndexBufferView = {};
 
 	// Render Items
 	UINT m_NextRenderItemIndex = 0;

@@ -115,7 +115,7 @@ void D3DGraphicsContext::StartDraw() const
 	m_CurrentFrameResources->ResetAllocator();
 
 	// Command lists can (and must) be reset after ExecuteCommandList() is called and before it is repopulated
-	THROW_IF_FAIL(m_CommandList->Reset(m_CurrentFrameResources->GetCommandAllocator(), m_PipelineState.Get()));
+	THROW_IF_FAIL(m_CommandList->Reset(m_CurrentFrameResources->GetCommandAllocator(), m_GraphicsPipelineState.Get()));
 
 	// Indicate the back buffer will be used as a render target
 	const auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_RenderTargets[m_FrameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -154,22 +154,9 @@ void D3DGraphicsContext::EndDraw() const
 
 void D3DGraphicsContext::DrawItems() const
 {
-	// Set necessary state
-	m_CommandList->SetGraphicsRootSignature(m_RootSignature.Get());
+	// Perform compute commands
 
-	m_CommandList->SetGraphicsRootDescriptorTable(1, m_CurrentFrameResources->GetPassCBV());
-
-	// Render all items
-	for (const auto& item : m_RenderItems)
-	{
-		m_CommandList->SetGraphicsRootDescriptorTable(0, m_CurrentFrameResources->GetObjectCBV(item.GetObjectIndex()));
-
-		// render the triangle
-		m_CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		m_CommandList->IASetVertexBuffers(0, 1, &m_VertexBufferView);
-		m_CommandList->IASetIndexBuffer(&m_IndexBufferView);
-		m_CommandList->DrawIndexedInstanced(36, 1, 0, 0, 0);
-	}
+	// Perform graphics commands
 }
 
 RenderItem* D3DGraphicsContext::CreateRenderItem()
@@ -510,17 +497,16 @@ void D3DGraphicsContext::CreateProjectionMatrix()
 
 void D3DGraphicsContext::CreateAssets()
 {
-	// Create root signature
+	D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
+	featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
+	if (FAILED(m_Device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
+	{
+		featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
+	}
+
+	// Create graphics root signature
 	{
 		// Create a root signature consisting of two root descriptors for CBVs (per-object and per-pass)
-
-		D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
-		featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
-		if (FAILED(m_Device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
-		{
-			featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
-		}
-
 		CD3DX12_DESCRIPTOR_RANGE1 ranges[2];
 		CD3DX12_ROOT_PARAMETER1 rootParameters[2];
 		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// per-object cb
@@ -544,10 +530,10 @@ void D3DGraphicsContext::CreateAssets()
 		ComPtr<ID3DBlob> signature;
 		ComPtr<ID3DBlob> error;
 		THROW_IF_FAIL(D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, &error));
-		THROW_IF_FAIL(m_Device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_RootSignature)));
+		THROW_IF_FAIL(m_Device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_GraphicsRootSignature)));
 	}
 
-	// Create the pipeline state, which includes compiling and loading shaders
+	// Create the graphics pipeline state, which includes compiling and loading shaders
 	{
 		ComPtr<ID3DBlob> vertexShader;
 		ComPtr<ID3DBlob> pixelShader;
@@ -572,7 +558,7 @@ void D3DGraphicsContext::CreateAssets()
 		// Describe and create the graphics pipeline state object (PSO)
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
 		psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
-		psoDesc.pRootSignature = m_RootSignature.Get();
+		psoDesc.pRootSignature = m_GraphicsRootSignature.Get();
 		psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader.Get());
 		psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.Get());
 		psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
@@ -584,132 +570,49 @@ void D3DGraphicsContext::CreateAssets()
 		psoDesc.RTVFormats[0] = m_BackBufferFormat;
 		psoDesc.DSVFormat = m_DepthStencilFormat;
 		psoDesc.SampleDesc.Count = 1;
-		THROW_IF_FAIL(m_Device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_PipelineState)));
+		THROW_IF_FAIL(m_Device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_GraphicsPipelineState)));
 	}
 
-	// Create the vertex buffer
-	ComPtr<ID3D12Resource> vbUploadHeap;
+
+	// Create the compute root signature
 	{
-		// Define the geometry for a triangle.
-		Vertex triangleVertices[] =
-		{
-			{ { -0.5f,  0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
-			{ { -0.5f, -0.5f, -0.5f }, { 0.0f, 0.0f, 0.0f, 1.0f } },
-			{ {  0.5f, -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
-			{ {  0.5f,  0.5f, -0.5f }, { 1.0f, 1.0f, 0.0f, 1.0f } },
-			{ { -0.5f,  0.5f,  0.5f }, { 0.0f, 1.0f, 1.0f, 1.0f } },
-			{ { -0.5f, -0.5f,  0.5f }, { 0.0f, 0.0f, 1.0f, 1.0f } },
-			{ {  0.5f, -0.5f,  0.5f }, { 1.0f, 0.0f, 1.0f, 1.0f } },
-			{ {  0.5f,  0.5f,  0.5f }, { 1.0f, 1.0f, 1.0f, 1.0f } }
-		};
+		// Allow input layout and deny unnecessary access to certain pipeline stages
+		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS;
 
-		constexpr UINT vertexBufferSize = sizeof(triangleVertices);
+		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
+		rootSignatureDesc.Init_1_1(0, nullptr, 0, nullptr, rootSignatureFlags);
 
-		// Create a buffer (with default heap usage)
-		CD3DX12_HEAP_PROPERTIES defaultHeapProperties(D3D12_HEAP_TYPE_DEFAULT);
-		auto vbDesc = CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize);
-
-		THROW_IF_FAIL(m_Device->CreateCommittedResource(
-			&defaultHeapProperties,
-			D3D12_HEAP_FLAG_NONE,
-			&vbDesc,
-			D3D12_RESOURCE_STATE_COPY_DEST,
-			nullptr,
-			IID_PPV_ARGS(&m_VertexBuffer)));
-
-		// Create an intermediate buffer (with upload heap usage)
-		CD3DX12_HEAP_PROPERTIES uploadHeapProperties(D3D12_HEAP_TYPE_UPLOAD);
-		auto intermediateDesc = CD3DX12_RESOURCE_DESC::Buffer(GetRequiredIntermediateSize(m_VertexBuffer.Get(), 0, 1));
-
-		THROW_IF_FAIL(m_Device->CreateCommittedResource(
-			&uploadHeapProperties,
-			D3D12_HEAP_FLAG_NONE,
-			&intermediateDesc,
-			D3D12_RESOURCE_STATE_GENERIC_READ,
-			nullptr,
-			IID_PPV_ARGS(&vbUploadHeap)));
-		// vbUploadHeap must not be released until the GPU has finished its work
-		m_CurrentFrameResources->DeferRelease(vbUploadHeap);
-
-
-		D3D12_SUBRESOURCE_DATA vbData = {};
-		vbData.pData = &triangleVertices;
-		vbData.RowPitch = vertexBufferSize;
-		vbData.SlicePitch = vertexBufferSize;
-
-		UpdateSubresources(m_CommandList.Get(), m_VertexBuffer.Get(), vbUploadHeap.Get(), 0, 0, 1, &vbData);
-
-		const auto resourceBarrier = CD3DX12_RESOURCE_BARRIER::Transition(m_VertexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
-		m_CommandList->ResourceBarrier(1, &resourceBarrier);
-
-		// Initialize the vertex buffer view
-		m_VertexBufferView.BufferLocation = m_VertexBuffer->GetGPUVirtualAddress();
-		m_VertexBufferView.StrideInBytes = sizeof(Vertex);
-		m_VertexBufferView.SizeInBytes = vertexBufferSize;
+		ComPtr<ID3DBlob> signature;
+		ComPtr<ID3DBlob> error;
+		THROW_IF_FAIL(D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, &error));
+		THROW_IF_FAIL(m_Device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_ComputeRootSignature)));
 	}
 
-	// Create the index buffer
-	ComPtr<ID3D12Resource> ibUploadHeap;
+	// Create the compute pipeline state
 	{
-		// Define indices
-		UINT indices[] =
-		{
-			0, 2, 1,	// Front face
-			0, 3, 2,
-			7, 5, 6,	// Back face
-			7, 4, 5,
-			4, 1, 5,	// Left face
-			4, 0, 1,
-			3, 6, 2,	// Right face
-			3, 7, 6,
-			4, 3, 0,	// Top face
-			4, 7, 3,
-			1, 6, 5,	// Bottom face
-			1, 2, 6,
-		};
+		ComPtr<ID3DBlob> computeShader;
 
-		constexpr UINT indexBufferSize = sizeof(indices);
+#ifdef _DEBUG
+		UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
+		UINT compileFlags = 0;
+#endif
 
-		// Create a buffer (with default heap usage)
-		CD3DX12_HEAP_PROPERTIES defaultHeapProperties(D3D12_HEAP_TYPE_DEFAULT);
-		auto ibDesc = CD3DX12_RESOURCE_DESC::Buffer(indexBufferSize);
+		// Compile shader
+		THROW_IF_FAIL(D3DCompileFromFile(L"assets/shaders/compute.hlsl", nullptr, nullptr, "main", "cs_5_0", compileFlags, 0, &computeShader, nullptr));
 
-		THROW_IF_FAIL(m_Device->CreateCommittedResource(
-			&defaultHeapProperties,
-			D3D12_HEAP_FLAG_NONE,
-			&ibDesc,
-			D3D12_RESOURCE_STATE_COPY_DEST,
-			nullptr,
-			IID_PPV_ARGS(&m_IndexBuffer)));
-
-		// Create an intermediate buffer (with upload heap usage)
-		CD3DX12_HEAP_PROPERTIES uploadHeapProperties(D3D12_HEAP_TYPE_UPLOAD);
-		auto intermediateDesc = CD3DX12_RESOURCE_DESC::Buffer(indexBufferSize);
-
-		THROW_IF_FAIL(m_Device->CreateCommittedResource(
-			&uploadHeapProperties,
-			D3D12_HEAP_FLAG_NONE,
-			&intermediateDesc,
-			D3D12_RESOURCE_STATE_GENERIC_READ,
-			nullptr,
-			IID_PPV_ARGS(&ibUploadHeap)));
-		// ibUploadHeap must not be released until the GPU has finished its work
-		m_CurrentFrameResources->DeferRelease(ibUploadHeap);
-
-		D3D12_SUBRESOURCE_DATA ibData = {};
-		ibData.pData = &indices;
-		ibData.RowPitch = indexBufferSize;
-		ibData.SlicePitch = indexBufferSize;
-
-		UpdateSubresources(m_CommandList.Get(), m_IndexBuffer.Get(), ibUploadHeap.Get(), 0, 0, 1, &ibData);
-
-		const auto resourceBarrier = CD3DX12_RESOURCE_BARRIER::Transition(m_IndexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER);
-		m_CommandList->ResourceBarrier(1, &resourceBarrier);
-
-		// Initialize the index buffer view
-		m_IndexBufferView.BufferLocation = m_IndexBuffer->GetGPUVirtualAddress();
-		m_IndexBufferView.SizeInBytes = indexBufferSize;
-		m_IndexBufferView.Format = DXGI_FORMAT_R32_UINT;
+		D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc = {};
+		psoDesc.pRootSignature = m_ComputeRootSignature.Get();
+		psoDesc.CS.pShaderBytecode = computeShader->GetBufferPointer();
+		psoDesc.CS.BytecodeLength = computeShader->GetBufferSize();
+		THROW_IF_FAIL(m_Device->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&m_ComputePipelineState)));
 	}
 }
 
