@@ -77,6 +77,8 @@ D3DGraphicsContext::~D3DGraphicsContext()
 	m_DSV.Free();
 	m_ImGuiResources.Free();
 
+	m_SceneTextureViews.Free();
+
 	// Free frame resources
 	for (UINT n = 0; n < s_FrameCount; n++)
 		m_FrameResources[n].reset();
@@ -115,7 +117,7 @@ void D3DGraphicsContext::StartDraw() const
 	m_CurrentFrameResources->ResetAllocator();
 
 	// Command lists can (and must) be reset after ExecuteCommandList() is called and before it is repopulated
-	THROW_IF_FAIL(m_CommandList->Reset(m_CurrentFrameResources->GetCommandAllocator(), m_GraphicsPipelineState.Get()));
+	THROW_IF_FAIL(m_CommandList->Reset(m_CurrentFrameResources->GetCommandAllocator(), nullptr));
 
 	// Indicate the back buffer will be used as a render target
 	const auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_RenderTargets[m_FrameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -134,7 +136,7 @@ void D3DGraphicsContext::StartDraw() const
 	m_CommandList->RSSetScissorRects(1, &m_ScissorRect);
 
 	// Setup descriptor heaps
-	ID3D12DescriptorHeap* ppHeaps[] = { m_SRVHeap->GetHeap() };
+	ID3D12DescriptorHeap* ppHeaps[] = { m_SRVHeap->GetHeap(), m_SamplerHeap->GetHeap() };
 	m_CommandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
 }
 
@@ -156,7 +158,39 @@ void D3DGraphicsContext::DrawItems() const
 {
 	// Perform compute commands
 
+	// Scene texture must be in unordered access state
+	auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_SceneTexture.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	m_CommandList->ResourceBarrier(1, &barrier);
+
+	// Set pipeline state
+	m_CommandList->SetComputeRootSignature(m_ComputeRootSignature.Get());
+	m_CommandList->SetPipelineState(m_ComputePipelineState.Get());
+
+	// Set resource views
+	m_CommandList->SetComputeRootDescriptorTable(0, m_CurrentFrameResources->GetAllObjectsCBV());
+	m_CommandList->SetComputeRootDescriptorTable(1, m_CurrentFrameResources->GetPassCBV());
+	m_CommandList->SetComputeRootDescriptorTable(2, m_SceneTextureViews.GetGPUHandle(0));
+
+	// Dispatch
+	m_CommandList->Dispatch(m_ThreadGroupX, m_ThreadGroupY, 1);
+
 	// Perform graphics commands
+
+	// Scene texture will now be used to render to the back buffer
+	barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_SceneTexture.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	m_CommandList->ResourceBarrier(1, &barrier);
+
+	// Set pipeline state
+	m_CommandList->SetGraphicsRootSignature(m_GraphicsRootSignature.Get());
+	m_CommandList->SetPipelineState(m_GraphicsPipelineState.Get());
+
+	// Set resource views
+	m_CommandList->SetGraphicsRootDescriptorTable(0, m_CurrentFrameResources->GetPassCBV());
+	m_CommandList->SetGraphicsRootDescriptorTable(1, m_SceneTextureViews.GetGPUHandle(1));
+
+	// Render a full-screen quad
+	m_CommandList->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	m_CommandList->DrawInstanced(4, 1, 0, 0);
 }
 
 RenderItem* D3DGraphicsContext::CreateRenderItem()
@@ -233,8 +267,13 @@ void D3DGraphicsContext::Resize(UINT width, UINT height)
 	for (UINT n = 0; n < s_FrameCount; ++n)
 		m_RenderTargets[n].Reset();
 	m_DepthStencilBuffer.Reset();
+
 	m_RTVs.Free();
 	m_DSV.Free();
+
+	// Application-specific, window-specific resources
+	m_SceneTexture.Reset();
+	m_SceneTextureViews.Free();
 
 	// Process all deferred frees
 	ProcessAllDeferrals();
@@ -245,6 +284,9 @@ void D3DGraphicsContext::Resize(UINT width, UINT height)
 
 	CreateRTVs();
 	CreateDepthStencilBuffer();
+
+	// Re-create application-specific, window specific resources
+	CreateSceneTexture();
 
 	// Send required work to re-init buffers
 	THROW_IF_FAIL(m_CommandList->Close());
@@ -382,10 +424,12 @@ void D3DGraphicsContext::CreateDescriptorHeaps()
 	m_DSVHeap = std::make_unique<D3DDescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, true);
 
 	// SRV/CBV/UAV heap
-	constexpr UINT CBVCount = s_FrameCount * (s_MaxObjectCount + 1);	// frame count * (object count + 1)
-	constexpr UINT SRVCount = 1;										// ImGui frame resource
-	constexpr UINT UAVCount = 0;
+	constexpr UINT CBVCount = s_FrameCount * (s_MaxObjectCount + 2);	// frame count * (object count + 2)
+	constexpr UINT SRVCount = 2;										// ImGui frame resource + SRV for scene textures
+	constexpr UINT UAVCount = 1;										// UAV for scene textures
 	m_SRVHeap = std::make_unique<D3DDescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, CBVCount + SRVCount + UAVCount, false);
+
+	m_SamplerHeap = std::make_unique<D3DDescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 1, false);
 }
 
 void D3DGraphicsContext::CreateCommandAllocator()
@@ -510,26 +554,39 @@ void D3DGraphicsContext::CreateAssets()
 		CD3DX12_DESCRIPTOR_RANGE1 ranges[2];
 		CD3DX12_ROOT_PARAMETER1 rootParameters[2];
 		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// per-object cb
-		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// per-pass cb
+		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// per-pass cb
 		rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_VERTEX);
-		rootParameters[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_VERTEX);
+		rootParameters[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_PIXEL);
 
 		// Allow input layout and deny unnecessary access to certain pipeline stages
 		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
-			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS |
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS |
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS;
 
+		// Create a point sampler
+		D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
+		samplerDesc.Filter = D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT;
+		samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		samplerDesc.MipLODBias = 0;
+		samplerDesc.MaxAnisotropy = 0;
+		samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+		samplerDesc.BorderColor = D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK;
+		samplerDesc.MinLOD = 0;
+		samplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
+		samplerDesc.ShaderRegister = 0;
+		samplerDesc.RegisterSpace = 0;
+		samplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
-		rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr, rootSignatureFlags);
+		rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, 1, &samplerDesc, rootSignatureFlags);
 
 		ComPtr<ID3DBlob> signature;
-		ComPtr<ID3DBlob> error;
-		THROW_IF_FAIL(D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, &error));
+		THROW_IF_FAIL(D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, nullptr));
 		THROW_IF_FAIL(m_Device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_GraphicsRootSignature)));
 	}
 
@@ -545,25 +602,18 @@ void D3DGraphicsContext::CreateAssets()
 #endif
 
 		// Compile shaders
-		THROW_IF_FAIL(D3DCompileFromFile(L"assets/shaders/shaders.hlsl", nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, nullptr));
-		THROW_IF_FAIL(D3DCompileFromFile(L"assets/shaders/shaders.hlsl", nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr));
-
-		// Define the vertex input layout
-		D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
-		{
-			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-			{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
-		};
+		THROW_IF_FAIL(D3DCompileFromFile(L"assets/shaders/finalpass.hlsl", nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, nullptr));
+		THROW_IF_FAIL(D3DCompileFromFile(L"assets/shaders/finalpass.hlsl", nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr));
 
 		// Describe and create the graphics pipeline state object (PSO)
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
-		psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
+		psoDesc.InputLayout = { nullptr, 0 };
 		psoDesc.pRootSignature = m_GraphicsRootSignature.Get();
 		psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader.Get());
 		psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.Get());
 		psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 		psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-		psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+		psoDesc.DepthStencilState.DepthEnable = false;
 		psoDesc.SampleMask = UINT_MAX;
 		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		psoDesc.NumRenderTargets = 1;
@@ -576,6 +626,17 @@ void D3DGraphicsContext::CreateAssets()
 
 	// Create the compute root signature
 	{
+		// Create a root signature consisting of two root descriptors for CBVs (per-object and per-pass)
+		CD3DX12_DESCRIPTOR_RANGE1 ranges[3];
+		CD3DX12_ROOT_PARAMETER1 rootParameters[3];
+		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// per-object cb
+		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// per-pass cb
+		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// output uav
+
+		rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_ALL);
+		rootParameters[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_ALL);
+		rootParameters[2].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_ALL);
+
 		// Allow input layout and deny unnecessary access to certain pipeline stages
 		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS |
@@ -587,11 +648,10 @@ void D3DGraphicsContext::CreateAssets()
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS;
 
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
-		rootSignatureDesc.Init_1_1(0, nullptr, 0, nullptr, rootSignatureFlags);
+		rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr, rootSignatureFlags);
 
 		ComPtr<ID3DBlob> signature;
-		ComPtr<ID3DBlob> error;
-		THROW_IF_FAIL(D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, &error));
+		THROW_IF_FAIL(D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, nullptr));
 		THROW_IF_FAIL(m_Device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_ComputeRootSignature)));
 	}
 
@@ -614,6 +674,36 @@ void D3DGraphicsContext::CreateAssets()
 		psoDesc.CS.BytecodeLength = computeShader->GetBufferSize();
 		THROW_IF_FAIL(m_Device->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&m_ComputePipelineState)));
 	}
+
+	CreateSceneTexture();
+}
+
+
+void D3DGraphicsContext::CreateSceneTexture()
+{
+	// Create resources
+	const CD3DX12_HEAP_PROPERTIES defaultHeap(D3D12_HEAP_TYPE_DEFAULT);
+	const auto resourceDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM, m_ClientWidth, m_ClientHeight, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+
+	THROW_IF_FAIL(m_Device->CreateCommittedResource(
+		&defaultHeap,
+		D3D12_HEAP_FLAG_NONE,
+		&resourceDesc,
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+		nullptr,
+		IID_PPV_ARGS(&m_SceneTexture)
+	));
+
+	m_ThreadGroupX = m_ClientWidth / s_NumShaderThreads;
+	m_ThreadGroupY = m_ClientHeight / s_NumShaderThreads;
+
+	// Create UAVs and SRVs
+	m_SceneTextureViews = m_SRVHeap->Allocate(2); // one UAV and one SRV
+
+	// Create UAV
+	m_Device->CreateUnorderedAccessView(m_SceneTexture.Get(), nullptr, nullptr, m_SceneTextureViews.GetCPUHandle(0));
+	// Create SRV
+	m_Device->CreateShaderResourceView(m_SceneTexture.Get(), nullptr, m_SceneTextureViews.GetCPUHandle(1));
 }
 
 

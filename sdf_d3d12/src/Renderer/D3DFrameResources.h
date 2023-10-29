@@ -19,6 +19,7 @@ public:
 	inline UINT64 GetFenceValue() const { return m_FenceValue; }
 
 	inline D3D12_GPU_DESCRIPTOR_HANDLE GetPassCBV() const { return m_CBVs.GetGPUHandle(m_PassCBV); }
+	inline D3D12_GPU_DESCRIPTOR_HANDLE GetAllObjectsCBV() const { return m_CBVs.GetGPUHandle(m_AllObjectsCBV); }
 	inline D3D12_GPU_DESCRIPTOR_HANDLE GetObjectCBV(UINT objectIndex) const { return m_CBVs.GetGPUHandle(objectIndex); }
 
 	// Reset alloc
@@ -45,6 +46,7 @@ private:
 
 	// Constant buffer views
 	D3DDescriptorAllocation m_CBVs;
+	UINT m_AllObjectsCBV = 0;
 	UINT m_PassCBV = 0;
 
 	// Resources to be released when the GPU is finished with them

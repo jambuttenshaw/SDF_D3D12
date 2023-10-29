@@ -102,6 +102,7 @@ private:
 
 	// Temporary, eventually buffers and their data will be created elsewhere
 	void CreateAssets();
+	void CreateSceneTexture();
 
 
 	void MoveToNextFrame();
@@ -112,6 +113,7 @@ private:
 private:
 	static constexpr UINT s_FrameCount = 2;
 	static constexpr UINT s_MaxObjectCount = 2;
+	static constexpr UINT s_NumShaderThreads = 8;
 
 	// Context properties
 	HWND m_WindowHandle;
@@ -155,6 +157,7 @@ private:
 	std::unique_ptr<D3DDescriptorHeap> m_RTVHeap;
 	std::unique_ptr<D3DDescriptorHeap> m_DSVHeap;
 	std::unique_ptr<D3DDescriptorHeap> m_SRVHeap;				// SRV, UAV, and CBV heap (named SRVHeap for brevity)
+	std::unique_ptr<D3DDescriptorHeap> m_SamplerHeap;
 
 	// Synchronization objects
 	UINT m_FrameIndex = 0;
@@ -172,8 +175,17 @@ private:
 	ComPtr<ID3D12RootSignature> m_ComputeRootSignature;
 	ComPtr<ID3D12PipelineState> m_ComputePipelineState;
 
+	UINT m_ThreadGroupX = 0, m_ThreadGroupY = 0;
+
 	// ImGui Resources
 	D3DDescriptorAllocation m_ImGuiResources;
+
+	// Application resources
+	ComPtr<ID3D12Resource> m_SceneTexture;				// The texture that the compute shader will write to
+														// As I am using sync compute, only one texture is required
+	D3DDescriptorAllocation m_SceneTextureViews;		// UAV and SRV
+
+
 
 	// Render Items
 	UINT m_NextRenderItemIndex = 0;

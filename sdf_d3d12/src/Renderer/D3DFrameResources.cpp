@@ -17,17 +17,22 @@ D3DFrameResources::D3DFrameResources()
 
 	// Create constant buffer views
 	// Allocate enough descriptors from the heap
-	// TODO: For now this enough for 1 object
-	m_CBVs = g_D3DGraphicsContext->GetSRVHeap()->Allocate(numObjects + 1);	// one for each object + pass cb
+	m_CBVs = g_D3DGraphicsContext->GetSRVHeap()->Allocate(numObjects + 2);	// one for each object + one for entire object buffer + pass cb
 	ASSERT(m_CBVs.IsValid(), "Failed to alloc descriptors");
 
 	m_PassCBV = numObjects;	// = num objects (pass cbv comes after object cbv's)
 
 	D3D12_CONSTANT_BUFFER_VIEW_DESC desc;
+
+	// Create descriptors for pass cb
 	desc.BufferLocation = m_PassCB->GetAddressOfElement(0);
 	desc.SizeInBytes = m_PassCB->GetElementSize();
-	// Create descriptors for pass cb
 	g_D3DGraphicsContext->GetDevice()->CreateConstantBufferView(&desc, m_CBVs.GetCPUHandle(m_PassCBV));
+
+	// Create descriptor for entire object buffer
+	desc.BufferLocation = m_ObjectCB->GetAddressOfElement(0);
+	desc.SizeInBytes = m_ObjectCB->GetElementSize() * numObjects;
+	g_D3DGraphicsContext->GetDevice()->CreateConstantBufferView(&desc, m_CBVs.GetCPUHandle(m_AllObjectsCBV));
 
 	// Create object descriptors
 	desc.SizeInBytes = m_ObjectCB->GetElementSize();
