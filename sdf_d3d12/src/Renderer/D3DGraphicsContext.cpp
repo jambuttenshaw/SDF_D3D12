@@ -666,7 +666,17 @@ void D3DGraphicsContext::CreateAssets()
 #endif
 
 		// Compile shader
-		THROW_IF_FAIL(D3DCompileFromFile(L"assets/shaders/compute.hlsl", nullptr, nullptr, "main", "cs_5_0", compileFlags, 0, &computeShader, nullptr));
+		ComPtr<ID3DBlob> error;
+		HRESULT result = D3DCompileFromFile(L"assets/shaders/compute.hlsl", nullptr, nullptr, "main", "cs_5_0", compileFlags, 0, &computeShader, error.GetAddressOf());
+		if (result != S_OK)
+		{
+			char* error_msg = new char[error->GetBufferSize()];
+
+			sprintf_s(error_msg, error->GetBufferSize(), "%s", static_cast<const char*>(error->GetBufferPointer()));
+			LOG_ERROR("Shader failed to compile! Error: {0}", error_msg);
+
+			delete[] error_msg;
+		}
 
 		D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc = {};
 		psoDesc.pRootSignature = m_ComputeRootSignature.Get();
