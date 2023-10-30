@@ -95,8 +95,18 @@ LRESULT CALLBACK Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wP
 {
     auto pApp = reinterpret_cast<BaseApplication*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
 
-    // TODO: Win32Application assumes that ImGui is in use, may be a more graceful way of handling this?
-    ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam);
+    // Check if ImGui wants to handle this event
+    bool mouseHidden = false;
+    if (pApp) mouseHidden = pApp->IsMouseHidden();
+
+    // Don't let ImGui process input when the mouse is hidden
+    if (!mouseHidden)
+    {
+        if (const LRESULT result = ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
+        {
+            return result;
+        }
+    }
 
     switch (message)
     {

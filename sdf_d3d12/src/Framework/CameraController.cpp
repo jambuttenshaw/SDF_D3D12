@@ -3,6 +3,7 @@
 
 #include "Input/InputManager.h"
 #include "Camera.h"
+#include "imgui.h"
 
 
 CameraController::CameraController(InputManager* inputManager, Camera* camera)
@@ -66,4 +67,11 @@ void CameraController::Update(float deltaTime) const
 			m_InputManager->SetMouseHidden(true);
 		}
 	}
+}
+
+
+void CameraController::Gui()
+{
+	ImGui::SliderFloat("Move Speed", &m_MoveSpeed, 0.1f, 10.0f);
+	ImGui::SliderFloat("Mouse Sensitivity", &m_RotateSpeed, 0.01f, 1.0f);
 }

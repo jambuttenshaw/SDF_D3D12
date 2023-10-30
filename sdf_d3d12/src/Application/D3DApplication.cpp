@@ -73,6 +73,10 @@ void D3DApplication::OnUpdate()
 			m_Camera.SetPitch(camPitch);
 
 		ImGui::Separator();
+
+		m_CameraController.Gui();
+
+		ImGui::Separator();
 	}
 
 	ImGui::End();

@@ -32,6 +32,8 @@ public:
 	inline UINT GetHeight() const			{ return m_Height; }
 	inline const WCHAR* GetTitle() const	{ return m_Title.c_str(); }
 
+	inline bool IsMouseHidden() const		{ return m_InputManager->IsMouseHidden(); }
+
 	virtual void ParseCommandLineArgs(WCHAR* argv[], int argc) {}
 
 protected:

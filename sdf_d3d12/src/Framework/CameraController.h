@@ -11,6 +11,7 @@ public:
 	CameraController(InputManager* inputManager, Camera* camera);
 
 	void Update(float deltaTime) const;
+	void Gui();
 
 private:
 	InputManager* m_InputManager = nullptr;

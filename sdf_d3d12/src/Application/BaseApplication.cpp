@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "BaseApplication.h"
 
+#include "imgui.h"
 #include "Windows/Win32Application.h"
 
 BaseApplication::BaseApplication(UINT width, UINT height, const std::wstring& name)
@@ -24,22 +25,26 @@ void BaseApplication::SetCustomWindowText(LPCWSTR text) const
 
 void BaseApplication::OnKeyDown(UINT8 key) const
 {
-	m_InputManager->SetKeyDown(KeyCode{ key });
+	if (!ImGui::GetIO().WantCaptureKeyboard)
+		m_InputManager->SetKeyDown(KeyCode{ key });
 }
 
 void BaseApplication::OnKeyUp(UINT8 key) const
 {
-	m_InputManager->SetKeyUp(KeyCode{ key });
+	if (!ImGui::GetIO().WantCaptureKeyboard)
+		m_InputManager->SetKeyUp(KeyCode{ key });
 }
 
 void BaseApplication::OnMouseButtonDown(UINT8 mouseButton) const
 {
-	m_InputManager->SetKeyDown(KeyCode{ mouseButton });
+	if (!ImGui::GetIO().WantCaptureMouse)
+		m_InputManager->SetKeyDown(KeyCode{ mouseButton });
 }
 
 void BaseApplication::OnMouseButtonUp(UINT8 mouseButton) const
 {
-	m_InputManager->SetKeyUp(KeyCode{ mouseButton });
+	if (!ImGui::GetIO().WantCaptureMouse)
+		m_InputManager->SetKeyUp(KeyCode{ mouseButton });
 }
 
 void BaseApplication::OnMouseMove(UINT x, UINT y) const
