@@ -163,8 +163,7 @@ void D3DGraphicsContext::DrawItems() const
 	m_CommandList->ResourceBarrier(1, &barrier);
 
 	// Set pipeline state
-	m_CommandList->SetComputeRootSignature(m_ComputeRootSignature.Get());
-	m_CommandList->SetPipelineState(m_ComputePipelineState.Get());
+	m_ComputePipeline->Bind(m_CommandList.Get());
 
 	// Set resource views
 	m_CommandList->SetComputeRootDescriptorTable(0, m_CurrentFrameResources->GetAllObjectsCBV());
@@ -181,8 +180,7 @@ void D3DGraphicsContext::DrawItems() const
 	m_CommandList->ResourceBarrier(1, &barrier);
 
 	// Set pipeline state
-	m_CommandList->SetGraphicsRootSignature(m_GraphicsRootSignature.Get());
-	m_CommandList->SetPipelineState(m_GraphicsPipelineState.Get());
+	m_GraphicsPipeline->Bind(m_CommandList.Get());
 
 	// Set resource views
 	m_CommandList->SetGraphicsRootDescriptorTable(0, m_CurrentFrameResources->GetPassCBV());
@@ -541,149 +539,8 @@ void D3DGraphicsContext::CreateProjectionMatrix()
 
 void D3DGraphicsContext::CreateAssets()
 {
-	D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
-	featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
-	if (FAILED(m_Device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
-	{
-		featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
-	}
-
-	// Create graphics root signature
-	{
-		// Create a root signature consisting of two root descriptors for CBVs (per-object and per-pass)
-		CD3DX12_DESCRIPTOR_RANGE1 ranges[2];
-		CD3DX12_ROOT_PARAMETER1 rootParameters[2];
-		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// per-object cb
-		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// per-pass cb
-		rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_VERTEX);
-		rootParameters[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_PIXEL);
-
-		// Allow input layout and deny unnecessary access to certain pipeline stages
-		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS;
-
-		// Create a point sampler
-		D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
-		samplerDesc.Filter = D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT;
-		samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-		samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-		samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-		samplerDesc.MipLODBias = 0;
-		samplerDesc.MaxAnisotropy = 0;
-		samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-		samplerDesc.BorderColor = D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK;
-		samplerDesc.MinLOD = 0;
-		samplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
-		samplerDesc.ShaderRegister = 0;
-		samplerDesc.RegisterSpace = 0;
-		samplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-
-		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
-		rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, 1, &samplerDesc, rootSignatureFlags);
-
-		ComPtr<ID3DBlob> signature;
-		THROW_IF_FAIL(D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, nullptr));
-		THROW_IF_FAIL(m_Device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_GraphicsRootSignature)));
-	}
-
-	// Create the graphics pipeline state, which includes compiling and loading shaders
-	{
-		ComPtr<ID3DBlob> vertexShader;
-		ComPtr<ID3DBlob> pixelShader;
-
-#ifdef _DEBUG
-		UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-#else
-		UINT compileFlags = 0;
-#endif
-
-		// Compile shaders
-		THROW_IF_FAIL(D3DCompileFromFile(L"assets/shaders/finalpass.hlsl", nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, nullptr));
-		THROW_IF_FAIL(D3DCompileFromFile(L"assets/shaders/finalpass.hlsl", nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr));
-
-		// Describe and create the graphics pipeline state object (PSO)
-		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
-		psoDesc.InputLayout = { nullptr, 0 };
-		psoDesc.pRootSignature = m_GraphicsRootSignature.Get();
-		psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader.Get());
-		psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.Get());
-		psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-		psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-		psoDesc.DepthStencilState.DepthEnable = false;
-		psoDesc.SampleMask = UINT_MAX;
-		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-		psoDesc.NumRenderTargets = 1;
-		psoDesc.RTVFormats[0] = m_BackBufferFormat;
-		psoDesc.DSVFormat = m_DepthStencilFormat;
-		psoDesc.SampleDesc.Count = 1;
-		THROW_IF_FAIL(m_Device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_GraphicsPipelineState)));
-	}
-
-
-	// Create the compute root signature
-	{
-		// Create a root signature consisting of two root descriptors for CBVs (per-object and per-pass)
-		CD3DX12_DESCRIPTOR_RANGE1 ranges[3];
-		CD3DX12_ROOT_PARAMETER1 rootParameters[3];
-		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// per-object cb
-		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// per-pass cb
-		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// output uav
-
-		rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_ALL);
-		rootParameters[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_ALL);
-		rootParameters[2].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_ALL);
-
-		// Allow input layout and deny unnecessary access to certain pipeline stages
-		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS;
-
-		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
-		rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr, rootSignatureFlags);
-
-		ComPtr<ID3DBlob> signature;
-		THROW_IF_FAIL(D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, nullptr));
-		THROW_IF_FAIL(m_Device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_ComputeRootSignature)));
-	}
-
-	// Create the compute pipeline state
-	{
-		ComPtr<ID3DBlob> computeShader;
-
-#ifdef _DEBUG
-		UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-#else
-		UINT compileFlags = 0;
-#endif
-
-		// Compile shader
-		ComPtr<ID3DBlob> error;
-		HRESULT result = D3DCompileFromFile(L"assets/shaders/compute.hlsl", nullptr, nullptr, "main", "cs_5_0", compileFlags, 0, &computeShader, error.GetAddressOf());
-		if (result != S_OK)
-		{
-			char* error_msg = new char[error->GetBufferSize()];
-
-			sprintf_s(error_msg, error->GetBufferSize(), "%s", static_cast<const char*>(error->GetBufferPointer()));
-			LOG_ERROR("Shader failed to compile! Error: {0}", error_msg);
-
-			delete[] error_msg;
-		}
-
-		D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc = {};
-		psoDesc.pRootSignature = m_ComputeRootSignature.Get();
-		psoDesc.CS.pShaderBytecode = computeShader->GetBufferPointer();
-		psoDesc.CS.BytecodeLength = computeShader->GetBufferSize();
-		THROW_IF_FAIL(m_Device->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&m_ComputePipelineState)));
-	}
+	m_GraphicsPipeline = std::make_unique<D3DGraphicsPipeline>();
+	m_ComputePipeline = std::make_unique<D3DComputePipeline>();
 
 	CreateSceneTexture();
 }

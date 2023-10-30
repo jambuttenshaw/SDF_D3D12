@@ -3,6 +3,9 @@
 #include "Memory/D3DMemoryAllocator.h"
 #include "D3DCBTypes.h"
 
+#include "D3DPipeline.h"
+
+
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
 
@@ -65,7 +68,9 @@ public:
 
 	inline static UINT GetBackBufferCount() { return s_FrameCount; }
 	inline DXGI_FORMAT GetBackBufferFormat() const { return m_BackBufferFormat; }
+	inline DXGI_FORMAT GetDepthStencilFormat() const { return m_DepthStencilFormat; }
 	inline UINT GetCurrentBackBuffer() const { return m_FrameIndex; }
+
 
 	inline static UINT GetMaxObjectCount() { return s_MaxObjectCount; }
 
@@ -167,13 +172,9 @@ private:
 	CD3DX12_VIEWPORT m_Viewport{ };
 	CD3DX12_RECT m_ScissorRect{ };
 
-	// Graphics Pipeline assets
-	ComPtr<ID3D12RootSignature> m_GraphicsRootSignature;
-	ComPtr<ID3D12PipelineState> m_GraphicsPipelineState;
-
-	// Compute Pipeline assets
-	ComPtr<ID3D12RootSignature> m_ComputeRootSignature;
-	ComPtr<ID3D12PipelineState> m_ComputePipelineState;
+	// Pipeline assets
+	std::unique_ptr<D3DGraphicsPipeline> m_GraphicsPipeline;
+	std::unique_ptr<D3DComputePipeline> m_ComputePipeline;
 
 	UINT m_ThreadGroupX = 0, m_ThreadGroupY = 0;
 
