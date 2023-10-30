@@ -314,6 +314,12 @@ float3 intersectWithWorld(float3 p, float3 dir)
 [numthreads(NUM_SHADER_THREADS, NUM_SHADER_THREADS, 1)]
 void main(uint3 DTid : SV_DispatchThreadID)
 {
+	// Make sure thread has a pixel in the texture to process
+	uint2 dims;
+	OutputTexture.GetDimensions(dims.x, dims.y);
+	if (DTid.x > dims.x || DTid.y > dims.y)
+		return;
+	
 	// Write a constant colour into the output texture
 	float2 uv = float2(DTid.xy) / (gRTSize - 1.0f);
 	

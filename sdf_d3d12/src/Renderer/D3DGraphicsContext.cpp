@@ -704,8 +704,9 @@ void D3DGraphicsContext::CreateSceneTexture()
 		IID_PPV_ARGS(&m_SceneTexture)
 	));
 
-	m_ThreadGroupX = m_ClientWidth / s_NumShaderThreads;
-	m_ThreadGroupY = m_ClientHeight / s_NumShaderThreads;
+	// Use fast ceiling of integer division
+	m_ThreadGroupX = (m_ClientWidth + s_NumShaderThreads  - 1) / s_NumShaderThreads;
+	m_ThreadGroupY = (m_ClientHeight + s_NumShaderThreads - 1) / s_NumShaderThreads;
 
 	// Create UAVs and SRVs
 	m_SceneTextureViews = m_SRVHeap->Allocate(2); // one UAV and one SRV
