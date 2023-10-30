@@ -72,6 +72,6 @@ void CameraController::Update(float deltaTime) const
 
 void CameraController::Gui()
 {
-	ImGui::SliderFloat("Move Speed", &m_MoveSpeed, 0.1f, 10.0f);
+	ImGui::SliderFloat("Move Speed", &m_MoveSpeed, 0.1f, 20.0f);
 	ImGui::SliderFloat("Mouse Sensitivity", &m_RotateSpeed, 0.01f, 1.0f);
 }
