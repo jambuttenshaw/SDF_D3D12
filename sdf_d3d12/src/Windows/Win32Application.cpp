@@ -175,6 +175,13 @@ LRESULT CALLBACK Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wP
         }
         return 0;
 
+    case WM_MOUSEWHEEL:
+        if (pApp)
+        {
+            pApp->OnMouseWheel(GET_WHEEL_DELTA_WPARAM(wParam));
+        }
+        return 0;
+
     // Resize events
     case WM_ENTERSIZEMOVE:
         if (pApp)

@@ -21,6 +21,7 @@ public:
 	void OnMouseButtonDown(UINT8 mouseButton) const;
 	void OnMouseButtonUp(UINT8 mouseButton) const;
 	void OnMouseMove(UINT X, UINT Y) const;
+	void OnMouseWheel(INT delta) const;
 
 	// Resize callbacks
 	void BeginResize();

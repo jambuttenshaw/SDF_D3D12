@@ -52,6 +52,12 @@ void BaseApplication::OnMouseMove(UINT x, UINT y) const
 	m_InputManager->SetMousePosition(x, y);
 }
 
+void BaseApplication::OnMouseWheel(INT delta) const
+{
+	m_InputManager->SetScrollDelta(delta);
+}
+
+
 void BaseApplication::BeginResize()
 {
 	m_PreviousWidth = m_Width;

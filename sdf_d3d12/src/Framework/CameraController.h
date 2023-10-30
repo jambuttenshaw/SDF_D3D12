@@ -10,7 +10,7 @@ public:
 	CameraController() = default;
 	CameraController(InputManager* inputManager, Camera* camera);
 
-	void Update(float deltaTime) const;
+	void Update(float deltaTime);
 	void Gui();
 
 private:
@@ -19,5 +19,10 @@ private:
 
 	// Controller properties
 	float m_MoveSpeed = 3.0f;
-	float m_RotateSpeed = 0.2f;
+	float m_RotateSpeed = 0.15f;
+
+	float m_ScrollSpeed = 1.5f;
+
+	static constexpr float s_MinMoveSpeed = 0.1f;
+	static constexpr float s_MaxMoveSpeed = 20.0f;
 };

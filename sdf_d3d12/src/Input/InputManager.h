@@ -21,6 +21,7 @@ public:
 	void SetKeyUp(KeyCode key);
 
 	void SetMousePosition(UINT x, UINT y);
+	void SetScrollDelta(INT delta);
 
 	// API for the application to use
 	inline bool IsKeyDown(KeyCode key) const { return m_KeyStates[key]; }
@@ -32,6 +33,8 @@ public:
 	inline UINT GetMouseY() const { return m_MouseY; }
 	inline INT GetMouseDeltaX() const { return m_MouseDX; }
 	inline INT GetMouseDeltaY() const { return m_MouseDY; }
+
+	inline float GetScrollDelta() const { return m_ScrollDelta; }
 
 	void SetMouseHidden(bool hidden);
 	inline bool IsMouseHidden() const { return m_MouseHidden; }
@@ -53,6 +56,8 @@ private:
 		 m_PrevMouseY = 0;
 	INT m_MouseDX = 0,
 		m_MouseDY = 0;
+
+	float m_ScrollDelta = 0;
 
 	bool m_FirstTick = true;
 };

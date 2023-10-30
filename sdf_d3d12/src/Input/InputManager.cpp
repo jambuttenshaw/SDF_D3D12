@@ -41,6 +41,8 @@ void InputManager::EndFrame()
 {
 	m_KeysPressed.clear();
 	m_KeysReleased.clear();
+
+	m_ScrollDelta = 0;
 }
 
 
@@ -75,6 +77,12 @@ void InputManager::SetMousePosition(UINT x, UINT y)
 		m_MouseY = y;
 	}
 }
+
+void InputManager::SetScrollDelta(INT delta)
+{
+	m_ScrollDelta = static_cast<float>(delta) / static_cast<float>(WHEEL_DELTA);
+}
+
 
 void InputManager::SetMouseHidden(bool hidden)
 {
