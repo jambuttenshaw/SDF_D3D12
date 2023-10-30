@@ -34,8 +34,14 @@ void CameraController::Update(float deltaTime)
 	if (m_InputManager->IsKeyDown(KEY_W))
 		forward += move;
 
-	m_Camera->Translate(strafe * m_Camera->GetRight() * XMVECTOR({ 1.0f, 0.0f, 1.0f }));
-	m_Camera->Translate(forward * m_Camera->GetForward() * XMVECTOR({ 1.0f, 0.0f, 1.0f }));
+	m_Camera->Translate(strafe * m_Camera->GetRight());
+	XMVECTOR forwardDir = XMVectorMultiply(m_Camera->GetForward(), {1.0f, 0.0f, 1.0f});
+	if (XMVector3Equal(XMVectorZero(), forwardDir))
+		forwardDir = m_Camera->GetUp();
+	else
+		forwardDir = XMVector3Normalize(forwardDir);
+	
+	m_Camera->Translate(forward * forwardDir);
 
 	if (m_InputManager->IsKeyDown(KEY_Q))
 		m_Camera->Translate(XMVECTOR{ 0.0f, -move, 0.0f });

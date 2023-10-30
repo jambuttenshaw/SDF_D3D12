@@ -69,7 +69,7 @@ void D3DApplication::OnUpdate()
 			m_Camera.SetPosition(camPos);
 		if (ImGui::SliderAngle("Yaw:", &camYaw, -180.0f, 180.0f))
 			m_Camera.SetYaw(camYaw);
-		if (ImGui::SliderAngle("Pitch:", &camPitch, -89.9f, 89.9f))
+		if (ImGui::SliderAngle("Pitch:", &camPitch, -89.0f, 89.0f))
 			m_Camera.SetPitch(camPitch);
 
 		ImGui::Separator();

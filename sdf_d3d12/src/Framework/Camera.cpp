@@ -20,10 +20,10 @@ void Camera::RebuildIfDirty()
 		const float cosP = cosf(m_Pitch);
 
 		m_Forward = XMVector3Normalize({ sinY * cosP, sinP, cosY * cosP });
-		m_Up = XMVector3Normalize({ 0.0f, 1.0f, 0.0f });
-		if (XMVector3Equal(m_Up, m_Forward))
-			XMVectorSwizzle(m_Up, 0, 2, 1, 3);
-		m_Right = XMVector3Cross(m_Up, m_Forward);
+		m_Up = { 0.0f, 1.0f, 0.0f };
+
+		m_Right = XMVector3Normalize(XMVector3Cross(m_Up, m_Forward));
+		m_Up = XMVector3Cross(m_Forward, m_Right);
 
 		const XMVECTOR target = m_Position + m_Forward;
 
@@ -43,10 +43,10 @@ void Camera::ClampYaw()
 
 void Camera::ClampPitch()
 {
-	if (m_Pitch < -1.5708f)
+	if (m_Pitch < -1.55334)
 	{
-		m_Pitch = -1.5708f;
+		m_Pitch = -1.55334;
 	}
-	if (m_Pitch > 1.5708f)
-		m_Pitch = 1.5708f;
+	if (m_Pitch > 1.55334)
+		m_Pitch = 1.55334;
 }
