@@ -42,15 +42,6 @@ PSInput VSMain(uint id : SV_VertexID)
 	output.uv = float2(id % 2, id / 2);
     // map that texture coordinate to a position in ndc
 	output.position = float4((output.uv.x - 0.5f) * 2.0f, (0.5f - output.uv.y) * 2.0f, 0.0f, 1.0f);
-    
-    // calculate view vector to this corner
-	float4 v = float4(
-        output.position.x / gProj._11,
-        output.position.y / gProj._22,
-        1.0f,
-        0.0f
-    );
-    
 	return output;
 }
 

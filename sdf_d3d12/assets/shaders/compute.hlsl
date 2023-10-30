@@ -311,37 +311,33 @@ float3 intersectWithWorld(float3 p, float3 dir)
 }
 
 
-void mainImage(out float4 fragColor, in float2 fragCoord)
-{
-	
-}
-
-
-
 [numthreads(NUM_SHADER_THREADS, NUM_SHADER_THREADS, 1)]
 void main(uint3 DTid : SV_DispatchThreadID)
 {
 	// Write a constant colour into the output texture
-	float2 uv = float2(DTid.xy) / gRTSize;
+	float2 uv = float2(DTid.xy) / (gRTSize - 1.0f);
 	
-	float3 tot = float3(0.0f, 0.0f, 0.0f);
-    
-    // remap from [0,1] to [-1,-1]
+    // map to NDC coordinates
 	float2 camUV = uv * 2.0f - float2(1.0f, 1.0f);
+	camUV.y = -camUV.y;
 	
-    // get pixel coords in view space by un-projecting
-	float4 pixel = mul(gInvViewProj, float4(camUV, gNearZ, 0.0f));
+	// construct a vector (in view space) from the origin to this pixel
+	float4 v = float4(
+        camUV.x / gProj._11,
+        camUV.y / gProj._22,
+        1.0f,
+        0.0f
+    );
+	// get the view vector in world space
+	float3 viewVector = normalize(mul(v, gInvView).xyz);
 	
-    // view dir is from camera to pixel in view space
-	float3 rayDirection = normalize(pixel.xyz);
-    
-	float3 col = intersectWithWorld(gWorldEyePos, rayDirection);
+	// perform ray marching
+	float3 col = intersectWithWorld(gWorldEyePos, viewVector);
         
     // gamma
 	col = pow(col, float3(0.4545f, 0.4545f, 0.4545f));
-        
-	tot += col;
     
-	const float4 color = float4(tot, 1.0f);
+	// write to output
+	const float4 color = float4(col, 1.0f);
 	OutputTexture[DTid.xy] = color;
 }
