@@ -43,10 +43,10 @@ void Camera::ClampYaw()
 
 void Camera::ClampPitch()
 {
-	if (m_Pitch < -1.55334)
+	if (m_Pitch < -1.55334f)
 	{
-		m_Pitch = -1.55334;
+		m_Pitch = -1.55334f;
 	}
-	if (m_Pitch > 1.55334)
-		m_Pitch = 1.55334;
+	if (m_Pitch > 1.55334f)
+		m_Pitch = 1.55334f;
 }
