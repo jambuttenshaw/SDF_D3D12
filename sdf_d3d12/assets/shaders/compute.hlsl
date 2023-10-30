@@ -1,20 +1,50 @@
 
-#define MAX_OBJECT_COUNT 2
+#define FLOAT_MAX 3.402823466e+38F
+
+// These must match those defined in C++
+#define MAX_OBJECT_COUNT 16
 #define NUM_SHADER_THREADS 8
+
+
+// Shape IDs
+#define SHAPE_SPHERE 0u
+#define SHAPE_BOX 1u
+#define SHAPE_PLANE 2u
+#define SHAPE_TORUS 3u
+#define SHAPE_OCTAHEDRON 4u
+
+// Operation IDs
+#define OP_UNION 0u
+#define OP_SUBTRACTION 1u
+#define OP_INTERSECTION 2u
+#define OP_SMOOTH_UNION 3u
+#define OP_SMOOTH_SUBTRACTION 4u
+#define OP_SMOOTH_INTERSECTION 5u
+
 
 struct ObjectCB
 {
 	// Each object must be 256-byte aligned
+	matrix InvWorldMat;
 	
-	float4x4 gWorld;
-	float padding[48];
+	float Scale;
+	
+	// SDF primitive data
+	uint Shape;
+	uint Operation;
+	float BlendingFactor;
+
+	float4 ShapeParams;
+
+	float4 Color;
+	
+	float4 padding1[9];
 };
 
 cbuffer AllObjectsCB : register(b0)
 {
-	ObjectCB AllObjects[MAX_OBJECT_COUNT];
+	ObjectCB gAllObjects[MAX_OBJECT_COUNT];
 };
-
 
 cbuffer PassCB : register(b1)
 {
@@ -27,7 +57,7 @@ cbuffer PassCB : register(b1)
 	
 	float3 gWorldEyePos;
 	
-	float gPadding0;
+	uint gObjectCount;
 	
 	float2 gRTSize;
 	float2 gInvRTSize;
@@ -41,7 +71,7 @@ cbuffer PassCB : register(b1)
 
 RWTexture2D<float4> OutputTexture : register(u0);
 
-
+groupshared ObjectCB gCachedObjects[MAX_OBJECT_COUNT];
 
 //
 // Constant Parameters
@@ -68,6 +98,8 @@ static const float3 deltaz = float3(0.0f, 0.0f, S);
 static const float3 WHITE = float3(1.0f, 1.0f, 1.0f);
 static const float3 RED = float3(0.92f, 0.2f, 0.2f);
 static const float3 BLUE = float3(0.2f, 0.58f, 0.92f);
+
+static int heatmap = 0;
 
 //
 // UTILITY
@@ -127,19 +159,37 @@ float sdOctahedron(float3 p, float s)
 // OPERATIONS
 //
 
-float4 opIntersect(float4 a, float4 b)
-{
-	return a.w > b.w ? a : b;
-}
-  
 float4 opUnion(float4 a, float4 b)
 {
 	return a.w < b.w ? a : b;
 }
- 
-float4 opDifference(float4 a, float4 b)
+
+float4 opSubtraction(float4 a, float4 b)
 {
 	return a.w > -b.w ? a : float4(b.rgb, -b.w);
+}
+
+float4 opIntersection(float4 a, float4 b)
+{
+	return a.w > b.w ? a : b;
+}
+  
+float4 opSmoothUnion(float4 a, float4 b, float k)
+{
+	float h = clamp(0.5f + 0.5f * (a.w - b.w) / k, 0.0f, 1.0f);
+	float3 c = lerp(a.rgb, b.rgb, h);
+	float d = lerp(a.w, b.w, h) - k * h * (1.0f - h);
+   
+	return float4(c, d);
+}
+ 
+float4 opSmoothSubtraction(float4 a, float4 b, float k)
+{
+	float h = clamp(0.5f - 0.5f * (a.w + b.w) / k, 0.0f, 1.0f);
+	float3 c = lerp(a.rgb, b.rgb, h);
+	float d = lerp(a.w, -b.w, h) + k * h * (1.0f - h);
+   
+	return float4(c, d);
 }
 
 float4 opSmoothIntersection(float4 a, float4 b, float k)
@@ -150,32 +200,56 @@ float4 opSmoothIntersection(float4 a, float4 b, float k)
    
 	return float4(c, d);
 }
- 
-float4 opSmoothUnion(float4 a, float4 b, float k)
+
+
+float3 opTransform(float3 p, matrix t)
 {
-	float h = clamp(0.5f + 0.5f * (a.w - b.w) / k, 0.0f, 1.0f);
-	float3 c = lerp(a.rgb, b.rgb, h);
-	float d = lerp(a.w, b.w, h) - k * h * (1.0f - h);
-   
-	return float4(c, d);
-}
- 
-float4 opSmoothDifference(float4 a, float4 b, float k)
-{
-	float h = clamp(0.5f - 0.5f * (a.w + b.w) / k, 0.0f, 1.0f);
-	float3 c = lerp(a.rgb, b.rgb, h);
-	float d = lerp(a.w, -b.w, h) + k * h * (1.0f - h);
-   
-	return float4(c, d);
+	return mul(float4(p, 1.0f), t).xyz;
 }
 
-// domain operations
 
-float2 repeat2d(float2 p, float s, out float2 id)
+// Resolve primitive/operation
+
+float sdPrimitive(float3 p, uint prim, float4 param)
 {
-	id = round(p / s);
-	return p - s * id;
+	switch (prim)
+	{
+	case SHAPE_SPHERE:
+		return sdSphere(p, param.x);
+	case SHAPE_BOX:
+		return sdBox(p, param.xyz);
+	case SHAPE_PLANE:
+		return sdPlane(p, param.xyz, param.w);
+	case SHAPE_TORUS:
+		return sdTorus(p, param.xy);
+	case SHAPE_OCTAHEDRON:
+		return sdOctahedron(p, param.x);
+	default:
+		return 0.0f;
+	}
 }
+
+float4 opPrimitive(float4 a, float4 b, uint op, float k)
+{
+	switch (op)
+	{
+	case OP_UNION:
+		return opUnion(a, b);
+	case OP_SUBTRACTION:
+		return opSubtraction(a, b);
+	case OP_INTERSECTION:
+		return opIntersection(a, b);
+	case OP_SMOOTH_UNION:
+		return opSmoothUnion(a, b, k);
+	case OP_SMOOTH_SUBTRACTION:
+		return opSmoothSubtraction(a, b, k);
+	case OP_SMOOTH_INTERSECTION:
+		return opSmoothIntersection(a, b, k);
+	default:
+		return a;
+	}
+}
+
 
 //
 // SCENE
@@ -183,15 +257,24 @@ float2 repeat2d(float2 p, float s, out float2 id)
 
 float4 sdScene(float3 p)
 {
-	float4 nearest = float4(float3(0.13f, 0.2f, 0.17f), sdPlane(p, float3(0.0f, 1.0f, 0.0f), 1.0f));
-    
-	float4 torus = float4(BLUE, sdTorus(p - float3(-1.7f, 0.0f, 0.4f), float2(0.8f, 0.3f)));
-	float4 octahedron = float4(RED, sdOctahedron(p - float3(0.0f, 0.3f, 0.0f), 1.0f));
+	float4 nearest = float4(0.0f, 0.0f, 0.0f, FLOAT_MAX);
+	
+	for (int i = 0; i < gObjectCount; i++)
+	{
+		// apply primitive transform
+		float3 p_transformed = opTransform(p, gCachedObjects[i].InvWorldMat) / gCachedObjects[i].Scale;
+		
+		// evaluate primitive
+		float4 shape = float4(
+			gCachedObjects[i].Color.rgb,
+			sdPrimitive(p_transformed, gCachedObjects[i].Shape, gCachedObjects[i].ShapeParams)
+		);
+		shape.w *= gCachedObjects[i].Scale;
 
-	float4 shape = opSmoothUnion(torus, octahedron, 0.3f);
-
-	nearest = opUnion(nearest, shape);
-    
+		// combine with scene
+		nearest = opPrimitive(nearest, shape, gCachedObjects[i].Operation, gCachedObjects[i].BlendingFactor);
+		heatmap += 1;
+	}
 	return nearest;
 }
 
@@ -312,10 +395,15 @@ float3 intersectWithWorld(float3 p, float3 dir)
 
 
 [numthreads(NUM_SHADER_THREADS, NUM_SHADER_THREADS, 1)]
-void main(uint3 DTid : SV_DispatchThreadID)
+void main(uint3 DTid : SV_DispatchThreadID, uint GI : SV_GroupIndex)
 {
+	if (GI < gObjectCount)
+		gCachedObjects[GI] = gAllObjects[GI];
+	
+	GroupMemoryBarrierWithGroupSync();
+	
 	// Make sure thread has a pixel in the texture to process
-	uint2 dims;
+		uint2 dims;
 	OutputTexture.GetDimensions(dims.x, dims.y);
 	if (DTid.x > dims.x || DTid.y > dims.y)
 		return;
@@ -345,5 +433,6 @@ void main(uint3 DTid : SV_DispatchThreadID)
     
 	// write to output
 	const float4 color = float4(col, 1.0f);
+	//const float4 color = float4(heatmap / 500.0f, 0.0f, 0.0f, 1.0f);
 	OutputTexture[DTid.xy] = color;
 }

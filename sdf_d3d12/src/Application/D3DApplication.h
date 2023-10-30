@@ -38,6 +38,7 @@ private:
 	Camera m_Camera;
 	CameraController m_CameraController;
 
-	RenderItem* m_Cube = nullptr;
-	float m_CubeRotation = 0.0f;
+	RenderItem* m_Plane = nullptr;
+	RenderItem* m_Torus = nullptr;
+	RenderItem* m_Octahedron = nullptr;
 };

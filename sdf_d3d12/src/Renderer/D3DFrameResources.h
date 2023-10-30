@@ -46,8 +46,8 @@ private:
 
 	// Constant buffer views
 	D3DDescriptorAllocation m_CBVs;
-	UINT m_AllObjectsCBV = 0;
-	UINT m_PassCBV = 0;
+	UINT m_AllObjectsCBV = -1;
+	UINT m_PassCBV = -1;
 
 	// Resources to be released when the GPU is finished with them
 	// A release collection is required per frame resources to ensure that

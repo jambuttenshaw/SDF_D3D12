@@ -1,5 +1,7 @@
 #pragma once
 
+#include "SDF/SDFTypes.h"
+
 using namespace DirectX;
 
 
@@ -12,7 +14,7 @@ struct PassCBType
 	XMMATRIX ViewProj;
 	XMMATRIX InvViewProj;
 	XMFLOAT3 WorldEyePos;
-	float padding;
+	UINT ObjectCount;
 	XMFLOAT2 RTSize;
 	XMFLOAT2 InvRTSize;
 	float NearZ;
@@ -24,5 +26,19 @@ struct PassCBType
 
 struct ObjectCBType
 {
-	XMMATRIX WorldMat;
+	// Inverse world matrix is required to position SDF primitives
+	XMMATRIX InvWorldMat;
+	// Only uniform scale can be applied to SDFs
+	float Scale;
+
+	// SDF primitive data
+	UINT Shape;
+	UINT Operation;
+	float BlendingFactor;
+
+
+	static_assert(sizeof(SDFShapeProperties) == sizeof(XMFLOAT4));
+	XMFLOAT4 ShapeProperties;
+
+	XMFLOAT4 Color;
 };

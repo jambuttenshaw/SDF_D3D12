@@ -21,13 +21,6 @@ extern D3DGraphicsContext* g_D3DGraphicsContext;
 class D3DGraphicsContext
 {
 public:
-	struct Vertex
-	{
-		XMFLOAT3 position;
-		XMFLOAT4 color;
-	};
-
-public:
 	D3DGraphicsContext(HWND window, UINT width, UINT height);
 	~D3DGraphicsContext();
 
@@ -117,7 +110,7 @@ private:
 
 private:
 	static constexpr UINT s_FrameCount = 2;
-	static constexpr UINT s_MaxObjectCount = 2;
+	static constexpr UINT s_MaxObjectCount = 16;
 	static constexpr UINT s_NumShaderThreads = 8;
 
 	// Context properties

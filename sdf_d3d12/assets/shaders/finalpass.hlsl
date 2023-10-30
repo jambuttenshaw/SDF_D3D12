@@ -10,7 +10,7 @@ cbuffer PassCB : register(b0)
 	
 	float3 gWorldEyePos;
 	
-	float gPadding0;
+	uint gObjectCount;
 	
 	float2 gRTSize;
 	float2 gInvRTSize;

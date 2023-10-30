@@ -7,6 +7,8 @@
 #include "backends/imgui_impl_dx12.h"
 #include "Framework/RenderItem.h"
 
+#include "SDF/SDFTypes.h"
+
 
 D3DApplication::D3DApplication(UINT width, UINT height, const std::wstring& name)
 	: BaseApplication(width, height, name)
@@ -25,8 +27,23 @@ void D3DApplication::OnInit()
 
 	m_CameraController = CameraController{ m_InputManager.get(), &m_Camera };
 
-	m_Cube = m_GraphicsContext->CreateRenderItem();
-	ASSERT(m_Cube, "Failed to create cube");
+	m_Octahedron = m_GraphicsContext->CreateRenderItem();
+	m_Torus = m_GraphicsContext->CreateRenderItem();
+	m_Plane = m_GraphicsContext->CreateRenderItem();
+	
+	m_Octahedron->SetSDFPrimitiveData(
+		SDFPrimitive::CreateOctahedron(1.0f, SDFOperation::Union, 0.0f, XMFLOAT4{ 0.92f, 0.2f, 0.2f, 1.0f })
+	);
+	m_Octahedron->SetTranslation({ 0.0f, 0.3f, 0.0f });
+
+	m_Torus->SetSDFPrimitiveData(
+		SDFPrimitive::CreateTorus(0.8f, 0.3f, SDFOperation::SmoothUnion, 0.3f, XMFLOAT4{ 0.2f, 0.58f, 0.92f, 1.0f })
+	);
+	m_Torus->SetTranslation({ -1.7f, 0.0f, 0.4f });
+
+	m_Plane->SetSDFPrimitiveData(
+		SDFPrimitive::CreatePlane({ 0.0f, 1.0f, 0.0f }, 1.0f, SDFOperation::Union, 0.0f, XMFLOAT4{ 0.13f, 0.2f, 0.17f, 1.0f })
+	);
 }
 
 void D3DApplication::OnUpdate()
@@ -36,10 +53,6 @@ void D3DApplication::OnUpdate()
 
 	// Update camera
 	m_CameraController.Update(deltaTime);
-
-	// Update objects
-	m_CubeRotation += deltaTime;
-	m_Cube->SetWorldMatrix(XMMatrixRotationAxis({ 0.77f, 0.77f, 0.0 }, m_CubeRotation));
 
 	// Begin new ImGui frame
 	ImGui_ImplDX12_NewFrame();
@@ -75,6 +88,36 @@ void D3DApplication::OnUpdate()
 		ImGui::Separator();
 
 		m_CameraController.Gui();
+
+		ImGui::Separator();
+	}
+
+	{
+		ImGui::Text("Torus");
+
+		// Transform
+		XMFLOAT3 pos;
+		XMStoreFloat3(&pos, m_Torus->GetTranslation());
+		auto scale = m_Torus->GetScale();
+
+		if (ImGui::DragFloat3("Position", &pos.x, 0.05f))
+		{
+			m_Torus->SetTranslation(XMLoadFloat3(&pos));
+		}
+		if (ImGui::DragFloat("Scale", &scale, 0.05f, 0.0f))
+		{
+			m_Torus->SetScale(scale);
+		}
+
+		// SDF data
+		SDFPrimitive primitive = m_Torus->GetSDFPrimitiveData();
+		bool changes = false;
+
+		changes |= ImGui::SliderFloat("Blend Factor", &primitive.BlendingFactor, 0.0f, 3.0f);
+		changes |= ImGui::ColorEdit3("color", &primitive.Color.x);
+
+		if (changes)
+			m_Torus->SetSDFPrimitiveData(primitive);
 
 		ImGui::Separator();
 	}

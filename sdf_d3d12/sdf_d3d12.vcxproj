@@ -163,6 +163,7 @@
     <ClCompile Include="src\Framework\RenderItem.cpp" />
     <ClCompile Include="src\Renderer\D3DPipeline.cpp" />
     <ClCompile Include="src\Renderer\Memory\D3DMemoryAllocator.cpp" />
+    <ClCompile Include="src\SDF\SDFTypes.cpp" />
     <ClCompile Include="src\Windows\Win32Application.cpp" />
     <ClCompile Include="vendor\imgui\backends\imgui_impl_dx12.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
@@ -211,6 +212,7 @@
     <ClInclude Include="src\Renderer\D3DPipeline.h" />
     <ClInclude Include="src\Renderer\Memory\D3DMemoryAllocator.h" />
     <ClInclude Include="src\Framework\RenderItem.h" />
+    <ClInclude Include="src\SDF\SDFTypes.h" />
     <ClInclude Include="src\Windows\Win32Application.h" />
     <ClInclude Include="vendor\imgui\backends\imgui_impl_dx12.h" />
     <ClInclude Include="vendor\imgui\backends\imgui_impl_win32.h" />

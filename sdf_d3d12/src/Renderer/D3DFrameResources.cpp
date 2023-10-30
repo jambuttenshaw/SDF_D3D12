@@ -20,7 +20,8 @@ D3DFrameResources::D3DFrameResources()
 	m_CBVs = g_D3DGraphicsContext->GetSRVHeap()->Allocate(numObjects + 2);	// one for each object + one for entire object buffer + pass cb
 	ASSERT(m_CBVs.IsValid(), "Failed to alloc descriptors");
 
-	m_PassCBV = numObjects;	// = num objects (pass cbv comes after object cbv's)
+	m_AllObjectsCBV = numObjects;	// = num objects (all objects cbv comes after object cbv's)
+	m_PassCBV = numObjects + 1;		// = num objects + 1 (pass cbv comes after object cbv's and all objects cbv)
 
 	D3D12_CONSTANT_BUFFER_VIEW_DESC desc;
 

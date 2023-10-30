@@ -36,4 +36,3 @@ protected:
 	UINT m_ThreadGroupsY= 1;
 	UINT m_ThreadGroupsZ= 1;
 };
-

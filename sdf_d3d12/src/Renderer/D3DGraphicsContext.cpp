@@ -57,6 +57,8 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
 	ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
 	m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
+	m_RenderItems.reserve(s_MaxObjectCount);
+
 	// Wait for any GPU work executed on startup to finish before continuing
 	WaitForGPU();
 	// Temporary resources that were created during initialization
@@ -205,7 +207,18 @@ void D3DGraphicsContext::UpdateObjectCBs() const
 		{
 			// Copy per-object data into the frame CB
 			ObjectCBType objectCB;
-			objectCB.WorldMat = XMMatrixTranspose(renderItem.GetWorldMatrix());
+			// Inverse world matrix is required to position SDF primitives
+			objectCB.InvWorldMat = XMMatrixTranspose(XMMatrixInverse(nullptr, renderItem.GetWorldMatrix()));
+			objectCB.Scale = renderItem.GetScale();
+
+			const SDFPrimitive& primitive = renderItem.GetSDFPrimitiveData();
+
+			objectCB.Shape = static_cast<UINT>(primitive.Shape);
+			memcpy_s(&objectCB.ShapeProperties, sizeof(SDFShapeProperties), &primitive.ShapeProperties, sizeof(SDFShapeProperties));
+
+			objectCB.Operation = static_cast<UINT>(primitive.Operation);
+			objectCB.BlendingFactor = primitive.BlendingFactor;
+			objectCB.Color = primitive.Color;
 
 			m_CurrentFrameResources->CopyObjectData(renderItem.GetObjectIndex(), objectCB);
 
@@ -235,6 +248,8 @@ void D3DGraphicsContext::UpdatePassCB(GameTimer* timer, Camera* camera)
 	m_MainPassCB.InvViewProj = XMMatrixTranspose(invViewProj);
 
 	m_MainPassCB.WorldEyePos = camera->GetPosition();
+
+	m_MainPassCB.ObjectCount = static_cast<UINT>(m_RenderItems.size());
 
 	m_MainPassCB.RTSize = { static_cast<float>(m_ClientWidth), static_cast<float>(m_ClientHeight) };
 	m_MainPassCB.InvRTSize = { 1.0f / m_MainPassCB.RTSize.x, 1.0f / m_MainPassCB.RTSize.y };
