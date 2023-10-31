@@ -95,29 +95,7 @@ void D3DApplication::OnUpdate()
 	{
 		ImGui::Text("Torus");
 
-		// Transform
-		XMFLOAT3 pos;
-		XMStoreFloat3(&pos, m_Torus->GetTranslation());
-		auto scale = m_Torus->GetScale();
-
-		if (ImGui::DragFloat3("Position", &pos.x, 0.05f))
-		{
-			m_Torus->SetTranslation(XMLoadFloat3(&pos));
-		}
-		if (ImGui::DragFloat("Scale", &scale, 0.05f, 0.0f))
-		{
-			m_Torus->SetScale(scale);
-		}
-
-		// SDF data
-		SDFPrimitive primitive = m_Torus->GetSDFPrimitiveData();
-		bool changes = false;
-
-		changes |= ImGui::SliderFloat("Blend Factor", &primitive.BlendingFactor, 0.0f, 3.0f);
-		changes |= ImGui::ColorEdit3("color", &primitive.Color.x);
-
-		if (changes)
-			m_Torus->SetSDFPrimitiveData(primitive);
+		m_Torus->DrawGui();
 
 		ImGui::Separator();
 	}

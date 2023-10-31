@@ -65,10 +65,19 @@ struct SDFPrimitive
 
 	SDFPrimitive();
 
+	bool DrawGui();
+
+private:
+	// Used by the GUI system
+	void SetShapePropertiesToDefault();
+
+public:
+
 	// Constructor for each shape type
 	static SDFPrimitive CreateSphere(float radius, SDFOperation op, float blend, const XMFLOAT4& color);
 	static SDFPrimitive CreateBox(const XMFLOAT3& extents, SDFOperation op, float blend, const XMFLOAT4& color);
 	static SDFPrimitive CreatePlane(const XMFLOAT3 normal, float height, SDFOperation op, float blend, const XMFLOAT4& color);
 	static SDFPrimitive CreateTorus(float innerRadius, float torusRadius, SDFOperation op, float blend, const XMFLOAT4& color);
 	static SDFPrimitive CreateOctahedron(float scale, SDFOperation op, float blend, const XMFLOAT4& color);
+
 };
