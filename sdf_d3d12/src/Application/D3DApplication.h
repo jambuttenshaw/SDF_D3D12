@@ -41,4 +41,8 @@ private:
 	RenderItem* m_Plane = nullptr;
 	RenderItem* m_Torus = nullptr;
 	RenderItem* m_Octahedron = nullptr;
+
+	RenderItem* m_Cube1 = nullptr;
+	RenderItem* m_Cube2 = nullptr;
+	RenderItem* m_Cube3 = nullptr;
 };

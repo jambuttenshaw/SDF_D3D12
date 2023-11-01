@@ -27,20 +27,34 @@ void D3DApplication::OnInit()
 
 	m_CameraController = CameraController{ m_InputManager.get(), &m_Camera };
 
+	m_Cube1 = m_GraphicsContext->CreateRenderItem();
+	m_Cube2 = m_GraphicsContext->CreateRenderItem();
+	m_Cube3 = m_GraphicsContext->CreateRenderItem();
+
+	const auto boxPrimitive = SDFPrimitive::CreateBox({ 0.5f, 0.5f, 0.5f }, SDFOperation::Union, 0.0f, XMFLOAT4{ 0.3f, 0.8f, 0.2f, 1.0f });
+	m_Cube1->SetSDFPrimitiveData(boxPrimitive);
+	m_Cube1->SetTranslation({ 1.0f, 0.0f, 1.0f });
+	m_Cube2->SetSDFPrimitiveData(boxPrimitive);
+	m_Cube2->SetTranslation({ -2.0f, 1.0f, 1.5f });
+	m_Cube3->SetSDFPrimitiveData(boxPrimitive);
+	m_Cube3->SetTranslation({ 3.0f, 0.5f, 2.0f });
+
+
 	m_Octahedron = m_GraphicsContext->CreateRenderItem();
-	m_Torus = m_GraphicsContext->CreateRenderItem();
-	m_Plane = m_GraphicsContext->CreateRenderItem();
-	
 	m_Octahedron->SetSDFPrimitiveData(
 		SDFPrimitive::CreateOctahedron(1.0f, SDFOperation::Union, 0.0f, XMFLOAT4{ 0.92f, 0.2f, 0.2f, 1.0f })
 	);
 	m_Octahedron->SetTranslation({ 0.0f, 0.3f, 0.0f });
 
+
+	m_Torus = m_GraphicsContext->CreateRenderItem();
 	m_Torus->SetSDFPrimitiveData(
 		SDFPrimitive::CreateTorus(0.8f, 0.3f, SDFOperation::SmoothUnion, 0.3f, XMFLOAT4{ 0.2f, 0.58f, 0.92f, 1.0f })
 	);
 	m_Torus->SetTranslation({ -1.7f, 0.0f, 0.4f });
 
+
+	m_Plane = m_GraphicsContext->CreateRenderItem();
 	m_Plane->SetSDFPrimitiveData(
 		SDFPrimitive::CreatePlane({ 0.0f, 1.0f, 0.0f }, 1.0f, SDFOperation::Union, 0.0f, XMFLOAT4{ 0.13f, 0.2f, 0.17f, 1.0f })
 	);
