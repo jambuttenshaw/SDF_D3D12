@@ -179,7 +179,6 @@ private:
 	D3DDescriptorAllocation m_SceneTextureViews;		// UAV and SRV
 
 
-
 	// Render Items
 	UINT m_NextRenderItemIndex = 0;
 	std::vector<RenderItem> m_RenderItems;

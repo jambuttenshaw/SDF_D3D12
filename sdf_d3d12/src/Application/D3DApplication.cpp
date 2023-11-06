@@ -39,7 +39,7 @@ void D3DApplication::OnInit()
 	D3D_SHADER_MACRO defaultDefines[] = { { nullptr, nullptr } };
 	D3D_SHADER_MACRO disableShadowDefines[] = { { "DISABLE_SHADOW", nullptr }, { nullptr, nullptr } };
 	D3D_SHADER_MACRO disableLightDefines[] = { { "DISABLE_LIGHT", nullptr }, { nullptr, nullptr } };
-	D3D_SHADER_MACRO heatmapDefines[] = { { "HEATMAP", nullptr }, { nullptr, nullptr } };
+	D3D_SHADER_MACRO heatmapDefines[] = { { "DISPLAY_HEATMAP", nullptr }, { nullptr, nullptr } };
 
 	D3DComputePipelineDesc desc = {};
 	desc.NumRootParameters = 3;
@@ -97,6 +97,11 @@ void D3DApplication::OnInit()
 	m_Plane->SetSDFPrimitiveData(
 		SDFPrimitive::CreatePlane({ 0.0f, 1.0f, 0.0f }, 1.0f, SDFOperation::Union, 0.0f, XMFLOAT4{ 0.13f, 0.2f, 0.17f, 1.0f })
 	);
+
+	m_SDFFactory = std::make_unique<SDFFactory>();
+
+	m_SDFObject = std::make_unique<SDFObject>(256, 256, 256);
+	m_SDFFactory->BakeSDFSynchronous(m_SDFObject.get());
 }
 
 void D3DApplication::OnUpdate()
@@ -185,6 +190,8 @@ void D3DApplication::OnRender()
 void D3DApplication::OnDestroy()
 {
 	// Release resources used by the graphics context
+	m_SDFObject.reset();
+	m_SDFFactory.reset();
 
 	// Release graphics context
 	m_GraphicsContext.reset();

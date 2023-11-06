@@ -99,7 +99,9 @@ static const float3 WHITE = float3(1.0f, 1.0f, 1.0f);
 static const float3 RED = float3(0.92f, 0.2f, 0.2f);
 static const float3 BLUE = float3(0.2f, 0.58f, 0.92f);
 
+#ifdef DISPLAY_HEATMAP
 static int heatmap = 0;
+#endif
 
 //
 // UTILITY
@@ -263,7 +265,7 @@ float4 sdScene(float3 p)
 	
 	float4 nearest = float4(0.0f, 0.0f, 0.0f, FLOAT_MAX);
 	
-	for (int i = 0; i < gObjectCount; i++)
+	for (uint i = 0; i < gObjectCount; i++)
 	{
 		// apply primitive transform
 		float3 p_transformed = opTransform(p, gCachedObjects[i].InvWorldMat) / gCachedObjects[i].Scale;
@@ -277,7 +279,6 @@ float4 sdScene(float3 p)
 
 		// combine with scene
 		nearest = opPrimitive(nearest, shape, gCachedObjects[i].Operation, gCachedObjects[i].BlendingFactor);
-		heatmap += 1;
 	}
 	return nearest;
 }
@@ -446,11 +447,11 @@ void main(uint3 DTid : SV_DispatchThreadID, uint GI : SV_GroupIndex)
 	// write to output
 	float4 color = float4(col, 1.0f);
 	
-#ifdef HEATMAP
+#ifdef DISPLAY_HEATMAP
 	color = float4(
-		heatmap / 200.0f,
-		heatmap / 500.0f,
-		heatmap / 1000.0f,
+		heatmap / 100.0f,
+		heatmap / 250.0f,
+		heatmap / 400.0f,
 		1.0f);
 #endif
 	

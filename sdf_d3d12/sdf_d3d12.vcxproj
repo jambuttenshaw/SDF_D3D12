@@ -164,6 +164,7 @@
     <ClCompile Include="src\Renderer\D3DPipeline.cpp" />
     <ClCompile Include="src\Renderer\D3DShaderCompiler.cpp" />
     <ClCompile Include="src\Renderer\Memory\D3DMemoryAllocator.cpp" />
+    <ClCompile Include="src\SDF\SDFObject.cpp" />
     <ClCompile Include="src\SDF\SDFTypes.cpp" />
     <ClCompile Include="src\Windows\Win32Application.cpp" />
     <ClCompile Include="vendor\imgui\backends\imgui_impl_dx12.cpp">
@@ -215,6 +216,7 @@
     <ClInclude Include="src\Renderer\D3DShaderCompiler.h" />
     <ClInclude Include="src\Renderer\Memory\D3DMemoryAllocator.h" />
     <ClInclude Include="src\Framework\RenderItem.h" />
+    <ClInclude Include="src\SDF\SDFObject.h" />
     <ClInclude Include="src\SDF\SDFTypes.h" />
     <ClInclude Include="src\Windows\Win32Application.h" />
     <ClInclude Include="vendor\imgui\backends\imgui_impl_dx12.h" />

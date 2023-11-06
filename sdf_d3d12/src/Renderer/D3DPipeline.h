@@ -14,7 +14,6 @@ struct D3DComputePipelineDesc
 	const wchar_t* Shader = nullptr;
 	const char* EntryPoint = nullptr;
 
-	UINT MacroCount = 0;
 	D3D_SHADER_MACRO* Defines = nullptr;
 };
 
@@ -41,15 +40,10 @@ public:
 
 	void Bind(ID3D12GraphicsCommandList* commandList);
 
-	inline void SetThreadGroupsX(UINT count) { m_ThreadGroupsX = count; }
-	inline void SetThreadGroupsY(UINT count) { m_ThreadGroupsY = count; }
-	inline void SetThreadGroupsZ(UINT count) { m_ThreadGroupsZ = count; }
+	inline ID3D12RootSignature* GetRootSignature() const { return m_RootSignature.Get(); }
+	inline ID3D12PipelineState* GetPipelineState() const { return m_PipelineState.Get(); }
 
 protected:
 	ComPtr<ID3D12RootSignature> m_RootSignature;
 	ComPtr<ID3D12PipelineState> m_PipelineState;
-
-	UINT m_ThreadGroupsX = 1;
-	UINT m_ThreadGroupsY = 1;
-	UINT m_ThreadGroupsZ = 1;
 };

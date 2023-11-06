@@ -98,13 +98,14 @@ void D3DGraphicsContext::Present()
 	const HRESULT result = m_SwapChain->Present(1, 0);
 	if (result != S_OK)
 	{
-		if (result == DXGI_ERROR_DEVICE_RESET)
+		switch(result)
 		{
+		case DXGI_ERROR_DEVICE_RESET:
 			LOG_FATAL("Present failed: Device reset!");
-		}
-		else if (result == DXGI_ERROR_DEVICE_REMOVED)
-		{
-			LOG_FATAL("Present failed: device reset!");
+		case DXGI_ERROR_DEVICE_REMOVED:
+			LOG_FATAL("Present failed: device removed!");
+		default:
+			LOG_FATAL("Present failed: unknown error!");
 		}
 	}
 
@@ -439,8 +440,8 @@ void D3DGraphicsContext::CreateDescriptorHeaps()
 
 	// SRV/CBV/UAV heap
 	constexpr UINT CBVCount = s_FrameCount * (s_MaxObjectCount + 2);	// frame count * (object count + 2)
-	constexpr UINT SRVCount = 2;										// ImGui frame resource + SRV for scene textures
-	constexpr UINT UAVCount = 1;										// UAV for scene textures
+	constexpr UINT SRVCount = 3;										// ImGui frame resource + SRV for scene textures + application resources
+	constexpr UINT UAVCount = 2;										// UAV for scene textures + application resources
 	m_SRVHeap = std::make_unique<D3DDescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, CBVCount + SRVCount + UAVCount, false);
 
 	m_SamplerHeap = std::make_unique<D3DDescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 1, false);

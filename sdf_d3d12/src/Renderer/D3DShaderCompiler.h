@@ -4,6 +4,7 @@
 class D3DShaderCompiler
 {
 public:
+	D3DShaderCompiler() = delete;
 
 	static HRESULT CompileFromFile(
 		const wchar_t* file,

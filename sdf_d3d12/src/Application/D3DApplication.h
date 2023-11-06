@@ -7,6 +7,7 @@
 #include "Framework/CameraController.h"
 #include "Framework/GameTimer.h"
 
+#include "SDF/SDFObject.h"
 
 // Forward declarations
 class RenderItem;
@@ -57,4 +58,7 @@ private:
 	RenderItem* m_Octahedron = nullptr;
 
 	RenderItem* m_Cube = nullptr;
+
+	std::unique_ptr<SDFFactory> m_SDFFactory;
+	std::unique_ptr<SDFObject> m_SDFObject;
 };

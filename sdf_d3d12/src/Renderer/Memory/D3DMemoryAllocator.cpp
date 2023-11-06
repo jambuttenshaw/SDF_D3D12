@@ -135,6 +135,7 @@ D3DDescriptorAllocation D3DDescriptorHeap::Allocate(UINT countToAlloc)
 
 	if (m_Count + countToAlloc > m_Capacity)
 	{
+		LOG_ERROR("Descriptor allocation failed: no capacity in heap. Heap size: {0} Count to alloc: {1}", m_Capacity, countToAlloc);
 		return {};
 	}
 
@@ -144,6 +145,7 @@ D3DDescriptorAllocation D3DDescriptorHeap::Allocate(UINT countToAlloc)
 	if (freeBlockIt == m_FreeBlocks.end())
 	{
 		// No space in the heap
+		LOG_ERROR("Descriptor allocation failed: no capacity in heap. Heap size: {0} Count to alloc: {1}", m_Capacity, countToAlloc);
 		return {};
 	}
 
