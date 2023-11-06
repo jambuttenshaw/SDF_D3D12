@@ -22,36 +22,31 @@ void D3DApplication::OnInit()
 
 	InitImGui();
 
-	m_Camera.SetPosition(XMVECTOR{ 0.0f, 0.0f, -5.0f });
+	m_Camera.SetPosition(XMVECTOR{ 0.0f, 1.0f, -5.0f });
 	m_Timer.Reset();
 
 	m_CameraController = CameraController{ m_InputManager.get(), &m_Camera };
 
-	m_Cube1 = m_GraphicsContext->CreateRenderItem();
-	m_Cube2 = m_GraphicsContext->CreateRenderItem();
-	m_Cube3 = m_GraphicsContext->CreateRenderItem();
+	m_Cube = m_GraphicsContext->CreateRenderItem();
 
 	const auto boxPrimitive = SDFPrimitive::CreateBox({ 0.5f, 0.5f, 0.5f }, SDFOperation::Union, 0.0f, XMFLOAT4{ 0.3f, 0.8f, 0.2f, 1.0f });
-	m_Cube1->SetSDFPrimitiveData(boxPrimitive);
-	m_Cube1->SetTranslation({ 1.0f, 0.0f, 1.0f });
-	m_Cube2->SetSDFPrimitiveData(boxPrimitive);
-	m_Cube2->SetTranslation({ -2.0f, 1.0f, 1.5f });
-	m_Cube3->SetSDFPrimitiveData(boxPrimitive);
-	m_Cube3->SetTranslation({ 3.0f, 0.5f, 2.0f });
+	m_Cube->SetSDFPrimitiveData(boxPrimitive);
+	m_Cube->SetTranslation({ 0.0f, 1.0f, 1.5f });
 
 
 	m_Octahedron = m_GraphicsContext->CreateRenderItem();
 	m_Octahedron->SetSDFPrimitiveData(
 		SDFPrimitive::CreateOctahedron(1.0f, SDFOperation::Union, 0.0f, XMFLOAT4{ 0.92f, 0.2f, 0.2f, 1.0f })
 	);
-	m_Octahedron->SetTranslation({ 0.0f, 0.3f, 0.0f });
+	m_Octahedron->SetTranslation({ 2.0f, 0.3f, 0.0f });
 
 
 	m_Torus = m_GraphicsContext->CreateRenderItem();
 	m_Torus->SetSDFPrimitiveData(
 		SDFPrimitive::CreateTorus(0.8f, 0.3f, SDFOperation::SmoothUnion, 0.3f, XMFLOAT4{ 0.2f, 0.58f, 0.92f, 1.0f })
 	);
-	m_Torus->SetTranslation({ -1.7f, 0.0f, 0.4f });
+	m_Torus->SetTranslation({ 0.3f, 0.0f, 0.4f });
+	m_Torus->SetPitch(XMConvertToRadians(-30.0f));
 
 
 	m_Plane = m_GraphicsContext->CreateRenderItem();
@@ -62,19 +57,7 @@ void D3DApplication::OnInit()
 
 void D3DApplication::OnUpdate()
 {
-	const float deltaTime = m_Timer.Tick();
-	m_InputManager->Update(deltaTime);
-
-	// Update camera
-	m_CameraController.Update(deltaTime);
-
-	// Begin new ImGui frame
-	ImGui_ImplDX12_NewFrame();
-	ImGui_ImplWin32_NewFrame();
-	ImGui::NewFrame();
-
-	// Make viewport dock-able
-	ImGui::DockSpaceOverViewport(ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
+	BeginUpdate();
 
 	// Build properties GUI
 	ImGui::Begin("Properties");
@@ -116,9 +99,7 @@ void D3DApplication::OnUpdate()
 
 	ImGui::End();
 
-	ImGui::Render();
-
-	m_InputManager->EndFrame();
+	EndUpdate();
 }
 
 void D3DApplication::OnRender()
@@ -191,6 +172,30 @@ void D3DApplication::InitImGui() const
 		m_GraphicsContext->GetImGuiResourcesHeap(),
 		m_GraphicsContext->GetImGuiCPUDescriptor(),
 		m_GraphicsContext->GetImGuiGPUDescriptor());
+}
+
+
+void D3DApplication::BeginUpdate()
+{
+	const float deltaTime = m_Timer.Tick();
+	m_InputManager->Update(deltaTime);
+
+	// Update camera
+	m_CameraController.Update(deltaTime);
+
+	// Begin new ImGui frame
+	ImGui_ImplDX12_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+
+	// Make viewport dock-able
+	ImGui::DockSpaceOverViewport(ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
+}
+
+void D3DApplication::EndUpdate()
+{
+	ImGui::Render();
+	m_InputManager->EndFrame();
 }
 
 
