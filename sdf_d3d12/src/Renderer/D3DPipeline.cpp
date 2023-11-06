@@ -2,6 +2,7 @@
 #include "D3DPipeline.h"
 
 #include "D3DGraphicsContext.h"
+#include "D3DShaderCompiler.h"
 
 
 D3DGraphicsPipeline::D3DGraphicsPipeline()
@@ -61,31 +62,10 @@ D3DGraphicsPipeline::D3DGraphicsPipeline()
 	{
 		ComPtr<ID3DBlob> vertexShader;
 		ComPtr<ID3DBlob> pixelShader;
-		ComPtr<ID3DBlob> error;
-
-#ifdef _DEBUG
-		UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-#else
-		UINT compileFlags = 0;
-#endif
 
 		// Compile shaders
-		HRESULT result = D3DCompileFromFile(L"assets/shaders/finalpass.hlsl", nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, &error);
-		if (result != S_OK)
-		{
-			char* error_msg = new char[error->GetBufferSize()];
-			sprintf_s(error_msg, error->GetBufferSize(), "%s", static_cast<const char*>(error->GetBufferPointer()));
-			LOG_ERROR("Shader failed to compile! Error: {0}", error_msg);
-			delete[] error_msg;
-		}
-		result = D3DCompileFromFile(L"assets/shaders/finalpass.hlsl", nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, &error);
-		if (result != S_OK)
-		{
-			char* error_msg = new char[error->GetBufferSize()];
-			sprintf_s(error_msg, error->GetBufferSize(), "%s", static_cast<const char*>(error->GetBufferPointer()));
-			LOG_ERROR("Shader failed to compile! Error: {0}", error_msg);
-			delete[] error_msg;
-		}
+		THROW_IF_FAIL(D3DShaderCompiler::CompileFromFile(L"assets/shaders/finalpass.hlsl", "VSMain", "vs_5_0", nullptr, &vertexShader));
+		THROW_IF_FAIL(D3DShaderCompiler::CompileFromFile(L"assets/shaders/finalpass.hlsl", "PSMain", "ps_5_0", nullptr, &pixelShader));
 
 		// Describe and create the graphics pipeline state object (PSO)
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
@@ -113,7 +93,7 @@ void D3DGraphicsPipeline::Bind(ID3D12GraphicsCommandList* commandList) const
 }
 
 
-D3DComputePipeline::D3DComputePipeline()
+D3DComputePipeline::D3DComputePipeline(D3DComputePipelineDesc* desc)
 {
 	const auto device = g_D3DGraphicsContext->GetDevice();
 
@@ -126,18 +106,7 @@ D3DComputePipeline::D3DComputePipeline()
 
 	// Create the compute root signature
 	{
-		// Create a root signature consisting of two root descriptors for CBVs (per-object and per-pass)
-		CD3DX12_DESCRIPTOR_RANGE1 ranges[3];
-		CD3DX12_ROOT_PARAMETER1 rootParameters[3];
-		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// per-object cb
-		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// per-pass cb
-		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// output uav
-
-		rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_ALL);
-		rootParameters[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_ALL);
-		rootParameters[2].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_ALL);
-
-		// Allow input layout and deny unnecessary access to certain pipeline stages
+		// Deny unnecessary access to certain pipeline stages
 		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS |
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
@@ -148,7 +117,7 @@ D3DComputePipeline::D3DComputePipeline()
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS;
 
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
-		rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr, rootSignatureFlags);
+		rootSignatureDesc.Init_1_1(desc->NumRootParameters, desc->RootParameters, 0, nullptr, rootSignatureFlags);
 
 		ComPtr<ID3DBlob> signature;
 		THROW_IF_FAIL(D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, nullptr));
@@ -158,23 +127,7 @@ D3DComputePipeline::D3DComputePipeline()
 	// Create the compute pipeline state
 	{
 		ComPtr<ID3DBlob> computeShader;
-
-#ifdef _DEBUG
-		UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-#else
-		UINT compileFlags = 0;
-#endif
-
-		// Compile shader
-		ComPtr<ID3DBlob> error;
-		HRESULT result = D3DCompileFromFile(L"assets/shaders/compute.hlsl", nullptr, nullptr, "main", "cs_5_0", compileFlags, 0, &computeShader, error.GetAddressOf());
-		if (result != S_OK)
-		{
-			char* error_msg = new char[error->GetBufferSize()];
-			sprintf_s(error_msg, error->GetBufferSize(), "%s", static_cast<const char*>(error->GetBufferPointer()));
-			LOG_ERROR("Shader failed to compile! Error: {0}", error_msg);
-			delete[] error_msg;
-		}
+		THROW_IF_FAIL(D3DShaderCompiler::CompileFromFile(desc->Shader, desc->EntryPoint, "cs_5_0", desc->Defines, &computeShader));
 
 		D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc = {};
 		psoDesc.pRootSignature = m_RootSignature.Get();
@@ -185,7 +138,7 @@ D3DComputePipeline::D3DComputePipeline()
 }
 
 
-void D3DComputePipeline::Bind(ID3D12GraphicsCommandList* commandList) const
+void D3DComputePipeline::Bind(ID3D12GraphicsCommandList* commandList)
 {
 	commandList->SetComputeRootSignature(m_RootSignature.Get());
 	commandList->SetPipelineState(m_PipelineState.Get());

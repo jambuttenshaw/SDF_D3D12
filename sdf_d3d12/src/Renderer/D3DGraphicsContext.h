@@ -38,7 +38,7 @@ public:
 	void StartDraw() const;
 	void EndDraw() const;
 
-	void DrawItems() const;
+	void DrawItems(D3DComputePipeline* pipeline) const;
 
 	// Render Items
 
@@ -167,7 +167,6 @@ private:
 
 	// Pipeline assets
 	std::unique_ptr<D3DGraphicsPipeline> m_GraphicsPipeline;
-	std::unique_ptr<D3DComputePipeline> m_ComputePipeline;
 
 	UINT m_ThreadGroupX = 0, m_ThreadGroupY = 0;
 

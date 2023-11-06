@@ -14,6 +14,14 @@ class RenderItem;
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
 
+enum class DisplayMode
+{
+	Default,
+	DisableShadow,
+	DisableLight,
+	Heatmap
+};
+
 
 class D3DApplication : public BaseApplication
 {
@@ -40,6 +48,9 @@ private:
 	GameTimer m_Timer;
 	Camera m_Camera;
 	CameraController m_CameraController;
+
+	DisplayMode m_CurrentDisplayMode = DisplayMode::Default;
+	std::map<DisplayMode, std::unique_ptr<D3DComputePipeline>> m_Pipelines;
 
 	RenderItem* m_Plane = nullptr;
 	RenderItem* m_Torus = nullptr;

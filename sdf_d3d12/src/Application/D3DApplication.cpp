@@ -22,11 +22,55 @@ void D3DApplication::OnInit()
 
 	InitImGui();
 
+	// Create pipelines
+	LOG_TRACE("Creating compute pipelines...");
+
+	// Create a root signature consisting of two root descriptors for CBVs (per-object and per-pass)
+	CD3DX12_DESCRIPTOR_RANGE1 ranges[3];
+	CD3DX12_ROOT_PARAMETER1 rootParameters[3];
+	ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// per-object cb
+	ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// per-pass cb
+	ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// output uav
+
+	rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_ALL);
+	rootParameters[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_ALL);
+	rootParameters[2].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_ALL);
+
+	D3D_SHADER_MACRO defaultDefines[] = { { nullptr, nullptr } };
+	D3D_SHADER_MACRO disableShadowDefines[] = { { "DISABLE_SHADOW", nullptr }, { nullptr, nullptr } };
+	D3D_SHADER_MACRO disableLightDefines[] = { { "DISABLE_LIGHT", nullptr }, { nullptr, nullptr } };
+	D3D_SHADER_MACRO heatmapDefines[] = { { "HEATMAP", nullptr }, { nullptr, nullptr } };
+
+	D3DComputePipelineDesc desc = {};
+	desc.NumRootParameters = 3;
+	desc.RootParameters = rootParameters;
+	desc.Shader = L"assets/shaders/compute.hlsl";
+	desc.EntryPoint = "main";
+
+	desc.Defines = defaultDefines;
+	m_Pipelines.insert(std::make_pair(DisplayMode::Default, std::make_unique<D3DComputePipeline>(&desc)));
+
+	desc.Defines = disableShadowDefines;
+	m_Pipelines.insert(std::make_pair(DisplayMode::DisableShadow, std::make_unique<D3DComputePipeline>(&desc)));
+
+	desc.Defines = disableLightDefines;
+	m_Pipelines.insert(std::make_pair(DisplayMode::DisableLight, std::make_unique<D3DComputePipeline>(&desc)));
+
+	desc.Defines = heatmapDefines;
+	m_Pipelines.insert(std::make_pair(DisplayMode::Heatmap, std::make_unique<D3DComputePipeline>(&desc)));
+
+	LOG_TRACE("Compute pipelines created.");
+
+
+	// Setup camera
+
 	m_Camera.SetPosition(XMVECTOR{ 0.0f, 1.0f, -5.0f });
 	m_Timer.Reset();
 
 	m_CameraController = CameraController{ m_InputManager.get(), &m_Camera };
 
+
+	// Create scene items
 	m_Cube = m_GraphicsContext->CreateRenderItem();
 
 	const auto boxPrimitive = SDFPrimitive::CreateBox({ 0.5f, 0.5f, 0.5f }, SDFOperation::Union, 0.0f, XMFLOAT4{ 0.3f, 0.8f, 0.2f, 1.0f });
@@ -63,12 +107,20 @@ void D3DApplication::OnUpdate()
 	ImGui::Begin("Properties");
 	ImGui::Separator();
 	{
-		ImGui::Text("Timer");
-		ImGui::LabelText("Time", "%.2f", m_Timer.GetTimeSinceReset());
 		ImGui::LabelText("FPS", "%.1f", m_Timer.GetFPS());
-		ImGui::Separator();
 	}
+	ImGui::Separator();
+	{
+		ImGui::Text("Display");
 
+		static const char* s_DisplayModes[] = { "Default", "Disable Shadow", "Disable Lighting", "Heatmap" };
+		int currentMode = static_cast<int>(m_CurrentDisplayMode);
+		if (ImGui::Combo("Mode", &currentMode, s_DisplayModes, _countof(s_DisplayModes)))
+		{
+			m_CurrentDisplayMode = static_cast<DisplayMode>(currentMode);
+		}
+	}
+	ImGui::Separator();
 	{
 		ImGui::Text("Camera");
 		auto camPos = m_Camera.GetPosition();
@@ -86,16 +138,15 @@ void D3DApplication::OnUpdate()
 
 		m_CameraController.Gui();
 
-		ImGui::Separator();
 	}
-
+	ImGui::Separator();
 	{
 		ImGui::Text("Torus");
 
 		m_Torus->DrawGui();
 
-		ImGui::Separator();
 	}
+	ImGui::Separator();
 
 	ImGui::End();
 
@@ -112,7 +163,7 @@ void D3DApplication::OnRender()
 	m_GraphicsContext->StartDraw();
 
 	// Draw all items
-	m_GraphicsContext->DrawItems();
+	m_GraphicsContext->DrawItems(m_Pipelines[m_CurrentDisplayMode].get());
 
 	// ImGui Render
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_GraphicsContext->GetCommandList());

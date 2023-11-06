@@ -156,17 +156,18 @@ void D3DGraphicsContext::EndDraw() const
 	m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 }
 
-void D3DGraphicsContext::DrawItems() const
+void D3DGraphicsContext::DrawItems(D3DComputePipeline* pipeline) const
 {
 	// Perform compute commands
+	ASSERT(pipeline, "Pipeline must be valid!");
 
 	// Scene texture must be in unordered access state
 	auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_SceneTexture.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	m_CommandList->ResourceBarrier(1, &barrier);
 
 	// Set pipeline state
-	m_ComputePipeline->Bind(m_CommandList.Get());
-
+	pipeline->Bind(m_CommandList.Get());
+	
 	// Set resource views
 	m_CommandList->SetComputeRootDescriptorTable(0, m_CurrentFrameResources->GetAllObjectsCBV());
 	m_CommandList->SetComputeRootDescriptorTable(1, m_CurrentFrameResources->GetPassCBV());
@@ -555,7 +556,6 @@ void D3DGraphicsContext::CreateProjectionMatrix()
 void D3DGraphicsContext::CreateAssets()
 {
 	m_GraphicsPipeline = std::make_unique<D3DGraphicsPipeline>();
-	m_ComputePipeline = std::make_unique<D3DComputePipeline>();
 
 	CreateSceneTexture();
 }

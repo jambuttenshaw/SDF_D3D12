@@ -87,7 +87,7 @@ static const float3 lightAmbient = float3(0.2f, 0.2f, 0.2f);
 
 static const float D = 30.0f;
 static const float Dfog = 10.0f;
-static const float epsilon = 0.0001f;
+static const float epsilon = 0.001f;
 
 // const delta vectors for normal calculation
 static const float S = 0.001f;
@@ -257,6 +257,10 @@ float4 opPrimitive(float4 a, float4 b, uint op, float k)
 
 float4 sdScene(float3 p)
 {
+#ifdef DISPLAY_HEATMAP
+	heatmap++;
+#endif
+	
 	float4 nearest = float4(0.0f, 0.0f, 0.0f, FLOAT_MAX);
 	
 	for (int i = 0; i < gObjectCount; i++)
@@ -365,25 +369,33 @@ float3 intersectWithWorld(float3 p, float3 dir)
 		{
             // nearest is within threshold
             
+			// Apply object colour
+			result = nearest.rgb;
+			
+#ifndef DISABLE_LIGHT
+			
             // get hit point, normal, light direction
 			float3 hit = p + dir * dist;
 			float3 normal = computeSurfaceNormal(hit);
 			float3 l = lightDirection;
             
-            // ray march again for shadow
-			float shadow = smoothShadow(hit + 2.0f * epsilon * normal, l, 0.05f);
-            
             // calculate lighting
-			float light = max(0.0f, shadow * dot(l, normal));
-			result = float3(light, light, light) + lightAmbient;
-            
+			float light = max(0.0f, dot(l, normal));
+
+#ifndef DISABLE_SHADOW
+
+            // ray march again for shadow
+			light *= smoothShadow(hit + 2.0f * epsilon * normal, l, 0.05f);
+			
+#endif // DISABLE_SHADOW
+			
+			result *= float3(light, light, light) + lightAmbient;
+			
+#endif // DISABLE_LIGHT
+			
             // calculate fog
 			float fog = map(clamp(dist, Dfog, D), Dfog, D, 1.0f, 0.0f);
 			result *= fog;
-            
-            // Apply object colour
-			result *= nearest.rgb;
-            
             
 			break;
 		}
@@ -432,7 +444,15 @@ void main(uint3 DTid : SV_DispatchThreadID, uint GI : SV_GroupIndex)
 	col = pow(col, float3(0.4545f, 0.4545f, 0.4545f));
     
 	// write to output
-	const float4 color = float4(col, 1.0f);
-	//const float4 color = float4(heatmap / 500.0f, 0.0f, 0.0f, 1.0f);
+	float4 color = float4(col, 1.0f);
+	
+#ifdef HEATMAP
+	color = float4(
+		heatmap / 200.0f,
+		heatmap / 500.0f,
+		heatmap / 1000.0f,
+		1.0f);
+#endif
+	
 	OutputTexture[DTid.xy] = color;
 }

@@ -162,6 +162,7 @@
     <ClCompile Include="src\Renderer\D3DGraphicsContext.cpp" />
     <ClCompile Include="src\Framework\RenderItem.cpp" />
     <ClCompile Include="src\Renderer\D3DPipeline.cpp" />
+    <ClCompile Include="src\Renderer\D3DShaderCompiler.cpp" />
     <ClCompile Include="src\Renderer\Memory\D3DMemoryAllocator.cpp" />
     <ClCompile Include="src\SDF\SDFTypes.cpp" />
     <ClCompile Include="src\Windows\Win32Application.cpp" />
@@ -197,6 +198,7 @@
   <ItemGroup>
     <ClInclude Include="src\Framework\Camera.h" />
     <ClInclude Include="src\Framework\CameraController.h" />
+    <ClInclude Include="src\Framework\Exception.h" />
     <ClInclude Include="src\Framework\GameTimer.h" />
     <ClInclude Include="src\Input\InputManager.h" />
     <ClInclude Include="src\Input\KeyCodes.h" />
@@ -210,6 +212,7 @@
     <ClInclude Include="src\Renderer\D3DFrameResources.h" />
     <ClInclude Include="src\Renderer\D3DGraphicsContext.h" />
     <ClInclude Include="src\Renderer\D3DPipeline.h" />
+    <ClInclude Include="src\Renderer\D3DShaderCompiler.h" />
     <ClInclude Include="src\Renderer\Memory\D3DMemoryAllocator.h" />
     <ClInclude Include="src\Framework\RenderItem.h" />
     <ClInclude Include="src\SDF\SDFTypes.h" />
