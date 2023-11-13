@@ -198,9 +198,13 @@ void main(uint3 DTid : SV_DispatchThreadID)
 	uvw = (uvw * 2.0f) - 1.0f;
 	
 	float shape = min(
-		sdSphere(uvw - float3(-0.25f, 0.0f, 0.0f), 0.25f),
-		sdSphere(uvw - float3(0.25f, 0.0f, 0.0f), 0.25f)
+		sdSphere(uvw - float3(-0.25f, -0.25f, 0.0f), 0.5f),
+		sdSphere(uvw - float3(0.25f, 0.25f, 0.25f), 0.25f)
+	);
+	shape = min(
+		shape,
+		sdOctahedron(uvw - float3(0.0f, 0.0f, 0.0f), 0.5f)
 	);
 	
-	OutputTexture[DTid] = abs(shape);
+	OutputTexture[DTid] = shape;
 }

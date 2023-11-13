@@ -99,32 +99,11 @@ void D3DApplication::OnInit()
 
 	const auto boxPrimitive = SDFPrimitive::CreateBox({ 0.5f, 0.5f, 0.5f }, SDFOperation::Union, 0.0f, XMFLOAT4{ 0.3f, 0.8f, 0.2f, 1.0f });
 	m_Cube->SetSDFPrimitiveData(boxPrimitive);
-	m_Cube->SetTranslation({ 0.0f, 1.0f, 1.5f });
-
-
-	m_Octahedron = m_GraphicsContext->CreateRenderItem();
-	m_Octahedron->SetSDFPrimitiveData(
-		SDFPrimitive::CreateOctahedron(1.0f, SDFOperation::Union, 0.0f, XMFLOAT4{ 0.92f, 0.2f, 0.2f, 1.0f })
-	);
-	m_Octahedron->SetTranslation({ 2.0f, 0.3f, 0.0f });
-
-
-	m_Torus = m_GraphicsContext->CreateRenderItem();
-	m_Torus->SetSDFPrimitiveData(
-		SDFPrimitive::CreateTorus(0.8f, 0.3f, SDFOperation::SmoothUnion, 0.3f, XMFLOAT4{ 0.2f, 0.58f, 0.92f, 1.0f })
-	);
-	m_Torus->SetTranslation({ 0.3f, 0.0f, 0.4f });
-	m_Torus->SetPitch(XMConvertToRadians(-30.0f));
-
-
-	m_Plane = m_GraphicsContext->CreateRenderItem();
-	m_Plane->SetSDFPrimitiveData(
-		SDFPrimitive::CreatePlane({ 0.0f, 1.0f, 0.0f }, 1.0f, SDFOperation::Union, 0.0f, XMFLOAT4{ 0.13f, 0.2f, 0.17f, 1.0f })
-	);
+	m_Cube->SetTranslation({ 0.0f, 0.0f, 0.0f });
 
 	m_SDFFactory = std::make_unique<SDFFactory>();
 
-	m_SDFObject = std::make_unique<SDFObject>(256, 256, 256);
+	m_SDFObject = std::make_unique<SDFObject>(1024, 1024, 1024);
 	m_SDFFactory->BakeSDFSynchronous(m_SDFObject.get());
 }
 
@@ -172,7 +151,7 @@ void D3DApplication::OnUpdate()
 	{
 		ImGui::Text("Torus");
 
-		m_Torus->DrawGui();
+		m_Cube->DrawGui();
 
 	}
 	ImGui::Separator();

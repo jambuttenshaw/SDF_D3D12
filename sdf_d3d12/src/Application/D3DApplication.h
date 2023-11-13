@@ -53,10 +53,6 @@ private:
 	DisplayMode m_CurrentDisplayMode = DisplayMode::Default;
 	std::map<DisplayMode, std::unique_ptr<D3DComputePipeline>> m_Pipelines;
 
-	RenderItem* m_Plane = nullptr;
-	RenderItem* m_Torus = nullptr;
-	RenderItem* m_Octahedron = nullptr;
-
 	RenderItem* m_Cube = nullptr;
 
 	std::unique_ptr<SDFFactory> m_SDFFactory;

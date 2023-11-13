@@ -116,8 +116,18 @@ D3DComputePipeline::D3DComputePipeline(D3DComputePipelineDesc* desc)
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS |
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS;
 
+		// Create a default sampler
+		D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
+		samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+		samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		samplerDesc.ShaderRegister = 0;
+		samplerDesc.RegisterSpace = 0;
+		samplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
-		rootSignatureDesc.Init_1_1(desc->NumRootParameters, desc->RootParameters, 0, nullptr, rootSignatureFlags);
+		rootSignatureDesc.Init_1_1(desc->NumRootParameters, desc->RootParameters, 1, &samplerDesc, rootSignatureFlags);
 
 		ComPtr<ID3DBlob> signature;
 		THROW_IF_FAIL(D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, nullptr));
