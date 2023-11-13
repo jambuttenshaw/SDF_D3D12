@@ -195,6 +195,45 @@ void D3DGraphicsContext::DrawItems(D3DComputePipeline* pipeline) const
 	m_CommandList->DrawInstanced(4, 1, 0, 0);
 }
 
+void D3DGraphicsContext::DrawVolume(D3DComputePipeline* pipeline, D3D12_GPU_DESCRIPTOR_HANDLE volumeSRV) const
+{
+	// Perform compute commands
+	ASSERT(pipeline, "Pipeline must be valid!");
+
+	// Scene texture must be in unordered access state
+	auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_SceneTexture.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	m_CommandList->ResourceBarrier(1, &barrier);
+
+	// Set pipeline state
+	pipeline->Bind(m_CommandList.Get());
+
+	// Set resource views
+	m_CommandList->SetComputeRootDescriptorTable(0, m_CurrentFrameResources->GetAllObjectsCBV());
+	m_CommandList->SetComputeRootDescriptorTable(1, m_CurrentFrameResources->GetPassCBV());
+	m_CommandList->SetComputeRootDescriptorTable(2, m_SceneTextureViews.GetGPUHandle(0));
+	m_CommandList->SetComputeRootDescriptorTable(3, volumeSRV);
+
+	// Dispatch
+	m_CommandList->Dispatch(m_ThreadGroupX, m_ThreadGroupY, 1);
+
+	// Perform graphics commands
+
+	// Scene texture will now be used to render to the back buffer
+	barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_SceneTexture.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	m_CommandList->ResourceBarrier(1, &barrier);
+
+	// Set pipeline state
+	m_GraphicsPipeline->Bind(m_CommandList.Get());
+
+	// Set resource views
+	m_CommandList->SetGraphicsRootDescriptorTable(0, m_CurrentFrameResources->GetPassCBV());
+	m_CommandList->SetGraphicsRootDescriptorTable(1, m_SceneTextureViews.GetGPUHandle(1));
+
+	// Render a full-screen quad
+	m_CommandList->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	m_CommandList->DrawInstanced(4, 1, 0, 0);
+}
+
 RenderItem* D3DGraphicsContext::CreateRenderItem()
 {
 	return &m_RenderItems.emplace_back();

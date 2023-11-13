@@ -39,6 +39,7 @@ public:
 	void EndDraw() const;
 
 	void DrawItems(D3DComputePipeline* pipeline) const;
+	void DrawVolume(D3DComputePipeline* pipeline, D3D12_GPU_DESCRIPTOR_HANDLE volumeSRV) const;
 
 	// Render Items
 

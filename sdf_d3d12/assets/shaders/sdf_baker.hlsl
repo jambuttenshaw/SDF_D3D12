@@ -202,5 +202,5 @@ void main(uint3 DTid : SV_DispatchThreadID)
 		sdSphere(uvw - float3(0.25f, 0.0f, 0.0f), 0.25f)
 	);
 	
-	OutputTexture[DTid] = shape;
+	OutputTexture[DTid] = abs(shape);
 }

@@ -24,7 +24,7 @@ void D3DApplication::OnInit()
 
 	// Create pipelines
 	LOG_TRACE("Creating compute pipelines...");
-
+	/*
 	// Create a root signature consisting of two root descriptors for CBVs (per-object and per-pass)
 	CD3DX12_DESCRIPTOR_RANGE1 ranges[3];
 	CD3DX12_ROOT_PARAMETER1 rootParameters[3];
@@ -58,6 +58,30 @@ void D3DApplication::OnInit()
 
 	desc.Defines = heatmapDefines;
 	m_Pipelines.insert(std::make_pair(DisplayMode::Heatmap, std::make_unique<D3DComputePipeline>(&desc)));
+	*/
+
+	CD3DX12_DESCRIPTOR_RANGE1 ranges[4];
+	CD3DX12_ROOT_PARAMETER1 rootParameters[4];
+	ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// per-pass cb
+	ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// per-pass cb
+	ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// output uav
+	ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// volume texture srv
+
+	rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_ALL);
+	rootParameters[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_ALL);
+	rootParameters[2].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_ALL);
+	rootParameters[3].InitAsDescriptorTable(1, &ranges[3], D3D12_SHADER_VISIBILITY_ALL);
+
+	D3D_SHADER_MACRO defaultDefines[] = { { nullptr, nullptr } };
+
+	D3DComputePipelineDesc desc = {};
+	desc.NumRootParameters = _countof(rootParameters);
+	desc.RootParameters = rootParameters;
+	desc.Shader = L"assets/shaders/volume_raymarcher.hlsl";
+	desc.EntryPoint = "main";
+
+	desc.Defines = defaultDefines;
+	m_Pipelines.insert(std::make_pair(DisplayMode::Default, std::make_unique<D3DComputePipeline>(&desc)));
 
 	LOG_TRACE("Compute pipelines created.");
 
@@ -168,7 +192,8 @@ void D3DApplication::OnRender()
 	m_GraphicsContext->StartDraw();
 
 	// Draw all items
-	m_GraphicsContext->DrawItems(m_Pipelines[m_CurrentDisplayMode].get());
+	//m_GraphicsContext->DrawItems(m_Pipelines[m_CurrentDisplayMode].get());
+	m_GraphicsContext->DrawVolume(m_Pipelines[m_CurrentDisplayMode].get(), m_SDFObject->GetSRV());
 
 	// ImGui Render
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_GraphicsContext->GetCommandList());
