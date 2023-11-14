@@ -9,20 +9,11 @@
 struct ObjectCB
 {
 	// Each object must be 256-byte aligned
-	matrix InvWorldMat;
-	
+	float4x4 InvWorldMat;
 	float Scale;
+	float3 BoxExtents;
 	
-	// SDF primitive data
-	uint Shape;
-	uint Operation;
-	float BlendingFactor;
-
-	float4 ShapeParams;
-
-	float4 Color;
-	
-	float4 padding1[9];
+	float4 padding1[11];
 };
 
 cbuffer AllObjectsCB : register(b0)
@@ -131,7 +122,7 @@ float2 sdScene(float3 p)
 		float3 p_transformed = opTransform(p, gCachedObjects[i].InvWorldMat) / gCachedObjects[i].Scale;
 		
 		// evaluate primitive
-		float shape = sdBox(p_transformed, gCachedObjects[i].ShapeParams.xyz);
+		float shape = sdBox(p_transformed, gCachedObjects[i].BoxExtents);
 		shape *= gCachedObjects[i].Scale;
 
 		// combine with scene
@@ -168,7 +159,7 @@ float3 raymarchVolume(uint id, float3 p, float3 dir)
 	
 	// step 2:
 	// divide p by the box's local extents, which are given in the shape params
-	uvw /= gCachedObjects[id].ShapeParams.xyz;
+	uvw /= gCachedObjects[id].BoxExtents;
 	
 	dir = mul(float4(dir, 0.0f), gCachedObjects[id].InvWorldMat);
 	

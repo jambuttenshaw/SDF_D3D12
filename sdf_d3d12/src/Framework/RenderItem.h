@@ -25,9 +25,6 @@ public:
 	void SetRoll(float roll);
 	void SetScale(float scale);
 
-	void SetSDFPrimitiveData(const SDFPrimitive& primitiveData);
-	inline const SDFPrimitive& GetSDFPrimitiveData() const { return m_PrimitiveData; }
-
 	inline bool IsDirty() const { return m_NumFramesDirty > 0; }
 	inline void DecrementDirty() { m_NumFramesDirty--; }
 	void SetDirty();
@@ -47,9 +44,6 @@ private:
 	float m_Scale = 1.0f;
 
 	XMMATRIX m_WorldMat;
-
-	// SDF data associated with this object
-	SDFPrimitive m_PrimitiveData;
 
 	// Dirty flag to indicate the object data has been changed 
 	// and we need to update the constant buffer

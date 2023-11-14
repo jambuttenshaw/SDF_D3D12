@@ -124,7 +124,7 @@ SDFPrimitive SDFPrimitive::CreateBox(const XMFLOAT3& extents, SDFOperation op, f
 	return prim;
 }
 
-SDFPrimitive SDFPrimitive::CreatePlane(const XMFLOAT3 normal, float height, SDFOperation op, float blend, const XMFLOAT4& color)
+SDFPrimitive SDFPrimitive::CreatePlane(const XMFLOAT3& normal, float height, SDFOperation op, float blend, const XMFLOAT4& color)
 {
 	SDFPrimitive prim;
 	prim.Shape = SDFShape::Plane;

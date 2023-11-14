@@ -7,10 +7,10 @@ using namespace DirectX;
 
 struct RayMarchPropertiesType
 {
-	float SphereTraceEpsilon = 0.001f;
-	float RayMarchEpsilon = 0.05f;
-	float RayMarchStepSize = 0.01f;
-	float NormalEpsilon = 0.01f;
+	float SphereTraceEpsilon;
+	float RayMarchEpsilon;
+	float RayMarchStepSize;
+	float NormalEpsilon;
 };
 
 
@@ -41,6 +41,19 @@ struct PassCBType
 
 struct ObjectCBType
 {
+	// Inverse world matrix is required to position the bounding box
+	XMMATRIX InvWorldMat;
+
+	// Only uniform scale can be applied to SDFs
+	float Scale;
+
+	// The extents of the bounding box that contains the SDF
+	XMFLOAT3 BoundingBoxExtents;
+};
+
+
+struct SDFPrimitiveBufferType
+{
 	// Inverse world matrix is required to position SDF primitives
 	XMMATRIX InvWorldMat;
 	// Only uniform scale can be applied to SDFs
@@ -51,9 +64,28 @@ struct ObjectCBType
 	UINT Operation;
 	float BlendingFactor;
 
-
 	static_assert(sizeof(SDFShapeProperties) == sizeof(XMFLOAT4));
 	XMFLOAT4 ShapeProperties;
 
 	XMFLOAT4 Color;
+
+
+	// Constructors
+
+	SDFPrimitiveBufferType() = default;
+
+	// Construct from a SDFPrimitive
+	SDFPrimitiveBufferType(const SDFPrimitive& primitive)
+	{
+		InvWorldMat = XMMatrixIdentity();
+		Scale = 1.0f;
+
+		Shape = static_cast<UINT>(primitive.Shape);
+		Operation = static_cast<UINT>(primitive.Operation);
+		BlendingFactor = primitive.BlendingFactor;
+
+		memcpy(&ShapeProperties, &primitive.ShapeProperties, sizeof(XMFLOAT4));
+
+		Color = primitive.Color;
+	}
 };

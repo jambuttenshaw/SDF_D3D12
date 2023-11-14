@@ -7,6 +7,7 @@
 #include "Framework/CameraController.h"
 #include "Framework/GameTimer.h"
 
+#include "SDF/SDFFactory.h"
 #include "SDF/SDFObject.h"
 
 // Forward declarations
@@ -58,5 +59,10 @@ private:
 	std::unique_ptr<SDFFactory> m_SDFFactory;
 	std::unique_ptr<SDFObject> m_SDFObject;
 
-	RayMarchPropertiesType m_RayMarchProps;
+	RayMarchPropertiesType m_RayMarchProps {
+		0.001f,
+		0.05f,
+		0.01f,
+		0.01f
+	};
 };

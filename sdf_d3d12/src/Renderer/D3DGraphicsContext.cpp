@@ -251,15 +251,7 @@ void D3DGraphicsContext::UpdateObjectCBs() const
 			// Inverse world matrix is required to position SDF primitives
 			objectCB.InvWorldMat = XMMatrixTranspose(XMMatrixInverse(nullptr, renderItem.GetWorldMatrix()));
 			objectCB.Scale = renderItem.GetScale();
-
-			const SDFPrimitive& primitive = renderItem.GetSDFPrimitiveData();
-
-			objectCB.Shape = static_cast<UINT>(primitive.Shape);
-			memcpy_s(&objectCB.ShapeProperties, sizeof(SDFShapeProperties), &primitive.ShapeProperties, sizeof(SDFShapeProperties));
-
-			objectCB.Operation = static_cast<UINT>(primitive.Operation);
-			objectCB.BlendingFactor = primitive.BlendingFactor;
-			objectCB.Color = primitive.Color;
+			objectCB.BoundingBoxExtents = XMFLOAT3(1.0f, 1.0f, 1.0f);
 
 			m_CurrentFrameResources->CopyObjectData(renderItem.GetObjectIndex(), objectCB);
 
@@ -480,9 +472,9 @@ void D3DGraphicsContext::CreateDescriptorHeaps()
 	m_DSVHeap = std::make_unique<D3DDescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, true);
 
 	// SRV/CBV/UAV heap
-	constexpr UINT CBVCount = s_FrameCount * (s_MaxObjectCount + 2);	// frame count * (object count + 2)
-	constexpr UINT SRVCount = 3;										// ImGui frame resource + SRV for scene textures + application resources
-	constexpr UINT UAVCount = 2;										// UAV for scene textures + application resources
+	constexpr UINT CBVCount = s_FrameCount * (s_MaxObjectCount + 2) + 1;	// frame count * (object count + 2) + sdf factory
+	constexpr UINT SRVCount = 4;											// ImGui frame resource + SRV for scene texture + application resources
+	constexpr UINT UAVCount = 2;											// UAV for scene texture + application resources
 	m_SRVHeap = std::make_unique<D3DDescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, CBVCount + SRVCount + UAVCount, false);
 
 	m_SamplerHeap = std::make_unique<D3DDescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 1, false);

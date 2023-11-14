@@ -108,14 +108,14 @@ void D3DApplication::OnInit()
 
 	// Create scene items
 	m_Cube = m_GraphicsContext->CreateRenderItem();
-
-	const auto boxPrimitive = SDFPrimitive::CreateBox({ 0.5f, 0.5f, 0.5f }, SDFOperation::Union, 0.0f, XMFLOAT4{ 0.3f, 0.8f, 0.2f, 1.0f });
-	m_Cube->SetSDFPrimitiveData(boxPrimitive);
 	m_Cube->SetTranslation({ 0.0f, 0.0f, 0.0f });
+
 
 	m_SDFFactory = std::make_unique<SDFFactory>();
 
 	m_SDFObject = std::make_unique<SDFObject>(1024, 1024, 1024);
+	m_SDFObject->AddPrimitive(SDFPrimitive::CreateOctahedron(0.5f, SDFOperation::Union, 0.0f, XMFLOAT4{ 0.3f, 0.8f, 0.2f, 1.0f }));
+
 	m_SDFFactory->BakeSDFSynchronous(m_SDFObject.get());
 }
 

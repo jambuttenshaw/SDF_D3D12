@@ -46,12 +46,6 @@ void RenderItem::SetScale(float scale)
 }
 
 
-void RenderItem::SetSDFPrimitiveData(const SDFPrimitive& primitiveData)
-{
-	m_PrimitiveData = primitiveData;
-	SetDirty();
-}
-
 void RenderItem::SetDirty()
 {
 	m_NumFramesDirty = D3DGraphicsContext::GetBackBufferCount();
@@ -100,11 +94,6 @@ bool RenderItem::DrawGui()
 		// Scale
 		changed |= ImGui::DragFloat("Scale", &m_Scale, 0.01f);
 	}
-
-	ImGui::Separator();
-
-	// SDF primitive data gui
-	changed |= m_PrimitiveData.DrawGui();
 
 	if (changed)
 		SetDirty();
