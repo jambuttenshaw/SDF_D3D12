@@ -218,6 +218,14 @@ void main(uint3 DTid : SV_DispatchThreadID)
 	float3 p = DTid / (float3) (dims - uint3(1, 1, 1));
 	p = (p * 2.0f) - 1.0f;
 	
+	// Calculate aspect ratio
+	float3 fDims = (float3) dims;
+	float maxDim = max(max(fDims.x, fDims.y), fDims.z);
+	float3 aspectRatio = fDims / maxDim;
+	
+	// Apply aspect ratio of texture
+	p *= aspectRatio;
+	
 	// Evaluate SDF list
 	float4 nearest = float4(0.0f, 0.0f, 0.0f, FLOAT_MAX);
 	

@@ -155,6 +155,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\Framework\Transform.cpp" />
     <ClCompile Include="src\Input\InputManager.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\Renderer\D3DBuffer.cpp" />
@@ -202,6 +203,7 @@
     <ClInclude Include="src\Framework\CameraController.h" />
     <ClInclude Include="src\Framework\Exception.h" />
     <ClInclude Include="src\Framework\GameTimer.h" />
+    <ClInclude Include="src\Framework\Transform.h" />
     <ClInclude Include="src\Input\InputManager.h" />
     <ClInclude Include="src\Input\KeyCodes.h" />
     <ClInclude Include="src\Renderer\D3DCBTypes.h" />

@@ -159,6 +159,8 @@ void D3DGraphicsContext::EndDraw() const
 
 void D3DGraphicsContext::DrawItems(D3DComputePipeline* pipeline) const
 {
+	ASSERT(false, "Deprecated");
+	/*
 	// Perform compute commands
 	ASSERT(pipeline, "Pipeline must be valid!");
 
@@ -193,6 +195,7 @@ void D3DGraphicsContext::DrawItems(D3DComputePipeline* pipeline) const
 	// Render a full-screen quad
 	m_CommandList->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 	m_CommandList->DrawInstanced(4, 1, 0, 0);
+	*/
 }
 
 void D3DGraphicsContext::DrawVolume(D3DComputePipeline* pipeline, D3D12_GPU_DESCRIPTOR_HANDLE volumeSRV) const
@@ -249,9 +252,9 @@ void D3DGraphicsContext::UpdateObjectCBs() const
 			// Copy per-object data into the frame CB
 			ObjectCBType objectCB;
 			// Inverse world matrix is required to position SDF primitives
-			objectCB.InvWorldMat = XMMatrixTranspose(XMMatrixInverse(nullptr, renderItem.GetWorldMatrix()));
-			objectCB.Scale = renderItem.GetScale();
-			objectCB.BoundingBoxExtents = XMFLOAT3(1.0f, 1.0f, 1.0f);
+			objectCB.InvWorldMat = XMMatrixTranspose(XMMatrixInverse(nullptr, renderItem.GetTransform().GetWorldMatrix()));
+			objectCB.Scale = renderItem.GetTransform().GetScale();
+			objectCB.BoundingBoxExtents = renderItem.GetBoundsExtents();
 
 			m_CurrentFrameResources->CopyObjectData(renderItem.GetObjectIndex(), objectCB);
 

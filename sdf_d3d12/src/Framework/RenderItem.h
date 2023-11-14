@@ -1,29 +1,23 @@
 #pragma once
+#include "Transform.h"
 #include "SDF/SDFTypes.h"
 
 using namespace DirectX;
 
-
+/**
+ * RenderItem can be seen as a bounding box for a SDF texture
+ * The RenderItem will be sphere-traced, and then its contents ray-marched
+ */
 class RenderItem
 {
 public:
 	RenderItem();
 
-	inline const XMVECTOR& GetTranslation() const { return m_Translation; }
+	inline const Transform& GetTransform() const { return m_Transform; }
+	inline Transform& GetTransform() { SetDirty(); return m_Transform; }
 
-	inline float GetYaw() const { return m_Yaw; }
-	inline float GetPitch() const { return m_Pitch; }
-	inline float GetRoll() const { return m_Roll; }
-
-	inline float GetScale() const { return m_Scale; }
-
-	inline const XMMATRIX& GetWorldMatrix() const { return m_WorldMat; };
-
-	void SetTranslation(const XMVECTOR& translation);
-	void SetYaw(float yaw);
-	void SetPitch(float pitch);
-	void SetRoll(float roll);
-	void SetScale(float scale);
+	inline const XMFLOAT3& GetBoundsExtents() const { return m_BoundsExtents; }
+	inline void SetBoundsExtents(const XMFLOAT3& extents) { m_BoundsExtents = extents; }
 
 	inline bool IsDirty() const { return m_NumFramesDirty > 0; }
 	inline void DecrementDirty() { m_NumFramesDirty--; }
@@ -34,16 +28,11 @@ public:
 
 	bool DrawGui();
 
-
 private:
-	void BuildWorldMatrix();
+	Transform m_Transform;
 
-private:
-	XMVECTOR m_Translation;
-	float m_Yaw = 0.0f, m_Pitch = 0.0f, m_Roll = 0.0f;
-	float m_Scale = 1.0f;
-
-	XMMATRIX m_WorldMat;
+	// The extents of the bounding box this item represents
+	XMFLOAT3 m_BoundsExtents = { 1.0f, 1.0f, 1.0f };
 
 	// Dirty flag to indicate the object data has been changed 
 	// and we need to update the constant buffer

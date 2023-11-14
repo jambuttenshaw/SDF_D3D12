@@ -77,8 +77,8 @@ struct SDFPrimitiveBufferType
 	// Construct from a SDFPrimitive
 	SDFPrimitiveBufferType(const SDFPrimitive& primitive)
 	{
-		InvWorldMat = XMMatrixIdentity();
-		Scale = 1.0f;
+		InvWorldMat = XMMatrixTranspose(XMMatrixInverse(nullptr, primitive.PrimitiveTransform.GetWorldMatrix()));
+		Scale = primitive.PrimitiveTransform.GetScale();
 
 		Shape = static_cast<UINT>(primitive.Shape);
 		Operation = static_cast<UINT>(primitive.Operation);

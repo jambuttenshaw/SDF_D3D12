@@ -54,15 +54,13 @@ private:
 	DisplayMode m_CurrentDisplayMode = DisplayMode::Default;
 	std::map<DisplayMode, std::unique_ptr<D3DComputePipeline>> m_Pipelines;
 
-	RenderItem* m_Cube = nullptr;
-
 	std::unique_ptr<SDFFactory> m_SDFFactory;
 	std::unique_ptr<SDFObject> m_SDFObject;
 
 	RayMarchPropertiesType m_RayMarchProps {
 		0.001f,
-		0.05f,
-		0.01f,
-		0.01f
+		0.02f,
+		0.0025f,
+		0.02f
 	};
 };

@@ -162,6 +162,7 @@ float3 raymarchVolume(uint id, float3 p, float3 dir)
 	uvw /= gCachedObjects[id].BoxExtents;
 	
 	dir = mul(float4(dir, 0.0f), gCachedObjects[id].InvWorldMat);
+	dir /= gCachedObjects[id].BoxExtents;
 	
 	// step 3:
 	// simply transform from [-1,1] to [0,1]

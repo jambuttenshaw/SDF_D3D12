@@ -1,4 +1,5 @@
 #pragma once
+#include "Framework/Transform.h"
 
 using namespace DirectX;
 
@@ -50,8 +51,10 @@ union SDFShapeProperties
 
 struct SDFPrimitive
 {
-	// Properties of the primitive
+	// Transform of the primitive
+	Transform PrimitiveTransform;
 
+	// Properties of the primitive
 	SDFShape Shape = SDFShape::Sphere;
 
 	// Shape-specific properties
@@ -74,10 +77,17 @@ private:
 public:
 
 	// Constructor for each shape type
-	static SDFPrimitive CreateSphere(float radius, SDFOperation op, float blend, const XMFLOAT4& color);
-	static SDFPrimitive CreateBox(const XMFLOAT3& extents, SDFOperation op, float blend, const XMFLOAT4& color);
-	static SDFPrimitive CreatePlane(const XMFLOAT3& normal, float height, SDFOperation op, float blend, const XMFLOAT4& color);
-	static SDFPrimitive CreateTorus(float innerRadius, float torusRadius, SDFOperation op, float blend, const XMFLOAT4& color);
-	static SDFPrimitive CreateOctahedron(float scale, SDFOperation op, float blend, const XMFLOAT4& color);
+	static SDFPrimitive CreateSphere(const Transform& transform, float radius, SDFOperation op = SDFOperation::Union, float blend = 0.0f, const XMFLOAT4& color = { 1.0f, 1.0f, 1.0f, 1.0f });
+
+	static SDFPrimitive CreateBox(const Transform& transform, const XMFLOAT3& extents, SDFOperation op = SDFOperation::Union, float blend = 0.0f, const XMFLOAT4& color = { 1.0f, 1.0f, 1.0f, 1.0f });
+
+	static SDFPrimitive CreatePlane(const Transform& transform, const XMFLOAT3& normal, float height, SDFOperation op = SDFOperation::Union, float blend = 0.0f, const XMFLOAT4& color = { 1.0f, 1.0f, 1.0f, 1.0f });
+
+	static SDFPrimitive CreateTorus(const Transform& transform, float innerRadius, float torusRadius, SDFOperation op = SDFOperation::Union, float blend = 0.0f, const XMFLOAT4& color = { 1.0f, 1.0f, 1.0f, 1.0f });
+
+	static SDFPrimitive CreateOctahedron(const Transform& transform, float scale, SDFOperation op = SDFOperation::Union, float blend = 0.0f, const XMFLOAT4& color = { 1.0f, 1.0f, 1.0f, 1.0f });
+
+private:
+	static SDFPrimitive CreateGeneric(const Transform& transform, SDFOperation op, float blend, const XMFLOAT4& color);
 
 };

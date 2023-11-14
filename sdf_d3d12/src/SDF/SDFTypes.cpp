@@ -102,61 +102,54 @@ void SDFPrimitive::SetShapePropertiesToDefault()
 
 
 
-SDFPrimitive SDFPrimitive::CreateSphere(float radius, SDFOperation op, float blend, const XMFLOAT4& color)
+SDFPrimitive SDFPrimitive::CreateSphere(const Transform& transform, float radius, SDFOperation op, float blend, const XMFLOAT4& color)
 {
-	SDFPrimitive prim;
+	SDFPrimitive prim = CreateGeneric(transform, op, blend, color);
 	prim.Shape = SDFShape::Sphere;
 	prim.ShapeProperties.Sphere.Radius = radius;
-	prim.Operation = op;
-	prim.BlendingFactor = blend;
-	prim.Color = color;
 	return prim;
 }
 
-SDFPrimitive SDFPrimitive::CreateBox(const XMFLOAT3& extents, SDFOperation op, float blend, const XMFLOAT4& color)
+SDFPrimitive SDFPrimitive::CreateBox(const Transform& transform, const XMFLOAT3& extents, SDFOperation op, float blend, const XMFLOAT4& color)
 {
-	SDFPrimitive prim;
+	SDFPrimitive prim = CreateGeneric(transform, op, blend, color);
 	prim.Shape = SDFShape::Box;
 	prim.ShapeProperties.Box.Extents = extents;
-	prim.Operation = op;
-	prim.BlendingFactor = blend;
-	prim.Color = color;
 	return prim;
 }
 
-SDFPrimitive SDFPrimitive::CreatePlane(const XMFLOAT3& normal, float height, SDFOperation op, float blend, const XMFLOAT4& color)
+SDFPrimitive SDFPrimitive::CreatePlane(const Transform& transform, const XMFLOAT3& normal, float height, SDFOperation op, float blend, const XMFLOAT4& color)
 {
-	SDFPrimitive prim;
+	SDFPrimitive prim = CreateGeneric(transform, op, blend, color);
 	prim.Shape = SDFShape::Plane;
 	prim.ShapeProperties.Plane.Normal = normal;
 	prim.ShapeProperties.Plane.Height = height;
-	prim.Operation = op;
-	prim.BlendingFactor = blend;
-	prim.Color = color;
 	return prim;
 }
 
-SDFPrimitive SDFPrimitive::CreateTorus(float innerRadius, float torusRadius, SDFOperation op, float blend, const XMFLOAT4& color)
+SDFPrimitive SDFPrimitive::CreateTorus(const Transform& transform, float innerRadius, float torusRadius, SDFOperation op, float blend, const XMFLOAT4& color)
 {
-	SDFPrimitive prim;
+	SDFPrimitive prim = CreateGeneric(transform, op, blend, color);
 	prim.Shape = SDFShape::Torus;
 	prim.ShapeProperties.Torus.InnerRadius = innerRadius;
 	prim.ShapeProperties.Torus.TorusRadius = torusRadius;
-	prim.Operation = op;
-	prim.BlendingFactor = blend;
-	prim.Color = color;
 	return prim;
 }
 
-SDFPrimitive SDFPrimitive::CreateOctahedron(float scale, SDFOperation op, float blend, const XMFLOAT4& color)
+SDFPrimitive SDFPrimitive::CreateOctahedron(const Transform& transform, float scale, SDFOperation op, float blend, const XMFLOAT4& color)
 {
-	SDFPrimitive prim;
+	SDFPrimitive prim = CreateGeneric(transform, op, blend, color);
 	prim.Shape = SDFShape::Octahedron;
 	prim.ShapeProperties.Octahedron.Scale = scale;
+	return prim;
+}
+
+SDFPrimitive SDFPrimitive::CreateGeneric(const Transform& transform, SDFOperation op, float blend, const XMFLOAT4& color)
+{
+	SDFPrimitive prim;
+	prim.PrimitiveTransform = transform;
 	prim.Operation = op;
 	prim.BlendingFactor = blend;
 	prim.Color = color;
 	return prim;
 }
-
-
