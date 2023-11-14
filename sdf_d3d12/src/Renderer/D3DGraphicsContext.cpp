@@ -268,7 +268,7 @@ void D3DGraphicsContext::UpdateObjectCBs() const
 	}
 }
 
-void D3DGraphicsContext::UpdatePassCB(GameTimer* timer, Camera* camera)
+void D3DGraphicsContext::UpdatePassCB(GameTimer* timer, Camera* camera, const RayMarchPropertiesType& rayMarchProperties)
 {
 	ASSERT(timer, "Must use a valid timer!");
 	ASSERT(camera, "Must use a valid camera!");
@@ -300,6 +300,8 @@ void D3DGraphicsContext::UpdatePassCB(GameTimer* timer, Camera* camera)
 
 	m_MainPassCB.TotalTime = timer->GetTimeSinceReset();
 	m_MainPassCB.DeltaTime = timer->GetDeltaTime();
+
+	m_MainPassCB.RayMarchProperties = rayMarchProperties;
 
 	m_CurrentFrameResources->CopyPassData(m_MainPassCB);
 }

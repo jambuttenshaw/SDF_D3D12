@@ -48,7 +48,7 @@ public:
 
 	// Updating constant buffers
 	void UpdateObjectCBs() const;
-	void UpdatePassCB(GameTimer* timer, Camera* camera);
+	void UpdatePassCB(GameTimer* timer, Camera* camera, const RayMarchPropertiesType& rayMarchProperties);
 
 	void Resize(UINT width, UINT height);
 

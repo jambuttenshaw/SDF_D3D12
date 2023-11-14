@@ -51,6 +51,12 @@ cbuffer PassCB : register(b1)
 	
 	float gTotalTime;
 	float gDeltaTime;
+	
+	// Ray marchine properties
+	float gSphereTraceEpsilon;
+	float gRayMarchEpsilon;
+	float gRayMarchStepSize;
+	float gNormalEpsilon;
 };
 
 Texture3D<float> SDFVolume : register(t0);
@@ -71,21 +77,16 @@ static const float3 lightDirection = normalize(float3(0.7f, 1.0f, 0.7f));
 static const float3 lightAmbient = float3(0.2f, 0.2f, 0.2f);
 
 // constants
-#define PI 3.14159265359f;
 
-static const float D = 30.0f;
-static const float Dfog = 10.0f;
-static const float epsilon = 0.001f;
+// sphere trace constants
+#define D_MAX 30.0f							// the maximum distance to ever reach via sphere tracing
+#define D_FOG 10.0f						// the distance at which fog begins
 
 // const delta vectors for normal calculation
-static const float S = 0.01f;
-static const float3 deltax = float3(S, 0.0f, 0.0f);
-static const float3 deltay = float3(0.0f, S, 0.0f);
-static const float3 deltaz = float3(0.0f, 0.0f, S);
+#define NORMAL_DELTA_X float3(gNormalEpsilon, 0.0f, 0.0f)	// offset vectors for each axis
+#define NORMAL_DELTA_Y float3(0.0f, gNormalEpsilon, 0.0f)
+#define NORMAL_DELTA_Z float3(0.0f, 0.0f, gNormalEpsilon)
 
-static const float3 WHITE = float3(1.0f, 1.0f, 1.0f);
-static const float3 RED = float3(0.92f, 0.2f, 0.2f);
-static const float3 BLUE = float3(0.2f, 0.58f, 0.92f);
 
 #ifdef DISPLAY_HEATMAP
 static int heatmap = 0;
@@ -143,9 +144,9 @@ float2 sdScene(float3 p)
 float3 computeSurfaceNormal(float3 p)
 {
 	return normalize(float3(
-        SDFVolume.SampleLevel(sampleState, p + deltax, 0) - SDFVolume.SampleLevel(sampleState, p - deltax, 0),
-        SDFVolume.SampleLevel(sampleState, p + deltay, 0) - SDFVolume.SampleLevel(sampleState, p - deltay, 0),
-        SDFVolume.SampleLevel(sampleState, p + deltaz, 0) - SDFVolume.SampleLevel(sampleState, p - deltaz, 0)
+        SDFVolume.SampleLevel(sampleState, p + NORMAL_DELTA_X, 0) - SDFVolume.SampleLevel(sampleState, p - NORMAL_DELTA_X, 0),
+        SDFVolume.SampleLevel(sampleState, p + NORMAL_DELTA_Y, 0) - SDFVolume.SampleLevel(sampleState, p - NORMAL_DELTA_Y, 0),
+        SDFVolume.SampleLevel(sampleState, p + NORMAL_DELTA_Z, 0) - SDFVolume.SampleLevel(sampleState, p - NORMAL_DELTA_Z, 0)
     ));
 }
 
@@ -163,6 +164,7 @@ float3 raymarchVolume(uint id, float3 p, float3 dir)
 	// transform p into the box's local space
 	// this is handily exactly what opTransform does!
 	float3 uvw = opTransform(p, gCachedObjects[id].InvWorldMat);
+	uvw /= gCachedObjects[id].Scale;
 	
 	// step 2:
 	// divide p by the box's local extents, which are given in the shape params
@@ -179,19 +181,19 @@ float3 raymarchVolume(uint id, float3 p, float3 dir)
 	
 	// step through volume to find surface
 	float3 result;
-	float s = 1.0f;
+	float s = FLOAT_MAX; // can be any number > rayMarch_epsilon
 	
-	float stepSize = 0.01f;
-	while (s > 0.05f)
+	while (s > gRayMarchEpsilon)
 	{
 #ifdef DISPLAY_HEATMAP
 		heatmap++;
 #endif
 		
 		s = SDFVolume.SampleLevel(sampleState, uvw, 0);
-		uvw += dir * stepSize;
+		uvw += dir * gRayMarchStepSize;
 		
-		if (max(max(uvw.x, uvw.y), uvw.z) >= 1.0f + epsilon || min(min(uvw.x, uvw.y), uvw.z) <= -epsilon)
+		// use sphere trace epsilon, as that is the possible error that we could have entered into this aabb
+		if (max(max(uvw.x, uvw.y), uvw.z) >= 1.0f + gSphereTraceEpsilon || min(min(uvw.x, uvw.y), uvw.z) <= -gSphereTraceEpsilon)
 		{
 			// Exited box: return to sphere tracing
 			return float3(0.0f, 0.0f, 0.0f);
@@ -230,12 +232,12 @@ float3 intersectWithWorld(float3 p, float3 dir)
 	float3 result = float3(0.0f, 0.0f, 0.0f);
     
     // D is the max dist to cast; effectively a far clipping sphere centred at the camera
-	while (dist < D)
+	while (dist < D_MAX)
 	{
         // find nearest object in scene
 		nearest = sdScene(p + dir * dist);
         
-		if (nearest.x < epsilon)
+		if (nearest.x < gSphereTraceEpsilon)
 		{
             // nearest is within threshold
             
@@ -243,7 +245,7 @@ float3 intersectWithWorld(float3 p, float3 dir)
 			result = raymarchVolume((uint)(nearest.y), p + dir * dist, dir);
 			
             // calculate fog
-			float fog = map(clamp(dist, Dfog, D), Dfog, D, 1.0f, 0.0f);
+			float fog = map(clamp(dist, D_FOG, D_MAX), D_FOG, D_MAX, 1.0f, 0.0f);
 			result *= fog;
 			break;
 		}

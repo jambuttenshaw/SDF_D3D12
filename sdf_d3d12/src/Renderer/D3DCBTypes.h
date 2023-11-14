@@ -5,6 +5,15 @@
 using namespace DirectX;
 
 
+struct RayMarchPropertiesType
+{
+	float SphereTraceEpsilon = 0.001f;
+	float RayMarchEpsilon = 0.05f;
+	float RayMarchStepSize = 0.01f;
+	float NormalEpsilon = 0.01f;
+};
+
+
 struct PassCBType
 {
 	XMMATRIX View;
@@ -13,14 +22,20 @@ struct PassCBType
 	XMMATRIX InvProj;
 	XMMATRIX ViewProj;
 	XMMATRIX InvViewProj;
+
 	XMFLOAT3 WorldEyePos;
+
 	UINT ObjectCount;
+
 	XMFLOAT2 RTSize;
 	XMFLOAT2 InvRTSize;
+
 	float NearZ;
 	float FarZ;
 	float TotalTime;
 	float DeltaTime;
+
+	RayMarchPropertiesType RayMarchProperties;
 };
 
 

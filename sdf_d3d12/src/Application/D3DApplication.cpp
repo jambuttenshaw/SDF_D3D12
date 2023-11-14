@@ -161,6 +161,14 @@ void D3DApplication::OnUpdate()
 	}
 	ImGui::Separator();
 	{
+		ImGui::Text("Ray March Properties");
+		ImGui::SliderFloat("Sphere Trace Epsilon", &m_RayMarchProps.SphereTraceEpsilon, 0.0001f, 0.1f, "%.5f");
+		ImGui::SliderFloat("Ray March Epsilon", &m_RayMarchProps.RayMarchEpsilon, 0.001f, 0.1f, "%.5f");
+		ImGui::SliderFloat("Ray March Step Size", &m_RayMarchProps.RayMarchStepSize, 0.0001f, 0.1f, "%.5f");
+		ImGui::SliderFloat("Normal Epsilon", &m_RayMarchProps.NormalEpsilon, 0.0001f, 0.1f, "%.5f");
+	}
+	ImGui::Separator();
+	{
 		ImGui::Text("Bounding Box");
 
 		m_Cube->DrawGui();
@@ -177,7 +185,7 @@ void D3DApplication::OnRender()
 {
 	// Update constant buffers
 	m_GraphicsContext->UpdateObjectCBs();
-	m_GraphicsContext->UpdatePassCB(&m_Timer, &m_Camera);
+	m_GraphicsContext->UpdatePassCB(&m_Timer, &m_Camera, m_RayMarchProps);
 
 	// Begin drawing
 	m_GraphicsContext->StartDraw();
