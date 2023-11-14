@@ -73,7 +73,7 @@ void D3DApplication::OnInit()
 	rootParameters[3].InitAsDescriptorTable(1, &ranges[3], D3D12_SHADER_VISIBILITY_ALL);
 
 	D3D_SHADER_MACRO defaultDefines[] = { { nullptr, nullptr } };
-	D3D_SHADER_MACRO displayAABBDefines[] = { { "DISPLAY_AABB", nullptr },{ nullptr, nullptr } };
+	D3D_SHADER_MACRO displayBBDefines[] = { { "DISPLAY_BOUNDINGBOX", nullptr },{ nullptr, nullptr } };
 	D3D_SHADER_MACRO displayNormalDefines[] = { { "DISPLAY_NORMALS", nullptr },{ nullptr, nullptr } };
 	D3D_SHADER_MACRO displayHeatmapDefines[] = { { "DISPLAY_HEATMAP", nullptr },{ nullptr, nullptr } };
 
@@ -86,8 +86,8 @@ void D3DApplication::OnInit()
 	desc.Defines = defaultDefines;
 	m_Pipelines.insert(std::make_pair(DisplayMode::Default, std::make_unique<D3DComputePipeline>(&desc)));
 
-	desc.Defines = displayAABBDefines;
-	m_Pipelines.insert(std::make_pair(DisplayMode::DisplayAABB, std::make_unique<D3DComputePipeline>(&desc)));
+	desc.Defines = displayBBDefines;
+	m_Pipelines.insert(std::make_pair(DisplayMode::DisplayBoundingBox, std::make_unique<D3DComputePipeline>(&desc)));
 
 	desc.Defines = displayNormalDefines;
 	m_Pipelines.insert(std::make_pair(DisplayMode::DisplayNormals, std::make_unique<D3DComputePipeline>(&desc)));
@@ -133,7 +133,7 @@ void D3DApplication::OnUpdate()
 	{
 		ImGui::Text("Display");
 
-		static const char* s_DisplayModes[] = { "Default", "Display AABB", "Display Normals", "Display Heatmap" };
+		static const char* s_DisplayModes[] = { "Default", "Display Bounding Box", "Display Normals", "Display Heatmap" };
 		int currentMode = static_cast<int>(m_CurrentDisplayMode);
 		if (ImGui::Combo("Mode", &currentMode, s_DisplayModes, _countof(s_DisplayModes)))
 		{

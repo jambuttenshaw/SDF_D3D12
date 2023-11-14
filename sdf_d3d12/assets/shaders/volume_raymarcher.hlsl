@@ -170,12 +170,14 @@ float3 raymarchVolume(uint id, float3 p, float3 dir)
 	// divide p by the box's local extents, which are given in the shape params
 	uvw /= gCachedObjects[id].ShapeParams.xyz;
 	
+	dir = mul(float4(dir, 0.0f), gCachedObjects[id].InvWorldMat);
+	
 	// step 3:
 	// simply transform from [-1,1] to [0,1]
 	uvw *= 0.5f;
 	uvw += 0.5f;
 	
-#ifdef DISPLAY_AABB
+#ifdef DISPLAY_BOUNDINGBOX
 	return uvw;
 #else
 	
@@ -192,7 +194,7 @@ float3 raymarchVolume(uint id, float3 p, float3 dir)
 		s = SDFVolume.SampleLevel(sampleState, uvw, 0);
 		uvw += dir * gRayMarchStepSize;
 		
-		// use sphere trace epsilon, as that is the possible error that we could have entered into this aabb
+		// use sphere trace epsilon, as that is the possible error that we could have entered into this bounding box
 		if (max(max(uvw.x, uvw.y), uvw.z) >= 1.0f + gSphereTraceEpsilon || min(min(uvw.x, uvw.y), uvw.z) <= -gSphereTraceEpsilon)
 		{
 			// Exited box: return to sphere tracing
@@ -207,10 +209,10 @@ float3 raymarchVolume(uint id, float3 p, float3 dir)
 	result = 0.5f + 0.5f * normal;
 #else	
 	
-            // get hit point, normal, light direction
-	float3 l = lightDirection;
+    // get hit point, normal, light direction
+	float3 l = mul(float4(lightDirection, 0.0f), gCachedObjects[id].InvWorldMat);
             
-            // calculate lighting
+    // calculate lighting
 	float light = max(0.0f, dot(l, normal));
 			
 	result = float3(light, light, light) + lightAmbient;
@@ -219,7 +221,7 @@ float3 raymarchVolume(uint id, float3 p, float3 dir)
 	
 	// iterate until surface is reached or exits volume
 	return result;
-#endif // DISPLAY_AABB
+#endif // DISPLAY_BOUNDINGBOX
 }
 
 

@@ -18,7 +18,7 @@ using namespace DirectX;
 enum class DisplayMode
 {
 	Default,
-	DisplayAABB,
+	DisplayBoundingBox,
 	DisplayNormals,
 	DisplayHeatmap
 };
