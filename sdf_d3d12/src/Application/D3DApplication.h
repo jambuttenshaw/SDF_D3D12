@@ -18,9 +18,9 @@ using namespace DirectX;
 enum class DisplayMode
 {
 	Default,
-	DisableShadow,
-	DisableLight,
-	Heatmap
+	DisplayAABB,
+	DisplayNormals,
+	DisplayHeatmap
 };
 
 

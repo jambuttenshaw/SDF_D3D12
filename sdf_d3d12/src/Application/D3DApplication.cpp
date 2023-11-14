@@ -73,6 +73,9 @@ void D3DApplication::OnInit()
 	rootParameters[3].InitAsDescriptorTable(1, &ranges[3], D3D12_SHADER_VISIBILITY_ALL);
 
 	D3D_SHADER_MACRO defaultDefines[] = { { nullptr, nullptr } };
+	D3D_SHADER_MACRO displayAABBDefines[] = { { "DISPLAY_AABB", nullptr },{ nullptr, nullptr } };
+	D3D_SHADER_MACRO displayNormalDefines[] = { { "DISPLAY_NORMALS", nullptr },{ nullptr, nullptr } };
+	D3D_SHADER_MACRO displayHeatmapDefines[] = { { "DISPLAY_HEATMAP", nullptr },{ nullptr, nullptr } };
 
 	D3DComputePipelineDesc desc = {};
 	desc.NumRootParameters = _countof(rootParameters);
@@ -82,6 +85,15 @@ void D3DApplication::OnInit()
 
 	desc.Defines = defaultDefines;
 	m_Pipelines.insert(std::make_pair(DisplayMode::Default, std::make_unique<D3DComputePipeline>(&desc)));
+
+	desc.Defines = displayAABBDefines;
+	m_Pipelines.insert(std::make_pair(DisplayMode::DisplayAABB, std::make_unique<D3DComputePipeline>(&desc)));
+
+	desc.Defines = displayNormalDefines;
+	m_Pipelines.insert(std::make_pair(DisplayMode::DisplayNormals, std::make_unique<D3DComputePipeline>(&desc)));
+
+	desc.Defines = displayHeatmapDefines;
+	m_Pipelines.insert(std::make_pair(DisplayMode::DisplayHeatmap, std::make_unique<D3DComputePipeline>(&desc)));
 
 	LOG_TRACE("Compute pipelines created.");
 
@@ -121,7 +133,7 @@ void D3DApplication::OnUpdate()
 	{
 		ImGui::Text("Display");
 
-		static const char* s_DisplayModes[] = { "Default", "Disable Shadow", "Disable Lighting", "Heatmap" };
+		static const char* s_DisplayModes[] = { "Default", "Display AABB", "Display Normals", "Display Heatmap" };
 		int currentMode = static_cast<int>(m_CurrentDisplayMode);
 		if (ImGui::Combo("Mode", &currentMode, s_DisplayModes, _countof(s_DisplayModes)))
 		{
@@ -149,7 +161,7 @@ void D3DApplication::OnUpdate()
 	}
 	ImGui::Separator();
 	{
-		ImGui::Text("Torus");
+		ImGui::Text("Bounding Box");
 
 		m_Cube->DrawGui();
 

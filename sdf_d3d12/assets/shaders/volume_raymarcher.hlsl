@@ -87,6 +87,10 @@ static const float3 WHITE = float3(1.0f, 1.0f, 1.0f);
 static const float3 RED = float3(0.92f, 0.2f, 0.2f);
 static const float3 BLUE = float3(0.2f, 0.58f, 0.92f);
 
+#ifdef DISPLAY_HEATMAP
+static int heatmap = 0;
+#endif
+
 //
 // UTILITY
 //
@@ -112,12 +116,13 @@ float3 opTransform(float3 p, matrix t)
 	return mul(float4(p, 1.0f), t).xyz;
 }
 
-float sdScene(float3 p)
+float2 sdScene(float3 p)
 {
 #ifdef DISPLAY_HEATMAP
 	heatmap++;
 #endif
-	float nearest = FLOAT_MAX;
+	// x = distance, y = object id
+	float2 nearest = float2(FLOAT_MAX, -1.0f);
 	
 	for (uint i = 0; i < gObjectCount; i++)
 	{
@@ -129,7 +134,7 @@ float sdScene(float3 p)
 		shape *= gCachedObjects[i].Scale;
 
 		// combine with scene
-		nearest = min(nearest, shape);
+		nearest = shape < nearest.x ? float2(shape, i) : nearest;
 	}
 
 	return nearest;
@@ -144,16 +149,45 @@ float3 computeSurfaceNormal(float3 p)
     ));
 }
 
-float3 raymarchVolume(float3 p, float3 dir)
+float3 raymarchVolume(uint id, float3 p, float3 dir)
 {
 	// calculate uvw of intersection
-	float3 uvw = 0.5f + p;
+	
+	// at the moment, p is in the range [boxCentre - boxExtents, boxCentre + boxExtents]
+	// steps:
+	// 1: p into range [-boxExtents, +boxExtents]
+	// 2: p into range [-1, 1]
+	// 3: p into range [0, 1]
+	
+	// step 1:
+	// transform p into the box's local space
+	// this is handily exactly what opTransform does!
+	float3 uvw = opTransform(p, gCachedObjects[id].InvWorldMat);
+	
+	// step 2:
+	// divide p by the box's local extents, which are given in the shape params
+	uvw /= gCachedObjects[id].ShapeParams.xyz;
+	
+	// step 3:
+	// simply transform from [-1,1] to [0,1]
+	uvw *= 0.5f;
+	uvw += 0.5f;
+	
+#ifdef DISPLAY_AABB
+	return uvw;
+#else
+	
+	// step through volume to find surface
 	float3 result;
 	float s = 1.0f;
 	
 	float stepSize = 0.01f;
 	while (s > 0.05f)
 	{
+#ifdef DISPLAY_HEATMAP
+		heatmap++;
+#endif
+		
 		s = SDFVolume.SampleLevel(sampleState, uvw, 0);
 		uvw += dir * stepSize;
 		
@@ -164,23 +198,26 @@ float3 raymarchVolume(float3 p, float3 dir)
 		}
 	}
 	
-			
-#ifndef DISABLE_LIGHT
-			
-            // get hit point, normal, light direction
 	float3 normal = computeSurfaceNormal(uvw);
+	
+#ifdef DISPLAY_NORMALS
+	
+	result = 0.5f + 0.5f * normal;
+#else	
+	
+            // get hit point, normal, light direction
 	float3 l = lightDirection;
             
             // calculate lighting
 	float light = max(0.0f, dot(l, normal));
 			
 	result = float3(light, light, light) + lightAmbient;
-			
-#endif // DISABLE_LIGHT
 	
+#endif // DISPLAY_NORMALS
 	
 	// iterate until surface is reached or exits volume
-	return 0.5f + 0.5f * normal;
+	return result;
+#endif // DISPLAY_AABB
 }
 
 
@@ -189,7 +226,7 @@ float3 intersectWithWorld(float3 p, float3 dir)
     // main raymarching function
     
 	float dist = 0.0f;
-	float nearest;
+	float2 nearest;
 	float3 result = float3(0.0f, 0.0f, 0.0f);
     
     // D is the max dist to cast; effectively a far clipping sphere centred at the camera
@@ -198,19 +235,19 @@ float3 intersectWithWorld(float3 p, float3 dir)
         // find nearest object in scene
 		nearest = sdScene(p + dir * dist);
         
-		if (nearest < epsilon)
+		if (nearest.x < epsilon)
 		{
             // nearest is within threshold
             
 			// raymarch within volume
-			result = raymarchVolume(p + dir * dist, dir);
+			result = raymarchVolume((uint)(nearest.y), p + dir * dist, dir);
 			
             // calculate fog
-			//float fog = map(clamp(dist, Dfog, D), Dfog, D, 1.0f, 0.0f);
-			//result *= fog;
+			float fog = map(clamp(dist, Dfog, D), Dfog, D, 1.0f, 0.0f);
+			result *= fog;
 			break;
 		}
-		dist += nearest;
+		dist += nearest.x;
 	}
     
 	return result;
