@@ -1,4 +1,7 @@
 
+#include "sdf_primitives.hlsli"
+#include "sdf_operations.hlsli"
+
 #define FLOAT_MAX 3.402823466e+38F
 
 // These must match those defined in C++
@@ -92,21 +95,9 @@ float map(float value, float min1, float max1, float min2, float max2)
 	return min2 + (value - min1) * (max2 - min2) / (max1 - min1);
 }
 
-
 //
 // SCENE
 //
-
-float sdBox(float3 p, float3 b)
-{
-	float3 q = abs(p) - b;
-	return length(max(q, 0.0f)) + min(max(q.x, max(q.y, q.z)), 0.0f);
-}
-
-float3 opTransform(float3 p, matrix t)
-{
-	return mul(float4(p, 1.0f), t).xyz;
-}
 
 float2 sdScene(float3 p)
 {
