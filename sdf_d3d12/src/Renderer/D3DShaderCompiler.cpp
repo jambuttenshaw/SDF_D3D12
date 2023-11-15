@@ -16,7 +16,7 @@ HRESULT D3DShaderCompiler::CompileFromFile(const wchar_t* file, const char* entr
 
 	// Compile shader
 	ComPtr<ID3DBlob> error;
-	HRESULT result = D3DCompileFromFile(file, defines, nullptr, entryPoint, target, compileFlags, 0, ppBlob, error.GetAddressOf());
+	HRESULT result = D3DCompileFromFile(file, defines, D3D_COMPILE_STANDARD_FILE_INCLUDE, entryPoint, target, compileFlags, 0, ppBlob, error.GetAddressOf());
 
 	// Check for errors
 	if (result != S_OK)

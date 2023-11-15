@@ -86,6 +86,17 @@ bool Transform::DrawGui()
 
 		// Scale
 		changed |= ImGui::DragFloat("Scale", &m_Scale, 0.01f);
+
+		// Reset button
+		if (ImGui::Button("Reset"))
+		{
+			m_Translation = { 0.0f, 0.0f, 0.0f };
+			m_Pitch = 0.0f;
+			m_Yaw = 0.0f;
+			m_Roll = 0.0f;
+			m_Scale = 1.0f;
+			BuildWorldMatrix();
+		}
 	}
 	return changed;
 }
