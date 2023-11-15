@@ -160,9 +160,7 @@ float3 raymarchVolume(uint id, float3 p, float3 dir)
 	uvw *= 0.5f;
 	uvw += 0.5f;
 	
-#ifdef DISPLAY_BOUNDINGBOX
-	return uvw;
-#else
+
 	
 	// step through volume to find surface
 	float3 result;
@@ -180,8 +178,12 @@ float3 raymarchVolume(uint id, float3 p, float3 dir)
 		// use sphere trace epsilon, as that is the possible error that we could have entered into this bounding box
 		if (max(max(uvw.x, uvw.y), uvw.z) >= 1.0f + gSphereTraceEpsilon || min(min(uvw.x, uvw.y), uvw.z) <= -gSphereTraceEpsilon)
 		{
+#ifdef DISPLAY_BOUNDINGBOX
+			return uvw;
+#else
 			// Exited box: return to sphere tracing
 			return float3(0.0f, 0.0f, 0.0f);
+#endif // DISPLAY_BOUNDINGBOX
 		}
 	}
 	
@@ -204,7 +206,6 @@ float3 raymarchVolume(uint id, float3 p, float3 dir)
 	
 	// iterate until surface is reached or exits volume
 	return result;
-#endif // DISPLAY_BOUNDINGBOX
 }
 
 
