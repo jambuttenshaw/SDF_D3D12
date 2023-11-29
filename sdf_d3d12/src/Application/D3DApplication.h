@@ -59,8 +59,8 @@ private:
 
 	RayMarchPropertiesType m_RayMarchProps {
 		0.001f,
-		0.02f,
+		0.023f,
 		0.0025f,
-		0.02f
+		0.003f
 	};
 };
