@@ -12,7 +12,7 @@ struct D3DComputePipelineDesc
 
 	// Compute Shader
 	const wchar_t* Shader = nullptr;
-	const char* EntryPoint = nullptr;
+	const wchar_t* EntryPoint = nullptr;
 
 	D3D_SHADER_MACRO* Defines = nullptr;
 };

@@ -5,6 +5,8 @@
 
 #include "Memory/D3DMemoryAllocator.h"
 #include "D3DFrameResources.h"
+#include "D3DShaderCompiler.h"
+#include "D3DBuffer.h"
 
 #include "Framework/RenderItem.h"
 #include "Framework/GameTimer.h"
@@ -27,6 +29,10 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
 	LOG_INFO("Creating D3D12 Graphics Context")
 
 	// Initialize D3D components
+	CreateAdapter();
+	ASSERT(CheckRaytracingSupport(), "Adapter does not support raytracing.");
+
+	// Create device resources
 	CreateDevice();
 	CreateCommandQueue();
 	CreateSwapChain();
@@ -38,6 +44,14 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
 	CreateDepthStencilBuffer();
 
 	CreateFrameResources();
+
+	// Create DXR resources
+	CreateRaytracingInterface();
+	CreateRaytracingRootSignatures();
+	CreateRaytracingPipelineStateObject();
+
+	CreateRaytracingOutputTexture();
+
 
 	CreateViewport();
 	CreateScissorRect();
@@ -79,7 +93,7 @@ D3DGraphicsContext::~D3DGraphicsContext()
 	m_DSV.Free();
 	m_ImGuiResources.Free();
 
-	m_SceneTextureViews.Free();
+	m_RayTracingOutputTextureViews.Free();
 
 	// Free frame resources
 	for (UINT n = 0; n < s_FrameCount; n++)
@@ -200,12 +214,14 @@ void D3DGraphicsContext::DrawItems(D3DComputePipeline* pipeline) const
 
 void D3DGraphicsContext::DrawVolume(D3DComputePipeline* pipeline, D3D12_GPU_DESCRIPTOR_HANDLE volumeSRV) const
 {
+	ASSERT(false, "Deprecated");
+	/*
 	// Perform compute commands
 	ASSERT(pipeline, "Pipeline must be valid!");
 
 	// Scene texture must be in unordered access state
 	auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_SceneTexture.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-	m_CommandList->ResourceBarrier(1, &barrier);
+	m_CommandList->ResourceBarrier(1, &barrier);s
 
 	// Set pipeline state
 	pipeline->Bind(m_CommandList.Get());
@@ -235,7 +251,62 @@ void D3DGraphicsContext::DrawVolume(D3DComputePipeline* pipeline, D3D12_GPU_DESC
 	// Render a full-screen quad
 	m_CommandList->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 	m_CommandList->DrawInstanced(4, 1, 0, 0);
+	*/
 }
+
+void D3DGraphicsContext::DrawRaytracing() const
+{
+	// Scene texture must be in unordered access state
+	auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_RayTracingOutputTexture.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	m_CommandList->ResourceBarrier(1, &barrier);
+
+	m_CommandList->SetComputeRootSignature(m_RayTracingGlobalRootSignature.Get());
+
+	// Populate root arguments
+	m_CommandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, m_RayTracingOutputTextureViews.GetGPUHandle(0));
+	m_CommandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::AccelerationStructureSlot, m_TopLevelAccelerationStructure->GetGPUVirtualAddress());
+
+	// Set state
+	m_DXRCommandList->SetPipelineState1(m_DXRStateObject.Get());
+
+	// Dispatch rays
+	D3D12_DISPATCH_RAYS_DESC dispatchDesc = {};
+	dispatchDesc.HitGroupTable.StartAddress = m_HitGroupShaderTable->GetAddress();
+	dispatchDesc.HitGroupTable.SizeInBytes = m_HitGroupShaderTable->GetSize();
+	dispatchDesc.HitGroupTable.StrideInBytes = m_HitGroupShaderTable->GetStride();
+
+	dispatchDesc.MissShaderTable.StartAddress = m_MissShaderTable->GetAddress();
+	dispatchDesc.MissShaderTable.SizeInBytes = m_MissShaderTable->GetSize();
+	dispatchDesc.MissShaderTable.StrideInBytes = m_MissShaderTable->GetStride();
+
+	dispatchDesc.RayGenerationShaderRecord.StartAddress = m_RayGenShaderTable->GetAddress();
+	dispatchDesc.RayGenerationShaderRecord.SizeInBytes = m_RayGenShaderTable->GetSize();
+
+	dispatchDesc.Width = m_ClientWidth;
+	dispatchDesc.Height = m_ClientHeight;
+	dispatchDesc.Depth = 1;
+
+	m_DXRCommandList->DispatchRays(&dispatchDesc);
+
+
+	// Perform graphics commands
+
+	// Scene texture will now be used to render to the back buffer
+	barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_RayTracingOutputTexture.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	m_CommandList->ResourceBarrier(1, &barrier);
+
+	// Set pipeline state
+	m_GraphicsPipeline->Bind(m_CommandList.Get());
+
+	// Set resource views
+	m_CommandList->SetGraphicsRootDescriptorTable(0, m_CurrentFrameResources->GetPassCBV());
+	m_CommandList->SetGraphicsRootDescriptorTable(1, m_RayTracingOutputTextureViews.GetGPUHandle(1));
+
+	// Render a full-screen quad
+	m_CommandList->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	m_CommandList->DrawInstanced(4, 1, 0, 0);
+}
+
 
 RenderItem* D3DGraphicsContext::CreateRenderItem()
 {
@@ -323,8 +394,8 @@ void D3DGraphicsContext::Resize(UINT width, UINT height)
 	m_DSV.Free();
 
 	// Application-specific, window-specific resources
-	m_SceneTexture.Reset();
-	m_SceneTextureViews.Free();
+	m_RayTracingOutputTexture.Reset();
+	m_RayTracingOutputTextureViews.Free();
 
 	// Process all deferred frees
 	ProcessAllDeferrals();
@@ -337,7 +408,7 @@ void D3DGraphicsContext::Resize(UINT width, UINT height)
 	CreateDepthStencilBuffer();
 
 	// Re-create application-specific, window specific resources
-	CreateSceneTexture();
+	CreateRaytracingOutputTexture();
 
 	// Send required work to re-init buffers
 	THROW_IF_FAIL(m_CommandList->Close());
@@ -375,8 +446,7 @@ void D3DGraphicsContext::WaitForGPU() const
 }
 
 
-
-void D3DGraphicsContext::CreateDevice()
+void D3DGraphicsContext::CreateAdapter()
 {
 	UINT dxgiFactoryFlags = 0;
 
@@ -395,23 +465,23 @@ void D3DGraphicsContext::CreateDevice()
 
 	THROW_IF_FAIL(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&m_Factory)));
 
-	ComPtr<IDXGIAdapter1> hardwareAdapter;
 	for (UINT adapterIndex = 0;
 		SUCCEEDED(m_Factory->EnumAdapterByGpuPreference(
 			adapterIndex,
 			DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
-			IID_PPV_ARGS(&hardwareAdapter)));
+			IID_PPV_ARGS(&m_Adapter)));
 		++adapterIndex)
 	{
 		DXGI_ADAPTER_DESC1 desc;
-		hardwareAdapter->GetDesc1(&desc);
+		m_Adapter->GetDesc1(&desc);
 
 		if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
 		{
 			continue;
 		}
 
-		if (SUCCEEDED(D3D12CreateDevice(hardwareAdapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&m_Device))))
+		// Test to make sure this adapter supports D3D12, but don't create the actual device yet
+		if (SUCCEEDED(D3D12CreateDevice(m_Adapter.Get(), D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
 		{
 
 #ifdef _DEBUG
@@ -427,8 +497,16 @@ void D3DGraphicsContext::CreateDevice()
 			break;
 		}
 	}
-	// make sure a device was created successfully
-	ASSERT(m_Device, "Failed to create any device; no hardware device found.");
+
+	// make sure an adapter was created successfully
+	ASSERT(m_Adapter, "Failed to find any adapter.");
+}
+
+
+void D3DGraphicsContext::CreateDevice()
+{
+	// Create the D3D12 Device object
+	THROW_IF_FAIL(D3D12CreateDevice(m_Adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&m_Device)));
 }
 
 void D3DGraphicsContext::CreateCommandQueue()
@@ -560,6 +638,292 @@ void D3DGraphicsContext::CreateFrameResources()
 	m_CurrentFrameResources = m_FrameResources[m_FrameIndex].get();
 }
 
+
+
+void D3DGraphicsContext::CreateRaytracingInterface()
+{
+	THROW_IF_FAIL(m_Device->QueryInterface(IID_PPV_ARGS(&m_DXRDevice)));
+	THROW_IF_FAIL(m_CommandList->QueryInterface(IID_PPV_ARGS(&m_DXRCommandList)));
+}
+
+void D3DGraphicsContext::CreateRaytracingRootSignatures()
+{
+	// Global root signature
+	{
+		CD3DX12_DESCRIPTOR_RANGE UAVDescriptor;
+		UAVDescriptor.Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
+
+		CD3DX12_ROOT_PARAMETER rootParams[GlobalRootSignatureParams::Count];
+		rootParams[GlobalRootSignatureParams::OutputViewSlot].InitAsDescriptorTable(1, &UAVDescriptor);
+		rootParams[GlobalRootSignatureParams::AccelerationStructureSlot].InitAsShaderResourceView(0);
+
+		CD3DX12_ROOT_SIGNATURE_DESC desc(ARRAYSIZE(rootParams), rootParams);
+		SerializeAndCreateRootSignature(desc, &m_RayTracingGlobalRootSignature);
+	}
+}
+
+void D3DGraphicsContext::CreateRaytracingPipelineStateObject()
+{
+	CD3DX12_STATE_OBJECT_DESC raytracingPipeline{ D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE };
+
+	// The DXIL library contains all of the shaders that will be used in raytracing
+	// The entry points to export are specified
+	const auto lib = raytracingPipeline.CreateSubobject<CD3DX12_DXIL_LIBRARY_SUBOBJECT>();
+
+	// Compile shader library from file
+	ComPtr<IDxcBlob> blob;
+	THROW_IF_FAIL(D3DShaderCompiler::CompileFromFile(L"assets/shaders/raytracing.hlsl", L"main", L"lib_6_3", nullptr, &blob));
+
+	D3D12_SHADER_BYTECODE libdxil = CD3DX12_SHADER_BYTECODE(blob->GetBufferPointer(), blob->GetBufferSize());
+	lib->SetDXILLibrary(&libdxil);
+
+	// Define shader entry points to export from the library
+	{
+		lib->DefineExport(c_RaygenShaderName);
+		lib->DefineExport(c_IntersectionShaderName);
+		lib->DefineExport(c_ClosestHitShaderName);
+		lib->DefineExport(c_MissShaderName);
+	}
+
+	// Define a hit group
+	const auto hitGroup = raytracingPipeline.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
+	hitGroup->SetIntersectionShaderImport(c_IntersectionShaderName);
+	hitGroup->SetClosestHitShaderImport(c_ClosestHitShaderName);
+	hitGroup->SetHitGroupExport(c_HitGroupName);
+	hitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_PROCEDURAL_PRIMITIVE);
+
+	// Shader config
+	const auto shaderConfig = raytracingPipeline.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
+	constexpr UINT payloadSize = sizeof(XMFLOAT4); // Color
+	constexpr UINT attributeSize = sizeof(XMFLOAT3);
+	shaderConfig->Config(payloadSize, attributeSize);
+
+	// Global root signature
+	// This will be associated with all shaders via default export association
+	const auto globalRootSig = raytracingPipeline.CreateSubobject<CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();
+	globalRootSig->SetRootSignature(m_RayTracingGlobalRootSignature.Get());
+
+	// Pipeline config
+	const auto pipelineConfig = raytracingPipeline.CreateSubobject<CD3DX12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT>();
+	constexpr UINT maxRecursion = 1; // primary rays only
+	pipelineConfig->Config(maxRecursion);
+
+	// Create the state object
+	THROW_IF_FAIL(m_DXRDevice->CreateStateObject(raytracingPipeline, IID_PPV_ARGS(&m_DXRStateObject)));
+}
+
+void D3DGraphicsContext::CreateRaytracingOutputTexture()
+{
+	// Create resources
+	const CD3DX12_HEAP_PROPERTIES defaultHeap(D3D12_HEAP_TYPE_DEFAULT);
+	const auto resourceDesc = CD3DX12_RESOURCE_DESC::Tex2D(m_BackBufferFormat, m_ClientWidth, m_ClientHeight, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+
+	THROW_IF_FAIL(m_Device->CreateCommittedResource(
+		&defaultHeap,
+		D3D12_HEAP_FLAG_NONE,
+		&resourceDesc,
+		D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+		nullptr,
+		IID_PPV_ARGS(&m_RayTracingOutputTexture)
+	));
+
+	// Create UAVs and SRVs
+	m_RayTracingOutputTextureViews = m_SRVHeap->Allocate(2); // one UAV and one SRV
+
+	// Create UAV
+	m_Device->CreateUnorderedAccessView(m_RayTracingOutputTexture.Get(), nullptr, nullptr, m_RayTracingOutputTextureViews.GetCPUHandle(0));
+	// Create SRV
+	m_Device->CreateShaderResourceView(m_RayTracingOutputTexture.Get(), nullptr, m_RayTracingOutputTextureViews.GetCPUHandle(1));
+}
+
+
+void D3DGraphicsContext::BuildGeometry()
+{
+	// Create one AABB to ray-trace against
+	constexpr D3D12_RAYTRACING_AABB aabb = {
+		-0.5f, 0.5f,
+		-0.5f, 0.5f,
+		-0.5f, 0.5f
+	};
+
+	m_GeometryBuffer = std::make_unique<D3DUploadBuffer<D3D12_RAYTRACING_AABB>>(m_Device.Get(), 1, D3D12_RAYTRACING_AABB_BYTE_ALIGNMENT);
+	m_GeometryBuffer->CopyData(0, aabb);
+}
+
+void D3DGraphicsContext::BuildAccelerationStructures()
+{
+	m_CommandList->Reset(m_DirectCommandAllocator.Get(), nullptr);
+
+	D3D12_RAYTRACING_GEOMETRY_DESC geometryDesc = {};
+	geometryDesc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS;
+	geometryDesc.AABBs.AABBCount = 1;
+	geometryDesc.AABBs.AABBs.StartAddress = m_GeometryBuffer->GetAddressOfElement(0);
+	geometryDesc.AABBs.AABBs.StrideInBytes = m_GeometryBuffer->GetElementSize();
+
+	geometryDesc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
+
+	// Get required size for an acceleration structure
+	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
+	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS topLevelInputs = {};
+	topLevelInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+	topLevelInputs.Flags = buildFlags;
+	topLevelInputs.NumDescs = 1;
+	topLevelInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
+
+	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO topLevelPrebuildInfo = {};
+	m_DXRDevice->GetRaytracingAccelerationStructurePrebuildInfo(&topLevelInputs, &topLevelPrebuildInfo);
+	ASSERT(topLevelPrebuildInfo.ResultDataMaxSizeInBytes > 0, "Failed to get top level prebuild info.");
+
+	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS bottomLevelInputs = topLevelInputs;
+	bottomLevelInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
+	bottomLevelInputs.pGeometryDescs = &geometryDesc;
+
+	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO bottomLevelPrebuildInfo = {};
+	m_DXRDevice->GetRaytracingAccelerationStructurePrebuildInfo(&bottomLevelInputs, &bottomLevelPrebuildInfo);
+	ASSERT(bottomLevelPrebuildInfo.ResultDataMaxSizeInBytes > 0, "Failed to get top level prebuild info.");
+
+	const auto defaultHeap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+
+	// Create scratch resource
+	ComPtr<ID3D12Resource> scratchResource;
+	{
+		const auto desc = CD3DX12_RESOURCE_DESC::Buffer(max(topLevelPrebuildInfo.ScratchDataSizeInBytes, bottomLevelPrebuildInfo.ScratchDataSizeInBytes), D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+		THROW_IF_FAIL(m_Device->CreateCommittedResource(
+			&defaultHeap,
+			D3D12_HEAP_FLAG_NONE,
+			&desc,
+			D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+			nullptr,
+			IID_PPV_ARGS(&scratchResource)
+		));
+	}
+
+	// Allocate resources for acceleration structures
+	{
+		const auto desc = CD3DX12_RESOURCE_DESC::Buffer(topLevelPrebuildInfo.ResultDataMaxSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+		THROW_IF_FAIL(m_Device->CreateCommittedResource(
+			&defaultHeap,
+			D3D12_HEAP_FLAG_NONE,
+			&desc,
+			D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+			nullptr,
+			IID_PPV_ARGS(&m_TopLevelAccelerationStructure)
+		));
+	}
+	{
+		const auto desc = CD3DX12_RESOURCE_DESC::Buffer(bottomLevelPrebuildInfo.ResultDataMaxSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+		THROW_IF_FAIL(m_Device->CreateCommittedResource(
+			&defaultHeap,
+			D3D12_HEAP_FLAG_NONE,
+			&desc,
+			D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+			nullptr,
+			IID_PPV_ARGS(&m_BottomLevelAccelerationStructure)
+		));
+	}
+
+	// Create instance desc for bottom level acceleration structure
+	D3D12_RAYTRACING_INSTANCE_DESC instanceDesc = {};
+	// identity transform
+	instanceDesc.Transform[0][0] = instanceDesc.Transform[1][1] = instanceDesc.Transform[2][2] = 1;
+	instanceDesc.InstanceMask = 1;
+	instanceDesc.AccelerationStructure = m_BottomLevelAccelerationStructure->GetGPUVirtualAddress();
+
+	// Allocate upload buffer for instances
+	D3DUploadBuffer<D3D12_RAYTRACING_INSTANCE_DESC> instanceDescs(m_Device.Get(), 1, false);
+	instanceDescs.CopyData(0, instanceDesc);
+
+	// Bottom level acceleration structure desc
+	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottomLevelBuildDesc = {};
+	{
+		bottomLevelBuildDesc.Inputs = bottomLevelInputs;
+		bottomLevelBuildDesc.ScratchAccelerationStructureData = scratchResource->GetGPUVirtualAddress();
+		bottomLevelBuildDesc.DestAccelerationStructureData = m_BottomLevelAccelerationStructure->GetGPUVirtualAddress();
+	}
+
+	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC topLevelBuildDesc = {};
+	{
+		topLevelInputs.InstanceDescs = instanceDescs.GetAddressOfElement(0);
+		topLevelBuildDesc.Inputs = topLevelInputs;
+		topLevelBuildDesc.ScratchAccelerationStructureData = scratchResource->GetGPUVirtualAddress();
+		topLevelBuildDesc.DestAccelerationStructureData = m_TopLevelAccelerationStructure->GetGPUVirtualAddress();
+	}
+
+	// Build acceleration structures
+	m_DXRCommandList->BuildRaytracingAccelerationStructure(&bottomLevelBuildDesc, 0, nullptr);
+
+	const auto barrier = CD3DX12_RESOURCE_BARRIER::UAV(m_BottomLevelAccelerationStructure.Get());
+	m_CommandList->ResourceBarrier(1, &barrier);
+
+	m_DXRCommandList->BuildRaytracingAccelerationStructure(&topLevelBuildDesc, 0, nullptr);
+}
+
+void D3DGraphicsContext::BuildShaderTables()
+{
+	void* rayGenShaderIdentifier;
+	void* hitGroupShaderIdentifier;
+	void* missShaderIdentifier;
+
+	// Get shader identifiers
+	UINT shaderIdentifierSize;
+	{
+		ComPtr<ID3D12StateObjectProperties> stateObjectProperties;
+		THROW_IF_FAIL(m_DXRStateObject.As(&stateObjectProperties));
+		rayGenShaderIdentifier = stateObjectProperties->GetShaderIdentifier(c_RaygenShaderName);
+		hitGroupShaderIdentifier = stateObjectProperties->GetShaderIdentifier(c_HitGroupName);
+		missShaderIdentifier = stateObjectProperties->GetShaderIdentifier(c_MissShaderName);
+		shaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
+	}
+
+	// Create shader tables
+
+	// Raygen shader table
+	{
+		constexpr UINT numRecords = 1;
+		const UINT shaderRecordSize = shaderIdentifierSize;
+		m_RayGenShaderTable = std::make_unique<D3DShaderTable>(m_Device.Get(), numRecords, shaderRecordSize);
+		m_RayGenShaderTable->AddRecord({ rayGenShaderIdentifier, shaderIdentifierSize });
+	}
+
+	// Miss shader table
+	{
+		constexpr UINT numRecords = 1;
+		const UINT shaderRecordSize = shaderIdentifierSize;
+		m_MissShaderTable = std::make_unique<D3DShaderTable>(m_Device.Get(), numRecords, shaderRecordSize);
+		m_MissShaderTable->AddRecord({ missShaderIdentifier, shaderIdentifierSize });
+	}
+
+	// Hit group shader table
+	{
+		constexpr UINT numRecords = 1;
+		const UINT shaderRecordSize = shaderIdentifierSize;
+		m_HitGroupShaderTable = std::make_unique<D3DShaderTable>(m_Device.Get(), numRecords, shaderRecordSize);
+		m_HitGroupShaderTable->AddRecord({ hitGroupShaderIdentifier, shaderIdentifierSize });
+	}
+}
+
+
+bool D3DGraphicsContext::CheckRaytracingSupport() const
+{
+	ComPtr<ID3D12Device> testDevice;
+	D3D12_FEATURE_DATA_D3D12_OPTIONS5 featureSupportData = {};
+
+	return SUCCEEDED(D3D12CreateDevice(m_Adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&testDevice)))
+		&& SUCCEEDED(testDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &featureSupportData, sizeof(featureSupportData)))
+		&& featureSupportData.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
+}
+
+void D3DGraphicsContext::SerializeAndCreateRootSignature(D3D12_ROOT_SIGNATURE_DESC& desc, ComPtr<ID3D12RootSignature>* rootSig) const
+{
+	ComPtr<ID3DBlob> blob;
+	ComPtr<ID3DBlob> error;
+
+	THROW_IF_FAIL(D3D12SerializeRootSignature(&desc, D3D_ROOT_SIGNATURE_VERSION_1, &blob, &error));
+	THROW_IF_FAIL(m_Device->CreateRootSignature(1, blob->GetBufferPointer(), blob->GetBufferSize(), IID_PPV_ARGS(&(*rootSig))));
+}
+
+
+
 void D3DGraphicsContext::CreateViewport()
 {
 	m_Viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_ClientWidth), static_cast<float>(m_ClientHeight));
@@ -594,36 +958,10 @@ void D3DGraphicsContext::CreateAssets()
 {
 	m_GraphicsPipeline = std::make_unique<D3DGraphicsPipeline>();
 
-	CreateSceneTexture();
-}
-
-
-void D3DGraphicsContext::CreateSceneTexture()
-{
-	// Create resources
-	const CD3DX12_HEAP_PROPERTIES defaultHeap(D3D12_HEAP_TYPE_DEFAULT);
-	const auto resourceDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM, m_ClientWidth, m_ClientHeight, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-
-	THROW_IF_FAIL(m_Device->CreateCommittedResource(
-		&defaultHeap,
-		D3D12_HEAP_FLAG_NONE,
-		&resourceDesc,
-		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-		nullptr,
-		IID_PPV_ARGS(&m_SceneTexture)
-	));
-
-	// Use fast ceiling of integer division
-	m_ThreadGroupX = (m_ClientWidth + s_NumShaderThreads  - 1) / s_NumShaderThreads;
-	m_ThreadGroupY = (m_ClientHeight + s_NumShaderThreads - 1) / s_NumShaderThreads;
-
-	// Create UAVs and SRVs
-	m_SceneTextureViews = m_SRVHeap->Allocate(2); // one UAV and one SRV
-
-	// Create UAV
-	m_Device->CreateUnorderedAccessView(m_SceneTexture.Get(), nullptr, nullptr, m_SceneTextureViews.GetCPUHandle(0));
-	// Create SRV
-	m_Device->CreateShaderResourceView(m_SceneTexture.Get(), nullptr, m_SceneTextureViews.GetCPUHandle(1));
+	// Create raytracing assets
+	BuildGeometry();
+	BuildAccelerationStructures();
+	BuildShaderTables();
 }
 
 

@@ -1,9 +1,11 @@
 #pragma once
 
+#include "D3DBuffer.h"
 #include "Memory/D3DMemoryAllocator.h"
 #include "D3DCBTypes.h"
 
 #include "D3DPipeline.h"
+#include "D3DShaderTable.h"
 
 
 using Microsoft::WRL::ComPtr;
@@ -18,17 +20,36 @@ class D3DFrameResources;
 class D3DGraphicsContext;
 extern D3DGraphicsContext* g_D3DGraphicsContext;
 
+
+namespace GlobalRootSignatureParams
+{
+	enum Value
+	{
+		OutputViewSlot = 0,
+		AccelerationStructureSlot,
+		Count
+	};
+}
+
+namespace LocalRootSignatureParams
+{
+	enum Value
+	{
+		RayGenConstantSlot = 0,
+		Count
+	};
+}
+
+
 class D3DGraphicsContext
 {
 public:
 	D3DGraphicsContext(HWND window, UINT width, UINT height);
 	~D3DGraphicsContext();
 
-	// Disable copying
+	// Disable copying & moving
 	D3DGraphicsContext(const D3DGraphicsContext&) = delete;
 	D3DGraphicsContext& operator= (const D3DGraphicsContext&) = delete;
-
-	// Disable moving
 	D3DGraphicsContext(D3DGraphicsContext&&) = delete;
 	D3DGraphicsContext& operator= (D3DGraphicsContext&&) = delete;
 
@@ -40,6 +61,7 @@ public:
 
 	void DrawItems(D3DComputePipeline* pipeline) const;
 	void DrawVolume(D3DComputePipeline* pipeline, D3D12_GPU_DESCRIPTOR_HANDLE volumeSRV) const;
+	void DrawRaytracing() const;
 
 	// Render Items
 
@@ -82,6 +104,7 @@ public:
 
 private:
 	// Startup
+	void CreateAdapter();
 	void CreateDevice();
 	void CreateCommandQueue();
 	void CreateSwapChain();
@@ -92,6 +115,20 @@ private:
 	void CreateDepthStencilBuffer();
 	void CreateFrameResources();
 
+	// DXR
+	void CreateRaytracingInterface();
+	void CreateRaytracingRootSignatures();
+	void CreateRaytracingPipelineStateObject();
+	void CreateRaytracingOutputTexture();
+
+	void BuildGeometry();
+	void BuildAccelerationStructures();
+	void BuildShaderTables();
+
+	// Raytracing helper functions
+	bool CheckRaytracingSupport() const;
+	void SerializeAndCreateRootSignature(D3D12_ROOT_SIGNATURE_DESC& desc, ComPtr<ID3D12RootSignature>* rootSig) const;
+
 	void CreateViewport();
 	void CreateScissorRect();
 
@@ -99,9 +136,7 @@ private:
 
 	void CreateProjectionMatrix();
 
-	// Temporary, eventually buffers and their data will be created elsewhere
-	void CreateAssets();
-	void CreateSceneTexture();
+	void CreateAssets();		// Temporary - eventually all assets will be created elsewhere
 
 
 	void MoveToNextFrame();
@@ -130,6 +165,7 @@ private:
 	DXGI_FORMAT m_DepthStencilFormat;
 
 	// Pipeline objects
+	ComPtr<IDXGIAdapter1> m_Adapter;
 	ComPtr<IDXGIFactory6> m_Factory;
 	ComPtr<ID3D12Device> m_Device;
 
@@ -144,6 +180,34 @@ private:
 
 	ComPtr<ID3D12CommandQueue> m_CommandQueue;
 	ComPtr<ID3D12GraphicsCommandList> m_CommandList;
+
+
+	// Raytracing pipeline objects
+	ComPtr<ID3D12Device5> m_DXRDevice;
+	ComPtr<ID3D12GraphicsCommandList4> m_DXRCommandList;
+	ComPtr<ID3D12StateObject> m_DXRStateObject;
+
+	// Root signatures
+	ComPtr<ID3D12RootSignature> m_RayTracingGlobalRootSignature;
+
+	// Geometry
+	std::unique_ptr<D3DUploadBuffer<D3D12_RAYTRACING_AABB>> m_GeometryBuffer;
+
+	// Acceleration structure
+	ComPtr<ID3D12Resource> m_AccelerationStructure;
+	ComPtr<ID3D12Resource> m_BottomLevelAccelerationStructure;
+	ComPtr<ID3D12Resource> m_TopLevelAccelerationStructure;
+
+	// Shader tables
+	inline static const wchar_t* c_HitGroupName = L"HitGroup";
+	inline static const wchar_t* c_RaygenShaderName = L"RaygenShader";
+	inline static const wchar_t* c_IntersectionShaderName = L"IntersectionShader";
+	inline static const wchar_t* c_ClosestHitShaderName = L"ClosestHitShader";
+	inline static const wchar_t* c_MissShaderName = L"MissShader";
+	std::unique_ptr<D3DShaderTable> m_MissShaderTable;
+	std::unique_ptr<D3DShaderTable> m_HitGroupShaderTable;
+	std::unique_ptr<D3DShaderTable> m_RayGenShaderTable;
+
 
 	// Frame resources
 	std::vector<std::unique_ptr<D3DFrameResources>> m_FrameResources;
@@ -169,15 +233,12 @@ private:
 	// Pipeline assets
 	std::unique_ptr<D3DGraphicsPipeline> m_GraphicsPipeline;
 
-	UINT m_ThreadGroupX = 0, m_ThreadGroupY = 0;
-
 	// ImGui Resources
 	D3DDescriptorAllocation m_ImGuiResources;
 
 	// Application resources
-	ComPtr<ID3D12Resource> m_SceneTexture;				// The texture that the compute shader will write to
-														// As I am using sync compute, only one texture is required
-	D3DDescriptorAllocation m_SceneTextureViews;		// UAV and SRV
+	ComPtr<ID3D12Resource> m_RayTracingOutputTexture;				// The texture to output raytracing to
+	D3DDescriptorAllocation m_RayTracingOutputTextureViews;			// UAV and SRV
 
 
 	// Render Items

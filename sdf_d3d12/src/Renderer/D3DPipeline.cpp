@@ -60,19 +60,21 @@ D3DGraphicsPipeline::D3DGraphicsPipeline()
 
 	// Create the graphics pipeline state, which includes compiling and loading shaders
 	{
-		ComPtr<ID3DBlob> vertexShader;
-		ComPtr<ID3DBlob> pixelShader;
+		ComPtr<IDxcBlob> vertexShader;
+		ComPtr<IDxcBlob> pixelShader;
 
 		// Compile shaders
-		THROW_IF_FAIL(D3DShaderCompiler::CompileFromFile(L"assets/shaders/finalpass.hlsl", "VSMain", "vs_5_0", nullptr, &vertexShader));
-		THROW_IF_FAIL(D3DShaderCompiler::CompileFromFile(L"assets/shaders/finalpass.hlsl", "PSMain", "ps_5_0", nullptr, &pixelShader));
+		THROW_IF_FAIL(D3DShaderCompiler::CompileFromFile(L"assets/shaders/finalpass.hlsl", L"VSMain", L"vs_6_3", nullptr, &vertexShader));
+		THROW_IF_FAIL(D3DShaderCompiler::CompileFromFile(L"assets/shaders/finalpass.hlsl", L"PSMain", L"ps_6_3", nullptr, &pixelShader));
 
 		// Describe and create the graphics pipeline state object (PSO)
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
 		psoDesc.InputLayout = { nullptr, 0 };
 		psoDesc.pRootSignature = m_RootSignature.Get();
-		psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader.Get());
-		psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.Get());
+		psoDesc.VS.pShaderBytecode = vertexShader->GetBufferPointer();
+		psoDesc.VS.BytecodeLength = vertexShader->GetBufferSize();
+		psoDesc.PS.pShaderBytecode = pixelShader->GetBufferPointer();
+		psoDesc.PS.BytecodeLength = pixelShader->GetBufferSize();
 		psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 		psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 		psoDesc.DepthStencilState.DepthEnable = false;
@@ -142,8 +144,8 @@ D3DComputePipeline::D3DComputePipeline(D3DComputePipelineDesc* desc)
 
 	// Create the compute pipeline state
 	{
-		ComPtr<ID3DBlob> computeShader;
-		THROW_IF_FAIL(D3DShaderCompiler::CompileFromFile(desc->Shader, desc->EntryPoint, "cs_5_0", desc->Defines, &computeShader));
+		ComPtr<IDxcBlob> computeShader;
+		THROW_IF_FAIL(D3DShaderCompiler::CompileFromFile(desc->Shader, desc->EntryPoint, L"cs_5_0", desc->Defines, &computeShader));
 
 		D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc = {};
 		psoDesc.pRootSignature = m_RootSignature.Get();

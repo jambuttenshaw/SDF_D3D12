@@ -23,8 +23,8 @@ void D3DApplication::OnInit()
 	InitImGui();
 
 	// Create pipelines
-	LOG_TRACE("Creating compute pipelines...");
 	/*
+	LOG_TRACE("Creating compute pipelines...");
 	// Create a root signature consisting of two root descriptors for CBVs (per-object and per-pass)
 	CD3DX12_DESCRIPTOR_RANGE1 ranges[3];
 	CD3DX12_ROOT_PARAMETER1 rootParameters[3];
@@ -58,7 +58,8 @@ void D3DApplication::OnInit()
 
 	desc.Defines = heatmapDefines;
 	m_Pipelines.insert(std::make_pair(DisplayMode::Heatmap, std::make_unique<D3DComputePipeline>(&desc)));
-	*/
+
+/////////////////////////////////////////////////////////////
 
 	CD3DX12_DESCRIPTOR_RANGE1 ranges[4];
 	CD3DX12_ROOT_PARAMETER1 rootParameters[4];
@@ -96,6 +97,7 @@ void D3DApplication::OnInit()
 	m_Pipelines.insert(std::make_pair(DisplayMode::DisplayHeatmap, std::make_unique<D3DComputePipeline>(&desc)));
 
 	LOG_TRACE("Compute pipelines created.");
+	*/
 
 
 	// Setup camera
@@ -105,6 +107,7 @@ void D3DApplication::OnInit()
 
 	m_CameraController = CameraController{ m_InputManager.get(), &m_Camera };
 
+	/*
 
 	// Create SDF factory
 	m_SDFFactory = std::make_unique<SDFFactory>();
@@ -127,6 +130,7 @@ void D3DApplication::OnInit()
 
 	// Bake the primitives into the SDF object
 	m_SDFFactory->BakeSDFSynchronous(m_SDFObject.get());
+	*/
 }
 
 void D3DApplication::OnUpdate()
@@ -139,6 +143,7 @@ void D3DApplication::OnUpdate()
 	{
 		ImGui::LabelText("FPS", "%.1f", m_Timer.GetFPS());
 	}
+	/*
 	ImGui::Separator();
 	{
 		ImGui::Text("Display");
@@ -150,6 +155,7 @@ void D3DApplication::OnUpdate()
 			m_CurrentDisplayMode = static_cast<DisplayMode>(currentMode);
 		}
 	}
+	*/
 	ImGui::Separator();
 	{
 		ImGui::Text("Camera");
@@ -169,6 +175,7 @@ void D3DApplication::OnUpdate()
 		m_CameraController.Gui();
 
 	}
+	/*
 	ImGui::Separator();
 	{
 		ImGui::Text("Ray March Properties");
@@ -185,6 +192,7 @@ void D3DApplication::OnUpdate()
 
 	}
 	ImGui::Separator();
+	*/
 
 	ImGui::End();
 
@@ -202,7 +210,8 @@ void D3DApplication::OnRender()
 
 	// Draw all items
 	//m_GraphicsContext->DrawItems(m_Pipelines[m_CurrentDisplayMode].get());
-	m_GraphicsContext->DrawVolume(m_Pipelines[m_CurrentDisplayMode].get(), m_SDFObject->GetSRV());
+	//m_GraphicsContext->DrawVolume(m_Pipelines[m_CurrentDisplayMode].get(), m_SDFObject->GetSRV());
+	m_GraphicsContext->DrawRaytracing();
 
 	// ImGui Render
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_GraphicsContext->GetCommandList());

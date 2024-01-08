@@ -27,7 +27,7 @@ SDFFactory::SDFFactory()
 	desc.NumRootParameters = _countof(rootParameters);
 	desc.RootParameters = rootParameters;
 	desc.Shader = L"assets/shaders/sdf_baker.hlsl";
-	desc.EntryPoint = "main";
+	desc.EntryPoint = L"main";
 	desc.Defines = nullptr;
 
 	m_Pipeline = std::make_unique<D3DComputePipeline>(&desc);
@@ -51,7 +51,7 @@ SDFFactory::SDFFactory()
 	m_FenceValue = 1;
 
 	// Create constant buffer to hold bake data
-	m_BakeDataBuffer = std::make_unique<D3DUploadBuffer<BakeDataBufferType>>(1, true);
+	m_BakeDataBuffer = std::make_unique<D3DUploadBuffer<BakeDataBufferType>>(g_D3DGraphicsContext->GetDevice(), 1, true);
 
 	// Allocate CBV
 	m_BakeDataCBV = g_D3DGraphicsContext->GetSRVHeap()->Allocate(1);

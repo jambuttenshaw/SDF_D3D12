@@ -1,13 +1,6 @@
 #pragma once
 
-#include "D3DGraphicsContext.h"
-
 using Microsoft::WRL::ComPtr;
-
-
-#ifndef ALIGN_CONSTANT_BUFFER
-#define ALIGN_CONSTANT_BUFFER(v) (((v) + 255) & ~(255))
-#endif
 
 
 /**
@@ -22,24 +15,24 @@ template<typename T>
 class D3DUploadBuffer
 {
 public:
-	D3DUploadBuffer(UINT elementCount, bool isConstantBuffer)
+	D3DUploadBuffer(ID3D12Device* device, UINT elementCount, UINT alignment = 0)
 		: m_ElementCount(elementCount)
-		, m_IsConstantBuffer(isConstantBuffer)
+		, m_Alignment(alignment)
 	{
 		ASSERT(m_ElementCount > 0, "Cannot create a buffer with 0 elements!");
 
 		m_ElementStride = sizeof(T);
 
-		if (m_IsConstantBuffer)
+		if (alignment > 0)
 		{
 			// Align m_ElementStride to 256 bytes
-			m_ElementStride = ALIGN_CONSTANT_BUFFER(m_ElementStride);
+			m_ElementStride = Align(m_ElementStride, m_Alignment);
 		}
 
 		// Create buffer
 		const CD3DX12_HEAP_PROPERTIES uploadHeap(D3D12_HEAP_TYPE_UPLOAD);
 		const auto bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(m_ElementStride * m_ElementCount);
-		THROW_IF_FAIL(g_D3DGraphicsContext->GetDevice()->CreateCommittedResource(
+		THROW_IF_FAIL(device->CreateCommittedResource(
 			&uploadHeap,
 			D3D12_HEAP_FLAG_NONE,
 			&bufferDesc,
@@ -82,5 +75,5 @@ private:
 
 	UINT m_ElementStride = 0;
 	UINT m_ElementCount = 0;
-	bool m_IsConstantBuffer = false;
+	UINT m_Alignment = 0;
 };
