@@ -31,15 +31,6 @@ namespace GlobalRootSignatureParams
 	};
 }
 
-namespace LocalRootSignatureParams
-{
-	enum Value
-	{
-		ViewportConstantSlot = 0,
-		Count
-	};
-}
-
 
 class D3DGraphicsContext
 {
@@ -59,8 +50,6 @@ public:
 	void StartDraw() const;
 	void EndDraw() const;
 
-	void DrawItems(D3DComputePipeline* pipeline) const;
-	void DrawVolume(D3DComputePipeline* pipeline, D3D12_GPU_DESCRIPTOR_HANDLE volumeSRV) const;
 	void DrawRaytracing() const;
 
 	// Render Items
@@ -202,35 +191,35 @@ private:
 
 
 	// DirectX Raytracing (DXR) attributes
-	ComPtr<ID3D12Device5> m_dxrDevice;
-	ComPtr<ID3D12GraphicsCommandList4> m_dxrCommandList;
-	ComPtr<ID3D12StateObject> m_dxrStateObject;
+	ComPtr<ID3D12Device5> m_DXRDevice;
+	ComPtr<ID3D12GraphicsCommandList4> m_DXRCommandList;
+	ComPtr<ID3D12StateObject> m_DXRStateObject;
 
 	// Root signatures
-	ComPtr<ID3D12RootSignature> m_raytracingGlobalRootSignature;
+	ComPtr<ID3D12RootSignature> m_RaytracingGlobalRootSignature;
 
 	// Geometry
 	typedef UINT16 Index;
 	struct Vertex { float v1, v2, v3; };
-	std::unique_ptr<D3DUploadBuffer<Index>> m_indexBuffer;
-	std::unique_ptr<D3DUploadBuffer<Vertex>> m_vertexBuffer;
+	std::unique_ptr<D3DUploadBuffer<Index>> m_IndexBuffer;
+	std::unique_ptr<D3DUploadBuffer<Vertex>> m_VertexBuffer;
 
 	// Acceleration structure
-	std::unique_ptr<D3DUAVBuffer> m_bottomLevelAccelerationStructure;
-	std::unique_ptr<D3DUAVBuffer> m_topLevelAccelerationStructure;
+	std::unique_ptr<D3DUAVBuffer> m_BottomLevelAccelerationStructure;
+	std::unique_ptr<D3DUAVBuffer> m_TopLevelAccelerationStructure;
 
 	// Raytracing output
-	ComPtr<ID3D12Resource> m_raytracingOutput;
-	D3DDescriptorAllocation m_raytracingOutputDescriptor;
+	ComPtr<ID3D12Resource> m_RaytracingOutput;
+	D3DDescriptorAllocation m_RaytracingOutputDescriptor;
 
 	// Shader tables
-	static const wchar_t* c_hitGroupName;
-	static const wchar_t* c_raygenShaderName;
-	static const wchar_t* c_closestHitShaderName;
-	static const wchar_t* c_missShaderName;
-	std::unique_ptr<D3DShaderTable> m_missShaderTable;
-	std::unique_ptr<D3DShaderTable> m_hitGroupShaderTable;
-	std::unique_ptr<D3DShaderTable> m_rayGenShaderTable;
+	static const wchar_t* c_HitGroupName;
+	static const wchar_t* c_RaygenShaderName;
+	static const wchar_t* c_ClosestHitShaderName;
+	static const wchar_t* c_MissShaderName;
+	std::unique_ptr<D3DShaderTable> m_MissShaderTable;
+	std::unique_ptr<D3DShaderTable> m_HitGroupShaderTable;
+	std::unique_ptr<D3DShaderTable> m_RayGenShaderTable;
 
 
 	
