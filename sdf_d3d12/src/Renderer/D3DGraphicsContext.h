@@ -1,11 +1,11 @@
 #pragma once
 
-#include "D3DBuffer.h"
 #include "Memory/D3DMemoryAllocator.h"
 #include "D3DCBTypes.h"
 
 #include "D3DPipeline.h"
-#include "D3DShaderTable.h"
+
+#include "RaytracingHelper.h"
 
 
 using Microsoft::WRL::ComPtr;
@@ -35,7 +35,7 @@ namespace LocalRootSignatureParams
 {
 	enum Value
 	{
-		RayGenConstantSlot = 0,
+		ViewportConstantSlot = 0,
 		Count
 	};
 }
@@ -115,19 +115,14 @@ private:
 	void CreateDepthStencilBuffer();
 	void CreateFrameResources();
 
-	// DXR
-	void CreateRaytracingInterface();
-	void CreateRaytracingRootSignatures();
+	void CreateRaytracingInterfaces();
+	void SerializeAndCreateRaytracingRootSignature(D3D12_ROOT_SIGNATURE_DESC& desc, ComPtr<ID3D12RootSignature>* rootSig);
+	void CreateRootSignatures();
 	void CreateRaytracingPipelineStateObject();
-	void CreateRaytracingOutputTexture();
-
+	void CreateRaytracingOutputResource();
 	void BuildGeometry();
 	void BuildAccelerationStructures();
 	void BuildShaderTables();
-
-	// Raytracing helper functions
-	bool CheckRaytracingSupport() const;
-	void SerializeAndCreateRootSignature(D3D12_ROOT_SIGNATURE_DESC& desc, ComPtr<ID3D12RootSignature>* rootSig) const;
 
 	void CreateViewport();
 	void CreateScissorRect();
@@ -182,33 +177,37 @@ private:
 	ComPtr<ID3D12GraphicsCommandList> m_CommandList;
 
 
-	// Raytracing pipeline objects
-	ComPtr<ID3D12Device5> m_DXRDevice;
-	ComPtr<ID3D12GraphicsCommandList4> m_DXRCommandList;
-	ComPtr<ID3D12StateObject> m_DXRStateObject;
+	// DirectX Raytracing (DXR) attributes
+	ComPtr<ID3D12Device5> m_dxrDevice;
+	ComPtr<ID3D12GraphicsCommandList4> m_dxrCommandList;
+	ComPtr<ID3D12StateObject> m_dxrStateObject;
 
 	// Root signatures
-	ComPtr<ID3D12RootSignature> m_RayTracingGlobalRootSignature;
+	ComPtr<ID3D12RootSignature> m_raytracingGlobalRootSignature;
 
 	// Geometry
 	typedef UINT16 Index;
 	struct Vertex { float v1, v2, v3; };
-	ComPtr<ID3D12Resource> m_IndexBuffer;
-	ComPtr<ID3D12Resource> m_VertexBuffer;
+	ComPtr<ID3D12Resource> m_indexBuffer;
+	ComPtr<ID3D12Resource> m_vertexBuffer;
 
 	// Acceleration structure
-	ComPtr<ID3D12Resource> m_AccelerationStructure;
-	ComPtr<ID3D12Resource> m_BottomLevelAccelerationStructure;
-	ComPtr<ID3D12Resource> m_TopLevelAccelerationStructure;
+	ComPtr<ID3D12Resource> m_accelerationStructure;
+	ComPtr<ID3D12Resource> m_bottomLevelAccelerationStructure;
+	ComPtr<ID3D12Resource> m_topLevelAccelerationStructure;
+
+	// Raytracing output
+	ComPtr<ID3D12Resource> m_raytracingOutput;
+	D3DDescriptorAllocation m_raytracingOutputDescriptor;
 
 	// Shader tables
-	inline static const wchar_t* c_HitGroupName = L"HitGroup";
-	inline static const wchar_t* c_RaygenShaderName = L"RaygenShader";
-	inline static const wchar_t* c_ClosestHitShaderName = L"ClosestHitShader";
-	inline static const wchar_t* c_MissShaderName = L"MissShader";
-	std::unique_ptr<D3DShaderTable> m_RayGenShaderTable;
-	std::unique_ptr<D3DShaderTable> m_HitGroupShaderTable;
-	std::unique_ptr<D3DShaderTable> m_MissShaderTable;
+	static const wchar_t* c_hitGroupName;
+	static const wchar_t* c_raygenShaderName;
+	static const wchar_t* c_closestHitShaderName;
+	static const wchar_t* c_missShaderName;
+	ComPtr<ID3D12Resource> m_missShaderTable;
+	ComPtr<ID3D12Resource> m_hitGroupShaderTable;
+	ComPtr<ID3D12Resource> m_rayGenShaderTable;
 
 
 	// Frame resources
@@ -237,11 +236,6 @@ private:
 
 	// ImGui Resources
 	D3DDescriptorAllocation m_ImGuiResources;
-
-	// Application resources
-	ComPtr<ID3D12Resource> m_RayTracingOutputTexture;				// The texture to output raytracing to
-	D3DDescriptorAllocation m_RayTracingOutputTextureViews;			// UAV and SRV
-
 
 	// Render Items
 	UINT m_NextRenderItemIndex = 0;
