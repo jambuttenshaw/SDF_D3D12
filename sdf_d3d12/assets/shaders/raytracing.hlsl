@@ -16,7 +16,10 @@
 RaytracingAccelerationStructure Scene : register(t0, space0);
 RWTexture2D<float4> RenderTarget : register(u0);
 
-typedef BuiltInTriangleIntersectionAttributes MyAttributes;
+struct MyAttributes
+{
+	float3 position;
+};
 struct RayPayload
 {
 	float4 color;
@@ -51,17 +54,25 @@ void MyRaygenShader()
 	RenderTarget[DispatchRaysIndex().xy] = payload.color;
 }
 
+[shader("intersection")]
+void MyIntersectionShader()
+{
+	MyAttributes attr;
+	attr.position = float3(0, 0, 0);
+
+	ReportHit(RayTCurrent(), 0, attr);
+}
+
 [shader("closesthit")]
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 {
-	float3 barycentrics = float3(1 - attr.barycentrics.x - attr.barycentrics.y, attr.barycentrics.x, attr.barycentrics.y);
-	payload.color = float4(barycentrics, 1);
+	payload.color = float4(1, 0, 0, 1);
 }
 
 [shader("miss")]
 void MyMissShader(inout RayPayload payload)
 {
-	payload.color = float4(0, 0, 0, 1);
+	payload.color = float4(0, 0, 1, 1);
 }
 
 #endif // RAYTRACING_HLSL

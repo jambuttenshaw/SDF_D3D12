@@ -17,6 +17,7 @@ D3DGraphicsContext* g_D3DGraphicsContext = nullptr;
 
 const wchar_t* D3DGraphicsContext::c_HitGroupName = L"MyHitGroup";
 const wchar_t* D3DGraphicsContext::c_RaygenShaderName = L"MyRaygenShader";
+const wchar_t* D3DGraphicsContext::c_IntersectionShaderName = L"MyIntersectionShader";
 const wchar_t* D3DGraphicsContext::c_ClosestHitShaderName = L"MyClosestHitShader";
 const wchar_t* D3DGraphicsContext::c_MissShaderName = L"MyMissShader";
 
@@ -578,6 +579,31 @@ void D3DGraphicsContext::CreateFrameResources()
 	m_CurrentFrameResources = m_FrameResources[m_FrameIndex].get();
 }
 
+void D3DGraphicsContext::CreateViewport()
+{
+	m_Viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_ClientWidth), static_cast<float>(m_ClientHeight));
+}
+
+void D3DGraphicsContext::CreateScissorRect()
+{
+	m_ScissorRect = CD3DX12_RECT(0, 0, static_cast<LONG>(m_ClientWidth), static_cast<LONG>(m_ClientHeight));
+}
+
+void D3DGraphicsContext::CreateFence()
+{
+	THROW_IF_FAIL(m_Device->CreateFence(0,
+		D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence)));
+	m_CurrentFrameResources->IncrementFence();
+
+	// Create an event handle to use for frame synchronization
+	m_FenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+	if (m_FenceEvent == nullptr)
+	{
+		THROW_IF_FAIL(HRESULT_FROM_WIN32(GetLastError()));
+	}
+}
+
+
 
 bool D3DGraphicsContext::CheckRaytracingSupport() const
 {
@@ -621,29 +647,12 @@ void D3DGraphicsContext::CreateRaytracingInterfaces()
 	THROW_IF_FAIL(m_CommandList->QueryInterface(IID_PPV_ARGS(&m_DXRCommandList)));
 }
 
-
-// Create a raytracing pipeline state object (RTPSO).
-// An RTPSO represents a full set of shaders reachable by a DispatchRays() call,
-// with all configuration options resolved, such as local signatures and other state.
 void D3DGraphicsContext::CreateRaytracingPipelineStateObject()
 {
-	// Create 7 subobjects that combine into a RTPSO:
-	// Subobjects need to be associated with DXIL exports (i.e. shaders) either by way of default or explicit associations.
-	// Default association applies to every exported shader entrypoint that doesn't have any of the same type of subobject associated with it.
-	// This simple sample utilizes default shader association except for local root signature subobject
-	// which has an explicit association specified purely for demonstration purposes.
-	// 1 - DXIL library
-	// 1 - Triangle hit group
-	// 1 - Shader config
-	// 2 - Local root signature and association
-	// 1 - Global root signature
-	// 1 - Pipeline config
 	CD3DX12_STATE_OBJECT_DESC raytracingPipeline{ D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE };
 
 
 	// DXIL library
-	// This contains the shaders and their entrypoints for the state object.
-	// Since shaders are not considered a subobject, they need to be passed in via DXIL library subobjects.
 	const auto lib = raytracingPipeline.CreateSubobject<CD3DX12_DXIL_LIBRARY_SUBOBJECT>();
 
 	ComPtr<IDxcBlob> blob;
@@ -656,6 +665,7 @@ void D3DGraphicsContext::CreateRaytracingPipelineStateObject()
 	// In this sample, this could be omitted for convenience since the sample uses all shaders in the library. 
 	{
 		lib->DefineExport(c_RaygenShaderName);
+		lib->DefineExport(c_IntersectionShaderName);
 		lib->DefineExport(c_ClosestHitShaderName);
 		lib->DefineExport(c_MissShaderName);
 	}
@@ -664,15 +674,16 @@ void D3DGraphicsContext::CreateRaytracingPipelineStateObject()
 	// A hit group specifies closest hit, any hit and intersection shaders to be executed when a ray intersects the geometry's triangle/AABB.
 	// In this sample, we only use triangle geometry with a closest hit shader, so others are not set.
 	const auto hitGroup = raytracingPipeline.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
+	hitGroup->SetIntersectionShaderImport(c_IntersectionShaderName);
 	hitGroup->SetClosestHitShaderImport(c_ClosestHitShaderName);
 	hitGroup->SetHitGroupExport(c_HitGroupName);
-	hitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
+	hitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_PROCEDURAL_PRIMITIVE);
 
 	// Shader config
 	// Defines the maximum sizes in bytes for the ray payload and attribute structure.
 	const auto shaderConfig = raytracingPipeline.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
 	constexpr UINT payloadSize = 4 * sizeof(float);   // float4 color
-	constexpr UINT attributeSize = 2 * sizeof(float); // float2 barycentrics
+	constexpr UINT attributeSize = 3 * sizeof(float); // float3 position
 	shaderConfig->Config(payloadSize, attributeSize);
 
 	// Global root signature
@@ -712,48 +723,25 @@ void D3DGraphicsContext::CreateRaytracingOutputResource()
 // Build geometry used in the sample.
 void D3DGraphicsContext::BuildGeometry()
 {
-	Index indices[] =
+	constexpr AABB aabb =
 	{
-		0, 1, 2
+		-0.2f, -0.2f, 1.0f,
+		0.2f, 0.2f, 2.0f
 	};
 
-	float depthValue = 1.0;
-	float offset = 0.7f;
-	Vertex vertices[] =
-	{
-		// The sample raytraces in screen space coordinates.
-		// Since DirectX screen space coordinates are right handed (i.e. Y axis points down).
-		// Define the vertices in counter clockwise order ~ clockwise in left handed.
-		{ 0, -offset, depthValue },
-		{ -offset, offset, depthValue },
-		{ offset, offset, depthValue }
-	};
-
-	m_VertexBuffer = std::make_unique<D3DUploadBuffer<Vertex>>(m_Device.Get(), _countof(vertices), 0, L"Vertex Buffer");
-	m_VertexBuffer->CopyElements(0, _countof(vertices), vertices);
-
-	m_IndexBuffer = std::make_unique<D3DUploadBuffer<Index>>(m_Device.Get(), _countof(indices), 0, L"Index buffer");
-	m_IndexBuffer->CopyElements(0, _countof(indices), indices);
+	m_AABBBuffer = std::make_unique<D3DUploadBuffer<AABB>>(m_Device.Get(), 1, 0, L"Vertex Buffer");
+	m_AABBBuffer->CopyElement(0, aabb);
 }
 
 // Build acceleration structures needed for raytracing.
 void D3DGraphicsContext::BuildAccelerationStructures()
 {
 	D3D12_RAYTRACING_GEOMETRY_DESC geometryDesc = {};
-	geometryDesc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
-	geometryDesc.Triangles.IndexBuffer = m_IndexBuffer->GetAddressOfElement(0);
-	geometryDesc.Triangles.IndexCount = m_IndexBuffer->GetElementCount();
-	geometryDesc.Triangles.IndexFormat = DXGI_FORMAT_R16_UINT;
-	geometryDesc.Triangles.Transform3x4 = 0;
-	geometryDesc.Triangles.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT;
-	geometryDesc.Triangles.VertexCount = m_VertexBuffer->GetElementCount();
-	geometryDesc.Triangles.VertexBuffer.StartAddress = m_VertexBuffer->GetAddressOfElement(0);
-	geometryDesc.Triangles.VertexBuffer.StrideInBytes = m_VertexBuffer->GetElementSize();
-
-	// Mark the geometry as opaque. 
-	// PERFORMANCE TIP: mark geometry as opaque whenever applicable as it can enable important ray processing optimizations.
-	// Note: When rays encounter opaque geometry an any hit shader will not be executed whether it is present or not.
+	geometryDesc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS;
 	geometryDesc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
+	geometryDesc.AABBs.AABBCount = 1;
+	geometryDesc.AABBs.AABBs.StartAddress = m_AABBBuffer->GetAddressOfElement(0);
+	geometryDesc.AABBs.AABBs.StrideInBytes = m_AABBBuffer->GetElementSize();
 
 	// Get required sizes for an acceleration structure.
 	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
@@ -775,14 +763,6 @@ void D3DGraphicsContext::BuildAccelerationStructures()
 	ASSERT(bottomLevelPrebuildInfo.ResultDataMaxSizeInBytes > 0, "Failed to get required size for building acceleration structure");
 
 	D3DUAVBuffer scratchResource{ m_Device.Get(), max(topLevelPrebuildInfo.ScratchDataSizeInBytes, bottomLevelPrebuildInfo.ScratchDataSizeInBytes), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, L"ScratchResource" };
-
-	// Allocate resources for acceleration structures.
-	// Acceleration structures can only be placed in resources that are created in the default heap (or custom heap equivalent). 
-	// Default heap is OK since the application doesn’t need CPU read/write access to them. 
-	// The resources that will contain acceleration structures must be created in the state D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE, 
-	// and must have resource flag D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS. The ALLOW_UNORDERED_ACCESS requirement simply acknowledges both: 
-	//  - the system will be doing this type of access in its implementation of acceleration structure builds behind the scenes.
-	//  - from the app point of view, synchronization of writes/reads to acceleration structures is accomplished using UAV barriers.
 	{
 		D3D12_RESOURCE_STATES initialResourceState = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
 
@@ -878,30 +858,6 @@ void D3DGraphicsContext::BuildShaderTables()
 }
 
 
-
-void D3DGraphicsContext::CreateViewport()
-{
-	m_Viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_ClientWidth), static_cast<float>(m_ClientHeight));
-}
-
-void D3DGraphicsContext::CreateScissorRect()
-{
-	m_ScissorRect = CD3DX12_RECT(0, 0, static_cast<LONG>(m_ClientWidth), static_cast<LONG>(m_ClientHeight));
-}
-
-void D3DGraphicsContext::CreateFence()
-{
-	THROW_IF_FAIL(m_Device->CreateFence(0,
-		D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence)));
-	m_CurrentFrameResources->IncrementFence();
-
-	// Create an event handle to use for frame synchronization
-	m_FenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-	if (m_FenceEvent == nullptr)
-	{
-		THROW_IF_FAIL(HRESULT_FROM_WIN32(GetLastError()));
-	}
-}
 
 void D3DGraphicsContext::CreateProjectionMatrix()
 {

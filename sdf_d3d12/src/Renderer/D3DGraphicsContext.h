@@ -199,10 +199,8 @@ private:
 	ComPtr<ID3D12RootSignature> m_RaytracingGlobalRootSignature;
 
 	// Geometry
-	typedef UINT16 Index;
-	struct Vertex { float v1, v2, v3; };
-	std::unique_ptr<D3DUploadBuffer<Index>> m_IndexBuffer;
-	std::unique_ptr<D3DUploadBuffer<Vertex>> m_VertexBuffer;
+	typedef D3D12_RAYTRACING_AABB AABB;
+	std::unique_ptr<D3DUploadBuffer<AABB>> m_AABBBuffer;
 
 	// Acceleration structure
 	std::unique_ptr<D3DUAVBuffer> m_BottomLevelAccelerationStructure;
@@ -215,6 +213,7 @@ private:
 	// Shader tables
 	static const wchar_t* c_HitGroupName;
 	static const wchar_t* c_RaygenShaderName;
+	static const wchar_t* c_IntersectionShaderName;
 	static const wchar_t* c_ClosestHitShaderName;
 	static const wchar_t* c_MissShaderName;
 	std::unique_ptr<D3DShaderTable> m_MissShaderTable;
