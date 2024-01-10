@@ -33,7 +33,7 @@ private:
 class D3DShaderTable
 {
 public:
-	D3DShaderTable(ID3D12Device* device, UINT capacity, UINT recordSize);
+	D3DShaderTable(ID3D12Device* device, UINT capacity, UINT recordSize, const wchar_t* name);
 
 	D3D12_GPU_VIRTUAL_ADDRESS GetAddress() const { return m_Resource->GetGPUVirtualAddress(); }
 	UINT64 GetSize() const { return static_cast<UINT64>(m_NumRecords) * m_RecordSize; }

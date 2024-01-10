@@ -15,7 +15,7 @@ template<typename T>
 class D3DUploadBuffer
 {
 public:
-	D3DUploadBuffer(ID3D12Device* device, UINT elementCount, UINT alignment = 0)
+	D3DUploadBuffer(ID3D12Device* device, UINT elementCount, UINT alignment, const wchar_t* name)
 		: m_ElementCount(elementCount)
 		, m_Alignment(alignment)
 	{
@@ -39,6 +39,8 @@ public:
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
 			IID_PPV_ARGS(&m_UploadBuffer)));
+		if (name)
+			m_UploadBuffer->SetName(name);
 
 		// Map buffer
 		THROW_IF_FAIL(m_UploadBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_MappedData)));

@@ -30,7 +30,7 @@ void D3DShaderRecord::CopyTo(void* dest) const
 }
 
 
-D3DShaderTable::D3DShaderTable(ID3D12Device* device, UINT capacity, UINT recordSize)
+D3DShaderTable::D3DShaderTable(ID3D12Device* device, UINT capacity, UINT recordSize, const wchar_t* name)
 	: m_Capacity(capacity)
 {
 	// make sure record size is aligned
@@ -49,9 +49,12 @@ D3DShaderTable::D3DShaderTable(ID3D12Device* device, UINT capacity, UINT recordS
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
 		IID_PPV_ARGS(&m_Resource)));
+	if (name)
+		m_Resource->SetName(name);
 
 	// map resource
-	THROW_IF_FAIL(m_Resource->Map(0, nullptr, reinterpret_cast<void**>(&m_MappedByte)));
+	const CD3DX12_RANGE readRange(0, 0);
+	THROW_IF_FAIL(m_Resource->Map(0, &readRange, reinterpret_cast<void**>(&m_MappedByte)));
 }
 
 
@@ -62,6 +65,7 @@ bool D3DShaderTable::AddRecord(const D3DShaderRecord& record)
 
 	record.CopyTo(m_MappedByte);
 	m_MappedByte += m_RecordSize;
+	++m_NumRecords;
 
 	return true;
 }

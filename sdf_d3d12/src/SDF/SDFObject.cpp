@@ -24,6 +24,7 @@ SDFObject::SDFObject(UINT width, UINT height, UINT depth)
 		nullptr,
 		IID_PPV_ARGS(&m_Resource)
 	));
+	m_Resource->SetName(L"SDF Object Volume Resource");
 
 	// Create UAV and SRV
 	m_ResourceViews = g_D3DGraphicsContext->GetSRVHeap()->Allocate(2);

@@ -51,7 +51,7 @@ SDFFactory::SDFFactory()
 	m_FenceValue = 1;
 
 	// Create constant buffer to hold bake data
-	m_BakeDataBuffer = std::make_unique<D3DUploadBuffer<BakeDataBufferType>>(g_D3DGraphicsContext->GetDevice(), 1, true);
+	m_BakeDataBuffer = std::make_unique<D3DUploadBuffer<BakeDataBufferType>>(g_D3DGraphicsContext->GetDevice(), 1, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT, L"SDF Factory Bake Data Buffer");
 
 	// Allocate CBV
 	m_BakeDataCBV = g_D3DGraphicsContext->GetSRVHeap()->Allocate(1);
@@ -95,6 +95,7 @@ void SDFFactory::BakeSDFSynchronous(const SDFObject* object)
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
 			IID_PPV_ARGS(&primitiveBuffer)));
+		primitiveBuffer->SetName(L"SDF Factory Primitive Buffer");
 
 		// Create an SRV for this resource
 		// Allocate a descriptor

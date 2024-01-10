@@ -12,8 +12,8 @@ D3DFrameResources::D3DFrameResources()
 	const UINT numObjects = D3DGraphicsContext::GetMaxObjectCount();
 
 	// Create per-pass and per-object constant buffer
-	m_PassCB = std::make_unique<D3DUploadBuffer<PassCBType>>(g_D3DGraphicsContext->GetDevice(), 1, 256);	
-	m_ObjectCB = std::make_unique<D3DUploadBuffer<ObjectCBType>>(g_D3DGraphicsContext->GetDevice(), numObjects, 256);
+	m_PassCB = std::make_unique<D3DUploadBuffer<PassCBType>>(g_D3DGraphicsContext->GetDevice(), 1, 256, L"Pass Constant Buffer");	
+	m_ObjectCB = std::make_unique<D3DUploadBuffer<ObjectCBType>>(g_D3DGraphicsContext->GetDevice(), numObjects, 256, L"Object Constant Buffer");
 
 	// Create constant buffer views
 	// Allocate enough descriptors from the heap
