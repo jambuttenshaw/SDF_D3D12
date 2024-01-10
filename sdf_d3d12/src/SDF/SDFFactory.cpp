@@ -129,7 +129,7 @@ void SDFFactory::BakeSDFSynchronous(const SDFObject* object)
 	{
 		BakeDataBufferType bakeDataBuffer;
 		bakeDataBuffer.PrimitiveCount = static_cast<UINT>(primitiveCount);
-		m_BakeDataBuffer->CopyData(0, bakeDataBuffer);
+		m_BakeDataBuffer->CopyElement(0, bakeDataBuffer);
 	}
 
 	// Step 3: Build command list to execute compute shader

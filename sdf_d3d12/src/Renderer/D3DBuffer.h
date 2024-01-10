@@ -64,11 +64,17 @@ public:
 		return m_UploadBuffer->GetGPUVirtualAddress() + elementIndex * m_ElementStride;
 	}
 	inline UINT GetElementSize() const { return m_ElementStride; }
+	inline UINT GetElementCount() const { return m_ElementCount; }
 
-	void CopyData(UINT elementIndex, const T& data)
+	void CopyElement(UINT elementIndex, const T& data)
 	{
 		ASSERT(elementIndex < m_ElementCount, "Out of bounds access");
 		memcpy(&m_MappedData[elementIndex * m_ElementStride], &data, sizeof(T));
+	}
+	void CopyElements(UINT start, UINT count, const T* const data)
+	{
+		ASSERT(start + (count - 1) < m_ElementCount, "Out of bounds access");
+		memcpy(&m_MappedData[start * m_ElementStride], data, count * sizeof(T));
 	}
 
 private:
@@ -78,4 +84,31 @@ private:
 	UINT m_ElementStride = 0;
 	UINT m_ElementCount = 0;
 	UINT m_Alignment = 0;
+};
+
+
+class D3DUAVBuffer
+{
+public:
+	D3DUAVBuffer(ID3D12Device* device, UINT64 bufferSize, D3D12_RESOURCE_STATES initialResourceState, const wchar_t* name = nullptr)
+	{
+		// Create buffer
+		const CD3DX12_HEAP_PROPERTIES uploadHeap(D3D12_HEAP_TYPE_DEFAULT);
+		const auto bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+		THROW_IF_FAIL(device->CreateCommittedResource(
+			&uploadHeap,
+			D3D12_HEAP_FLAG_NONE,
+			&bufferDesc,
+			initialResourceState,
+			nullptr,
+			IID_PPV_ARGS(&m_UAVBuffer)));
+		if (name)
+			m_UAVBuffer->SetName(name);
+	}
+
+	inline ID3D12Resource* GetResource() const { return m_UAVBuffer.Get(); }
+	inline D3D12_GPU_VIRTUAL_ADDRESS GetAddress() const { return m_UAVBuffer->GetGPUVirtualAddress(); }
+
+private:
+	ComPtr<ID3D12Resource> m_UAVBuffer;
 };

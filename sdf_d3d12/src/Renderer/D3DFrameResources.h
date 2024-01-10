@@ -30,8 +30,8 @@ public:
 	inline void SetFence(UINT64 fence) { m_FenceValue = fence; }
 
 	// Upload new constant buffer data
-	inline void CopyPassData(const PassCBType& passData) const { m_PassCB->CopyData(0, passData); }
-	inline void CopyObjectData(UINT objectIndex, const ObjectCBType& objectData) const { m_ObjectCB->CopyData(objectIndex, objectData); }
+	inline void CopyPassData(const PassCBType& passData) const { m_PassCB->CopyElement(0, passData); }
+	inline void CopyObjectData(UINT objectIndex, const ObjectCBType& objectData) const { m_ObjectCB->CopyElement(objectIndex, objectData); }
 
 	void DeferRelease(const ComPtr<IUnknown>& resource);
 	void ProcessDeferrals();
