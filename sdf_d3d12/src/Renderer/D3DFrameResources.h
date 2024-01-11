@@ -22,6 +22,8 @@ public:
 	inline D3D12_GPU_DESCRIPTOR_HANDLE GetAllObjectsCBV() const { return m_CBVs.GetGPUHandle(m_AllObjectsCBV); }
 	inline D3D12_GPU_DESCRIPTOR_HANDLE GetObjectCBV(UINT objectIndex) const { return m_CBVs.GetGPUHandle(objectIndex); }
 
+	inline D3D12_GPU_VIRTUAL_ADDRESS GetPassCBAddress() const { return m_PassCB->GetAddressOfElement(0); }
+
 	// Reset alloc
 	inline void ResetAllocator() const { THROW_IF_FAIL(m_CommandAllocator->Reset()); }
 

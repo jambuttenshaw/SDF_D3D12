@@ -27,6 +27,7 @@ namespace GlobalRootSignatureParams
 	{
 		OutputViewSlot = 0,
 		AccelerationStructureSlot,
+		PassBufferSlot,
 		Count
 	};
 }

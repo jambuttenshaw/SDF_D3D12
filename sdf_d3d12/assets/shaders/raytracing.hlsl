@@ -1,20 +1,35 @@
-//*********************************************************
-//
-// Copyright (c) Microsoft. All rights reserved.
-// This code is licensed under the MIT License (MIT).
-// THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF
-// ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY
-// IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR
-// PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
-//
-//*********************************************************
-
 #ifndef RAYTRACING_HLSL
 #define RAYTRACING_HLSL
 
 
+struct PassConstantBuffer
+{
+	float4x4 gView;
+	float4x4 gInvView;
+	float4x4 gProj;
+	float4x4 gInvProj;
+	float4x4 gViewProj;
+	float4x4 gInvViewProj;
+	
+	float3 gWorldEyePos;
+	
+	uint gObjectCount;
+	
+	float2 gRTSize;
+	float2 gInvRTSize;
+	
+	float gNearZ;
+	float gFarZ;
+	
+	float gTotalTime;
+	float gDeltaTime;
+};
+
+
 RaytracingAccelerationStructure Scene : register(t0, space0);
 RWTexture2D<float4> RenderTarget : register(u0);
+
+ConstantBuffer<PassConstantBuffer> g_passCB : register(b0);
 
 struct MyAttributes
 {
@@ -25,18 +40,31 @@ struct RayPayload
 	float4 color;
 };
 
+// Generate a ray in world space for a camera pixel corresponding to an index from the dispatched 2D grid.
+inline void GenerateCameraRay(uint2 index, out float3 origin, out float3 direction)
+{
+	float2 xy = index + 0.5f; // center in the middle of the pixel.
+	float2 screenPos = xy / DispatchRaysDimensions().xy * 2.0 - 1.0;
+
+    // Invert Y for DirectX-style coordinates.
+	screenPos.y = -screenPos.y;
+
+    // Unproject the pixel coordinate into a ray.
+	float4 world = mul(float4(screenPos, 0, 1), g_passCB.gInvViewProj);
+
+	world.xyz /= world.w;
+	origin = g_passCB.gWorldEyePos;
+	direction = normalize(world.xyz - origin);
+}
+
 [shader("raygeneration")]
 void MyRaygenShader()
 {
-	float2 lerpValues = (float2) DispatchRaysIndex() / (float2) DispatchRaysDimensions();
-
-    // Orthographic projection since we're raytracing in screen space.
-	float3 rayDir = float3(0, 0, 1);
-	float3 origin = float3(
-        lerp(-1, 1, lerpValues.x),
-        lerp(-1, 1, lerpValues.y),
-        0.0f);
-
+	float3 rayDir;
+	float3 origin;
+    
+    // Generate a ray for a camera pixel corresponding to an index from the dispatched 2D grid.
+	GenerateCameraRay(DispatchRaysIndex().xy, origin, rayDir);
 
     // Trace the ray.
     // Set the ray's extents.
@@ -58,7 +86,7 @@ void MyRaygenShader()
 void MyIntersectionShader()
 {
 	MyAttributes attr;
-	attr.position = float3(0, 0, 0);
+	attr.position = ObjectRayDirection().xyz;
 
 	ReportHit(RayTCurrent(), 0, attr);
 }
@@ -66,13 +94,13 @@ void MyIntersectionShader()
 [shader("closesthit")]
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 {
-	payload.color = float4(1, 0, 0, 1);
+	payload.color = float4(attr.position, 1);
 }
 
 [shader("miss")]
 void MyMissShader(inout RayPayload payload)
 {
-	payload.color = float4(0, 0, 1, 1);
+	payload.color = float4(0, 0, 0.2f, 1);
 }
 
 #endif // RAYTRACING_HLSL

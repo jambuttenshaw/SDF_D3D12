@@ -206,6 +206,7 @@ void D3DGraphicsContext::DrawRaytracing() const
 	// Bind the heaps, acceleration structure and dispatch rays.    
 	m_CommandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, m_RaytracingOutputDescriptor.GetGPUHandle(0));
 	m_CommandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::AccelerationStructureSlot, m_TopLevelAccelerationStructure->GetAddress());
+	m_CommandList->SetComputeRootConstantBufferView(GlobalRootSignatureParams::PassBufferSlot, m_CurrentFrameResources->GetPassCBAddress());
 
 	m_DXRCommandList->SetPipelineState1(m_DXRStateObject.Get());
 
@@ -632,9 +633,12 @@ void D3DGraphicsContext::CreateRootSignatures()
 	{
 		CD3DX12_DESCRIPTOR_RANGE UAVDescriptor;
 		UAVDescriptor.Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
+
 		CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParams::Count];
 		rootParameters[GlobalRootSignatureParams::OutputViewSlot].InitAsDescriptorTable(1, &UAVDescriptor);
 		rootParameters[GlobalRootSignatureParams::AccelerationStructureSlot].InitAsShaderResourceView(0);
+		rootParameters[GlobalRootSignatureParams::PassBufferSlot].InitAsConstantBufferView(0);
+
 		CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters);
 		SerializeAndCreateRaytracingRootSignature(globalRootSignatureDesc, &m_RaytracingGlobalRootSignature);
 	}
@@ -725,8 +729,8 @@ void D3DGraphicsContext::BuildGeometry()
 {
 	constexpr AABB aabb =
 	{
-		-0.2f, -0.2f, 1.0f,
-		0.2f, 0.2f, 2.0f
+		-0.5f, -0.5f, 1.0f,
+		0.5f, 0.5f, 2.0f
 	};
 
 	m_AABBBuffer = std::make_unique<D3DUploadBuffer<AABB>>(m_Device.Get(), 1, 0, L"Vertex Buffer");
