@@ -56,11 +56,4 @@ private:
 
 	std::unique_ptr<SDFFactory> m_SDFFactory;
 	std::unique_ptr<SDFObject> m_SDFObject;
-
-	RayMarchPropertiesType m_RayMarchProps {
-		0.001f,
-		0.023f,
-		0.0025f,
-		0.003f
-	};
 };

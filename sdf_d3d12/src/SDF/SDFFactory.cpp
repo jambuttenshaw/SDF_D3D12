@@ -5,6 +5,47 @@
 #include "SDFObject.h"
 
 
+
+struct SDFPrimitiveBufferType
+{
+	// Inverse world matrix is required to position SDF primitives
+	XMMATRIX InvWorldMat;
+	// Only uniform scale can be applied to SDFs
+	float Scale;
+
+	// SDF primitive data
+	UINT Shape;
+	UINT Operation;
+	float BlendingFactor;
+
+	static_assert(sizeof(SDFShapeProperties) == sizeof(XMFLOAT4));
+	XMFLOAT4 ShapeProperties;
+
+	XMFLOAT4 Color;
+
+
+	// Constructors
+
+	SDFPrimitiveBufferType() = default;
+
+	// Construct from a SDFPrimitive
+	SDFPrimitiveBufferType(const SDFPrimitive& primitive)
+	{
+		InvWorldMat = XMMatrixTranspose(XMMatrixInverse(nullptr, primitive.PrimitiveTransform.GetWorldMatrix()));
+		Scale = primitive.PrimitiveTransform.GetScale();
+
+		Shape = static_cast<UINT>(primitive.Shape);
+		Operation = static_cast<UINT>(primitive.Operation);
+		BlendingFactor = primitive.BlendingFactor;
+
+		memcpy(&ShapeProperties, &primitive.ShapeProperties, sizeof(XMFLOAT4));
+
+		Color = primitive.Color;
+	}
+};
+
+
+
 SDFFactory::SDFFactory()
 {
 	const auto device = g_D3DGraphicsContext->GetDevice();

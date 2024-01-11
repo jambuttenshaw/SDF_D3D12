@@ -8,7 +8,6 @@
 #include "D3DShaderCompiler.h"
 #include "D3DBuffer.h"
 
-#include "Framework/RenderItem.h"
 #include "Framework/GameTimer.h"
 #include "Framework/Camera.h"
 
@@ -92,8 +91,6 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
 	THROW_IF_FAIL(m_CommandList->Close());
 	ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
 	m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
-
-	m_RenderItems.reserve(s_MaxObjectCount);
 
 	// Wait for any GPU work executed on startup to finish before continuing
 	WaitForGPU();
@@ -249,33 +246,7 @@ void D3DGraphicsContext::DrawRaytracing() const
 }
 
 
-RenderItem* D3DGraphicsContext::CreateRenderItem()
-{
-	return &m_RenderItems.emplace_back();
-}
-
-
-void D3DGraphicsContext::UpdateObjectCBs() const
-{
-	for (auto renderItem : m_RenderItems)
-	{
-		if (renderItem.IsDirty())
-		{
-			// Copy per-object data into the frame CB
-			ObjectCBType objectCB;
-			// Inverse world matrix is required to position SDF primitives
-			objectCB.InvWorldMat = XMMatrixTranspose(XMMatrixInverse(nullptr, renderItem.GetTransform().GetWorldMatrix()));
-			objectCB.Scale = renderItem.GetTransform().GetScale();
-			objectCB.BoundingBoxExtents = renderItem.GetBoundsExtents();
-
-			m_CurrentFrameResources->CopyObjectData(renderItem.GetObjectIndex(), objectCB);
-
-			renderItem.DecrementDirty();
-		}
-	}
-}
-
-void D3DGraphicsContext::UpdatePassCB(GameTimer* timer, Camera* camera, const RayMarchPropertiesType& rayMarchProperties)
+void D3DGraphicsContext::UpdatePassCB(GameTimer* timer, Camera* camera)
 {
 	ASSERT(timer, "Must use a valid timer!");
 	ASSERT(camera, "Must use a valid camera!");
@@ -297,8 +268,6 @@ void D3DGraphicsContext::UpdatePassCB(GameTimer* timer, Camera* camera, const Ra
 
 	m_MainPassCB.WorldEyePos = camera->GetPosition();
 
-	m_MainPassCB.ObjectCount = static_cast<UINT>(m_RenderItems.size());
-
 	m_MainPassCB.RTSize = { static_cast<float>(m_ClientWidth), static_cast<float>(m_ClientHeight) };
 	m_MainPassCB.InvRTSize = { 1.0f / m_MainPassCB.RTSize.x, 1.0f / m_MainPassCB.RTSize.y };
 
@@ -307,8 +276,6 @@ void D3DGraphicsContext::UpdatePassCB(GameTimer* timer, Camera* camera, const Ra
 
 	m_MainPassCB.TotalTime = timer->GetTimeSinceReset();
 	m_MainPassCB.DeltaTime = timer->GetDeltaTime();
-
-	m_MainPassCB.RayMarchProperties = rayMarchProperties;
 
 	m_CurrentFrameResources->CopyPassData(m_MainPassCB);
 }
@@ -494,7 +461,7 @@ void D3DGraphicsContext::CreateDescriptorHeaps()
 	m_DSVHeap = std::make_unique<D3DDescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, true);
 
 	// SRV/CBV/UAV heap
-	constexpr UINT CBVCount = s_FrameCount * (s_MaxObjectCount + 2) + 1;	// frame count * (object count + 2) + sdf factory
+	constexpr UINT CBVCount = s_FrameCount + 1;								// frame count + sdf factory
 	constexpr UINT SRVCount = 4;											// ImGui frame resource + SRV for scene texture + application resources
 	constexpr UINT UAVCount = 2;											// UAV for scene texture + application resources
 	m_SRVHeap = std::make_unique<D3DDescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, CBVCount + SRVCount + UAVCount, false);

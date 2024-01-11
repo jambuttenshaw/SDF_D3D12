@@ -161,7 +161,6 @@
     <ClCompile Include="src\Renderer\D3DBuffer.cpp" />
     <ClCompile Include="src\Renderer\D3DFrameResources.cpp" />
     <ClCompile Include="src\Renderer\D3DGraphicsContext.cpp" />
-    <ClCompile Include="src\Framework\RenderItem.cpp" />
     <ClCompile Include="src\Renderer\D3DPipeline.cpp" />
     <ClCompile Include="src\Renderer\D3DShaderCompiler.cpp" />
     <ClCompile Include="src\Renderer\Memory\D3DMemoryAllocator.cpp" />
@@ -207,7 +206,6 @@
     <ClInclude Include="src\Framework\Transform.h" />
     <ClInclude Include="src\Input\InputManager.h" />
     <ClInclude Include="src\Input\KeyCodes.h" />
-    <ClInclude Include="src\Renderer\D3DCBTypes.h" />
     <ClInclude Include="src\Framework\Log.h" />
     <ClInclude Include="src\Application\BaseApplication.h" />
     <ClInclude Include="src\Application\D3DApplication.h" />
@@ -219,8 +217,9 @@
     <ClInclude Include="src\Renderer\D3DPipeline.h" />
     <ClInclude Include="src\Renderer\D3DShaderCompiler.h" />
     <ClInclude Include="src\Renderer\D3DShaderTable.h" />
+    <ClInclude Include="src\Renderer\Hlsl\HlslCompat.h" />
+    <ClInclude Include="src\Renderer\Hlsl\RaytracingHlslCompat.h" />
     <ClInclude Include="src\Renderer\Memory\D3DMemoryAllocator.h" />
-    <ClInclude Include="src\Framework\RenderItem.h" />
     <ClInclude Include="src\SDF\SDFFactory.h" />
     <ClInclude Include="src\SDF\SDFObject.h" />
     <ClInclude Include="src\SDF\SDFTypes.h" />

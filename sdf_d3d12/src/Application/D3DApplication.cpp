@@ -5,9 +5,6 @@
 
 #include "backends/imgui_impl_win32.h"
 #include "backends/imgui_impl_dx12.h"
-#include "Framework/RenderItem.h"
-
-#include "SDF/SDFTypes.h"
 
 
 D3DApplication::D3DApplication(UINT width, UINT height, const std::wstring& name)
@@ -175,24 +172,6 @@ void D3DApplication::OnUpdate()
 		m_CameraController.Gui();
 
 	}
-	/*
-	ImGui::Separator();
-	{
-		ImGui::Text("Ray March Properties");
-		ImGui::SliderFloat("Sphere Trace Epsilon", &m_RayMarchProps.SphereTraceEpsilon, 0.0001f, 0.1f, "%.5f");
-		ImGui::SliderFloat("Ray March Epsilon", &m_RayMarchProps.RayMarchEpsilon, 0.001f, 0.1f, "%.5f");
-		ImGui::SliderFloat("Ray March Step Size", &m_RayMarchProps.RayMarchStepSize, 0.0001f, 0.1f, "%.5f");
-		ImGui::SliderFloat("Normal Epsilon", &m_RayMarchProps.NormalEpsilon, 0.0001f, 0.1f, "%.5f");
-	}
-	ImGui::Separator();
-	{
-		ImGui::Text("Bounding Box");
-
-		m_SDFObject->GetRenderItem()->DrawGui();
-
-	}
-	ImGui::Separator();
-	*/
 
 	ImGui::End();
 
@@ -201,9 +180,8 @@ void D3DApplication::OnUpdate()
 
 void D3DApplication::OnRender()
 {
-	// Update constant buffers
-	m_GraphicsContext->UpdateObjectCBs();
-	m_GraphicsContext->UpdatePassCB(&m_Timer, &m_Camera, m_RayMarchProps);
+	// Update constant buffer
+	m_GraphicsContext->UpdatePassCB(&m_Timer, &m_Camera);
 
 	// Begin drawing
 	m_GraphicsContext->StartDraw();

@@ -1,11 +1,11 @@
 #pragma once
 
 #include "Memory/D3DMemoryAllocator.h"
-#include "D3DCBTypes.h"
 
 #include "D3DBuffer.h"
 #include "D3DPipeline.h"
 #include "D3DShaderTable.h"
+#include "Hlsl/RaytracingHlslCompat.h"
 
 
 using Microsoft::WRL::ComPtr;
@@ -53,14 +53,8 @@ public:
 
 	void DrawRaytracing() const;
 
-	// Render Items
-
-	inline UINT GetNextObjectIndex() { ASSERT(m_NextRenderItemIndex < s_MaxObjectCount, "Too many render items!"); return m_NextRenderItemIndex++; }
-	RenderItem* CreateRenderItem();
-
 	// Updating constant buffers
-	void UpdateObjectCBs() const;
-	void UpdatePassCB(GameTimer* timer, Camera* camera, const RayMarchPropertiesType& rayMarchProperties);
+	void UpdatePassCB(GameTimer* timer, Camera* camera);
 
 	void Resize(UINT width, UINT height);
 
@@ -77,8 +71,6 @@ public:
 	inline DXGI_FORMAT GetDepthStencilFormat() const { return m_DepthStencilFormat; }
 	inline UINT GetCurrentBackBuffer() const { return m_FrameIndex; }
 
-
-	inline static UINT GetMaxObjectCount() { return s_MaxObjectCount; }
 
 	// Descriptor heaps
 	inline D3DDescriptorHeap* GetSRVHeap() const { return m_SRVHeap.get(); }
@@ -133,8 +125,6 @@ private:
 
 private:
 	static constexpr UINT s_FrameCount = 2;
-	static constexpr UINT s_MaxObjectCount = 16;
-	static constexpr UINT s_NumShaderThreads = 8;
 
 	// Context properties
 	HWND m_WindowHandle;
@@ -173,7 +163,7 @@ private:
 	D3DFrameResources* m_CurrentFrameResources = nullptr;
 
 	// Pass CB Data
-	PassCBType m_MainPassCB;
+	PassConstantBuffer m_MainPassCB;
 
 	// Descriptor heaps
 	std::unique_ptr<D3DDescriptorHeap> m_RTVHeap;
@@ -222,15 +212,9 @@ private:
 	std::unique_ptr<D3DShaderTable> m_RayGenShaderTable;
 
 
-	
-
 	// Pipeline assets
 	std::unique_ptr<D3DGraphicsPipeline> m_GraphicsPipeline;
 
 	// ImGui Resources
 	D3DDescriptorAllocation m_ImGuiResources;
-
-	// Render Items
-	UINT m_NextRenderItemIndex = 0;
-	std::vector<RenderItem> m_RenderItems;
 };

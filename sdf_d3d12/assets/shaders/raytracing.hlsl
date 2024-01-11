@@ -1,29 +1,8 @@
 #ifndef RAYTRACING_HLSL
 #define RAYTRACING_HLSL
 
-
-struct PassConstantBuffer
-{
-	float4x4 gView;
-	float4x4 gInvView;
-	float4x4 gProj;
-	float4x4 gInvProj;
-	float4x4 gViewProj;
-	float4x4 gInvViewProj;
-	
-	float3 gWorldEyePos;
-	
-	uint gObjectCount;
-	
-	float2 gRTSize;
-	float2 gInvRTSize;
-	
-	float gNearZ;
-	float gFarZ;
-	
-	float gTotalTime;
-	float gDeltaTime;
-};
+#define HLSL
+#include "../../src/Renderer/Hlsl/RaytracingHlslCompat.h"
 
 
 RaytracingAccelerationStructure Scene : register(t0, space0);
@@ -31,14 +10,7 @@ RWTexture2D<float4> RenderTarget : register(u0);
 
 ConstantBuffer<PassConstantBuffer> g_passCB : register(b0);
 
-struct MyAttributes
-{
-	float3 position;
-};
-struct RayPayload
-{
-	float4 color;
-};
+
 
 // Generate a ray in world space for a camera pixel corresponding to an index from the dispatched 2D grid.
 inline void GenerateCameraRay(uint2 index, out float3 origin, out float3 direction)
@@ -50,10 +22,10 @@ inline void GenerateCameraRay(uint2 index, out float3 origin, out float3 directi
 	screenPos.y = -screenPos.y;
 
     // Unproject the pixel coordinate into a ray.
-	float4 world = mul(float4(screenPos, 0, 1), g_passCB.gInvViewProj);
+	float4 world = mul(float4(screenPos, 0, 1), g_passCB.InvViewProj);
 
 	world.xyz /= world.w;
-	origin = g_passCB.gWorldEyePos;
+	origin = g_passCB.WorldEyePos;
 	direction = normalize(world.xyz - origin);
 }
 

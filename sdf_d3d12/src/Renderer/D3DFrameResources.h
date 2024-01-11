@@ -5,7 +5,7 @@ using Microsoft::WRL::ComPtr;
 #include "Memory/D3DMemoryAllocator.h"
 #include "D3DBuffer.h"
 
-#include "D3DCBTypes.h"
+#include "Hlsl/RaytracingHlslCompat.h"
 
 
 class D3DFrameResources
@@ -19,9 +19,6 @@ public:
 	inline UINT64 GetFenceValue() const { return m_FenceValue; }
 
 	inline D3D12_GPU_DESCRIPTOR_HANDLE GetPassCBV() const { return m_CBVs.GetGPUHandle(m_PassCBV); }
-	inline D3D12_GPU_DESCRIPTOR_HANDLE GetAllObjectsCBV() const { return m_CBVs.GetGPUHandle(m_AllObjectsCBV); }
-	inline D3D12_GPU_DESCRIPTOR_HANDLE GetObjectCBV(UINT objectIndex) const { return m_CBVs.GetGPUHandle(objectIndex); }
-
 	inline D3D12_GPU_VIRTUAL_ADDRESS GetPassCBAddress() const { return m_PassCB->GetAddressOfElement(0); }
 
 	// Reset alloc
@@ -32,8 +29,7 @@ public:
 	inline void SetFence(UINT64 fence) { m_FenceValue = fence; }
 
 	// Upload new constant buffer data
-	inline void CopyPassData(const PassCBType& passData) const { m_PassCB->CopyElement(0, passData); }
-	inline void CopyObjectData(UINT objectIndex, const ObjectCBType& objectData) const { m_ObjectCB->CopyElement(objectIndex, objectData); }
+	inline void CopyPassData(const PassConstantBuffer& passData) const { m_PassCB->CopyElement(0, passData); }
 
 	void DeferRelease(const ComPtr<IUnknown>& resource);
 	void ProcessDeferrals();
@@ -43,12 +39,10 @@ private:
 	UINT64 m_FenceValue = 0;
 
 	// Constant buffers
-	std::unique_ptr<D3DUploadBuffer<PassCBType>> m_PassCB;		// All data that is constant per pass
-	std::unique_ptr<D3DUploadBuffer<ObjectCBType>> m_ObjectCB;	// All data that is constant per object
+	std::unique_ptr<D3DUploadBuffer<PassConstantBuffer>> m_PassCB;		// All data that is constant per pass
 
 	// Constant buffer views
 	D3DDescriptorAllocation m_CBVs;
-	UINT m_AllObjectsCBV = -1;
 	UINT m_PassCBV = -1;
 
 	// Resources to be released when the GPU is finished with them
