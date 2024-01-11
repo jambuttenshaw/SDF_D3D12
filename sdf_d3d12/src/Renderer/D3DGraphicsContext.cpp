@@ -293,9 +293,11 @@ void D3DGraphicsContext::UpdateAABBPrimitiveAttributes()
 
 		const XMVECTOR translation =
 			0.5f * (XMLoadFloat3(reinterpret_cast<XMFLOAT3*>(&aabb.MinX))
-				+ XMLoadFloat3(reinterpret_cast<XMFLOAT3*>(&aabb.MaxX)));
+				  + XMLoadFloat3(reinterpret_cast<XMFLOAT3*>(&aabb.MaxX)));
 		const XMMATRIX transform = XMMatrixTranslationFromVector(translation);
 
+		instanceData.AABBMin = { aabb.MinX, aabb.MinY, aabb.MinZ, 1.0f };
+		instanceData.AABBMax = { aabb.MaxX, aabb.MaxY, aabb.MaxZ, 1.0f };
 		instanceData.LocalSpaceToBottomLevelAS = XMMatrixTranspose(transform);
 		instanceData.BottomLevelASToLocalSpace = XMMatrixTranspose(XMMatrixInverse(nullptr, transform));
 

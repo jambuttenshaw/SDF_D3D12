@@ -42,6 +42,28 @@ Ray GetRayInAABBPrimitiveLocalSpace()
 	return ray;
 }
 
+bool RayAABBIntersectionTest(Ray ray, float3 aabb[2], out float tmin, out float tmax)
+{
+	float3 tmin3, tmax3;
+	int3 sign3 = ray.direction > 0;
+
+	float3 invRayDirection = 1 / ray.direction;
+
+	tmin3.x = (aabb[1 - sign3.x].x - ray.origin.x) * invRayDirection.x;
+	tmax3.x = (aabb[sign3.x].x - ray.origin.x) * invRayDirection.x;
+
+	tmin3.y = (aabb[1 - sign3.y].y - ray.origin.y) * invRayDirection.y;
+	tmax3.y = (aabb[sign3.y].y - ray.origin.y) * invRayDirection.y;
+    
+	tmin3.z = (aabb[1 - sign3.z].z - ray.origin.z) * invRayDirection.z;
+	tmax3.z = (aabb[sign3.z].z - ray.origin.z) * invRayDirection.z;
+    
+	tmin = max(max(tmin3.x, tmin3.y), tmin3.z);
+	tmax = min(min(tmax3.x, tmax3.y), tmax3.z);
+    
+	return tmax > tmin && tmax >= RayTMin() && tmin <= RayTCurrent();
+}
+
 float sdSphere(float3 p, float r)
 {
 	return length(p) - r;
@@ -78,31 +100,43 @@ void MyIntersectionShader()
 {
 	const Ray ray = GetRayInAABBPrimitiveLocalSpace();
 
-	const float threshold = 0.0001;
-	float t = RayTMin();
-	const UINT MaxSteps = 512;
-
-    // Do sphere tracing through the AABB.
-	UINT i = 0;
-	while (i++ < MaxSteps && t <= RayTCurrent())
+	float3 aabb[2];
+	float tMin, tMax;
 	{
-		float3 position = ray.origin + t * ray.direction;
-		float distance = sdSphere(position, 0.5f);
+		const PrimitiveInstancePerFrameBuffer attr = g_instanceBuffer[InstanceID()];
+		aabb[0] = mul(g_instanceBuffer[InstanceID()].AABBMin, attr.BottomLevelASToLocalSpace).xyz;
+		aabb[1] = mul(g_instanceBuffer[InstanceID()].AABBMax, attr.BottomLevelASToLocalSpace).xyz;
+	}
 
-        // Has the ray intersected the primitive? 
-		if (distance <= threshold * t)
+	// Get the tmin and tmax of the intersection between the ray and this aabb
+	if (RayAABBIntersectionTest(ray, aabb, tMin, tMax))
+	{
+		const float threshold = 0.0001;
+		float t = tMin;
+		const UINT MaxSteps = 512;
+
+		// Do sphere tracing through the AABB.
+		UINT i = 0;
+		while (i++ < MaxSteps && t <= tMax)
 		{
-			MyAttributes attr;
-			attr.position = position;
-			ReportHit(t, 0, attr);
-			return;
-		}
+			const float3 position = ray.origin + t * ray.direction;
+			const float distance = sdSphere(position, 0.5f);
 
-        // Since distance is the minimum distance to the primitive, 
-        // we can safely jump by that amount without intersecting the primitive.
-        // We allow for scaling of steps per primitive type due to any pre-applied 
-        // transformations that don't preserve true distances.
-		t += distance;
+			// Has the ray intersected the primitive? 
+			if (distance <= threshold * t)
+			{
+				MyAttributes attr;
+				attr.position = position;
+				ReportHit(t, 0, attr);
+				return;
+			}
+
+			// Since distance is the minimum distance to the primitive, 
+			// we can safely jump by that amount without intersecting the primitive.
+			// We allow for scaling of steps per primitive type due to any pre-applied 
+			// transformations that don't preserve true distances.
+			t += distance;
+		}
 	}
 }
 

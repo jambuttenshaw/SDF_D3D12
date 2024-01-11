@@ -47,6 +47,9 @@ struct PassConstantBuffer
 // This can contain data that will change each frame
 struct PrimitiveInstancePerFrameBuffer
 {
+	XMFLOAT4 AABBMin;
+	XMFLOAT4 AABBMax;
+
 	XMMATRIX LocalSpaceToBottomLevelAS;
 	XMMATRIX BottomLevelASToLocalSpace;
 };
