@@ -19,7 +19,7 @@ public:
 	inline UINT64 GetFenceValue() const { return m_FenceValue; }
 
 	inline D3D12_GPU_DESCRIPTOR_HANDLE GetPassCBV() const { return m_CBVs.GetGPUHandle(m_PassCBV); }
-	inline D3D12_GPU_VIRTUAL_ADDRESS GetPassCBAddress() const { return m_PassCB->GetAddressOfElement(0); }
+	inline D3D12_GPU_VIRTUAL_ADDRESS GetPassCBAddress() const { return m_PassCB->GetAddressOfElement(0, 0); }
 
 	// Reset alloc
 	inline void ResetAllocator() const { THROW_IF_FAIL(m_CommandAllocator->Reset()); }
@@ -29,7 +29,7 @@ public:
 	inline void SetFence(UINT64 fence) { m_FenceValue = fence; }
 
 	// Upload new constant buffer data
-	inline void CopyPassData(const PassConstantBuffer& passData) const { m_PassCB->CopyElement(0, passData); }
+	inline void CopyPassData(const PassConstantBuffer& passData) const { m_PassCB->CopyElement(0, 0, passData); }
 
 	void DeferRelease(const ComPtr<IUnknown>& resource);
 	void ProcessDeferrals();

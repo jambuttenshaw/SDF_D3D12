@@ -4,9 +4,7 @@
 #ifdef HLSL
 #include "HlslCompat.h"
 #else
-
 using namespace DirectX;
-
 #endif
 
 
@@ -19,6 +17,8 @@ struct RayPayload
 	XMFLOAT4 color;
 };
 
+
+// Constant attributes per frame
 struct PassConstantBuffer
 {
 	XMMATRIX View;
@@ -42,6 +42,14 @@ struct PassConstantBuffer
 	float DeltaTime;
 };
 
+
+// Dynamic attributes per primitive instance.
+// This can contain data that will change each frame
+struct PrimitiveInstancePerFrameBuffer
+{
+	XMMATRIX LocalSpaceToBottomLevelAS;
+	XMMATRIX BottomLevelASToLocalSpace;
+};
 
 
 #endif

@@ -182,6 +182,7 @@ void D3DApplication::OnRender()
 {
 	// Update constant buffer
 	m_GraphicsContext->UpdatePassCB(&m_Timer, &m_Camera);
+	m_GraphicsContext->UpdateAABBPrimitiveAttributes();
 
 	// Begin drawing
 	m_GraphicsContext->StartDraw();

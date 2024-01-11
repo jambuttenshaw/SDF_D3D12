@@ -9,7 +9,7 @@ RaytracingAccelerationStructure Scene : register(t0, space0);
 RWTexture2D<float4> RenderTarget : register(u0);
 
 ConstantBuffer<PassConstantBuffer> g_passCB : register(b0);
-
+StructuredBuffer<PrimitiveInstancePerFrameBuffer> g_instanceBuffer : register(t1);
 
 
 // Generate a ray in world space for a camera pixel corresponding to an index from the dispatched 2D grid.
@@ -28,6 +28,25 @@ inline void GenerateCameraRay(uint2 index, out float3 origin, out float3 directi
 	origin = g_passCB.WorldEyePos;
 	direction = normalize(world.xyz - origin);
 }
+
+// Get ray in AABB's local space.
+Ray GetRayInAABBPrimitiveLocalSpace()
+{
+	PrimitiveInstancePerFrameBuffer attr = g_instanceBuffer[InstanceID()];
+
+    // Retrieve a ray origin position and direction in bottom level AS space 
+    // and transform them into the AABB primitive's local space.
+	Ray ray;
+	ray.origin = mul(float4(ObjectRayOrigin(), 1), attr.BottomLevelASToLocalSpace).xyz;
+	ray.direction = mul(ObjectRayDirection(), (float3x3) attr.BottomLevelASToLocalSpace);
+	return ray;
+}
+
+float sdSphere(float3 p, float r)
+{
+	return length(p) - r;
+}
+
 
 [shader("raygeneration")]
 void MyRaygenShader()
@@ -57,10 +76,34 @@ void MyRaygenShader()
 [shader("intersection")]
 void MyIntersectionShader()
 {
-	MyAttributes attr;
-	attr.position = ObjectRayDirection().xyz;
+	const Ray ray = GetRayInAABBPrimitiveLocalSpace();
 
-	ReportHit(RayTCurrent(), 0, attr);
+	const float threshold = 0.0001;
+	float t = RayTMin();
+	const UINT MaxSteps = 512;
+
+    // Do sphere tracing through the AABB.
+	UINT i = 0;
+	while (i++ < MaxSteps && t <= RayTCurrent())
+	{
+		float3 position = ray.origin + t * ray.direction;
+		float distance = sdSphere(position, 0.5f);
+
+        // Has the ray intersected the primitive? 
+		if (distance <= threshold * t)
+		{
+			MyAttributes attr;
+			attr.position = position;
+			ReportHit(t, 0, attr);
+			return;
+		}
+
+        // Since distance is the minimum distance to the primitive, 
+        // we can safely jump by that amount without intersecting the primitive.
+        // We allow for scaling of steps per primitive type due to any pre-applied 
+        // transformations that don't preserve true distances.
+		t += distance;
+	}
 }
 
 [shader("closesthit")]

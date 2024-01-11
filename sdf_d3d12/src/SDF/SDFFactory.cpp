@@ -92,7 +92,7 @@ SDFFactory::SDFFactory()
 	m_FenceValue = 1;
 
 	// Create constant buffer to hold bake data
-	m_BakeDataBuffer = std::make_unique<D3DUploadBuffer<BakeDataBufferType>>(g_D3DGraphicsContext->GetDevice(), 1, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT, L"SDF Factory Bake Data Buffer");
+	m_BakeDataBuffer = std::make_unique<D3DUploadBuffer<BakeDataBufferType>>(g_D3DGraphicsContext->GetDevice(), 1, 1, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT, L"SDF Factory Bake Data Buffer");
 
 	// Allocate CBV
 	m_BakeDataCBV = g_D3DGraphicsContext->GetSRVHeap()->Allocate(1);
@@ -100,8 +100,8 @@ SDFFactory::SDFFactory()
 
 	// Create CBV for buffer
 	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
-	cbvDesc.BufferLocation = m_BakeDataBuffer->GetAddressOfElement(0);
-	cbvDesc.SizeInBytes = m_BakeDataBuffer->GetElementSize();
+	cbvDesc.BufferLocation = m_BakeDataBuffer->GetAddressOfElement(0, 0);
+	cbvDesc.SizeInBytes = m_BakeDataBuffer->GetElementStride();
 	device->CreateConstantBufferView(&cbvDesc, m_BakeDataCBV.GetCPUHandle());
 }
 
@@ -170,7 +170,7 @@ void SDFFactory::BakeSDFSynchronous(const SDFObject* object)
 	{
 		BakeDataBufferType bakeDataBuffer;
 		bakeDataBuffer.PrimitiveCount = static_cast<UINT>(primitiveCount);
-		m_BakeDataBuffer->CopyElement(0, bakeDataBuffer);
+		m_BakeDataBuffer->CopyElement(0, 0, bakeDataBuffer);
 	}
 
 	// Step 3: Build command list to execute compute shader

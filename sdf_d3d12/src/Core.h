@@ -23,6 +23,10 @@
 #endif
 
 
+// Memory helper functions
+
+#define SizeOfInUint32(obj) ((sizeof(obj) - 1) / sizeof(UINT32) + 1)
+
 inline UINT Align(UINT size, UINT alignment)
 {
 	return (size + (alignment - 1)) & ~(alignment - 1);

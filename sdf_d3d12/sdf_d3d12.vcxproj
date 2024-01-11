@@ -219,6 +219,7 @@
     <ClInclude Include="src\Renderer\D3DShaderTable.h" />
     <ClInclude Include="src\Renderer\Hlsl\HlslCompat.h" />
     <ClInclude Include="src\Renderer\Hlsl\RaytracingHlslCompat.h" />
+    <ClInclude Include="src\Renderer\Hlsl\RaytracingSceneDefines.h" />
     <ClInclude Include="src\Renderer\Memory\D3DMemoryAllocator.h" />
     <ClInclude Include="src\SDF\SDFFactory.h" />
     <ClInclude Include="src\SDF\SDFObject.h" />

@@ -11,6 +11,8 @@
 #include "Framework/GameTimer.h"
 #include "Framework/Camera.h"
 
+#include "Hlsl/RaytracingSceneDefines.h"
+
 
 D3DGraphicsContext* g_D3DGraphicsContext = nullptr;
 
@@ -204,6 +206,7 @@ void D3DGraphicsContext::DrawRaytracing() const
 	m_CommandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, m_RaytracingOutputDescriptor.GetGPUHandle(0));
 	m_CommandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::AccelerationStructureSlot, m_TopLevelAccelerationStructure->GetAddress());
 	m_CommandList->SetComputeRootConstantBufferView(GlobalRootSignatureParams::PassBufferSlot, m_CurrentFrameResources->GetPassCBAddress());
+	m_CommandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::AABBAttributesBuffer, m_PrimitiveAttributes->GetAddressOfElement(0, m_FrameIndex));
 
 	m_DXRCommandList->SetPipelineState1(m_DXRStateObject.Get());
 
@@ -279,6 +282,28 @@ void D3DGraphicsContext::UpdatePassCB(GameTimer* timer, Camera* camera)
 
 	m_CurrentFrameResources->CopyPassData(m_MainPassCB);
 }
+
+void D3DGraphicsContext::UpdateAABBPrimitiveAttributes()
+{
+	// Updates the data in the primitive attributes buffer
+	for (UINT element = 0; element < static_cast<UINT>(m_AABBs.size()); element++)
+	{
+		auto& aabb = m_AABBs.at(element);
+		PrimitiveInstancePerFrameBuffer instanceData;
+
+		const XMVECTOR translation =
+			0.5f * (XMLoadFloat3(reinterpret_cast<XMFLOAT3*>(&aabb.MinX))
+				+ XMLoadFloat3(reinterpret_cast<XMFLOAT3*>(&aabb.MaxX)));
+		const XMMATRIX transform = XMMatrixTranslationFromVector(translation);
+
+		instanceData.LocalSpaceToBottomLevelAS = XMMatrixTranspose(transform);
+		instanceData.BottomLevelASToLocalSpace = XMMatrixTranspose(XMMatrixInverse(nullptr, transform));
+
+		// Copy into the buffer
+		m_PrimitiveAttributes->CopyElement(element, m_FrameIndex, instanceData);
+	}
+}
+
 
 
 void D3DGraphicsContext::Resize(UINT width, UINT height)
@@ -605,6 +630,7 @@ void D3DGraphicsContext::CreateRootSignatures()
 		rootParameters[GlobalRootSignatureParams::OutputViewSlot].InitAsDescriptorTable(1, &UAVDescriptor);
 		rootParameters[GlobalRootSignatureParams::AccelerationStructureSlot].InitAsShaderResourceView(0);
 		rootParameters[GlobalRootSignatureParams::PassBufferSlot].InitAsConstantBufferView(0);
+		rootParameters[GlobalRootSignatureParams::AABBAttributesBuffer].InitAsShaderResourceView(1);
 
 		CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters);
 		SerializeAndCreateRaytracingRootSignature(globalRootSignatureDesc, &m_RaytracingGlobalRootSignature);
@@ -650,11 +676,12 @@ void D3DGraphicsContext::CreateRaytracingPipelineStateObject()
 	hitGroup->SetHitGroupExport(c_HitGroupName);
 	hitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_PROCEDURAL_PRIMITIVE);
 
+
 	// Shader config
 	// Defines the maximum sizes in bytes for the ray payload and attribute structure.
 	const auto shaderConfig = raytracingPipeline.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
-	constexpr UINT payloadSize = 4 * sizeof(float);   // float4 color
-	constexpr UINT attributeSize = 3 * sizeof(float); // float3 position
+	constexpr UINT payloadSize = sizeof(RayPayload);
+	constexpr UINT attributeSize = sizeof(MyAttributes);
 	shaderConfig->Config(payloadSize, attributeSize);
 
 	// Global root signature
@@ -694,14 +721,14 @@ void D3DGraphicsContext::CreateRaytracingOutputResource()
 // Build geometry used in the sample.
 void D3DGraphicsContext::BuildGeometry()
 {
-	constexpr AABB aabb =
-	{
-		-0.5f, -0.5f, 1.0f,
-		0.5f, 0.5f, 2.0f
-	};
+	m_AABBs.push_back({
+		0.5f, 0.5f, 0.5f,
+		1.5f, 1.5f, 1.5f
+	});
 
-	m_AABBBuffer = std::make_unique<D3DUploadBuffer<AABB>>(m_Device.Get(), 1, 0, L"Vertex Buffer");
-	m_AABBBuffer->CopyElement(0, aabb);
+	// Allocate an upload buffer to contain all AABBs and copy the AABBs into it
+	m_AABBBuffer = std::make_unique<D3DUploadBuffer<D3D12_RAYTRACING_AABB>>(m_Device.Get(), 1, 1, 0, L"AABB Buffer");
+	m_AABBBuffer->CopyElements(0, static_cast<UINT>(m_AABBs.size()), 0, m_AABBs.data());
 }
 
 // Build acceleration structures needed for raytracing.
@@ -711,8 +738,8 @@ void D3DGraphicsContext::BuildAccelerationStructures()
 	geometryDesc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS;
 	geometryDesc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
 	geometryDesc.AABBs.AABBCount = 1;
-	geometryDesc.AABBs.AABBs.StartAddress = m_AABBBuffer->GetAddressOfElement(0);
-	geometryDesc.AABBs.AABBs.StrideInBytes = m_AABBBuffer->GetElementSize();
+	geometryDesc.AABBs.AABBs.StartAddress = m_AABBBuffer->GetAddressOfElement(0, 0);
+	geometryDesc.AABBs.AABBs.StrideInBytes = m_AABBBuffer->GetElementStride();
 
 	// Get required sizes for an acceleration structure.
 	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
@@ -742,14 +769,15 @@ void D3DGraphicsContext::BuildAccelerationStructures()
 	}
 
 	// Create an instance desc for the bottom-level acceleration structure.
-	D3DUploadBuffer<D3D12_RAYTRACING_INSTANCE_DESC> instanceDescs(m_Device.Get(), 1, 0, L"InstanceDescs");
+	D3DUploadBuffer<D3D12_RAYTRACING_INSTANCE_DESC> instanceDescs(m_Device.Get(), 1, 1, 0, L"InstanceDescs");
 
 	D3D12_RAYTRACING_INSTANCE_DESC instanceDesc = {};
 	instanceDesc.Transform[0][0] = instanceDesc.Transform[1][1] = instanceDesc.Transform[2][2] = 1;
+	instanceDesc.InstanceID = 0;
 	instanceDesc.InstanceMask = 1;
 	instanceDesc.AccelerationStructure = m_BottomLevelAccelerationStructure->GetAddress();
 
-	instanceDescs.CopyElement(0, instanceDesc);
+	instanceDescs.CopyElement(0, 0, instanceDesc);
 
 	// Bottom Level Acceleration Structure desc
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottomLevelBuildDesc = {};
@@ -762,7 +790,7 @@ void D3DGraphicsContext::BuildAccelerationStructures()
 	// Top Level Acceleration Structure desc
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC topLevelBuildDesc = {};
 	{
-		topLevelInputs.InstanceDescs = instanceDescs.GetAddressOfElement(0);
+		topLevelInputs.InstanceDescs = instanceDescs.GetAddressOfElement(0, 0);
 		topLevelBuildDesc.Inputs = topLevelInputs;
 		topLevelBuildDesc.DestAccelerationStructureData = m_TopLevelAccelerationStructure->GetAddress();
 		topLevelBuildDesc.ScratchAccelerationStructureData = scratchResource.GetAddress();
@@ -788,7 +816,7 @@ void D3DGraphicsContext::BuildShaderTables()
 	void* hitGroupShaderIdentifier;
 
 	// Get shader identifiers.
-	UINT shaderIdentifierSize;
+	UINT shaderIDSize;
 	{
 		ComPtr<ID3D12StateObjectProperties> stateObjectProperties;
 		THROW_IF_FAIL(m_DXRStateObject.As(&stateObjectProperties));
@@ -797,34 +825,34 @@ void D3DGraphicsContext::BuildShaderTables()
 		missShaderIdentifier = stateObjectProperties->GetShaderIdentifier(c_MissShaderName);
 		hitGroupShaderIdentifier = stateObjectProperties->GetShaderIdentifier(c_HitGroupName);
 
-		shaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
+		shaderIDSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
 	}
 
 	// Ray gen shader table
 	{
 		UINT numShaderRecords = 1;
-		UINT shaderRecordSize = shaderIdentifierSize;
+		UINT shaderRecordSize = shaderIDSize;
 
 		m_RayGenShaderTable = std::make_unique<D3DShaderTable>(m_Device.Get(), numShaderRecords, shaderRecordSize, L"RayGenShaderTable");
-		m_RayGenShaderTable->AddRecord(D3DShaderRecord{ rayGenShaderIdentifier, shaderIdentifierSize });
+		m_RayGenShaderTable->AddRecord(D3DShaderRecord{ rayGenShaderIdentifier, shaderIDSize });
 	}
 
 	// Miss shader table
 	{
 		UINT numShaderRecords = 1;
-		UINT shaderRecordSize = shaderIdentifierSize;
+		UINT shaderRecordSize = shaderIDSize;
 
 		m_MissShaderTable = std::make_unique<D3DShaderTable>(m_Device.Get(), numShaderRecords, shaderRecordSize, L"MissShaderTable");
-		m_MissShaderTable->AddRecord(D3DShaderRecord{ missShaderIdentifier, shaderIdentifierSize });
+		m_MissShaderTable->AddRecord(D3DShaderRecord{ missShaderIdentifier, shaderIDSize });
 	}
 
 	// Hit group shader table
 	{
 		UINT numShaderRecords = 1;
-		UINT shaderRecordSize = shaderIdentifierSize;
+		UINT shaderRecordSize = shaderIDSize;
 
 		m_HitGroupShaderTable = std::make_unique<D3DShaderTable>(m_Device.Get(), numShaderRecords, shaderRecordSize, L"HitGroupShaderTable");
-		m_HitGroupShaderTable->AddRecord(D3DShaderRecord{ hitGroupShaderIdentifier, shaderIdentifierSize });
+		m_HitGroupShaderTable->AddRecord(D3DShaderRecord{ hitGroupShaderIdentifier, shaderIDSize });
 	}
 }
 
@@ -839,6 +867,15 @@ void D3DGraphicsContext::CreateProjectionMatrix()
 void D3DGraphicsContext::CreateAssets()
 {
 	m_GraphicsPipeline = std::make_unique<D3DGraphicsPipeline>();
+
+	
+	m_PrimitiveAttributes = std::make_unique<D3DUploadBuffer<PrimitiveInstancePerFrameBuffer>>(
+		m_Device.Get(),
+		static_cast<UINT>(m_AABBs.size()),						// Only one AABB exists for now
+		s_FrameCount,						// Protect this resource by buffering it; it will be modified every frame. This could be moved to the frame resources?
+		16,									// Align structured buffers to 16 byte boundaries for better performance
+		L"Primitive Instance Buffer"
+	);
 }
 
 

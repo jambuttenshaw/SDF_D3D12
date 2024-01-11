@@ -21,18 +21,6 @@ class D3DGraphicsContext;
 extern D3DGraphicsContext* g_D3DGraphicsContext;
 
 
-namespace GlobalRootSignatureParams
-{
-	enum Value
-	{
-		OutputViewSlot = 0,
-		AccelerationStructureSlot,
-		PassBufferSlot,
-		Count
-	};
-}
-
-
 class D3DGraphicsContext
 {
 public:
@@ -55,6 +43,7 @@ public:
 
 	// Updating constant buffers
 	void UpdatePassCB(GameTimer* timer, Camera* camera);
+	void UpdateAABBPrimitiveAttributes();
 
 	void Resize(UINT width, UINT height);
 
@@ -179,6 +168,7 @@ private:
 	CD3DX12_VIEWPORT m_Viewport{ };
 	CD3DX12_RECT m_ScissorRect{ };
 
+	
 
 
 	// DirectX Raytracing (DXR) attributes
@@ -190,8 +180,8 @@ private:
 	ComPtr<ID3D12RootSignature> m_RaytracingGlobalRootSignature;
 
 	// Geometry
-	typedef D3D12_RAYTRACING_AABB AABB;
-	std::unique_ptr<D3DUploadBuffer<AABB>> m_AABBBuffer;
+	std::vector<D3D12_RAYTRACING_AABB> m_AABBs;
+	std::unique_ptr<D3DUploadBuffer<D3D12_RAYTRACING_AABB>> m_AABBBuffer;
 
 	// Acceleration structure
 	std::unique_ptr<D3DUAVBuffer> m_BottomLevelAccelerationStructure;
@@ -214,6 +204,9 @@ private:
 
 	// Pipeline assets
 	std::unique_ptr<D3DGraphicsPipeline> m_GraphicsPipeline;
+
+	// Primitives
+	std::unique_ptr<D3DUploadBuffer<PrimitiveInstancePerFrameBuffer>> m_PrimitiveAttributes;
 
 	// ImGui Resources
 	D3DDescriptorAllocation m_ImGuiResources;
