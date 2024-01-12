@@ -14,3 +14,18 @@ namespace GlobalRootSignatureParams
 		Count
 	};
 }
+
+
+namespace LocalRootSignatureParams
+{
+	enum Value
+	{
+		SDFVolumeSlot = 0,
+		Count
+	};
+
+	struct RootArguments
+	{
+		D3D12_GPU_DESCRIPTOR_HANDLE volumeSRV;
+	};
+}

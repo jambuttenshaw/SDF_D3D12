@@ -73,6 +73,19 @@ public:
 	inline ID3D12Device* GetDevice() const { return m_Device.Get(); }
 	inline ID3D12GraphicsCommandList* GetCommandList() const { return m_CommandList.Get(); }
 
+
+public:
+
+	// Scene building
+	// Construct the objects in the scene before building the acceleration structure and the shader table
+
+	void AddObjectToScene(class SDFObject* object);
+
+	void BuildGeometry();
+	void BuildAccelerationStructures();
+	void BuildShaderTables();
+
+
 private:
 	// Startup
 	void CreateAdapter();
@@ -98,9 +111,6 @@ private:
 	void CreateRootSignatures();
 	void CreateRaytracingPipelineStateObject();
 	void CreateRaytracingOutputResource();
-	void BuildGeometry();
-	void BuildAccelerationStructures();
-	void BuildShaderTables();
 
 	void CreateProjectionMatrix();
 
@@ -170,7 +180,6 @@ private:
 
 	
 
-
 	// DirectX Raytracing (DXR) attributes
 	ComPtr<ID3D12Device5> m_DXRDevice;
 	ComPtr<ID3D12GraphicsCommandList4> m_DXRCommandList;
@@ -178,6 +187,7 @@ private:
 
 	// Root signatures
 	ComPtr<ID3D12RootSignature> m_RaytracingGlobalRootSignature;
+	ComPtr<ID3D12RootSignature> m_RaytracingLocalRootSignature;
 
 	// Geometry
 	std::vector<D3D12_RAYTRACING_AABB> m_AABBs;
@@ -207,6 +217,10 @@ private:
 
 	// Primitives
 	std::unique_ptr<D3DUploadBuffer<PrimitiveInstancePerFrameBuffer>> m_PrimitiveAttributes;
+
+
+	// Scene
+	std::vector<SDFObject*> m_SceneObjects;
 
 	// ImGui Resources
 	D3DDescriptorAllocation m_ImGuiResources;

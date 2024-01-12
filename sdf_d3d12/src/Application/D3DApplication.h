@@ -16,14 +16,6 @@ class RenderItem;
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
 
-enum class DisplayMode
-{
-	Default,
-	DisplayBoundingBox,
-	DisplayNormals,
-	DisplayHeatmap
-};
-
 
 class D3DApplication : public BaseApplication
 {
@@ -50,9 +42,6 @@ private:
 	GameTimer m_Timer;
 	Camera m_Camera;
 	CameraController m_CameraController;
-
-	DisplayMode m_CurrentDisplayMode = DisplayMode::Default;
-	std::map<DisplayMode, std::unique_ptr<D3DComputePipeline>> m_Pipelines;
 
 	std::unique_ptr<SDFFactory> m_SDFFactory;
 	std::unique_ptr<SDFObject> m_SDFObject;

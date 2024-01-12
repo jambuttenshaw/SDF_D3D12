@@ -12,6 +12,7 @@
 #include "Framework/Camera.h"
 
 #include "Hlsl/RaytracingSceneDefines.h"
+#include "SDF/SDFObject.h"
 
 
 D3DGraphicsContext* g_D3DGraphicsContext = nullptr;
@@ -57,6 +58,7 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
 
 	CreateFence();
 
+	// Setup for raytracing
 	{
 		// Create DXR resources
 		CreateRaytracingInterfaces();
@@ -67,19 +69,9 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
 		// Create a raytracing pipeline state object which defines the binding of shaders, state and resources to be used during raytracing.
 		CreateRaytracingPipelineStateObject();
 
-		// Build geometry to be used in the sample.
-		BuildGeometry();
-
-		// Build raytracing acceleration structures from the generated geometry.
-		BuildAccelerationStructures();
-
-		// Build shader tables, which define shaders and their local root arguments.
-		BuildShaderTables();
-
 		// Create an output 2D texture to store the raytracing result to.
 		CreateRaytracingOutputResource();
 	}
-
 
 	m_ImGuiResources = m_SRVHeap->Allocate(1);
 	ASSERT(m_ImGuiResources.IsValid(), "Failed to alloc");
@@ -100,7 +92,7 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
 	// can now safely be released that the GPU has finished its work
 	ProcessAllDeferrals();
 
-	LOG_INFO("D3D12 Graphics Context created succesfully.")
+	LOG_INFO("D3D12 Graphics Context created succesfully.");
 }
 
 D3DGraphicsContext::~D3DGraphicsContext()
@@ -634,8 +626,38 @@ void D3DGraphicsContext::CreateRootSignatures()
 		rootParameters[GlobalRootSignatureParams::PassBufferSlot].InitAsConstantBufferView(0);
 		rootParameters[GlobalRootSignatureParams::AABBAttributesBuffer].InitAsShaderResourceView(1);
 
-		CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters);
+		// Create a static sampler
+		D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
+		samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+		samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		samplerDesc.MipLODBias = 0;
+		samplerDesc.MaxAnisotropy = 0;
+		samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+		samplerDesc.BorderColor = D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK;
+		samplerDesc.MinLOD = 0.0f;
+		samplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
+		samplerDesc.ShaderRegister = 0;
+		samplerDesc.RegisterSpace = 0;
+		samplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
+		CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters, 1, &samplerDesc);
 		SerializeAndCreateRaytracingRootSignature(globalRootSignatureDesc, &m_RaytracingGlobalRootSignature);
+	}
+
+
+	// Local Root Signature
+	// This root signature is only used by the hit group
+	{
+		CD3DX12_DESCRIPTOR_RANGE SRVDescriptor;
+		SRVDescriptor.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
+
+		CD3DX12_ROOT_PARAMETER rootParameters[LocalRootSignatureParams::Count];
+		rootParameters[LocalRootSignatureParams::SDFVolumeSlot].InitAsDescriptorTable(1, &SRVDescriptor);
+
+		CD3DX12_ROOT_SIGNATURE_DESC localRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE);
+		SerializeAndCreateRaytracingRootSignature(localRootSignatureDesc, &m_RaytracingLocalRootSignature);
 	}
 }
 
@@ -669,14 +691,20 @@ void D3DGraphicsContext::CreateRaytracingPipelineStateObject()
 		lib->DefineExport(c_MissShaderName);
 	}
 
-	// Triangle hit group
-	// A hit group specifies closest hit, any hit and intersection shaders to be executed when a ray intersects the geometry's triangle/AABB.
-	// In this sample, we only use triangle geometry with a closest hit shader, so others are not set.
 	const auto hitGroup = raytracingPipeline.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
 	hitGroup->SetIntersectionShaderImport(c_IntersectionShaderName);
 	hitGroup->SetClosestHitShaderImport(c_ClosestHitShaderName);
 	hitGroup->SetHitGroupExport(c_HitGroupName);
 	hitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_PROCEDURAL_PRIMITIVE);
+
+
+	// Create and associate a local root signature with the hit group
+	const auto localRootSig = raytracingPipeline.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
+	localRootSig->SetRootSignature(m_RaytracingLocalRootSignature.Get());
+
+	const auto localRootSigAssociation = raytracingPipeline.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
+	localRootSigAssociation->SetSubobjectToAssociate(*localRootSig);
+	localRootSigAssociation->AddExport(c_HitGroupName);
 
 
 	// Shader config
@@ -720,13 +748,29 @@ void D3DGraphicsContext::CreateRaytracingOutputResource()
 }
 
 
+void D3DGraphicsContext::AddObjectToScene(SDFObject* object)
+{
+	// Add an object to the scene
+	m_SceneObjects.push_back(object);
+}
+
+
+
 // Build geometry used in the sample.
 void D3DGraphicsContext::BuildGeometry()
 {
-	m_AABBs.push_back({
-		0.5f, 0.5f, 0.5f,
-		1.5f, 1.5f, 1.5f
-	});
+	auto BuildAABB = [](const XMFLOAT3& centre, const XMFLOAT3& halfExtent) -> D3D12_RAYTRACING_AABB
+		{
+			return {
+			centre.x - halfExtent.x, centre.y - halfExtent.y, centre.z - halfExtent.z,
+			centre.x + halfExtent.x, centre.y + halfExtent.y, centre.z + halfExtent.z,
+			};
+		};
+
+	m_AABBs.push_back(BuildAABB(
+		{ 0.0f, 0.0f, 0.0f }, 
+		{1.0f, 1.0f, 1.0f}
+	));
 
 	// Allocate an upload buffer to contain all AABBs and copy the AABBs into it
 	m_AABBBuffer = std::make_unique<D3DUploadBuffer<D3D12_RAYTRACING_AABB>>(m_Device.Get(), 1, 1, 0, L"AABB Buffer");
@@ -851,10 +895,13 @@ void D3DGraphicsContext::BuildShaderTables()
 	// Hit group shader table
 	{
 		UINT numShaderRecords = 1;
-		UINT shaderRecordSize = shaderIDSize;
+		UINT shaderRecordSize = shaderIDSize + sizeof(LocalRootSignatureParams::RootArguments);
+
+		LocalRootSignatureParams::RootArguments rootArgs;
+		rootArgs.volumeSRV = m_SceneObjects.at(0)->GetSRV();
 
 		m_HitGroupShaderTable = std::make_unique<D3DShaderTable>(m_Device.Get(), numShaderRecords, shaderRecordSize, L"HitGroupShaderTable");
-		m_HitGroupShaderTable->AddRecord(D3DShaderRecord{ hitGroupShaderIdentifier, shaderIDSize });
+		m_HitGroupShaderTable->AddRecord(D3DShaderRecord{ hitGroupShaderIdentifier, shaderIDSize, &rootArgs, sizeof(rootArgs) });
 	}
 }
 
@@ -873,7 +920,7 @@ void D3DGraphicsContext::CreateAssets()
 	
 	m_PrimitiveAttributes = std::make_unique<D3DUploadBuffer<PrimitiveInstancePerFrameBuffer>>(
 		m_Device.Get(),
-		static_cast<UINT>(m_AABBs.size()),						// Only one AABB exists for now
+		1,									// Only one AABB exists for now
 		s_FrameCount,						// Protect this resource by buffering it; it will be modified every frame. This could be moved to the frame resources?
 		16,									// Align structured buffers to 16 byte boundaries for better performance
 		L"Primitive Instance Buffer"

@@ -145,7 +145,7 @@ D3DComputePipeline::D3DComputePipeline(D3DComputePipelineDesc* desc)
 	// Create the compute pipeline state
 	{
 		ComPtr<IDxcBlob> computeShader;
-		THROW_IF_FAIL(D3DShaderCompiler::CompileFromFile(desc->Shader, desc->EntryPoint, L"cs_5_0", desc->Defines, &computeShader));
+		THROW_IF_FAIL(D3DShaderCompiler::CompileFromFile(desc->Shader, desc->EntryPoint, L"cs_6_3", desc->Defines, &computeShader));
 
 		D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc = {};
 		psoDesc.pRootSignature = m_RootSignature.Get();

@@ -19,84 +19,6 @@ void D3DApplication::OnInit()
 
 	InitImGui();
 
-	// Create pipelines
-	/*
-	LOG_TRACE("Creating compute pipelines...");
-	// Create a root signature consisting of two root descriptors for CBVs (per-object and per-pass)
-	CD3DX12_DESCRIPTOR_RANGE1 ranges[3];
-	CD3DX12_ROOT_PARAMETER1 rootParameters[3];
-	ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// per-object cb
-	ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// per-pass cb
-	ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// output uav
-
-	rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_ALL);
-	rootParameters[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_ALL);
-	rootParameters[2].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_ALL);
-
-	D3D_SHADER_MACRO defaultDefines[] = { { nullptr, nullptr } };
-	D3D_SHADER_MACRO disableShadowDefines[] = { { "DISABLE_SHADOW", nullptr }, { nullptr, nullptr } };
-	D3D_SHADER_MACRO disableLightDefines[] = { { "DISABLE_LIGHT", nullptr }, { nullptr, nullptr } };
-	D3D_SHADER_MACRO heatmapDefines[] = { { "DISPLAY_HEATMAP", nullptr }, { nullptr, nullptr } };
-
-	D3DComputePipelineDesc desc = {};
-	desc.NumRootParameters = 3;
-	desc.RootParameters = rootParameters;
-	desc.Shader = L"assets/shaders/compute.hlsl";
-	desc.EntryPoint = "main";
-
-	desc.Defines = defaultDefines;
-	m_Pipelines.insert(std::make_pair(DisplayMode::Default, std::make_unique<D3DComputePipeline>(&desc)));
-
-	desc.Defines = disableShadowDefines;
-	m_Pipelines.insert(std::make_pair(DisplayMode::DisableShadow, std::make_unique<D3DComputePipeline>(&desc)));
-
-	desc.Defines = disableLightDefines;
-	m_Pipelines.insert(std::make_pair(DisplayMode::DisableLight, std::make_unique<D3DComputePipeline>(&desc)));
-
-	desc.Defines = heatmapDefines;
-	m_Pipelines.insert(std::make_pair(DisplayMode::Heatmap, std::make_unique<D3DComputePipeline>(&desc)));
-
-/////////////////////////////////////////////////////////////
-
-	CD3DX12_DESCRIPTOR_RANGE1 ranges[4];
-	CD3DX12_ROOT_PARAMETER1 rootParameters[4];
-	ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// per-pass cb
-	ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// per-pass cb
-	ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// output uav
-	ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// volume texture srv
-
-	rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_ALL);
-	rootParameters[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_ALL);
-	rootParameters[2].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_ALL);
-	rootParameters[3].InitAsDescriptorTable(1, &ranges[3], D3D12_SHADER_VISIBILITY_ALL);
-
-	D3D_SHADER_MACRO defaultDefines[] = { { nullptr, nullptr } };
-	D3D_SHADER_MACRO displayBBDefines[] = { { "DISPLAY_BOUNDINGBOX", nullptr },{ nullptr, nullptr } };
-	D3D_SHADER_MACRO displayNormalDefines[] = { { "DISPLAY_NORMALS", nullptr },{ nullptr, nullptr } };
-	D3D_SHADER_MACRO displayHeatmapDefines[] = { { "DISPLAY_HEATMAP", nullptr },{ nullptr, nullptr } };
-
-	D3DComputePipelineDesc desc = {};
-	desc.NumRootParameters = _countof(rootParameters);
-	desc.RootParameters = rootParameters;
-	desc.Shader = L"assets/shaders/volume_raymarcher.hlsl";
-	desc.EntryPoint = "main";
-
-	desc.Defines = defaultDefines;
-	m_Pipelines.insert(std::make_pair(DisplayMode::Default, std::make_unique<D3DComputePipeline>(&desc)));
-
-	desc.Defines = displayBBDefines;
-	m_Pipelines.insert(std::make_pair(DisplayMode::DisplayBoundingBox, std::make_unique<D3DComputePipeline>(&desc)));
-
-	desc.Defines = displayNormalDefines;
-	m_Pipelines.insert(std::make_pair(DisplayMode::DisplayNormals, std::make_unique<D3DComputePipeline>(&desc)));
-
-	desc.Defines = displayHeatmapDefines;
-	m_Pipelines.insert(std::make_pair(DisplayMode::DisplayHeatmap, std::make_unique<D3DComputePipeline>(&desc)));
-
-	LOG_TRACE("Compute pipelines created.");
-	*/
-
-
 	// Setup camera
 
 	m_Camera.SetPosition(XMVECTOR{ 0.0f, 1.0f, -5.0f });
@@ -104,14 +26,11 @@ void D3DApplication::OnInit()
 
 	m_CameraController = CameraController{ m_InputManager.get(), &m_Camera };
 
-	/*
-
 	// Create SDF factory
 	m_SDFFactory = std::make_unique<SDFFactory>();
 
 	// Create an SDF object
 	m_SDFObject = std::make_unique<SDFObject>(256, 256, 256);
-	m_SDFObject->GetRenderItem()->GetTransform().SetTranslation({0.0f, 0.0f, 0.0f});
 
 	m_SDFObject->AddPrimitive(SDFPrimitive::CreateBox(
 		{ 0.0f, -0.25f, 0.0f },
@@ -127,7 +46,12 @@ void D3DApplication::OnInit()
 
 	// Bake the primitives into the SDF object
 	m_SDFFactory->BakeSDFSynchronous(m_SDFObject.get());
-	*/
+
+	m_GraphicsContext->AddObjectToScene(m_SDFObject.get());
+
+	// Build acceleration structure and shader tables
+	m_GraphicsContext->BuildGeometry();
+	m_GraphicsContext->BuildShaderTables();
 }
 
 void D3DApplication::OnUpdate()
@@ -186,6 +110,14 @@ void D3DApplication::OnRender()
 
 	// Begin drawing
 	m_GraphicsContext->StartDraw();
+
+	// Update acceleration structure if required
+	static bool build = true;
+	if (build)
+	{
+		m_GraphicsContext->BuildAccelerationStructures();
+		build = false;
+	}
 
 	// Draw all items
 	//m_GraphicsContext->DrawItems(m_Pipelines[m_CurrentDisplayMode].get());
