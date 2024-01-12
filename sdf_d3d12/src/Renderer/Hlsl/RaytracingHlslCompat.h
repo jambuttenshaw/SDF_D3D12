@@ -10,7 +10,7 @@ using namespace DirectX;
 
 struct MyAttributes
 {
-	XMFLOAT3 position;
+	XMFLOAT3 normal;
 };
 struct RayPayload
 {

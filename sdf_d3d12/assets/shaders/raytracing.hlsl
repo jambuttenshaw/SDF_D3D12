@@ -20,6 +20,11 @@ SamplerState g_Sampler : register(s0);
 Texture3D<float> l_SDFVolume : register(t2);
 
 
+#define NORMAL_DELTA_X float3(0.01f, 0.0f, 0.0f)
+#define NORMAL_DELTA_Y float3(0.0f, 0.01f, 0.0f)
+#define NORMAL_DELTA_Z float3(0.0f, 0.0f, 0.01f)
+
+
 // Generate a ray in world space for a camera pixel corresponding to an index from the dispatched 2D grid.
 inline void GenerateCameraRay(uint2 index, out float3 origin, out float3 direction)
 {
@@ -48,6 +53,16 @@ Ray GetRayInAABBPrimitiveLocalSpace()
 	ray.origin = mul(float4(ObjectRayOrigin(), 1), attr.BottomLevelASToLocalSpace).xyz;
 	ray.direction = mul(ObjectRayDirection(), (float3x3) attr.BottomLevelASToLocalSpace);
 	return ray;
+}
+
+
+float3 ComputeSurfaceNormal(float3 p)
+{
+	return normalize(float3(
+        l_SDFVolume.SampleLevel(g_Sampler, p + NORMAL_DELTA_X, 0) - l_SDFVolume.SampleLevel(g_Sampler, p - NORMAL_DELTA_X, 0),
+        l_SDFVolume.SampleLevel(g_Sampler, p + NORMAL_DELTA_Y, 0) - l_SDFVolume.SampleLevel(g_Sampler, p - NORMAL_DELTA_Y, 0),
+        l_SDFVolume.SampleLevel(g_Sampler, p + NORMAL_DELTA_Z, 0) - l_SDFVolume.SampleLevel(g_Sampler, p - NORMAL_DELTA_Z, 0)
+    ));
 }
 
 
@@ -100,7 +115,7 @@ void MyIntersectionShader()
 		// step through volume to find surface
 		float s = 1; // can be any number > epsilon
 	
-		while (s > 0.01f)
+		while (s > 0.001f)
 		{
 			s = l_SDFVolume.SampleLevel(g_Sampler, uvw, 0);
 			tMin += 0.001f;
@@ -115,7 +130,7 @@ void MyIntersectionShader()
 		}
 
 		MyAttributes attr;
-		attr.position = uvw;
+		attr.normal = ComputeSurfaceNormal(uvw);
 		ReportHit(tMin, 0, attr);
 	}
 }
@@ -123,7 +138,7 @@ void MyIntersectionShader()
 [shader("closesthit")]
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 {
-	payload.color = float4(attr.position, 1);
+	payload.color = float4(0.5f + 0.5f * attr.normal, 1);
 }
 
 [shader("miss")]
