@@ -108,7 +108,12 @@ private:
 class D3DUAVBuffer
 {
 public:
-	D3DUAVBuffer(ID3D12Device* device, UINT64 bufferSize, D3D12_RESOURCE_STATES initialResourceState, const wchar_t* name = nullptr)
+	D3DUAVBuffer() = default;
+
+	inline ID3D12Resource* GetResource() const { return m_UAVBuffer.Get(); }
+	inline D3D12_GPU_VIRTUAL_ADDRESS GetAddress() const { return m_UAVBuffer->GetGPUVirtualAddress(); }
+
+	void Allocate(ID3D12Device* device, UINT64 bufferSize, D3D12_RESOURCE_STATES initialResourceState, const wchar_t* name = nullptr)
 	{
 		// Create buffer
 		const CD3DX12_HEAP_PROPERTIES uploadHeap(D3D12_HEAP_TYPE_DEFAULT);
@@ -123,9 +128,6 @@ public:
 		if (name)
 			m_UAVBuffer->SetName(name);
 	}
-
-	inline ID3D12Resource* GetResource() const { return m_UAVBuffer.Get(); }
-	inline D3D12_GPU_VIRTUAL_ADDRESS GetAddress() const { return m_UAVBuffer->GetGPUVirtualAddress(); }
 
 private:
 	ComPtr<ID3D12Resource> m_UAVBuffer;

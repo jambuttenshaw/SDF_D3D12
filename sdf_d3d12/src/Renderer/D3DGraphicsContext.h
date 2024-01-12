@@ -74,6 +74,11 @@ public:
 	inline ID3D12GraphicsCommandList* GetCommandList() const { return m_CommandList.Get(); }
 
 
+	// DXR objects
+	inline ID3D12Device5* GetDXRDevice() const { return m_DXRDevice.Get(); }
+	inline ID3D12GraphicsCommandList4* GetDXRCommandList() const { return m_DXRCommandList.Get(); }
+
+
 public:
 
 	// Scene building
