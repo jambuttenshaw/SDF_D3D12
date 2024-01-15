@@ -78,7 +78,7 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
 
 	CreateProjectionMatrix();
 
-	CreateAssets();
+	m_GraphicsPipeline = std::make_unique<D3DGraphicsPipeline>();
 
 	// Close the command list and execute it to begin the initial GPU setup
 	// The main loop expects the command list to be closed anyway
@@ -806,13 +806,6 @@ void D3DGraphicsContext::CreateProjectionMatrix()
 {
 	m_ProjectionMatrix = XMMatrixPerspectiveFovLH(m_FOV, GetAspectRatio(), m_NearPlane, m_FarPlane);
 }
-
-
-void D3DGraphicsContext::CreateAssets()
-{
-	m_GraphicsPipeline = std::make_unique<D3DGraphicsPipeline>();
-}
-
 
 void D3DGraphicsContext::MoveToNextFrame()
 {

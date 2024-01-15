@@ -12,7 +12,7 @@ Scene::Scene()
 		m_SDFFactory = std::make_unique<SDFFactory>();
 
 		// Create an SDF object
-		m_SDFObject = std::make_unique<SDFObject>(256, 256, 256);
+		m_SDFObject = std::make_unique<SDFObject>(64, 64, 64);
 
 		m_SDFObject->AddPrimitive(SDFPrimitive::CreateBox(
 			{ 0.0f, -0.25f, 0.0f },
@@ -57,7 +57,7 @@ Scene::Scene()
 		// Create one instance of each bottom level AS
 		for (const auto& geometry : m_SceneGeometry)
 		{
-			m_AccelerationStructure->AddBottomLevelASInstance(geometry.Name, UINT_MAX, XMMatrixIdentity(), XM_PIDIV2), 1);
+			m_AccelerationStructure->AddBottomLevelASInstance(geometry.Name, UINT_MAX, XMMatrixIdentity(), 1);
 		}
 		// Init top level AS
 		m_AccelerationStructure->InitializeTopLevelAS(buildFlags, false, false, L"Top Level Acceleration Structure");

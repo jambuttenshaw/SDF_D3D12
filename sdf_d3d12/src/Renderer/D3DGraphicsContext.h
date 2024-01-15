@@ -2,12 +2,9 @@
 
 #include "Memory/D3DMemoryAllocator.h"
 
-#include "D3DBuffer.h"
 #include "D3DPipeline.h"
 #include "D3DShaderTable.h"
 #include "Hlsl/RaytracingHlslCompat.h"
-
-#include "Raytracing/D3DAccelerationStructure.h"
 
 
 using Microsoft::WRL::ComPtr;
@@ -114,9 +111,6 @@ private:
 
 	void CreateProjectionMatrix();
 
-	void CreateAssets();		// Temporary - eventually all assets will be created elsewhere
-
-
 	void MoveToNextFrame();
 	void ProcessDeferrals(UINT frameIndex) const;
 	// NOTE: this is only safe to do so when ALL WORK HAS BEEN COMPLETED ON THE GPU!!!
@@ -204,7 +198,7 @@ private:
 
 
 	// Pipeline assets
-	std::unique_ptr<D3DGraphicsPipeline> m_GraphicsPipeline;
+	std::unique_ptr<D3DGraphicsPipeline> m_GraphicsPipeline;	// A raster pass is used to copy the raytracing output to the back buffer
 
 	// ImGui Resources
 	D3DDescriptorAllocation m_ImGuiResources;

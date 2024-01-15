@@ -35,17 +35,17 @@ class AABBGeometryInstance
 {
 public:
 	AABBGeometryInstance(const AABBGeometry& geometry, D3D12_RAYTRACING_GEOMETRY_FLAGS flags, D3D12_GPU_DESCRIPTOR_HANDLE volumeSRV = {})
-		: m_Geometry(geometry)
+		: m_Geometry(&geometry)
 		, m_Flags(flags)
 		, m_VolumeSRV(volumeSRV)
 	{}
 
 	// Getters
-	inline const AABBGeometry& GetGeometry() const { return m_Geometry; };
+	inline const AABBGeometry& GetGeometry() const { return *m_Geometry; };
 
-	inline UINT GetAABBCount() const { return m_Geometry.GetAABBCount(); }
-	inline D3D12_GPU_VIRTUAL_ADDRESS_AND_STRIDE GetAABBBuffer() const { return m_Geometry.GetAABBBuffer(); }
-	inline D3D12_GPU_VIRTUAL_ADDRESS GetPrimitiveDataBuffer() const { return m_Geometry.GetPrimitiveDataBuffer(); }
+	inline UINT GetAABBCount() const { return m_Geometry->GetAABBCount(); }
+	inline D3D12_GPU_VIRTUAL_ADDRESS_AND_STRIDE GetAABBBuffer() const { return m_Geometry->GetAABBBuffer(); }
+	inline D3D12_GPU_VIRTUAL_ADDRESS GetPrimitiveDataBuffer() const { return m_Geometry->GetPrimitiveDataBuffer(); }
 
 	inline D3D12_RAYTRACING_GEOMETRY_FLAGS GetFlags() const { return m_Flags; }
 
@@ -53,7 +53,7 @@ public:
 	inline D3D12_GPU_DESCRIPTOR_HANDLE GetVolumeSRV() const { return m_VolumeSRV; }
 
 private:
-	const AABBGeometry& m_Geometry;
+	const AABBGeometry* m_Geometry = nullptr;
 
 	D3D12_RAYTRACING_GEOMETRY_FLAGS m_Flags;
 
