@@ -3,6 +3,7 @@
 
 
 using Microsoft::WRL::ComPtr;
+using namespace DirectX;
 
 
 // Acceleration Structure base class for functionality shared between bottom- and top-level structures
@@ -20,7 +21,7 @@ public:
 	inline const std::wstring& GetName() const { return m_Name; }
 
 	inline void SetDirty(bool dirty) { m_IsDirty = dirty; }
-	inline bool GetDirty() const { return m_IsDirty; }
+	inline bool IsDirty() const { return m_IsDirty; }
 
 	inline UINT64 GetResourceSize() const { return m_AccelerationStructure.GetResource()->GetDesc().Width; }
 
@@ -44,15 +45,21 @@ protected:
 };
 
 
+struct AABBGeometryInstance
+{
+	D3DUploadBuffer<D3D12_RAYTRACING_AABB> Buffer;
+	D3D12_RAYTRACING_GEOMETRY_FLAGS Flags;
+};
+
 
 // A description of all the geometry contained within a bottom level acceleration structure
-class BottomLevelAccelerationStructureGeometry
+// Currently this only describes AABB geometry
+struct BottomLevelAccelerationStructureGeometry
 {
-public:
+	std::wstring Name;
 
-
-	inline const std::wstring& GetName() const;
-
+	// Each contains a collection of AABBs
+	std::vector<AABBGeometryInstance> GeometryInstances;
 };
 
 
@@ -99,19 +106,23 @@ class RaytracingAccelerationStructureManager
 {
 	RaytracingAccelerationStructureManager(UINT numBottomLevelInstances, UINT frameCount);
 
-	void AddBottomLevelAS();
-	void AddBottomLevelASInstance();
+	void AddBottomLevelAS(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags, BottomLevelAccelerationStructureGeometry& geometry, bool allowUpdate, bool updateOnBuild);
+	UINT AddBottomLevelASInstance(const std::wstring& bottomLevelASName, UINT instanceContributionToHitGroupIndex, XMMATRIX transform, BYTE instanceMask);
 
-	void InitializeTopLevelAS();
+	void InitializeTopLevelAS(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags, bool allowUpdate, bool updateOnBuild, const wchar_t* resourceName);
 
-	void Build();
+	void Build(bool forceBuild = false);
 
 private:
 	TopLevelAccelerationStructure m_TopLevelAS;
 	std::map<std::wstring, BottomLevelAccelerationStructure> m_BottomLevelAS;
 
 	D3DUploadBuffer<D3D12_RAYTRACING_INSTANCE_DESC> m_BottomLevelInstanceDescs;
+	// A staging buffer where instance descs are collected
+	// They are then copied into the upload buffer when the acceleration structure is built
+	std::vector<D3D12_RAYTRACING_INSTANCE_DESC> m_BottomLevelInstanceDescsStaging;
+	UINT m_NumBottomLevelInstances = 0;
 
-	ComPtr<ID3D12Resource> m_ScratchResource;
+	D3DUAVBuffer m_ScratchResource;
 	UINT m_ScratchResourceSize = 0;
 }; 

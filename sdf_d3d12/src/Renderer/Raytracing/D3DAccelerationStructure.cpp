@@ -17,7 +17,7 @@ void BottomLevelAccelerationStructure::Initialize(D3D12_RAYTRACING_ACCELERATION_
 	m_UpdateOnBuild = updateOnBuild;
 
 	m_BuildFlags = buildFlags;
-	m_Name = geometry.GetName();
+	m_Name = geometry.Name;
 
 	if (m_AllowUpdate)
 	{
@@ -70,11 +70,21 @@ void BottomLevelAccelerationStructure::Build(ID3D12Resource* scratch)
 
 void BottomLevelAccelerationStructure::BuildGeometryDescs(BottomLevelAccelerationStructureGeometry& geometry)
 {
-	NOT_IMPLEMENTED;
-
-	D3D12_RAYTRACING_GEOMETRY_DESC geometryDescTemplate;
+	D3D12_RAYTRACING_GEOMETRY_DESC geometryDescTemplate = {};
 	geometryDescTemplate.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS;
-	geometryDescTemplate.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
+
+	m_GeometryDescs.reserve(geometry.GeometryInstances.size());
+
+	for (const auto& geometryInstance : geometry.GeometryInstances)
+	{
+		m_GeometryDescs.push_back(geometryDescTemplate);
+		auto& desc = m_GeometryDescs.back();
+
+		desc.Flags = geometryInstance.Flags;
+		desc.AABBs.AABBCount = geometryInstance.Buffer.GetElementCount();
+		desc.AABBs.AABBs.StartAddress = geometryInstance.Buffer.GetAddressOfElement(0, 0);
+		desc.AABBs.AABBs.StrideInBytes = geometryInstance.Buffer.GetElementStride();
+	}
 }
 
 void BottomLevelAccelerationStructure::ComputePrebuildInfo()
@@ -156,25 +166,79 @@ RaytracingAccelerationStructureManager::RaytracingAccelerationStructureManager(U
 		frameCount, 
 		16, 
 		L"Bottom Level Acceleration Structure Instance Descs")
+	, m_BottomLevelInstanceDescsStaging(numBottomLevelInstances, D3D12_RAYTRACING_INSTANCE_DESC{})
 {
 }
 
-void RaytracingAccelerationStructureManager::AddBottomLevelAS()
+void RaytracingAccelerationStructureManager::AddBottomLevelAS(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags, BottomLevelAccelerationStructureGeometry& geometry, bool allowUpdate, bool updateOnBuild)
 {
-	
+	ASSERT(m_BottomLevelAS.find(geometry.Name) == m_BottomLevelAS.end(), "A bottom level acceleration structure with that name already exists");
+
+	auto& bottomLevelAS = m_BottomLevelAS[geometry.Name];
+	bottomLevelAS.Initialize(buildFlags, geometry, allowUpdate, updateOnBuild);
+
+	m_ScratchResourceSize = max(bottomLevelAS.GetRequiredScratchSize(), m_ScratchResourceSize);
 }
 
-void RaytracingAccelerationStructureManager::AddBottomLevelASInstance()
+UINT RaytracingAccelerationStructureManager::AddBottomLevelASInstance(const std::wstring& bottomLevelASName, UINT instanceContributionToHitGroupIndex, XMMATRIX transform, BYTE instanceMask)
 {
-	
+	ASSERT(m_NumBottomLevelInstances < m_BottomLevelInstanceDescs.GetElementCount(), "Not enough instance desc buffer size.");
+	ASSERT(m_BottomLevelAS.find(bottomLevelASName) != m_BottomLevelAS.end(), "Bottom level AS does not exist.");
+
+	const UINT instanceIndex = m_NumBottomLevelInstances++;
+	const auto& bottomLevelAS = m_BottomLevelAS.at(bottomLevelASName);
+
+	// Populate the next element in the staging buffer
+	D3D12_RAYTRACING_INSTANCE_DESC& instanceDesc = m_BottomLevelInstanceDescsStaging.at(instanceIndex);
+	instanceDesc.InstanceMask = instanceMask;
+	instanceDesc.InstanceContributionToHitGroupIndex = instanceContributionToHitGroupIndex != UINT_MAX ? 
+		instanceContributionToHitGroupIndex : bottomLevelAS.GetInstanceContributionToHitGroupIndex();
+	instanceDesc.AccelerationStructure = bottomLevelAS.GetResource()->GetGPUVirtualAddress();
+	XMStoreFloat3x4(reinterpret_cast<XMFLOAT3X4*>(instanceDesc.Transform), transform);
+
+	return instanceIndex;
 }
 
-void RaytracingAccelerationStructureManager::InitializeTopLevelAS()
+void RaytracingAccelerationStructureManager::InitializeTopLevelAS(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags, bool allowUpdate, bool updateOnBuild, const wchar_t* resourceName)
 {
-	
+	m_TopLevelAS.Initialize(m_NumBottomLevelInstances, buildFlags, allowUpdate, updateOnBuild, resourceName);
+
+	m_ScratchResourceSize = max(m_TopLevelAS.GetRequiredScratchSize(), m_ScratchResourceSize);
+
+	// allocate buffer for scratch resource
+	m_ScratchResource.Allocate(g_D3DGraphicsContext->GetDevice(), m_ScratchResourceSize, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, L"Acceleration Structure Scratch Resource");
 }
 
-void RaytracingAccelerationStructureManager::Build()
+void RaytracingAccelerationStructureManager::Build(bool forceBuild)
 {
-	
+	const auto commandList = g_D3DGraphicsContext->GetCommandList();
+
+	// Copy staging buffer to GPU
+	m_BottomLevelInstanceDescs.CopyElements(0, m_NumBottomLevelInstances, g_D3DGraphicsContext->GetCurrentBackBuffer(), m_BottomLevelInstanceDescsStaging.data());
+
+	// Build all bottom level AS
+	{
+		for (auto&[name, bottomLevelAS] : m_BottomLevelAS)
+		{
+			if (forceBuild || bottomLevelAS.IsDirty())
+			{
+				bottomLevelAS.Build(m_ScratchResource.GetResource());
+
+				// Since a single scratch resource is reused, put a barrier in-between each call.
+				// TODO: PERFORMANCE tip: use separate scratch memory per BLAS build to allow a GPU driver to overlap build calls.
+				const auto barrier = CD3DX12_RESOURCE_BARRIER::UAV(bottomLevelAS.GetResource());
+				commandList->ResourceBarrier(1, &barrier);
+			}
+		}
+	}
+
+	// Build the top level AS
+	{
+		m_TopLevelAS.Build(m_NumBottomLevelInstances,
+			m_BottomLevelInstanceDescs.GetAddressOfElement(0, g_D3DGraphicsContext->GetCurrentBackBuffer()),
+			m_ScratchResource.GetResource());
+
+		const auto barrier = CD3DX12_RESOURCE_BARRIER::UAV(m_TopLevelAS.GetResource());
+		commandList->ResourceBarrier(1, &barrier);
+	}
 }
