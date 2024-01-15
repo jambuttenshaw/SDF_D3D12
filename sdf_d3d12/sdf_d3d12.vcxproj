@@ -224,7 +224,7 @@
     <ClInclude Include="src\Renderer\Geometry\Geometry.h" />
     <ClInclude Include="src\Renderer\Hlsl\HlslCompat.h" />
     <ClInclude Include="src\Renderer\Hlsl\RaytracingHlslCompat.h" />
-    <ClInclude Include="src\Renderer\Hlsl\RaytracingSceneDefines.h" />
+    <ClInclude Include="src\Renderer\Raytracing\RaytracingSceneDefines.h" />
     <ClInclude Include="src\Renderer\Memory\D3DMemoryAllocator.h" />
     <ClInclude Include="src\Renderer\Raytracing\D3DAccelerationStructure.h" />
     <ClInclude Include="src\SDF\SDFFactory.h" />

@@ -12,8 +12,7 @@
 #include "Framework/GameTimer.h"
 #include "Framework/Camera.h"
 
-#include "Hlsl/RaytracingSceneDefines.h"
-#include "SDF/SDFObject.h"
+#include "Raytracing/RaytracingSceneDefines.h"
 
 
 D3DGraphicsContext* g_D3DGraphicsContext = nullptr;
@@ -199,7 +198,6 @@ void D3DGraphicsContext::DrawRaytracing(const Scene& scene) const
 	m_CommandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, m_RaytracingOutputDescriptor.GetGPUHandle(0));
 	m_CommandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::AccelerationStructureSlot, scene.GetRaytracingAccelerationStructure()->GetAccelerationStructureAddress());
 	m_CommandList->SetComputeRootConstantBufferView(GlobalRootSignatureParams::PassBufferSlot, m_CurrentFrameResources->GetPassCBAddress());
-	m_CommandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::AABBAttributesBuffer, m_PrimitiveAttributes->GetAddressOfElement(0, m_FrameIndex));
 
 	m_DXRCommandList->SetPipelineState1(m_DXRStateObject.Get());
 
@@ -275,31 +273,6 @@ void D3DGraphicsContext::UpdatePassCB(GameTimer* timer, Camera* camera)
 
 	m_CurrentFrameResources->CopyPassData(m_MainPassCB);
 }
-
-void D3DGraphicsContext::UpdateAABBPrimitiveAttributes(const Scene& scene)
-{
-	// Updates the data in the primitive attributes buffer
-	auto& AABBs = scene.GetAllGeometries().at(0).GeometryInstances.at(0).GetAABBs();
-	for (UINT element = 0; element < static_cast<UINT>(AABBs.size()); element++)
-	{
-		auto& aabb = AABBs.at(element);
-		PrimitiveInstancePerFrameBuffer instanceData;
-
-		const XMVECTOR translation =
-			0.5f * (XMLoadFloat3((XMFLOAT3*)(&aabb.MinX))
-				  + XMLoadFloat3((XMFLOAT3*)(&aabb.MaxX)));
-		const XMMATRIX transform = XMMatrixTranslationFromVector(translation);
-
-		instanceData.AABBMin = { aabb.MinX, aabb.MinY, aabb.MinZ, 1.0f };
-		instanceData.AABBMax = { aabb.MaxX, aabb.MaxY, aabb.MaxZ, 1.0f };
-		instanceData.LocalSpaceToBottomLevelAS = XMMatrixTranspose(transform);
-		instanceData.BottomLevelASToLocalSpace = XMMatrixTranspose(XMMatrixInverse(nullptr, transform));
-
-		// Copy into the buffer
-		m_PrimitiveAttributes->CopyElement(element, m_FrameIndex, instanceData);
-	}
-}
-
 
 
 void D3DGraphicsContext::Resize(UINT width, UINT height)
@@ -626,7 +599,6 @@ void D3DGraphicsContext::CreateRootSignatures()
 		rootParameters[GlobalRootSignatureParams::OutputViewSlot].InitAsDescriptorTable(1, &UAVDescriptor);
 		rootParameters[GlobalRootSignatureParams::AccelerationStructureSlot].InitAsShaderResourceView(0);
 		rootParameters[GlobalRootSignatureParams::PassBufferSlot].InitAsConstantBufferView(0);
-		rootParameters[GlobalRootSignatureParams::AABBAttributesBuffer].InitAsShaderResourceView(1);
 
 		// Create a static sampler
 		D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
@@ -653,10 +625,11 @@ void D3DGraphicsContext::CreateRootSignatures()
 	// This root signature is only used by the hit group
 	{
 		CD3DX12_DESCRIPTOR_RANGE SRVDescriptor;
-		SRVDescriptor.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
+		SRVDescriptor.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 1);
 
 		CD3DX12_ROOT_PARAMETER rootParameters[LocalRootSignatureParams::Count];
 		rootParameters[LocalRootSignatureParams::SDFVolumeSlot].InitAsDescriptorTable(1, &SRVDescriptor);
+		rootParameters[LocalRootSignatureParams::AABBPrimitiveDataSlot].InitAsShaderResourceView(1, 1);
 
 		CD3DX12_ROOT_SIGNATURE_DESC localRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE);
 		SerializeAndCreateRaytracingRootSignature(localRootSignatureDesc, &m_RaytracingLocalRootSignature);
@@ -750,16 +723,9 @@ void D3DGraphicsContext::CreateRaytracingOutputResource()
 }
 
 
-void D3DGraphicsContext::AddObjectToScene(SDFObject* object)
-{
-	// Add an object to the scene
-	m_SceneObjects.push_back(object);
-}
-
-
 // Build shader tables.
 // This encapsulates all shader records - shaders and the arguments for their local root signatures.
-void D3DGraphicsContext::BuildShaderTables()
+void D3DGraphicsContext::BuildShaderTables(const Scene& scene)
 {
 	void* rayGenShaderIdentifier;
 	void* missShaderIdentifier;
@@ -797,15 +763,40 @@ void D3DGraphicsContext::BuildShaderTables()
 	}
 
 	// Hit group shader table
+
+	// Construct an entry for each geometry instance
 	{
-		UINT numShaderRecords = 1;
+		const auto& bottomLevelASGeometries = scene.GetAllGeometries();
+		const auto accelerationStructure = scene.GetRaytracingAccelerationStructure();
+
+		UINT numShaderRecords = 0;
+		for (auto& bottomLevelASGeometry : bottomLevelASGeometries)
+		{
+			numShaderRecords += static_cast<UINT>(bottomLevelASGeometry.GeometryInstances.size());
+		}
+
 		UINT shaderRecordSize = shaderIDSize + sizeof(LocalRootSignatureParams::RootArguments);
-
-		LocalRootSignatureParams::RootArguments rootArgs;
-		rootArgs.volumeSRV = m_SceneObjects.at(0)->GetSRV();
-
 		m_HitGroupShaderTable = std::make_unique<D3DShaderTable>(m_Device.Get(), numShaderRecords, shaderRecordSize, L"HitGroupShaderTable");
-		m_HitGroupShaderTable->AddRecord(D3DShaderRecord{ hitGroupShaderIdentifier, shaderIDSize, &rootArgs, sizeof(rootArgs) });
+
+		for (auto& bottomLevelASGeometry : bottomLevelASGeometries)
+		{
+			const UINT shaderRecordOffset = m_HitGroupShaderTable->GetNumRecords();
+			accelerationStructure->GetBottomLevelAS(bottomLevelASGeometry.Name).SetInstanceContributionToHitGroupIndex(shaderRecordOffset);
+
+			for (auto& geometryInstance : bottomLevelASGeometry.GeometryInstances)
+			{
+				LocalRootSignatureParams::RootArguments rootArgs;
+				rootArgs.volumeSRV = geometryInstance.GetVolumeSRV();
+				rootArgs.aabbPrimitiveData = geometryInstance.GetPrimitiveDataBuffer();
+
+				m_HitGroupShaderTable->AddRecord(D3DShaderRecord{ 
+					hitGroupShaderIdentifier,
+					shaderIDSize,
+					&rootArgs,
+					sizeof(rootArgs)
+				});
+			}
+		}
 	}
 }
 
@@ -820,15 +811,6 @@ void D3DGraphicsContext::CreateProjectionMatrix()
 void D3DGraphicsContext::CreateAssets()
 {
 	m_GraphicsPipeline = std::make_unique<D3DGraphicsPipeline>();
-
-	
-	m_PrimitiveAttributes = std::make_unique<D3DUploadBuffer<PrimitiveInstancePerFrameBuffer>>(
-		m_Device.Get(),
-		1,									// Only one AABB exists for now
-		s_FrameCount,						// Protect this resource by buffering it; it will be modified every frame. This could be moved to the frame resources?
-		16,									// Align structured buffers to 16 byte boundaries for better performance
-		L"Primitive Instance Buffer"
-	);
 }
 
 

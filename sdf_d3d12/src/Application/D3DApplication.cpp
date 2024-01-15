@@ -26,34 +26,13 @@ void D3DApplication::OnInit()
 
 	m_CameraController = CameraController{ m_InputManager.get(), &m_Camera };
 
-	// Create SDF factory
-	m_SDFFactory = std::make_unique<SDFFactory>();
-
-	// Create an SDF object
-	m_SDFObject = std::make_unique<SDFObject>(256, 256, 256);
-
-	m_SDFObject->AddPrimitive(SDFPrimitive::CreateBox(
-		{ 0.0f, -0.25f, 0.0f },
-		{ 0.4f, 0.4f, 0.4f }));
-	m_SDFObject->AddPrimitive(SDFPrimitive::CreateOctahedron({0.0f, -0.25f, 0.0f}, 0.6f));
-	m_SDFObject->AddPrimitive(SDFPrimitive::CreateSphere({0.0f, 0.25f, 0.0f}, 0.4f, SDFOperation::Subtraction));
-
-	// Add a torus on top
-	Transform torusTransform(0.0f, 0.25f, 0.0f);
-	torusTransform.SetPitch(XMConvertToRadians(90.0f));
-	m_SDFObject->AddPrimitive(SDFPrimitive::CreateTorus(torusTransform, 0.2f, 0.05f, SDFOperation::SmoothUnion, 0.25f));
 	
-
-	// Bake the primitives into the SDF object
-	m_SDFFactory->BakeSDFSynchronous(m_SDFObject.get());
-
-	m_GraphicsContext->AddObjectToScene(m_SDFObject.get());
 
 
 	m_Scene = std::make_unique<Scene>();
 
 	// Build acceleration structure and shader tables
-	m_GraphicsContext->BuildShaderTables();
+	m_GraphicsContext->BuildShaderTables(*m_Scene);
 }
 
 void D3DApplication::OnUpdate()
@@ -68,19 +47,6 @@ void D3DApplication::OnUpdate()
 	{
 		ImGui::LabelText("FPS", "%.1f", m_Timer.GetFPS());
 	}
-	/*
-	ImGui::Separator();
-	{
-		ImGui::Text("Display");
-
-		static const char* s_DisplayModes[] = { "Default", "Display Bounding Box", "Display Normals", "Display Heatmap" };
-		int currentMode = static_cast<int>(m_CurrentDisplayMode);
-		if (ImGui::Combo("Mode", &currentMode, s_DisplayModes, _countof(s_DisplayModes)))
-		{
-			m_CurrentDisplayMode = static_cast<DisplayMode>(currentMode);
-		}
-	}
-	*/
 	ImGui::Separator();
 	{
 		ImGui::Text("Camera");
@@ -98,7 +64,6 @@ void D3DApplication::OnUpdate()
 		ImGui::Separator();
 
 		m_CameraController.Gui();
-
 	}
 
 	ImGui::End();
@@ -110,17 +75,15 @@ void D3DApplication::OnRender()
 {
 	// Update constant buffer
 	m_GraphicsContext->UpdatePassCB(&m_Timer, &m_Camera);
-	m_GraphicsContext->UpdateAABBPrimitiveAttributes(*m_Scene);
 
 	// Begin drawing
 	m_GraphicsContext->StartDraw();
 
 	// Tell the scene that render is happening
+	// This will update acceleration structures and other things to render the scene
 	m_Scene->OnRender();
 
 	// Draw all items
-	//m_GraphicsContext->DrawItems(m_Pipelines[m_CurrentDisplayMode].get());
-	//m_GraphicsContext->DrawVolume(m_Pipelines[m_CurrentDisplayMode].get(), m_SDFObject->GetSRV());
 	m_GraphicsContext->DrawRaytracing(*m_Scene);
 
 	// ImGui Render
@@ -142,9 +105,7 @@ void D3DApplication::OnRender()
 
 void D3DApplication::OnDestroy()
 {
-	// Release resources used by the graphics context
-	m_SDFObject.reset();
-	m_SDFFactory.reset();
+	m_Scene.reset();
 
 	// Release graphics context
 	m_GraphicsContext.reset();

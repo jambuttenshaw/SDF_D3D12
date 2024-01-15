@@ -6,31 +6,62 @@
 
 Scene::Scene()
 {
-	// Construct scene geometry
-	m_SceneGeometry.push_back({ L"AABB Geometry" });
-
-	// Construct a geometry instance
-	AABBGeometryInstance geometryInstance{ 1, D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE };
-	geometryInstance.AddAABB({ 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f, 1.0f });
-	m_SceneGeometry.at(0).GeometryInstances.push_back(geometryInstance);
-
-	// Set up acceleration structure
-
-	constexpr D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
-	m_AccelerationStructure = std::make_unique<RaytracingAccelerationStructureManager>(1, D3DGraphicsContext::GetBackBufferCount());
-
-	for (auto& geometry : m_SceneGeometry)
+	// Build SDF Object
 	{
-		m_AccelerationStructure->AddBottomLevelAS(buildFlags, geometry, false, false);
+		// Create SDF factory
+		m_SDFFactory = std::make_unique<SDFFactory>();
+
+		// Create an SDF object
+		m_SDFObject = std::make_unique<SDFObject>(256, 256, 256);
+
+		m_SDFObject->AddPrimitive(SDFPrimitive::CreateBox(
+			{ 0.0f, -0.25f, 0.0f },
+			{ 0.4f, 0.4f, 0.4f }));
+		m_SDFObject->AddPrimitive(SDFPrimitive::CreateOctahedron({ 0.0f, -0.25f, 0.0f }, 0.6f));
+		m_SDFObject->AddPrimitive(SDFPrimitive::CreateSphere({ 0.0f, 0.25f, 0.0f }, 0.4f, SDFOperation::Subtraction));
+
+		// Add a torus on top
+		Transform torusTransform(0.0f, 0.25f, 0.0f);
+		torusTransform.SetPitch(XMConvertToRadians(90.0f));
+		m_SDFObject->AddPrimitive(SDFPrimitive::CreateTorus(torusTransform, 0.2f, 0.05f, SDFOperation::SmoothUnion, 0.25f));
+
+
+		// Bake the primitives into the SDF object
+		m_SDFFactory->BakeSDFSynchronous(m_SDFObject.get());
 	}
 
-	// Create one instance of each bottom level AS
-	for (const auto& geometry : m_SceneGeometry)
 	{
-		m_AccelerationStructure->AddBottomLevelASInstance(geometry.Name, UINT_MAX, XMMatrixIdentity(), 1);
+		// Construct scene geometry
+		m_SceneGeometry.push_back({ L"AABB Geometry" });
+		auto& aabbGeometry = m_SceneGeometry.at(0);
+
+		// Construct geometry
+		
+		aabbGeometry.Geometry.emplace_back(1);
+		aabbGeometry.Geometry.back().AddAABB({ 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f, 1.0f });
+
+		// Construct a geometry instance
+		aabbGeometry.GeometryInstances.push_back({ aabbGeometry.Geometry.back(), D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE, m_SDFObject->GetSRV() });
 	}
-	// Init top level AS
-	m_AccelerationStructure->InitializeTopLevelAS(buildFlags, false, false, L"Top Level Acceleration Structure");
+
+	{
+		// Set up acceleration structure
+		constexpr D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
+		m_AccelerationStructure = std::make_unique<RaytracingAccelerationStructureManager>(1, D3DGraphicsContext::GetBackBufferCount());
+
+		for (auto& geometry : m_SceneGeometry)
+		{
+			m_AccelerationStructure->AddBottomLevelAS(buildFlags, geometry, false, false);
+		}
+
+		// Create one instance of each bottom level AS
+		for (const auto& geometry : m_SceneGeometry)
+		{
+			m_AccelerationStructure->AddBottomLevelASInstance(geometry.Name, UINT_MAX, XMMatrixIdentity(), 1);
+		}
+		// Init top level AS
+		m_AccelerationStructure->InitializeTopLevelAS(buildFlags, false, false, L"Top Level Acceleration Structure");
+	}
 }
 
 

@@ -48,7 +48,10 @@ public:
 
 	// Updating constant buffers
 	void UpdatePassCB(GameTimer* timer, Camera* camera);
-	void UpdateAABBPrimitiveAttributes(const Scene& scene);
+
+	// Build a shader table for a specific scene
+	void BuildShaderTables(const Scene& scene);
+
 
 	void Resize(UINT width, UINT height);
 
@@ -82,17 +85,6 @@ public:
 	// DXR objects
 	inline ID3D12Device5* GetDXRDevice() const { return m_DXRDevice.Get(); }
 	inline ID3D12GraphicsCommandList4* GetDXRCommandList() const { return m_DXRCommandList.Get(); }
-
-
-public:
-
-	// Scene building
-	// Construct the objects in the scene before building the acceleration structure and the shader table
-
-	void AddObjectToScene(class SDFObject* object);
-
-	void BuildShaderTables();
-
 
 private:
 	// Startup
@@ -213,14 +205,6 @@ private:
 
 	// Pipeline assets
 	std::unique_ptr<D3DGraphicsPipeline> m_GraphicsPipeline;
-
-	// Primitives
-	std::unique_ptr<D3DUploadBuffer<PrimitiveInstancePerFrameBuffer>> m_PrimitiveAttributes;
-
-
-	// Scene
-	std::vector<SDFObject*> m_SceneObjects;
-
 
 	// ImGui Resources
 	D3DDescriptorAllocation m_ImGuiResources;

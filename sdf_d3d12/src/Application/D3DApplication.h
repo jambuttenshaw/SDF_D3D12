@@ -8,8 +8,6 @@
 #include "Framework/CameraController.h"
 #include "Framework/GameTimer.h"
 
-#include "SDF/SDFFactory.h"
-#include "SDF/SDFObject.h"
 
 // Forward declarations
 class RenderItem;
@@ -45,7 +43,4 @@ private:
 	CameraController m_CameraController;
 
 	std::unique_ptr<Scene> m_Scene;
-
-	std::unique_ptr<SDFFactory> m_SDFFactory;
-	std::unique_ptr<SDFObject> m_SDFObject;
 };

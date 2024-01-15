@@ -3,6 +3,9 @@
 
 #include "Renderer/Raytracing/D3DAccelerationStructure.h"
 
+#include "SDF/SDFFactory.h"
+#include "SDF/SDFObject.h"
+
 
 class Scene
 {
@@ -27,4 +30,8 @@ private:
 	std::vector<BottomLevelAccelerationStructureGeometry> m_SceneGeometry;
 
 	std::unique_ptr<RaytracingAccelerationStructureManager> m_AccelerationStructure;
+
+	// SDF Objects
+	std::unique_ptr<SDFFactory> m_SDFFactory;
+	std::unique_ptr<SDFObject> m_SDFObject;
 };

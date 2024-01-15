@@ -53,8 +53,12 @@ struct BottomLevelAccelerationStructureGeometry
 {
 	std::wstring Name;
 
-	// Each contains a collection of AABBs
+	// An instance of a geometry
+	// Supplies instance-specific data such as the volume texture and geometry flags
 	std::vector<AABBGeometryInstance> GeometryInstances;
+
+	// Each contains a collection of AABBs
+	std::vector<AABBGeometry> Geometry;
 };
 
 
@@ -111,6 +115,9 @@ public:
 
 
 	// Getters
+
+	inline BottomLevelAccelerationStructure& GetBottomLevelAS(const std::wstring& name) { return m_BottomLevelAS.at(name); }
+
 	inline D3D12_GPU_VIRTUAL_ADDRESS GetAccelerationStructureAddress() const { return m_TopLevelAS.GetResource()->GetGPUVirtualAddress(); }
 
 private:

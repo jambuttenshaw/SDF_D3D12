@@ -80,7 +80,7 @@ void BottomLevelAccelerationStructure::BuildGeometryDescs(BottomLevelAcceleratio
 
 		desc.Flags = geometryInstance.GetFlags();
 		desc.AABBs.AABBCount = geometryInstance.GetAABBCount();
-		desc.AABBs.AABBs = geometryInstance.GetBuffer();
+		desc.AABBs.AABBs = geometryInstance.GetAABBBuffer();
 	}
 }
 

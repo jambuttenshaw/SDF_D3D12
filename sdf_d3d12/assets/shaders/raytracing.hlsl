@@ -7,17 +7,19 @@
 #include "ray_helper.hlsli"
 
 
-RaytracingAccelerationStructure g_Scene : register(t0, space0);
+RaytracingAccelerationStructure g_Scene : register(t0);
 RWTexture2D<float4> g_RenderTarget : register(u0);
 
 ConstantBuffer<PassConstantBuffer> g_PassCB : register(b0);
-StructuredBuffer<PrimitiveInstancePerFrameBuffer> g_InstanceBuffer : register(t1);
 
 SamplerState g_Sampler : register(s0);
 
+
+
 // The SDF volume that will be ray-marched in the intersection shader
 // This is a local root argument
-Texture3D<float> l_SDFVolume : register(t2);
+Texture3D<float> l_SDFVolume : register(t0, space1);
+StructuredBuffer<AABBPrimitiveData> l_PrimitiveBuffer: register(t1, space1);
 
 
 #define NORMAL_DELTA_X float3(0.01f, 0.0f, 0.0f)
@@ -45,7 +47,7 @@ inline void GenerateCameraRay(uint2 index, out float3 origin, out float3 directi
 // Get ray in AABB's local space.
 Ray GetRayInAABBPrimitiveLocalSpace()
 {
-	PrimitiveInstancePerFrameBuffer attr = g_InstanceBuffer[InstanceID()];
+	AABBPrimitiveData attr = l_PrimitiveBuffer[PrimitiveIndex()];
 
     // Retrieve a ray origin position and direction in bottom level AS space 
     // and transform them into the AABB primitive's local space.
@@ -99,9 +101,9 @@ void MyIntersectionShader()
 	float3 aabb[2];
 	float tMin, tMax;
 	{
-		const PrimitiveInstancePerFrameBuffer attr = g_InstanceBuffer[InstanceID()];
-		aabb[0] = mul(g_InstanceBuffer[InstanceID()].AABBMin, attr.BottomLevelASToLocalSpace).xyz;
-		aabb[1] = mul(g_InstanceBuffer[InstanceID()].AABBMax, attr.BottomLevelASToLocalSpace).xyz;
+		AABBPrimitiveData attr = l_PrimitiveBuffer[PrimitiveIndex()];
+		aabb[0] = mul(attr.AABBMin, attr.BottomLevelASToLocalSpace).xyz;
+		aabb[1] = mul(attr.AABBMax, attr.BottomLevelASToLocalSpace).xyz;
 	}
 
 	// Get the tmin and tmax of the intersection between the ray and this aabb

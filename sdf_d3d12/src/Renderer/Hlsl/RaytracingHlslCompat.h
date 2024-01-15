@@ -43,9 +43,8 @@ struct PassConstantBuffer
 };
 
 
-// Dynamic attributes per primitive instance.
-// This can contain data that will change each frame
-struct PrimitiveInstancePerFrameBuffer
+// Data used to describe each primitive to the shader
+struct AABBPrimitiveData
 {
 	XMFLOAT4 AABBMin;
 	XMFLOAT4 AABBMax;
@@ -53,6 +52,5 @@ struct PrimitiveInstancePerFrameBuffer
 	XMMATRIX LocalSpaceToBottomLevelAS;
 	XMMATRIX BottomLevelASToLocalSpace;
 };
-
 
 #endif
