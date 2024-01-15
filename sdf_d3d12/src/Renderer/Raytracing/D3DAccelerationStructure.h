@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Renderer/D3DBuffer.h"
+#include "Renderer/Geometry/Geometry.h"
 
 
 using Microsoft::WRL::ComPtr;
@@ -43,15 +44,6 @@ protected:
 
 	bool m_UpdateOnBuild = false;
 	bool m_AllowUpdate = false;
-};
-
-
-struct AABBGeometryInstance
-{
-	std::vector<D3D12_RAYTRACING_AABB> AABBs;
-	D3DUploadBuffer<D3D12_RAYTRACING_AABB> Buffer;
-
-	D3D12_RAYTRACING_GEOMETRY_FLAGS Flags;
 };
 
 

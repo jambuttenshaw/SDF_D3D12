@@ -148,6 +148,7 @@
   <ItemGroup>
     <ClCompile Include="src\Application\BaseApplication.cpp" />
     <ClCompile Include="src\Application\D3DApplication.cpp" />
+    <ClCompile Include="src\Application\Scene.cpp" />
     <ClCompile Include="src\Framework\Camera.cpp" />
     <ClCompile Include="src\Framework\CameraController.cpp" />
     <ClCompile Include="src\Framework\GameTimer.cpp" />
@@ -163,6 +164,7 @@
     <ClCompile Include="src\Renderer\D3DGraphicsContext.cpp" />
     <ClCompile Include="src\Renderer\D3DPipeline.cpp" />
     <ClCompile Include="src\Renderer\D3DShaderCompiler.cpp" />
+    <ClCompile Include="src\Renderer\Geometry\Geometry.cpp" />
     <ClCompile Include="src\Renderer\Memory\D3DMemoryAllocator.cpp" />
     <ClCompile Include="src\Renderer\D3DShaderTable.cpp" />
     <ClCompile Include="src\Renderer\Raytracing\D3DAccelerationStructure.cpp" />
@@ -200,6 +202,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Application\Scene.h" />
     <ClInclude Include="src\Framework\Camera.h" />
     <ClInclude Include="src\Framework\CameraController.h" />
     <ClInclude Include="src\Framework\Exception.h" />
@@ -218,6 +221,7 @@
     <ClInclude Include="src\Renderer\D3DPipeline.h" />
     <ClInclude Include="src\Renderer\D3DShaderCompiler.h" />
     <ClInclude Include="src\Renderer\D3DShaderTable.h" />
+    <ClInclude Include="src\Renderer\Geometry\Geometry.h" />
     <ClInclude Include="src\Renderer\Hlsl\HlslCompat.h" />
     <ClInclude Include="src\Renderer\Hlsl\RaytracingHlslCompat.h" />
     <ClInclude Include="src\Renderer\Hlsl\RaytracingSceneDefines.h" />

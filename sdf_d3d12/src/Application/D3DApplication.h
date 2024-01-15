@@ -1,6 +1,7 @@
 #pragma once
 
 #include "BaseApplication.h"
+#include "Scene.h"
 
 #include "Renderer/D3DGraphicsContext.h"
 #include "Framework/Camera.h"
@@ -42,6 +43,8 @@ private:
 	GameTimer m_Timer;
 	Camera m_Camera;
 	CameraController m_CameraController;
+
+	std::unique_ptr<Scene> m_Scene;
 
 	std::unique_ptr<SDFFactory> m_SDFFactory;
 	std::unique_ptr<SDFObject> m_SDFObject;

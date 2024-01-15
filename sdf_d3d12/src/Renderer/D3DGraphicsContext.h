@@ -17,8 +17,11 @@ class RenderItem;
 class GameTimer;
 class Camera;
 
+class Scene;
+
 class D3DFrameResources;
 
+// Make the graphics context globally accessible
 class D3DGraphicsContext;
 extern D3DGraphicsContext* g_D3DGraphicsContext;
 
@@ -41,11 +44,11 @@ public:
 	void StartDraw() const;
 	void EndDraw() const;
 
-	void DrawRaytracing() const;
+	void DrawRaytracing(const Scene& scene) const;
 
 	// Updating constant buffers
 	void UpdatePassCB(GameTimer* timer, Camera* camera);
-	void UpdateAABBPrimitiveAttributes();
+	void UpdateAABBPrimitiveAttributes(const Scene& scene);
 
 	void Resize(UINT width, UINT height);
 
@@ -88,8 +91,6 @@ public:
 
 	void AddObjectToScene(class SDFObject* object);
 
-	void BuildGeometry();
-	void BuildAccelerationStructures();
 	void BuildShaderTables();
 
 
@@ -219,9 +220,6 @@ private:
 
 	// Scene
 	std::vector<SDFObject*> m_SceneObjects;
-
-	BottomLevelAccelerationStructureGeometry m_AccelerationStructureGeometry;
-	std::unique_ptr<RaytracingAccelerationStructureManager> m_AccelerationStructure;
 
 
 	// ImGui Resources

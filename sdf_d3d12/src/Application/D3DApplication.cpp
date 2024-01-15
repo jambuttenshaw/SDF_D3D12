@@ -49,14 +49,18 @@ void D3DApplication::OnInit()
 
 	m_GraphicsContext->AddObjectToScene(m_SDFObject.get());
 
+
+	m_Scene = std::make_unique<Scene>();
+
 	// Build acceleration structure and shader tables
-	m_GraphicsContext->BuildGeometry();
 	m_GraphicsContext->BuildShaderTables();
 }
 
 void D3DApplication::OnUpdate()
 {
 	BeginUpdate();
+
+	m_Scene->OnUpdate(m_Timer.GetDeltaTime());
 
 	// Build properties GUI
 	ImGui::Begin("Properties");
@@ -106,23 +110,18 @@ void D3DApplication::OnRender()
 {
 	// Update constant buffer
 	m_GraphicsContext->UpdatePassCB(&m_Timer, &m_Camera);
-	m_GraphicsContext->UpdateAABBPrimitiveAttributes();
+	m_GraphicsContext->UpdateAABBPrimitiveAttributes(*m_Scene);
 
 	// Begin drawing
 	m_GraphicsContext->StartDraw();
 
-	// Update acceleration structure if required
-	static bool build = true;
-	if (build)
-	{
-		m_GraphicsContext->BuildAccelerationStructures();
-		build = false;
-	}
+	// Tell the scene that render is happening
+	m_Scene->OnRender();
 
 	// Draw all items
 	//m_GraphicsContext->DrawItems(m_Pipelines[m_CurrentDisplayMode].get());
 	//m_GraphicsContext->DrawVolume(m_Pipelines[m_CurrentDisplayMode].get(), m_SDFObject->GetSRV());
-	m_GraphicsContext->DrawRaytracing();
+	m_GraphicsContext->DrawRaytracing(*m_Scene);
 
 	// ImGui Render
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_GraphicsContext->GetCommandList());

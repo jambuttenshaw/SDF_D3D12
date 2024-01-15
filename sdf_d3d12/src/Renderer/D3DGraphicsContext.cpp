@@ -7,6 +7,7 @@
 #include "D3DFrameResources.h"
 #include "D3DShaderCompiler.h"
 #include "D3DBuffer.h"
+#include "Application/Scene.h"
 
 #include "Framework/GameTimer.h"
 #include "Framework/Camera.h"
@@ -184,7 +185,7 @@ void D3DGraphicsContext::EndDraw() const
 	m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 }
 
-void D3DGraphicsContext::DrawRaytracing() const
+void D3DGraphicsContext::DrawRaytracing(const Scene& scene) const
 {
 	// Scene texture must be in unordered access state
 	auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_RaytracingOutput.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
@@ -196,7 +197,7 @@ void D3DGraphicsContext::DrawRaytracing() const
 
 	// Bind the heaps, acceleration structure and dispatch rays.    
 	m_CommandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, m_RaytracingOutputDescriptor.GetGPUHandle(0));
-	m_CommandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::AccelerationStructureSlot, m_AccelerationStructure->GetAccelerationStructureAddress());
+	m_CommandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::AccelerationStructureSlot, scene.GetRaytracingAccelerationStructure()->GetAccelerationStructureAddress());
 	m_CommandList->SetComputeRootConstantBufferView(GlobalRootSignatureParams::PassBufferSlot, m_CurrentFrameResources->GetPassCBAddress());
 	m_CommandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::AABBAttributesBuffer, m_PrimitiveAttributes->GetAddressOfElement(0, m_FrameIndex));
 
@@ -275,18 +276,18 @@ void D3DGraphicsContext::UpdatePassCB(GameTimer* timer, Camera* camera)
 	m_CurrentFrameResources->CopyPassData(m_MainPassCB);
 }
 
-void D3DGraphicsContext::UpdateAABBPrimitiveAttributes()
+void D3DGraphicsContext::UpdateAABBPrimitiveAttributes(const Scene& scene)
 {
 	// Updates the data in the primitive attributes buffer
-	auto& AABBs = m_AccelerationStructureGeometry.GeometryInstances.at(0).AABBs;
+	auto& AABBs = scene.GetAllGeometries().at(0).GeometryInstances.at(0).GetAABBs();
 	for (UINT element = 0; element < static_cast<UINT>(AABBs.size()); element++)
 	{
 		auto& aabb = AABBs.at(element);
 		PrimitiveInstancePerFrameBuffer instanceData;
 
 		const XMVECTOR translation =
-			0.5f * (XMLoadFloat3(reinterpret_cast<XMFLOAT3*>(&aabb.MinX))
-				  + XMLoadFloat3(reinterpret_cast<XMFLOAT3*>(&aabb.MaxX)));
+			0.5f * (XMLoadFloat3((XMFLOAT3*)(&aabb.MinX))
+				  + XMLoadFloat3((XMFLOAT3*)(&aabb.MaxX)));
 		const XMMATRIX transform = XMMatrixTranslationFromVector(translation);
 
 		instanceData.AABBMin = { aabb.MinX, aabb.MinY, aabb.MinZ, 1.0f };
@@ -755,45 +756,6 @@ void D3DGraphicsContext::AddObjectToScene(SDFObject* object)
 	m_SceneObjects.push_back(object);
 }
 
-
-void D3DGraphicsContext::BuildGeometry()
-{
-	// First construct the geometry to use in the bottom level acceleration structure
-	auto BuildAABB = [](const XMFLOAT3& centre, const XMFLOAT3& halfExtent) -> D3D12_RAYTRACING_AABB
-		{
-			return {
-			centre.x - halfExtent.x, centre.y - halfExtent.y, centre.z - halfExtent.z,
-			centre.x + halfExtent.x, centre.y + halfExtent.y, centre.z + halfExtent.z,
-			};
-		};
-
-	m_AccelerationStructureGeometry.Name = L"AABB Geometry";
-	m_AccelerationStructureGeometry.GeometryInstances.push_back({
-		{ BuildAABB(
-				{ 0.0f, 0.0f, 0.0f },
-				{ 1.0f, 1.0f, 1.0f }
-				)},
-		{},
-		D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE });
-
-	auto& geometry = m_AccelerationStructureGeometry.GeometryInstances.back();
-	geometry.Buffer.Allocate(m_Device.Get(), 1, 1, D3D12_RAYTRACING_AABB_BYTE_ALIGNMENT, L"AABB Buffer");
-	geometry.Buffer.CopyElements(0, static_cast<UINT>(geometry.AABBs.size()), 0, geometry.AABBs.data());
-}
-
-
-// Build acceleration structures needed for raytracing.
-void D3DGraphicsContext::BuildAccelerationStructures()
-{
-	// Now construct the acceleration structure
-	m_AccelerationStructure = std::make_unique<RaytracingAccelerationStructureManager>(1, s_FrameCount);
-	m_AccelerationStructure->AddBottomLevelAS(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE, m_AccelerationStructureGeometry, true, true);
-
-	m_AccelerationStructure->AddBottomLevelASInstance(m_AccelerationStructureGeometry.Name, UINT_MAX, XMMatrixIdentity(), 1);
-
-	m_AccelerationStructure->InitializeTopLevelAS(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE, true, true, L"Top Level Acceleration Structure");
-	m_AccelerationStructure->Build();
-}
 
 // Build shader tables.
 // This encapsulates all shader records - shaders and the arguments for their local root signatures.
