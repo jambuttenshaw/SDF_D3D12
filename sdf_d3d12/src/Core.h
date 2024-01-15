@@ -23,6 +23,19 @@
 #endif
 
 
+// Class helpers
+
+#define DEFAULT_COPY(T) T(T&) = default; \
+						T& operator=(const T&) = default;
+#define DEFAULT_MOVE(T) T(T&&) = default; \
+						T& operator=(T&&) = default;
+
+#define DISALLOW_COPY(T) T(T&) = delete; \
+						 T& operator=(const T&) = delete;
+#define DISALLOW_MOVE(T) T(T&&) = delete; \
+						 T& operator=(T&&) = delete;
+
+
 // Memory helper functions
 
 #define SizeOfInUint32(obj) ((sizeof(obj) - 1) / sizeof(UINT32) + 1)

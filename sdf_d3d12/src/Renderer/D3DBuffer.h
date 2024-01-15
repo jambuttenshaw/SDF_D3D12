@@ -28,6 +28,11 @@ public:
 		m_MappedData = nullptr;
 	}
 
+	// Disallow copying
+	DISALLOW_COPY(D3DUploadBuffer)
+	// Allow moving
+	DEFAULT_MOVE(D3DUploadBuffer)
+
 	void Allocate(ID3D12Device* device, UINT elementCount, UINT instanceCount, UINT alignment, const wchar_t* name)
 	{
 		ASSERT(elementCount > 0, "Cannot create a buffer with 0 elements!");
@@ -117,6 +122,9 @@ class D3DUAVBuffer
 {
 public:
 	D3DUAVBuffer() = default;
+
+	DISALLOW_COPY(D3DUAVBuffer)
+	DEFAULT_MOVE(D3DUAVBuffer)
 
 	inline ID3D12Resource* GetResource() const { return m_UAVBuffer.Get(); }
 	inline D3D12_GPU_VIRTUAL_ADDRESS GetAddress() const { return m_UAVBuffer->GetGPUVirtualAddress(); }

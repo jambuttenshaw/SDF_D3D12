@@ -17,8 +17,7 @@ public:
 	);
 	~D3DDescriptorAllocation() = default;
 
-	D3DDescriptorAllocation(const D3DDescriptorAllocation&) = delete;
-	D3DDescriptorAllocation& operator=(const D3DDescriptorAllocation&) = delete;
+	DISALLOW_COPY(D3DDescriptorAllocation)
 	D3DDescriptorAllocation(D3DDescriptorAllocation&& other) noexcept;
 	D3DDescriptorAllocation& operator=(D3DDescriptorAllocation&& other) noexcept;
 
@@ -52,10 +51,8 @@ public:
 	~D3DDescriptorHeap();
 
 	// cannot be copied or moved
-	D3DDescriptorHeap(const D3DDescriptorHeap&) = delete;
-	D3DDescriptorHeap& operator=(const D3DDescriptorHeap&) = delete;
-	D3DDescriptorHeap(const D3DDescriptorHeap&&) = delete;
-	D3DDescriptorHeap& operator=(D3DDescriptorHeap&&) = delete;
+	DISALLOW_COPY(D3DDescriptorHeap)
+	DISALLOW_MOVE(D3DDescriptorHeap)
 
 
 	D3DDescriptorAllocation Allocate(UINT countToAlloc);

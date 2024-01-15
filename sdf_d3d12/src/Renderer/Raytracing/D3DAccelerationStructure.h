@@ -12,8 +12,12 @@ using namespace DirectX;
 class AccelerationStructure
 {
 public:
+	AccelerationStructure() = default;
 	virtual ~AccelerationStructure() = default;
 
+	DISALLOW_COPY(AccelerationStructure)
+	DEFAULT_MOVE(AccelerationStructure)
+		
 	inline UINT64 GetRequiredScratchSize() const { return max(m_PrebuildInfo.ScratchDataSizeInBytes, m_PrebuildInfo.UpdateScratchDataSizeInBytes); }
 	inline UINT64 GetRequiredResultDataSize() const { return m_PrebuildInfo.ResultDataMaxSizeInBytes; }
 
@@ -51,6 +55,10 @@ protected:
 // Currently this only describes AABB geometry
 struct BottomLevelAccelerationStructureGeometry
 {
+	~BottomLevelAccelerationStructureGeometry() = default;
+	DISALLOW_COPY(BottomLevelAccelerationStructureGeometry)
+	DEFAULT_MOVE(BottomLevelAccelerationStructureGeometry)
+
 	std::wstring Name;
 
 	// An instance of a geometry
@@ -65,7 +73,11 @@ struct BottomLevelAccelerationStructureGeometry
 class BottomLevelAccelerationStructure : public AccelerationStructure
 {
 public:
+	BottomLevelAccelerationStructure() = default;
 	virtual ~BottomLevelAccelerationStructure() = default;
+
+	DISALLOW_COPY(BottomLevelAccelerationStructure)
+	DEFAULT_MOVE(BottomLevelAccelerationStructure)
 
 	void Initialize(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags, BottomLevelAccelerationStructureGeometry& geometry,	bool allowUpdate = false, bool updateOnBuild = false);
 	void Build(ID3D12Resource* scratch);
@@ -90,7 +102,11 @@ private:
 class TopLevelAccelerationStructure : public AccelerationStructure
 {
 public:
+	TopLevelAccelerationStructure() = default;
 	virtual ~TopLevelAccelerationStructure() = default;
+
+	DISALLOW_COPY(TopLevelAccelerationStructure)
+	DEFAULT_MOVE(TopLevelAccelerationStructure)
 
 	void Initialize(UINT numBottomLevelASInstanceDescs, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags, bool allowUpdate = false, bool updateOnBuild = false, const wchar_t* resourceName = nullptr);
 	void Build(UINT numInstanceDescs, D3D12_GPU_VIRTUAL_ADDRESS instanceDescs, ID3D12Resource* scratch);
@@ -105,6 +121,10 @@ class RaytracingAccelerationStructureManager
 {
 public:
 	RaytracingAccelerationStructureManager(UINT numBottomLevelInstances, UINT frameCount);
+	~RaytracingAccelerationStructureManager() = default;
+
+	DISALLOW_COPY(RaytracingAccelerationStructureManager)
+	DEFAULT_MOVE(RaytracingAccelerationStructureManager)
 
 	void AddBottomLevelAS(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags, BottomLevelAccelerationStructureGeometry& geometry, bool allowUpdate, bool updateOnBuild);
 	UINT AddBottomLevelASInstance(const std::wstring& bottomLevelASName, UINT instanceContributionToHitGroupIndex, XMMATRIX transform, BYTE instanceMask);

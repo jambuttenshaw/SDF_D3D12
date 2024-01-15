@@ -36,11 +36,14 @@ Scene::Scene()
 		auto& aabbGeometry = m_SceneGeometry.at(0);
 
 		// Construct geometry
-		
-		aabbGeometry.Geometry.emplace_back(1);
-		aabbGeometry.Geometry.back().AddAABB({ 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f, 1.0f });
+		AABBGeometry geometry{ 1 };
+		geometry.AddAABB({ 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f, 1.0f });
+
+		// Use move semantics to place geometry into the vector
+		aabbGeometry.Geometry.push_back(std::move(geometry));
 
 		// Construct a geometry instance
+		// Note: 'geometry' is no longer valid here as it has been moved from
 		aabbGeometry.GeometryInstances.push_back({ aabbGeometry.Geometry.back(), D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE, m_SDFObject->GetSRV() });
 	}
 

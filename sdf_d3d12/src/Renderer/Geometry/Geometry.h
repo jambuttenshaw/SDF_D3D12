@@ -11,6 +11,10 @@ class AABBGeometry
 {
 public:
 	AABBGeometry(UINT aabbCount);
+	~AABBGeometry() = default;
+
+	DISALLOW_COPY(AABBGeometry)
+	DEFAULT_MOVE(AABBGeometry)
 
 	void AddAABB(const XMFLOAT3& centre, const XMFLOAT3& halfExtent);
 	void AddAABB(const D3D12_RAYTRACING_AABB&& aabb);

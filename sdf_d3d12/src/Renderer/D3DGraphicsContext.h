@@ -29,10 +29,8 @@ public:
 	~D3DGraphicsContext();
 
 	// Disable copying & moving
-	D3DGraphicsContext(const D3DGraphicsContext&) = delete;
-	D3DGraphicsContext& operator= (const D3DGraphicsContext&) = delete;
-	D3DGraphicsContext(D3DGraphicsContext&&) = delete;
-	D3DGraphicsContext& operator= (D3DGraphicsContext&&) = delete;
+	DISALLOW_COPY(D3DGraphicsContext)
+	DISALLOW_MOVE(D3DGraphicsContext)
 
 
 	void Present();
