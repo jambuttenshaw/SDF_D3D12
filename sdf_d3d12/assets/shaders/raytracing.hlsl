@@ -61,9 +61,9 @@ Ray GetRayInAABBPrimitiveLocalSpace()
 float3 ComputeSurfaceNormal(float3 p)
 {
 	return normalize(float3(
-        l_SDFVolume.SampleLevel(g_Sampler, p + NORMAL_DELTA_X, 0) - l_SDFVolume.SampleLevel(g_Sampler, p - NORMAL_DELTA_X, 0),
-        l_SDFVolume.SampleLevel(g_Sampler, p + NORMAL_DELTA_Y, 0) - l_SDFVolume.SampleLevel(g_Sampler, p - NORMAL_DELTA_Y, 0),
-        l_SDFVolume.SampleLevel(g_Sampler, p + NORMAL_DELTA_Z, 0) - l_SDFVolume.SampleLevel(g_Sampler, p - NORMAL_DELTA_Z, 0)
+        l_SDFVolume.SampleLevel(g_Sampler, p - NORMAL_DELTA_X, 0) - l_SDFVolume.SampleLevel(g_Sampler, p + NORMAL_DELTA_X, 0),
+        l_SDFVolume.SampleLevel(g_Sampler, p - NORMAL_DELTA_Y, 0) - l_SDFVolume.SampleLevel(g_Sampler, p + NORMAL_DELTA_Y, 0),
+        l_SDFVolume.SampleLevel(g_Sampler, p - NORMAL_DELTA_Z, 0) - l_SDFVolume.SampleLevel(g_Sampler, p + NORMAL_DELTA_Z, 0)
     ));
 }
 
@@ -132,7 +132,8 @@ void MyIntersectionShader()
 		}
 
 		MyAttributes attr;
-		attr.normal = ComputeSurfaceNormal(uvw);
+		// Transform from object space to world space
+		attr.normal = normalize(mul(ComputeSurfaceNormal(uvw), (float3x3) ObjectToWorld()));
 		ReportHit(tMin, 0, attr);
 	}
 }

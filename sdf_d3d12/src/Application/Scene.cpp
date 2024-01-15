@@ -57,7 +57,7 @@ Scene::Scene()
 		// Create one instance of each bottom level AS
 		for (const auto& geometry : m_SceneGeometry)
 		{
-			m_AccelerationStructure->AddBottomLevelASInstance(geometry.Name, UINT_MAX, XMMatrixIdentity(), 1);
+			m_AccelerationStructure->AddBottomLevelASInstance(geometry.Name, UINT_MAX, XMMatrixIdentity(), XM_PIDIV2), 1);
 		}
 		// Init top level AS
 		m_AccelerationStructure->InitializeTopLevelAS(buildFlags, false, false, L"Top Level Acceleration Structure");
