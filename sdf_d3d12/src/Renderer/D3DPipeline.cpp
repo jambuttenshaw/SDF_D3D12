@@ -19,12 +19,10 @@ D3DGraphicsPipeline::D3DGraphicsPipeline()
 	// Create graphics root signature
 	{
 		// Create a root signature consisting of two root descriptors for CBVs (per-object and per-pass)
-		CD3DX12_DESCRIPTOR_RANGE1 ranges[2];
-		CD3DX12_ROOT_PARAMETER1 rootParameters[2];
-		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// per-object cb
-		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// per-pass cb
-		rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_VERTEX);
-		rootParameters[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_PIXEL);
+		CD3DX12_DESCRIPTOR_RANGE1 ranges[1];
+		CD3DX12_ROOT_PARAMETER1 rootParameters[1];
+		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);	// raytracing output texture
+		rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_PIXEL);
 
 		// Allow input layout and deny unnecessary access to certain pipeline stages
 		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =

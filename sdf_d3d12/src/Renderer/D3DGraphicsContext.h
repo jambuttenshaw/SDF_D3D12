@@ -3,7 +3,6 @@
 #include "Memory/D3DMemoryAllocator.h"
 
 #include "D3DPipeline.h"
-#include "D3DShaderTable.h"
 #include "Hlsl/RaytracingHlslCompat.h"
 
 
@@ -41,14 +40,11 @@ public:
 	void StartDraw() const;
 	void EndDraw() const;
 
-	void DrawRaytracing(const Scene& scene) const;
+	void CopyRaytracingOutput(D3D12_GPU_DESCRIPTOR_HANDLE rtOutputHandle) const;
 
 	// Updating constant buffers
 	void UpdatePassCB(GameTimer* timer, Camera* camera);
-
-	// Build a shader table for a specific scene
-	void BuildShaderTables(const Scene& scene);
-
+	D3D12_GPU_VIRTUAL_ADDRESS GetPassCBAddress() const;
 
 	void Resize(UINT width, UINT height);
 
@@ -65,6 +61,8 @@ public:
 	inline DXGI_FORMAT GetDepthStencilFormat() const { return m_DepthStencilFormat; }
 	inline UINT GetCurrentBackBuffer() const { return m_FrameIndex; }
 
+	inline UINT GetClientWidth() const { return m_ClientWidth; }
+	inline UINT GetClientHeight() const { return m_ClientHeight; }
 
 	// Descriptor heaps
 	inline D3DDescriptorHeap* GetSRVHeap() const { return m_SRVHeap.get(); }
@@ -104,10 +102,6 @@ private:
 	// Raytracing
 	bool CheckRaytracingSupport() const;
 	void CreateRaytracingInterfaces();
-	void SerializeAndCreateRaytracingRootSignature(D3D12_ROOT_SIGNATURE_DESC& desc, ComPtr<ID3D12RootSignature>* rootSig) const;
-	void CreateRootSignatures();
-	void CreateRaytracingPipelineStateObject();
-	void CreateRaytracingOutputResource();
 
 	void CreateProjectionMatrix();
 
@@ -173,29 +167,10 @@ private:
 	CD3DX12_RECT m_ScissorRect{ };
 
 
-	// DirectX Raytracing (DXR) attributes
+	// DirectX Raytracing (DXR) objects
 	ComPtr<ID3D12Device5> m_DXRDevice;
 	ComPtr<ID3D12GraphicsCommandList4> m_DXRCommandList;
-	ComPtr<ID3D12StateObject> m_DXRStateObject;
-
-	// Root signatures
-	ComPtr<ID3D12RootSignature> m_RaytracingGlobalRootSignature;
-	ComPtr<ID3D12RootSignature> m_RaytracingLocalRootSignature;
-
-	// Raytracing output
-	ComPtr<ID3D12Resource> m_RaytracingOutput;
-	D3DDescriptorAllocation m_RaytracingOutputDescriptor;
-
-	// Shader tables
-	static const wchar_t* c_HitGroupName;
-	static const wchar_t* c_RaygenShaderName;
-	static const wchar_t* c_IntersectionShaderName;
-	static const wchar_t* c_ClosestHitShaderName;
-	static const wchar_t* c_MissShaderName;
-	std::unique_ptr<D3DShaderTable> m_MissShaderTable;
-	std::unique_ptr<D3DShaderTable> m_HitGroupShaderTable;
-	std::unique_ptr<D3DShaderTable> m_RayGenShaderTable;
-
+	
 
 	// Pipeline assets
 	std::unique_ptr<D3DGraphicsPipeline> m_GraphicsPipeline;	// A raster pass is used to copy the raytracing output to the back buffer

@@ -168,6 +168,7 @@
     <ClCompile Include="src\Renderer\Memory\D3DMemoryAllocator.cpp" />
     <ClCompile Include="src\Renderer\D3DShaderTable.cpp" />
     <ClCompile Include="src\Renderer\Raytracing\D3DAccelerationStructure.cpp" />
+    <ClCompile Include="src\Renderer\Raytracing\Raytracer.cpp" />
     <ClCompile Include="src\SDF\SDFFactory.cpp" />
     <ClCompile Include="src\SDF\SDFObject.cpp" />
     <ClCompile Include="src\SDF\SDFTypes.cpp" />

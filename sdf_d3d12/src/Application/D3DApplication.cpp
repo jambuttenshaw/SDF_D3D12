@@ -26,13 +26,10 @@ void D3DApplication::OnInit()
 
 	m_CameraController = CameraController{ m_InputManager.get(), &m_Camera };
 
-	
-
-
 	m_Scene = std::make_unique<Scene>();
 
-	// Build acceleration structure and shader tables
-	m_GraphicsContext->BuildShaderTables(*m_Scene);
+	m_Raytracer = std::make_unique<Raytracer>();
+	m_Raytracer->Setup(*m_Scene);
 }
 
 void D3DApplication::OnUpdate()
@@ -83,8 +80,9 @@ void D3DApplication::OnRender()
 	// This will update acceleration structures and other things to render the scene
 	m_Scene->OnRender();
 
-	// Draw all items
-	m_GraphicsContext->DrawRaytracing(*m_Scene);
+	// Perform raytracing
+	m_Raytracer->DoRaytracing();
+	m_GraphicsContext->CopyRaytracingOutput(m_Raytracer->GetRaytracingOutputSRV());
 
 	// ImGui Render
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_GraphicsContext->GetCommandList());
@@ -106,6 +104,7 @@ void D3DApplication::OnRender()
 void D3DApplication::OnDestroy()
 {
 	m_Scene.reset();
+	m_Raytracer.reset();
 
 	// Release graphics context
 	m_GraphicsContext.reset();
@@ -174,4 +173,5 @@ void D3DApplication::EndUpdate()
 void D3DApplication::OnResized()
 {
 	m_GraphicsContext->Resize(m_Width, m_Height);
+	m_Raytracer->Resize();
 }

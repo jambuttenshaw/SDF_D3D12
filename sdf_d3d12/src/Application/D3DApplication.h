@@ -7,6 +7,7 @@
 #include "Framework/Camera.h"
 #include "Framework/CameraController.h"
 #include "Framework/GameTimer.h"
+#include "Renderer/Raytracing/Raytracer.h"
 
 
 // Forward declarations
@@ -43,4 +44,5 @@ private:
 	CameraController m_CameraController;
 
 	std::unique_ptr<Scene> m_Scene;
+	std::unique_ptr<Raytracer> m_Raytracer;
 };
