@@ -15,13 +15,27 @@ template<typename T>
 class D3DUploadBuffer
 {
 public:
+	D3DUploadBuffer() = default;
 	D3DUploadBuffer(ID3D12Device* device, UINT elementCount, UINT instanceCount, UINT alignment, const wchar_t* name)
-		: m_ElementCount(elementCount)
-		, m_InstanceCount(instanceCount)
-		, m_Alignment(alignment)
 	{
-		ASSERT(m_ElementCount > 0, "Cannot create a buffer with 0 elements!");
-		ASSERT(m_InstanceCount > 0, "Cannot create a buffer with 0 instances!");
+		Allocate(device, elementCount, instanceCount, alignment, name);
+	}
+	~D3DUploadBuffer()
+	{
+		// Un-map
+		if (m_UploadBuffer != nullptr)
+			m_UploadBuffer->Unmap(0, nullptr);
+		m_MappedData = nullptr;
+	}
+
+	void Allocate(ID3D12Device* device, UINT elementCount, UINT instanceCount, UINT alignment, const wchar_t* name)
+	{
+		ASSERT(elementCount > 0, "Cannot create a buffer with 0 elements!");
+		ASSERT(instanceCount > 0, "Cannot create a buffer with 0 instances!");
+
+		m_ElementCount = elementCount;
+		m_InstanceCount = instanceCount;
+		m_Alignment = alignment;
 
 		m_ElementStride = sizeof(T);
 
@@ -54,13 +68,7 @@ public:
 		// We do not need to un-map the resource for its entire lifetime
 		// However, be careful to not write to the buffer from the CPU while the GPU may be reading from it!
 	}
-	~D3DUploadBuffer()
-	{
-		// Un-map
-		if (m_UploadBuffer != nullptr)
-			m_UploadBuffer->Unmap(0, nullptr);
-		m_MappedData = nullptr;
-	}
+
 
 	// Getters
 	inline ID3D12Resource* GetResource() const { return m_UploadBuffer.Get(); }

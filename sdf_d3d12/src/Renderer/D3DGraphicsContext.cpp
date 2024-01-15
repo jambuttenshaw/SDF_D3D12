@@ -196,7 +196,7 @@ void D3DGraphicsContext::DrawRaytracing() const
 
 	// Bind the heaps, acceleration structure and dispatch rays.    
 	m_CommandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, m_RaytracingOutputDescriptor.GetGPUHandle(0));
-	m_CommandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::AccelerationStructureSlot, m_TopLevelAccelerationStructure->GetAddress());
+	m_CommandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::AccelerationStructureSlot, m_AccelerationStructure->GetAccelerationStructureAddress());
 	m_CommandList->SetComputeRootConstantBufferView(GlobalRootSignatureParams::PassBufferSlot, m_CurrentFrameResources->GetPassCBAddress());
 	m_CommandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::AABBAttributesBuffer, m_PrimitiveAttributes->GetAddressOfElement(0, m_FrameIndex));
 
@@ -278,9 +278,10 @@ void D3DGraphicsContext::UpdatePassCB(GameTimer* timer, Camera* camera)
 void D3DGraphicsContext::UpdateAABBPrimitiveAttributes()
 {
 	// Updates the data in the primitive attributes buffer
-	for (UINT element = 0; element < static_cast<UINT>(m_AABBs.size()); element++)
+	auto& AABBs = m_AccelerationStructureGeometry.GeometryInstances.at(0).AABBs;
+	for (UINT element = 0; element < static_cast<UINT>(AABBs.size()); element++)
 	{
-		auto& aabb = m_AABBs.at(element);
+		auto& aabb = AABBs.at(element);
 		PrimitiveInstancePerFrameBuffer instanceData;
 
 		const XMVECTOR translation =
@@ -755,10 +756,9 @@ void D3DGraphicsContext::AddObjectToScene(SDFObject* object)
 }
 
 
-
-// Build geometry used in the sample.
 void D3DGraphicsContext::BuildGeometry()
 {
+	// First construct the geometry to use in the bottom level acceleration structure
 	auto BuildAABB = [](const XMFLOAT3& centre, const XMFLOAT3& halfExtent) -> D3D12_RAYTRACING_AABB
 		{
 			return {
@@ -767,90 +767,32 @@ void D3DGraphicsContext::BuildGeometry()
 			};
 		};
 
-	m_AABBs.push_back(BuildAABB(
-		{ 0.0f, 0.0f, 0.0f }, 
-		{1.0f, 1.0f, 1.0f}
-	));
+	m_AccelerationStructureGeometry.Name = L"AABB Geometry";
+	m_AccelerationStructureGeometry.GeometryInstances.push_back({
+		{ BuildAABB(
+				{ 0.0f, 0.0f, 0.0f },
+				{ 1.0f, 1.0f, 1.0f }
+				)},
+		{},
+		D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE });
 
-	// Allocate an upload buffer to contain all AABBs and copy the AABBs into it
-	m_AABBBuffer = std::make_unique<D3DUploadBuffer<D3D12_RAYTRACING_AABB>>(m_Device.Get(), 1, 1, 0, L"AABB Buffer");
-	m_AABBBuffer->CopyElements(0, static_cast<UINT>(m_AABBs.size()), 0, m_AABBs.data());
+	auto& geometry = m_AccelerationStructureGeometry.GeometryInstances.back();
+	geometry.Buffer.Allocate(m_Device.Get(), 1, 1, D3D12_RAYTRACING_AABB_BYTE_ALIGNMENT, L"AABB Buffer");
+	geometry.Buffer.CopyElements(0, static_cast<UINT>(geometry.AABBs.size()), 0, geometry.AABBs.data());
 }
+
 
 // Build acceleration structures needed for raytracing.
 void D3DGraphicsContext::BuildAccelerationStructures()
 {
-	D3D12_RAYTRACING_GEOMETRY_DESC geometryDesc = {};
-	geometryDesc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS;
-	geometryDesc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
-	geometryDesc.AABBs.AABBCount = 1;
-	geometryDesc.AABBs.AABBs.StartAddress = m_AABBBuffer->GetAddressOfElement(0, 0);
-	geometryDesc.AABBs.AABBs.StrideInBytes = m_AABBBuffer->GetElementStride();
+	// Now construct the acceleration structure
+	m_AccelerationStructure = std::make_unique<RaytracingAccelerationStructureManager>(1, s_FrameCount);
+	m_AccelerationStructure->AddBottomLevelAS(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE, m_AccelerationStructureGeometry, true, true);
 
-	// Get required sizes for an acceleration structure.
-	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
-	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS topLevelInputs = {};
-	topLevelInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-	topLevelInputs.Flags = buildFlags;
-	topLevelInputs.NumDescs = 1;
-	topLevelInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
+	m_AccelerationStructure->AddBottomLevelASInstance(m_AccelerationStructureGeometry.Name, UINT_MAX, XMMatrixIdentity(), 1);
 
-	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO topLevelPrebuildInfo = {};
-	m_DXRDevice->GetRaytracingAccelerationStructurePrebuildInfo(&topLevelInputs, &topLevelPrebuildInfo);
-	ASSERT(topLevelPrebuildInfo.ResultDataMaxSizeInBytes > 0, "Failed to get required size for building acceleration structure");
-
-	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO bottomLevelPrebuildInfo = {};
-	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS bottomLevelInputs = topLevelInputs;
-	bottomLevelInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
-	bottomLevelInputs.pGeometryDescs = &geometryDesc;
-	m_DXRDevice->GetRaytracingAccelerationStructurePrebuildInfo(&bottomLevelInputs, &bottomLevelPrebuildInfo);
-	ASSERT(bottomLevelPrebuildInfo.ResultDataMaxSizeInBytes > 0, "Failed to get required size for building acceleration structure");
-
-	D3DUAVBuffer scratchResource{ m_Device.Get(), max(topLevelPrebuildInfo.ScratchDataSizeInBytes, bottomLevelPrebuildInfo.ScratchDataSizeInBytes), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, L"ScratchResource" };
-	{
-		D3D12_RESOURCE_STATES initialResourceState = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
-
-		m_BottomLevelAccelerationStructure = std::make_unique<D3DUAVBuffer>(m_Device.Get(), bottomLevelPrebuildInfo.ResultDataMaxSizeInBytes, initialResourceState, L"BottomLevelAccelerationStructure");
-		m_TopLevelAccelerationStructure = std::make_unique<D3DUAVBuffer>(m_Device.Get(), topLevelPrebuildInfo.ResultDataMaxSizeInBytes, initialResourceState, L"TopLevelAccelerationStructure");
-	}
-
-	// Create an instance desc for the bottom-level acceleration structure.
-	D3DUploadBuffer<D3D12_RAYTRACING_INSTANCE_DESC> instanceDescs(m_Device.Get(), 1, 1, 0, L"InstanceDescs");
-
-	D3D12_RAYTRACING_INSTANCE_DESC instanceDesc = {};
-	instanceDesc.Transform[0][0] = instanceDesc.Transform[1][1] = instanceDesc.Transform[2][2] = 1;
-	instanceDesc.InstanceID = 0;
-	instanceDesc.InstanceMask = 1;
-	instanceDesc.AccelerationStructure = m_BottomLevelAccelerationStructure->GetAddress();
-
-	instanceDescs.CopyElement(0, 0, instanceDesc);
-
-	// Bottom Level Acceleration Structure desc
-	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottomLevelBuildDesc = {};
-	{
-		bottomLevelBuildDesc.Inputs = bottomLevelInputs;
-		bottomLevelBuildDesc.ScratchAccelerationStructureData = scratchResource.GetAddress();
-		bottomLevelBuildDesc.DestAccelerationStructureData = m_BottomLevelAccelerationStructure->GetAddress();
-	}
-
-	// Top Level Acceleration Structure desc
-	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC topLevelBuildDesc = {};
-	{
-		topLevelInputs.InstanceDescs = instanceDescs.GetAddressOfElement(0, 0);
-		topLevelBuildDesc.Inputs = topLevelInputs;
-		topLevelBuildDesc.DestAccelerationStructureData = m_TopLevelAccelerationStructure->GetAddress();
-		topLevelBuildDesc.ScratchAccelerationStructureData = scratchResource.GetAddress();
-	}
-
-	{
-		m_DXRCommandList->BuildRaytracingAccelerationStructure(&bottomLevelBuildDesc, 0, nullptr);
-		const auto barrier = CD3DX12_RESOURCE_BARRIER::UAV(m_BottomLevelAccelerationStructure->GetResource());
-		m_CommandList->ResourceBarrier(1, &barrier);
-		m_DXRCommandList->BuildRaytracingAccelerationStructure(&topLevelBuildDesc, 0, nullptr);
-	}
-
-	m_CurrentFrameResources->DeferRelease(scratchResource.GetResource());
-	m_CurrentFrameResources->DeferRelease(instanceDescs.GetResource());
+	m_AccelerationStructure->InitializeTopLevelAS(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE, true, true, L"Top Level Acceleration Structure");
+	m_AccelerationStructure->Build();
 }
 
 // Build shader tables.

@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Renderer/D3DBuffer.h"
 
 
@@ -47,7 +48,9 @@ protected:
 
 struct AABBGeometryInstance
 {
+	std::vector<D3D12_RAYTRACING_AABB> AABBs;
 	D3DUploadBuffer<D3D12_RAYTRACING_AABB> Buffer;
+
 	D3D12_RAYTRACING_GEOMETRY_FLAGS Flags;
 };
 
@@ -104,6 +107,7 @@ private:
 
 class RaytracingAccelerationStructureManager
 {
+public:
 	RaytracingAccelerationStructureManager(UINT numBottomLevelInstances, UINT frameCount);
 
 	void AddBottomLevelAS(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags, BottomLevelAccelerationStructureGeometry& geometry, bool allowUpdate, bool updateOnBuild);
@@ -112,6 +116,10 @@ class RaytracingAccelerationStructureManager
 	void InitializeTopLevelAS(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags, bool allowUpdate, bool updateOnBuild, const wchar_t* resourceName);
 
 	void Build(bool forceBuild = false);
+
+
+	// Getters
+	inline D3D12_GPU_VIRTUAL_ADDRESS GetAccelerationStructureAddress() const { return m_TopLevelAS.GetResource()->GetGPUVirtualAddress(); }
 
 private:
 	TopLevelAccelerationStructure m_TopLevelAS;
@@ -124,5 +132,5 @@ private:
 	UINT m_NumBottomLevelInstances = 0;
 
 	D3DUAVBuffer m_ScratchResource;
-	UINT m_ScratchResourceSize = 0;
+	UINT64 m_ScratchResourceSize = 0;
 }; 

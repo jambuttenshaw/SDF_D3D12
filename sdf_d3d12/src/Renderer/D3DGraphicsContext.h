@@ -7,6 +7,8 @@
 #include "D3DShaderTable.h"
 #include "Hlsl/RaytracingHlslCompat.h"
 
+#include "Raytracing/D3DAccelerationStructure.h"
+
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
@@ -183,7 +185,6 @@ private:
 	CD3DX12_VIEWPORT m_Viewport{ };
 	CD3DX12_RECT m_ScissorRect{ };
 
-	
 
 	// DirectX Raytracing (DXR) attributes
 	ComPtr<ID3D12Device5> m_DXRDevice;
@@ -193,14 +194,6 @@ private:
 	// Root signatures
 	ComPtr<ID3D12RootSignature> m_RaytracingGlobalRootSignature;
 	ComPtr<ID3D12RootSignature> m_RaytracingLocalRootSignature;
-
-	// Geometry
-	std::vector<D3D12_RAYTRACING_AABB> m_AABBs;
-	std::unique_ptr<D3DUploadBuffer<D3D12_RAYTRACING_AABB>> m_AABBBuffer;
-
-	// Acceleration structure
-	std::unique_ptr<D3DUAVBuffer> m_BottomLevelAccelerationStructure;
-	std::unique_ptr<D3DUAVBuffer> m_TopLevelAccelerationStructure;
 
 	// Raytracing output
 	ComPtr<ID3D12Resource> m_RaytracingOutput;
@@ -226,6 +219,10 @@ private:
 
 	// Scene
 	std::vector<SDFObject*> m_SceneObjects;
+
+	BottomLevelAccelerationStructureGeometry m_AccelerationStructureGeometry;
+	std::unique_ptr<RaytracingAccelerationStructureManager> m_AccelerationStructure;
+
 
 	// ImGui Resources
 	D3DDescriptorAllocation m_ImGuiResources;

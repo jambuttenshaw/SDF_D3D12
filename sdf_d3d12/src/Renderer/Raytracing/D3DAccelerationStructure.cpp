@@ -40,9 +40,7 @@ void BottomLevelAccelerationStructure::Build(ID3D12Resource* scratch)
 	ASSERT(m_PrebuildInfo.ScratchDataSizeInBytes <= scratch->GetDesc().Width, "Scratch buffer is too small.");
 
 	m_CurrentID = g_D3DGraphicsContext->GetCurrentBackBuffer();
-	m_CachedGeometryDescs[m_CurrentID].clear();
-	m_CachedGeometryDescs[m_CurrentID].resize(m_GeometryDescs.size());
-	std::copy(m_CachedGeometryDescs[m_CurrentID].begin(), m_CachedGeometryDescs[m_CurrentID].end(), m_GeometryDescs.begin());
+	m_CachedGeometryDescs[m_CurrentID] = m_GeometryDescs;
 
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottomLevelBuildDesc = {};
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& bottomLevelInputs = bottomLevelBuildDesc.Inputs;
@@ -123,7 +121,7 @@ void TopLevelAccelerationStructure::Initialize(UINT numBottomLevelASInstanceDesc
 
 void TopLevelAccelerationStructure::Build(UINT numInstanceDescs, D3D12_GPU_VIRTUAL_ADDRESS instanceDescs, ID3D12Resource* scratch)
 {
-	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC topLevelBuildDesc;
+	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC topLevelBuildDesc = {};
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& topLevelInputs = topLevelBuildDesc.Inputs;
 	{
 		topLevelInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
@@ -132,6 +130,7 @@ void TopLevelAccelerationStructure::Build(UINT numInstanceDescs, D3D12_GPU_VIRTU
 		if (m_IsBuilt && m_AllowUpdate && m_UpdateOnBuild)
 		{
 			topLevelInputs.Flags |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE;
+			topLevelBuildDesc.SourceAccelerationStructureData = m_AccelerationStructure.GetAddress();
 		}
 		topLevelInputs.NumDescs = numInstanceDescs;
 		topLevelInputs.InstanceDescs = instanceDescs;
