@@ -4,6 +4,17 @@
 #define HLSL
 #include "../../src/Renderer/Hlsl/HlslCompat.h"
 
+
+bool IsInRange(in float val, in float min, in float max)
+{
+	return (val >= min && val <= max);
+}
+
+bool IsAValidHit(in float thit)
+{
+	return IsInRange(thit, RayTMin(), RayTCurrent());
+}
+
 bool RayAABBIntersectionTest(Ray ray, float3 aabb[2], out float tmin, out float tmax)
 {
 	float3 tmin3, tmax3;

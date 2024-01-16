@@ -108,20 +108,20 @@ void MyIntersectionShader()
 
 	float3 aabb[2];
 	float tMin, tMax;
-	{
-		AABBPrimitiveData attr = l_PrimitiveBuffer[PrimitiveIndex()];
-		aabb[0] = mul(attr.AABBMin, attr.BottomLevelASToLocalSpace).xyz;
-		aabb[1] = mul(attr.AABBMax, attr.BottomLevelASToLocalSpace).xyz;
-	}
+	AABBPrimitiveData prim = l_PrimitiveBuffer[PrimitiveIndex()];
+	aabb[0] = mul(prim.AABBMin, prim.BottomLevelASToLocalSpace).xyz;
+	aabb[1] = mul(prim.AABBMax, prim.BottomLevelASToLocalSpace).xyz;
 
 	// Get the tmin and tmax of the intersection between the ray and this aabb
 	if (RayAABBIntersectionTest(ray, aabb, tMin, tMax))
 	{
-		// Calculate the step scale
-		const float halfBoxExtent = 0.5f * abs(aabb[0] - aabb[1]).x;
+		// 0.25 seems to be the largest that works, and seems to be invariant over different volume dimensions?
 		const float stepScale = 0.25f;
+		const float halfBoxExtent = 0.5f * abs(aabb[0] - aabb[1]).x;
 
-		float3 uvw = ray.origin + tMin * ray.direction;
+		// if we are inside the aabb, begin ray marching from t = 0
+		// otherwise, begin from where the view ray first hits the box
+		float3 uvw = ray.origin + max(tMin, 0.0f) * ray.direction;
 		uvw /= halfBoxExtent;
 		
 		// Remap uvw to [0,1]
@@ -134,9 +134,9 @@ void MyIntersectionShader()
 		while (s > EPSILON)
 		{
 			s = l_SDFVolume.SampleLevel(g_Sampler, uvw, 0);
-			float step = stepScale * s;
-			tMin += step;
-			uvw += step * ray.direction;
+			if (s <= EPSILON)
+				break;
+			uvw += stepScale * s * ray.direction;
 		
 			if (max(max(uvw.x, uvw.y), uvw.z) >= 1.0f || min(min(uvw.x, uvw.y), uvw.z) <= 0.0f)
 			{
@@ -144,10 +144,15 @@ void MyIntersectionShader()
 				return;
 			}
 		}
+		// point of intersection in local space
+		const float3 pointOfIntersection = (uvw * 2.0f - 1.0f) * halfBoxExtent;
+		// t is the distance from the ray origin to the point of intersection
+		const float newT = length(ray.origin - pointOfIntersection);
+
 		MyAttributes attr;
 		// Transform from object space to world space
 		attr.normal = normalize(mul(ComputeSurfaceNormal(uvw), transpose((float3x3) ObjectToWorld())));
-		ReportHit(tMin, 0, attr);
+		ReportHit(newT, 0, attr);
 	}
 }
 
