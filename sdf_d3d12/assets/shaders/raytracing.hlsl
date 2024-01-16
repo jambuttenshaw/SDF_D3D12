@@ -25,7 +25,11 @@ Texture3D<float> l_SDFVolume : register(t0, space1);
 StructuredBuffer<AABBPrimitiveData> l_PrimitiveBuffer: register(t1, space1);
 
 
-#define NORMAL_DELTA 2.0f / 256.0f
+//// DEFINES ////
+
+#define EPSILON 1.0f / 256.0f // the smallest value representable in an R8_UNORM format
+
+#define NORMAL_DELTA 1.0f / 128.0f
 #define NORMAL_DELTA_X float3(NORMAL_DELTA, 0.0f, 0.0f)
 #define NORMAL_DELTA_Y float3(0.0f, NORMAL_DELTA, 0.0f)
 #define NORMAL_DELTA_Z float3(0.0f, 0.0f, NORMAL_DELTA)
@@ -115,7 +119,7 @@ void MyIntersectionShader()
 	{
 		// Calculate the step scale
 		const float halfBoxExtent = 0.5f * abs(aabb[0] - aabb[1]).x;
-		const float stepScale = (256.0f / 1024.0f) / halfBoxExtent;
+		const float stepScale = 0.25f;
 
 		float3 uvw = ray.origin + tMin * ray.direction;
 		uvw /= halfBoxExtent;
@@ -127,7 +131,7 @@ void MyIntersectionShader()
 		// step through volume to find surface
 		float s = 1; // can be any number > epsilon
 	
-		while (s > 1 / 256.0f)
+		while (s > EPSILON)
 		{
 			s = l_SDFVolume.SampleLevel(g_Sampler, uvw, 0);
 			float step = stepScale * s;
@@ -137,21 +141,13 @@ void MyIntersectionShader()
 			if (max(max(uvw.x, uvw.y), uvw.z) >= 1.0f || min(min(uvw.x, uvw.y), uvw.z) <= 0.0f)
 			{
 				// Exited box: no intersection
-
-				// Visualize the AABB
-				MyAttributes attr;
-				// Transform from object space to world space
-				attr.normal = uvw * 2.0f - 1.0f;
-				ReportHit(tMin, 0, attr);
 				return;
 			}
 		}
 		MyAttributes attr;
 		// Transform from object space to world space
 		attr.normal = normalize(mul(ComputeSurfaceNormal(uvw), transpose((float3x3) ObjectToWorld())));
-		//attr.normal = uvw;
 		ReportHit(tMin, 0, attr);
-		return;
 	}
 }
 

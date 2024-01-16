@@ -12,6 +12,8 @@ Scene::Scene()
 		m_SDFFactory = std::make_unique<SDFFactory>();
 
 		// Create an SDF object
+		//m_SDFObject = std::make_unique<SDFObject>(64, 64, 64);
+		//m_SDFObject = std::make_unique<SDFObject>(256, 256, 256);
 		m_SDFObject = std::make_unique<SDFObject>(1024, 1024, 1024);
 		
 		m_SDFObject->AddPrimitive(SDFPrimitive::CreateBox(
@@ -23,7 +25,7 @@ Scene::Scene()
 		// Add a torus on top
 		Transform torusTransform(0.0f, 0.25f, 0.0f);
 		torusTransform.SetPitch(XMConvertToRadians(90.0f));
-		m_SDFObject->AddPrimitive(SDFPrimitive::CreateTorus(torusTransform, 0.2f, 0.05f, SDFOperation::SmoothUnion, 0.25f));
+		m_SDFObject->AddPrimitive(SDFPrimitive::CreateTorus(torusTransform, 0.25f, 0.05f, SDFOperation::SmoothUnion, 0.4f));
 		
 
 		//m_SDFObject->AddPrimitive(SDFPrimitive::CreateSphere({ 0.0f, 0.0f, 0.0f }, 0.99f));
