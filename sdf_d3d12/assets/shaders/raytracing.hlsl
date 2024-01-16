@@ -7,28 +7,40 @@
 #include "ray_helper.hlsli"
 
 
+//////////////////////////
 //// Global Arguments ////
+//////////////////////////
 
 RaytracingAccelerationStructure g_Scene : register(t0);
 RWTexture2D<float4> g_RenderTarget : register(u0);
 
 ConstantBuffer<PassConstantBuffer> g_PassCB : register(b0);
 
+// This is a static bilinear sampler
 SamplerState g_Sampler : register(s0);
 
 
+/////////////////////////
 //// Local Arguments ////
+/////////////////////////
 
 // The SDF volume that will be ray-marched in the intersection shader
 Texture3D<float> l_SDFVolume : register(t0, space1);
 
-StructuredBuffer<AABBPrimitiveData> l_PrimitiveBuffer: register(t1, space1);
+ConstantBuffer<VolumeConstantBuffer> l_VolumeCB : register(b0, space1);
+StructuredBuffer<AABBPrimitiveData> l_PrimitiveBuffer : register(t1, space1);
 
 
+/////////////////
 //// DEFINES ////
+/////////////////
 
 #define EPSILON 1.0f / 256.0f // the smallest value representable in an R8_UNORM format
 
+
+//////////////////////////
+//// HELPER FUNCTIONS ////
+//////////////////////////
 
 // Generate a ray in world space for a camera pixel corresponding to an index from the dispatched 2D grid.
 inline void GenerateCameraRay(uint2 index, out float3 origin, out float3 direction)
@@ -50,22 +62,20 @@ inline void GenerateCameraRay(uint2 index, out float3 origin, out float3 directi
 // Get ray in AABB's local space.
 Ray GetRayInAABBPrimitiveLocalSpace()
 {
-	AABBPrimitiveData attr = l_PrimitiveBuffer[PrimitiveIndex()];
+	AABBPrimitiveData prim = l_PrimitiveBuffer[PrimitiveIndex()];
 
     // Retrieve a ray origin position and direction in bottom level AS space 
     // and transform them into the AABB primitive's local space.
 	Ray ray;
-	ray.origin = mul(float4(ObjectRayOrigin(), 1), attr.BottomLevelASToLocalSpace).xyz;
-	ray.direction = mul(ObjectRayDirection(), (float3x3) attr.BottomLevelASToLocalSpace);
+	ray.origin = mul(float4(ObjectRayOrigin(), 1), prim.BottomLevelASToLocalSpace).xyz;
+	ray.direction = mul(ObjectRayDirection(), (float3x3) prim.BottomLevelASToLocalSpace);
 	return ray;
 }
 
 
 float3 ComputeSurfaceNormal(float3 p)
 {
-	uint3 dims;
-	l_SDFVolume.GetDimensions(dims.x, dims.y, dims.z);
-	float invRes = 1.0f / dims.x;
+	const float invRes = l_VolumeCB.InvDimensions;
 	return normalize(float3(
         l_SDFVolume.SampleLevel(g_Sampler, p + float3(invRes, 0.0f, 0.0f), 0) - l_SDFVolume.SampleLevel(g_Sampler, p - float3(invRes, 0.0f, 0.0f), 0),
         l_SDFVolume.SampleLevel(g_Sampler, p + float3(0.0f, invRes, 0.0f), 0) - l_SDFVolume.SampleLevel(g_Sampler, p - float3(0.0f, invRes, 0.0f), 0),
@@ -73,6 +83,10 @@ float3 ComputeSurfaceNormal(float3 p)
     ));
 }
 
+
+////////////////////////
+//// RAYGEN SHADERS ////
+////////////////////////
 
 [shader("raygeneration")]
 void MyRaygenShader()
@@ -98,6 +112,11 @@ void MyRaygenShader()
     // Write the raytraced color to the output texture.
 	g_RenderTarget[DispatchRaysIndex().xy] = payload.color;
 }
+
+
+/////////////////////////////
+//// INTERSECTION SHADERS////
+/////////////////////////////
 
 [shader("intersection")]
 void MyIntersectionShader()
@@ -153,12 +172,22 @@ void MyIntersectionShader()
 	}
 }
 
+
+/////////////////////////////
+//// CLOSEST HIT SHADERS ////
+/////////////////////////////
+
 [shader("closesthit")]
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 {
 	payload.color = float4(0.5f + 0.5f * attr.normal, 1);
 	//payload.color = float4(attr.normal, 1);
 }
+
+
+/////////////////////
+//// MISS SHADERS////
+/////////////////////
 
 [shader("miss")]
 void MyMissShader(inout RayPayload payload)
