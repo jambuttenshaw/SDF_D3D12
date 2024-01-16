@@ -45,3 +45,10 @@ inline UINT Align(UINT size, UINT alignment)
 	return (size + (alignment - 1)) & ~(alignment - 1);
 }
 
+
+// DX Helpers
+#ifdef _DEBUG
+#define D3D_NAME(T) THROW_IF_FAIL(T->SetName(L#T))
+#else
+#define D3D_NAME(T) 
+#endif

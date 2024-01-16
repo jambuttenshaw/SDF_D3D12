@@ -92,7 +92,7 @@ void D3DDescriptorAllocation::Free()
 // D3DDescriptorHeap
 
 
-D3DDescriptorHeap::D3DDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, UINT capacity, bool cpuOnly)
+D3DDescriptorHeap::D3DDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, UINT capacity, bool cpuOnly, const wchar_t* resourceName)
 	: m_Type(type)
 	, m_Capacity(capacity)
 	, m_CPUOnly(cpuOnly)
@@ -101,7 +101,7 @@ D3DDescriptorHeap::D3DDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, UINT capac
 	if (type == D3D12_DESCRIPTOR_HEAP_TYPE_RTV || type == D3D12_DESCRIPTOR_HEAP_TYPE_DSV)
 		m_CPUOnly = true;
 
-	// TODO: Add assertions for capacity/type combos
+	// TODO: Add assertions for capacity/type combos (sampler heaps have smaller max size)
 
 	// Create the descriptor heap
 	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
@@ -111,6 +111,10 @@ D3DDescriptorHeap::D3DDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, UINT capac
 	desc.NodeMask = 1;
 
 	THROW_IF_FAIL(g_D3DGraphicsContext->GetDevice()->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_Heap)));
+	if (resourceName)
+	{
+		THROW_IF_FAIL(m_Heap->SetName(resourceName));
+	}
 
 	m_DescriptorIncrementSize = g_D3DGraphicsContext->GetDevice()->GetDescriptorHandleIncrementSize(m_Type);
 

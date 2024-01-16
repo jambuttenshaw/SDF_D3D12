@@ -347,6 +347,7 @@ void D3DGraphicsContext::CreateDevice()
 {
 	// Create the D3D12 Device object
 	THROW_IF_FAIL(D3D12CreateDevice(m_Adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&m_Device)));
+	D3D_NAME(m_Device);
 }
 
 void D3DGraphicsContext::CreateCommandQueue()
@@ -356,6 +357,7 @@ void D3DGraphicsContext::CreateCommandQueue()
 	queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 
 	THROW_IF_FAIL(m_Device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_CommandQueue)));
+	D3D_NAME(m_CommandQueue);
 }
 
 void D3DGraphicsContext::CreateSwapChain()
@@ -405,6 +407,7 @@ void D3DGraphicsContext::CreateDescriptorHeaps()
 void D3DGraphicsContext::CreateCommandAllocator()
 {
 	THROW_IF_FAIL(m_Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_DirectCommandAllocator)));
+	D3D_NAME(m_DirectCommandAllocator);
 }
 
 void D3DGraphicsContext::CreateCommandList()
@@ -414,6 +417,7 @@ void D3DGraphicsContext::CreateCommandList()
 		D3D12_COMMAND_LIST_TYPE_DIRECT,
 		m_DirectCommandAllocator.Get(), nullptr,
 		IID_PPV_ARGS(&m_CommandList)));
+	D3D_NAME(m_CommandList);
 }
 
 void D3DGraphicsContext::CreateRTVs()
@@ -426,6 +430,7 @@ void D3DGraphicsContext::CreateRTVs()
 	{
 		THROW_IF_FAIL(m_SwapChain->GetBuffer(n, IID_PPV_ARGS(&m_RenderTargets[n])));
 		m_Device->CreateRenderTargetView(m_RenderTargets[n].Get(), nullptr, m_RTVs.GetCPUHandle(n));
+		D3D_NAME(m_RenderTargets[n]);
 	}
 }
 
@@ -458,7 +463,7 @@ void D3DGraphicsContext::CreateDepthStencilBuffer()
 		D3D12_RESOURCE_STATE_COMMON,
 		&clear,
 		IID_PPV_ARGS(&m_DepthStencilBuffer)));
-	m_DepthStencilBuffer->SetName(L"Depth Buffer");
+	D3D_NAME(m_DepthStencilBuffer);
 
 	// Resource should be transitioned to be used as a depth stencil buffer
 	const auto transition = CD3DX12_RESOURCE_BARRIER::Transition(m_DepthStencilBuffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_WRITE);
@@ -494,6 +499,7 @@ void D3DGraphicsContext::CreateFence()
 {
 	THROW_IF_FAIL(m_Device->CreateFence(0,
 		D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence)));
+	D3D_NAME(m_Fence);
 	m_CurrentFrameResources->IncrementFence();
 
 	// Create an event handle to use for frame synchronization
@@ -519,7 +525,9 @@ bool D3DGraphicsContext::CheckRaytracingSupport() const
 void D3DGraphicsContext::CreateRaytracingInterfaces()
 {
 	THROW_IF_FAIL(m_Device->QueryInterface(IID_PPV_ARGS(&m_DXRDevice)));
+	D3D_NAME(m_DXRDevice);
 	THROW_IF_FAIL(m_CommandList->QueryInterface(IID_PPV_ARGS(&m_DXRCommandList)));
+	D3D_NAME(m_DXRCommandList);
 }
 
 

@@ -47,7 +47,7 @@ private:
 class D3DDescriptorHeap
 {
 public:
-	D3DDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, UINT capacity, bool cpuOnly);
+	D3DDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, UINT capacity, bool cpuOnly, const wchar_t* resourceName = nullptr);
 	~D3DDescriptorHeap();
 
 	// cannot be copied or moved
