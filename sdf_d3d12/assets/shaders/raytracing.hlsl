@@ -29,11 +29,6 @@ StructuredBuffer<AABBPrimitiveData> l_PrimitiveBuffer: register(t1, space1);
 
 #define EPSILON 1.0f / 256.0f // the smallest value representable in an R8_UNORM format
 
-#define NORMAL_DELTA 1.0f / 128.0f
-#define NORMAL_DELTA_X float3(NORMAL_DELTA, 0.0f, 0.0f)
-#define NORMAL_DELTA_Y float3(0.0f, NORMAL_DELTA, 0.0f)
-#define NORMAL_DELTA_Z float3(0.0f, 0.0f, NORMAL_DELTA)
-
 
 // Generate a ray in world space for a camera pixel corresponding to an index from the dispatched 2D grid.
 inline void GenerateCameraRay(uint2 index, out float3 origin, out float3 direction)
@@ -68,10 +63,13 @@ Ray GetRayInAABBPrimitiveLocalSpace()
 
 float3 ComputeSurfaceNormal(float3 p)
 {
+	uint3 dims;
+	l_SDFVolume.GetDimensions(dims.x, dims.y, dims.z);
+	float invRes = 1.0f / dims.x;
 	return normalize(float3(
-        l_SDFVolume.SampleLevel(g_Sampler, p + NORMAL_DELTA_X, 0) - l_SDFVolume.SampleLevel(g_Sampler, p - NORMAL_DELTA_X, 0),
-        l_SDFVolume.SampleLevel(g_Sampler, p + NORMAL_DELTA_Y, 0) - l_SDFVolume.SampleLevel(g_Sampler, p - NORMAL_DELTA_Y, 0),
-        l_SDFVolume.SampleLevel(g_Sampler, p + NORMAL_DELTA_Z, 0) - l_SDFVolume.SampleLevel(g_Sampler, p - NORMAL_DELTA_Z, 0)
+        l_SDFVolume.SampleLevel(g_Sampler, p + float3(invRes, 0.0f, 0.0f), 0) - l_SDFVolume.SampleLevel(g_Sampler, p - float3(invRes, 0.0f, 0.0f), 0),
+        l_SDFVolume.SampleLevel(g_Sampler, p + float3(0.0f, invRes, 0.0f), 0) - l_SDFVolume.SampleLevel(g_Sampler, p - float3(0.0f, invRes, 0.0f), 0),
+        l_SDFVolume.SampleLevel(g_Sampler, p + float3(0.0f, 0.0f, invRes), 0) - l_SDFVolume.SampleLevel(g_Sampler, p - float3(0.0f, 0.0f, invRes), 0)
     ));
 }
 
@@ -122,6 +120,7 @@ void MyIntersectionShader()
 		// if we are inside the aabb, begin ray marching from t = 0
 		// otherwise, begin from where the view ray first hits the box
 		float3 uvw = ray.origin + max(tMin, 0.0f) * ray.direction;
+
 		uvw /= halfBoxExtent;
 		
 		// Remap uvw to [0,1]
@@ -129,11 +128,9 @@ void MyIntersectionShader()
 		uvw += 0.5f;
 
 		// step through volume to find surface
-		float s = 1; // can be any number > epsilon
-	
-		while (s > EPSILON)
+		while (true)
 		{
-			s = l_SDFVolume.SampleLevel(g_Sampler, uvw, 0);
+			const float s = l_SDFVolume.SampleLevel(g_Sampler, uvw, 0);
 			if (s <= EPSILON)
 				break;
 			uvw += stepScale * s * ray.direction;
