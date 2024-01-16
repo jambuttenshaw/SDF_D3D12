@@ -178,7 +178,7 @@ void RaytracingAccelerationStructureManager::AddBottomLevelAS(D3D12_RAYTRACING_A
 	m_ScratchResourceSize = max(bottomLevelAS.GetRequiredScratchSize(), m_ScratchResourceSize);
 }
 
-UINT RaytracingAccelerationStructureManager::AddBottomLevelASInstance(const std::wstring& bottomLevelASName, UINT instanceContributionToHitGroupIndex, XMMATRIX transform, BYTE instanceMask)
+UINT RaytracingAccelerationStructureManager::AddBottomLevelASInstance(const std::wstring& bottomLevelASName, const XMMATRIX& transform, BYTE instanceMask)
 {
 	ASSERT(m_NumBottomLevelInstances < m_BottomLevelInstanceDescs.GetElementCount(), "Not enough instance desc buffer size.");
 	ASSERT(m_BottomLevelAS.find(bottomLevelASName) != m_BottomLevelAS.end(), "Bottom level AS does not exist.");
@@ -189,8 +189,7 @@ UINT RaytracingAccelerationStructureManager::AddBottomLevelASInstance(const std:
 	// Populate the next element in the staging buffer
 	D3D12_RAYTRACING_INSTANCE_DESC& instanceDesc = m_BottomLevelInstanceDescsStaging.at(instanceIndex);
 	instanceDesc.InstanceMask = instanceMask;
-	instanceDesc.InstanceContributionToHitGroupIndex = instanceContributionToHitGroupIndex != UINT_MAX ? 
-		instanceContributionToHitGroupIndex : bottomLevelAS.GetInstanceContributionToHitGroupIndex();
+	instanceDesc.InstanceContributionToHitGroupIndex = bottomLevelAS.GetInstanceContributionToHitGroupIndex();
 	instanceDesc.AccelerationStructure = bottomLevelAS.GetResource()->GetGPUVirtualAddress();
 	XMStoreFloat3x4(reinterpret_cast<XMFLOAT3X4*>(instanceDesc.Transform), transform);
 
@@ -240,3 +239,33 @@ void RaytracingAccelerationStructureManager::Build(bool forceBuild)
 		commandList->ResourceBarrier(1, &barrier);
 	}
 }
+
+void RaytracingAccelerationStructureManager::SetInstanceTransform(UINT instanceIndex, const XMMATRIX& transform)
+{
+	ASSERT(instanceIndex < m_NumBottomLevelInstances, "Instance index out of bounds.");
+
+	auto& instanceDesc = m_BottomLevelInstanceDescsStaging.at(instanceIndex);
+	XMStoreFloat3x4(reinterpret_cast<XMFLOAT3X4*>(instanceDesc.Transform), transform);
+}
+
+
+void RaytracingAccelerationStructureManager::SetBLASInstanceContributionToHitGroup(const std::wstring& blas, UINT instanceContributionToHitGroupIndex)
+{
+	// This must be done through the AS manager as the instance buffer requires updating
+
+	// Make sure BLAS exists
+	ASSERT(m_BottomLevelAS.find(blas) != m_BottomLevelAS.end(), "BLAS doesn't exist!");
+
+	m_BottomLevelAS.at(blas).SetInstanceContributionToHitGroupIndex(instanceContributionToHitGroupIndex);
+	D3D12_GPU_VIRTUAL_ADDRESS blasAddress = m_BottomLevelAS.at(blas).GetResource()->GetGPUVirtualAddress();
+
+	for (auto& instanceDesc : m_BottomLevelInstanceDescsStaging)
+	{
+		// find all instances that point to the specified blas
+		if (instanceDesc.AccelerationStructure == blasAddress)
+		{
+			instanceDesc.InstanceContributionToHitGroupIndex = instanceContributionToHitGroupIndex;
+		}
+	}
+}
+

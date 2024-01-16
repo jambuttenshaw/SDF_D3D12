@@ -55,12 +55,9 @@ Scene::Scene()
 	}
 
 	{
-		// For creating a grid of objects, the number of instances will be dims*dims*dims
-		const UINT dims = 32;
-
 		// Set up acceleration structure
 		constexpr D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
-		m_AccelerationStructure = std::make_unique<RaytracingAccelerationStructureManager>(dims*dims*dims, D3DGraphicsContext::GetBackBufferCount());
+		m_AccelerationStructure = std::make_unique<RaytracingAccelerationStructureManager>(s_InstanceCount, D3DGraphicsContext::GetBackBufferCount());
 
 		for (auto& geometry : m_SceneGeometry)
 		{
@@ -71,20 +68,28 @@ Scene::Scene()
 
 		srand(0);
 		std::wstring geometryName = L"AABB Geometry";
-		const float spacing = 3.0f;
-		for (UINT z = 0; z < dims; z++)
+		for (UINT z = 0; z < s_InstanceGridDims; z++)
 		{
-			for (UINT y = 0; y < dims; y++)
+			for (UINT y = 0; y < s_InstanceGridDims; y++)
 			{
-				for (UINT x = 0; x < dims; x++)
+				for (UINT x = 0; x < s_InstanceGridDims; x++)
 				{
+					const UINT index = (z * s_InstanceGridDims + y) * s_InstanceGridDims + x;
+
 					auto m = XMMatrixRotationRollPitchYaw(
 						XMConvertToRadians(rand() % 360),
 						XMConvertToRadians(rand() % 360),
 						XMConvertToRadians(rand() % 360)
 					);
-					m *= XMMatrixTranslation(x * spacing, y * spacing, z * spacing);
-					m_AccelerationStructure->AddBottomLevelASInstance(geometryName, UINT_MAX, m, 1);
+					m_InstanceRotations[index] = m;
+					m_InstanceRotationDeltas[index] = {
+						static_cast<float>(rand() % 4 - 2),
+						static_cast<float>(rand() % 4 - 2),
+						static_cast<float>(rand() % 4 - 2)
+					};
+
+					m *= XMMatrixTranslation(x * s_InstanceSpacing, y * s_InstanceSpacing, z * s_InstanceSpacing);
+					m_AccelerationStructure->AddBottomLevelASInstance(geometryName, m, 1);
 				}
 			}
 		}
@@ -98,6 +103,27 @@ Scene::Scene()
 void Scene::OnUpdate(float deltaTime)
 {
 	// Manipulate objects in the scene
+
+	for (UINT z = 0; z < s_InstanceGridDims; z++)
+	{
+		for (UINT y = 0; y < s_InstanceGridDims; y++)
+		{
+			for (UINT x = 0; x < s_InstanceGridDims; x++)
+			{
+				const UINT index = (z * s_InstanceGridDims + y) * s_InstanceGridDims + x;
+
+				// Update rotation
+				auto m = m_InstanceRotations[index];
+				auto d = m_InstanceRotationDeltas[index];
+				m = m * XMMatrixRotationRollPitchYaw(d.x * deltaTime, d.y * deltaTime, d.z * deltaTime);
+				m_InstanceRotations[index] = m;
+
+				const auto t = XMMatrixTranslation(x * s_InstanceSpacing, y * s_InstanceSpacing, z * s_InstanceSpacing);
+
+				m_AccelerationStructure->SetInstanceTransform(index, m * t);
+			}
+		}
+	}
 }
 
 void Scene::OnRender()

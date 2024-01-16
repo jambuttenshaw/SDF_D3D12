@@ -127,17 +127,18 @@ public:
 	DEFAULT_MOVE(RaytracingAccelerationStructureManager)
 
 	void AddBottomLevelAS(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags, BottomLevelAccelerationStructureGeometry& geometry, bool allowUpdate, bool updateOnBuild);
-	UINT AddBottomLevelASInstance(const std::wstring& bottomLevelASName, UINT instanceContributionToHitGroupIndex, XMMATRIX transform, BYTE instanceMask);
+	UINT AddBottomLevelASInstance(const std::wstring& bottomLevelASName, const XMMATRIX& transform, BYTE instanceMask);
 
 	void InitializeTopLevelAS(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags, bool allowUpdate, bool updateOnBuild, const wchar_t* resourceName);
 
 	void Build(bool forceBuild = false);
 
 
+	// Manipulate acceleration structure instances
+	void SetInstanceTransform(UINT instanceIndex, const XMMATRIX& transform);
+	void SetBLASInstanceContributionToHitGroup(const std::wstring& blas, UINT instanceContributionToHitGroupIndex);
+
 	// Getters
-
-	inline BottomLevelAccelerationStructure& GetBottomLevelAS(const std::wstring& name) { return m_BottomLevelAS.at(name); }
-
 	inline D3D12_GPU_VIRTUAL_ADDRESS GetAccelerationStructureAddress() const { return m_TopLevelAS.GetResource()->GetGPUVirtualAddress(); }
 
 private:

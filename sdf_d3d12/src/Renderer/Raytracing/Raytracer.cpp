@@ -308,7 +308,7 @@ void Raytracer::BuildShaderTables()
 		for (auto& bottomLevelASGeometry : bottomLevelASGeometries)
 		{
 			const UINT shaderRecordOffset = m_HitGroupShaderTable->GetNumRecords();
-			accelerationStructure->GetBottomLevelAS(bottomLevelASGeometry.Name).SetInstanceContributionToHitGroupIndex(shaderRecordOffset);
+			accelerationStructure->SetBLASInstanceContributionToHitGroup(bottomLevelASGeometry.Name, shaderRecordOffset);
 
 			for (auto& geometryInstance : bottomLevelASGeometry.GeometryInstances)
 			{
