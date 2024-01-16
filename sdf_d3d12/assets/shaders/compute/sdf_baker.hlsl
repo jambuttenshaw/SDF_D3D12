@@ -1,11 +1,17 @@
 
+
+/*
+ *
+ *	This shader takes a buffer of edits to evaluate and stores the result in a 3D Texture
+ *
+ */
+
 #include "../include/sdf_primitives.hlsli"
 #include "../include/sdf_operations.hlsli"
 
 #define FLOAT_MAX 3.402823466e+38F
 
 // These must match those defined in C++
-#define MAX_OBJECT_COUNT 16
 #define NUM_SHADER_THREADS 8
 
 

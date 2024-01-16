@@ -2,6 +2,7 @@
 #include "Scene.h"
 
 #include "Renderer/D3DGraphicsContext.h"
+#include "Renderer/Geometry/SDFGeometry.h"
 
 
 Scene::Scene()
@@ -43,36 +44,13 @@ Scene::Scene()
 		auto& aabbGeometry = m_SceneGeometry.at(0);
 
 		// Construct geometry
-		constexpr UINT dims = 8;
-		constexpr UINT aabbCount = dims * dims * dims;
-		constexpr float halfSize = 1.5f;
-		AABBGeometry geometry{ aabbCount };
-		for (float z = 0; z < dims; z++)
-		for (float y = 0; y < dims; y++)
-		for (float x = 0; x < dims; x++)
-		{
-			float d = 1.0f / dims;
-			XMFLOAT3 uvwMin { d * x, d * y, d * z };
-			XMFLOAT3 uvwMax { uvwMin.x + d, uvwMin.y + d, uvwMin.z + d };
-
-			float s = halfSize / dims;
-			geometry.AddAABB(
-				{
-					2 * (x - 0.5f * dims + 0.5f) * s,
-					2 * (y - 0.5f * dims + 0.5f) * s,
-					2 * (z - 0.5f * dims + 0.5f) * s
-				},
-				{ s, s, s }, 
-				uvwMin, 
-				uvwMax);
-		}
-
+		SDFGeometry geometry{ 8, 1.0f };
 		// Use move semantics to place geometry into the vector
-		aabbGeometry.Geometry.push_back(std::move(geometry));
+		aabbGeometry.Geometry.push_back(std::make_unique<SDFGeometry>(std::move(geometry)));
 
 		// Construct a geometry instance
 		// Note: 'geometry' is no longer valid here as it has been moved from
-		aabbGeometry.GeometryInstances.push_back({ aabbGeometry.Geometry.back(), D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE, m_SDFObject->GetSRV(), m_SDFObject->GetResolution() });
+		aabbGeometry.GeometryInstances.push_back({ *aabbGeometry.Geometry.back().get(), D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE, m_SDFObject->GetSRV(), m_SDFObject->GetResolution()});
 	}
 
 	{

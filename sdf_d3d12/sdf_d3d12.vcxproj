@@ -165,6 +165,7 @@
     <ClCompile Include="src\Renderer\D3DPipeline.cpp" />
     <ClCompile Include="src\Renderer\D3DShaderCompiler.cpp" />
     <ClCompile Include="src\Renderer\Geometry\Geometry.cpp" />
+    <ClCompile Include="src\Renderer\Geometry\SDFGeometry.cpp" />
     <ClCompile Include="src\Renderer\Memory\D3DMemoryAllocator.cpp" />
     <ClCompile Include="src\Renderer\D3DShaderTable.cpp" />
     <ClCompile Include="src\Renderer\Raytracing\D3DAccelerationStructure.cpp" />
@@ -223,6 +224,7 @@
     <ClInclude Include="src\Renderer\D3DShaderCompiler.h" />
     <ClInclude Include="src\Renderer\D3DShaderTable.h" />
     <ClInclude Include="src\Renderer\Geometry\Geometry.h" />
+    <ClInclude Include="src\Renderer\Geometry\SDFGeometry.h" />
     <ClInclude Include="src\Renderer\Hlsl\HlslCompat.h" />
     <ClInclude Include="src\Renderer\Hlsl\RaytracingHlslCompat.h" />
     <ClInclude Include="src\Renderer\Raytracing\Raytracer.h" />
@@ -243,6 +245,9 @@
     <ClInclude Include="vendor\imgui\imstb_truetype.h" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="assets\shaders\compute\aabb_builder.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
     <FxCompile Include="assets\shaders\graphics\finalpass.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>

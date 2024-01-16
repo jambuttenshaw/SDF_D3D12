@@ -11,7 +11,7 @@ class AABBGeometry
 {
 public:
 	AABBGeometry(UINT aabbCount);
-	~AABBGeometry() = default;
+	virtual ~AABBGeometry() = default;
 
 	DISALLOW_COPY(AABBGeometry)
 	DEFAULT_MOVE(AABBGeometry)
