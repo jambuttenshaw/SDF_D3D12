@@ -132,19 +132,29 @@ void MyIntersectionShader()
 	// Get the tmin and tmax of the intersection between the ray and this aabb
 	if (RayAABBIntersectionTest(ray, aabb, tMin, tMax))
 	{
+		
+
 		// 0.25 seems to be the largest that works, and seems to be invariant over different volume dimensions?
-		const float stepScale = 0.25f;
+		const float stepScale = 0.5f;
 		const float halfBoxExtent = 0.5f * abs(aabb[0] - aabb[1]).x;
 
 		// if we are inside the aabb, begin ray marching from t = 0
 		// otherwise, begin from where the view ray first hits the box
 		float3 uvw = ray.origin + max(tMin, 0.0f) * ray.direction;
-
 		uvw /= halfBoxExtent;
-		
-		// Remap uvw to [0,1]
-		uvw *= 0.5f;
-		uvw += 0.5f;
+
+		if (false)
+		{ // Display AABB
+			MyAttributes attr;
+			attr.normal = uvw;
+			ReportHit(max(tMin, RayTMin()), 0, attr);
+			return;
+		}
+
+		// Remap uvw from [-1,1] to [UVWMin,UVWMax]
+		const float3 pMin = prim.UVWMin.xyz;
+		const float3 pMax = prim.UVWMax.xyz;
+		uvw = 0.5f * (uvw * (pMax - pMin) + pMax + pMin);
 
 		// step through volume to find surface
 		while (true)
@@ -153,8 +163,10 @@ void MyIntersectionShader()
 			if (s <= EPSILON)
 				break;
 			uvw += stepScale * s * ray.direction;
-		
-			if (max(max(uvw.x, uvw.y), uvw.z) >= 1.0f || min(min(uvw.x, uvw.y), uvw.z) <= 0.0f)
+			 
+			//if (max(max(uvw.x, uvw.y), uvw.z) >= 1.0f || min(min(uvw.x, uvw.y), uvw.z) <= 0.0f)
+			if (uvw.x > pMax.x || uvw.y > pMax.y || uvw.z > pMax.z ||
+				uvw.x < pMin.x || uvw.y < pMin.y || uvw.z < pMin.z)
 			{
 				// Exited box: no intersection
 				return;

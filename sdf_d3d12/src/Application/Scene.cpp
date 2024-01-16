@@ -43,8 +43,29 @@ Scene::Scene()
 		auto& aabbGeometry = m_SceneGeometry.at(0);
 
 		// Construct geometry
-		AABBGeometry geometry{ 1 };
-		geometry.AddAABB({ 0.0f, 0.0f, 0.0f }, { 1.5f, 1.5f, 1.5f });
+		constexpr UINT dims = 8;
+		constexpr UINT aabbCount = dims * dims * dims;
+		constexpr float halfSize = 1.5f;
+		AABBGeometry geometry{ aabbCount };
+		for (float z = 0; z < dims; z++)
+		for (float y = 0; y < dims; y++)
+		for (float x = 0; x < dims; x++)
+		{
+			float d = 1.0f / dims;
+			XMFLOAT3 uvwMin { d * x, d * y, d * z };
+			XMFLOAT3 uvwMax { uvwMin.x + d, uvwMin.y + d, uvwMin.z + d };
+
+			float s = halfSize / dims;
+			geometry.AddAABB(
+				{
+					2 * (x - 0.5f * dims + 0.5f) * s,
+					2 * (y - 0.5f * dims + 0.5f) * s,
+					2 * (z - 0.5f * dims + 0.5f) * s
+				},
+				{ s, s, s }, 
+				uvwMin, 
+				uvwMax);
+		}
 
 		// Use move semantics to place geometry into the vector
 		aabbGeometry.Geometry.push_back(std::move(geometry));

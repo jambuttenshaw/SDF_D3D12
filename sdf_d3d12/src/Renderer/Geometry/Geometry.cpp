@@ -11,18 +11,15 @@ AABBGeometry::AABBGeometry(UINT aabbCount)
 	m_PrimitiveDataBuffer.Allocate(g_D3DGraphicsContext->GetDevice(), aabbCount, 1, 16, L"AABB Primitive Data Buffer");
 }
 
-void AABBGeometry::AddAABB(const XMFLOAT3& centre, const XMFLOAT3& halfExtent)
-{
-	AddAABB({
-			centre.x - halfExtent.x, centre.y - halfExtent.y, centre.z - halfExtent.z,
-			centre.x + halfExtent.x, centre.y + halfExtent.y, centre.z + halfExtent.z,
-	});
-}
-
-void AABBGeometry::AddAABB(const D3D12_RAYTRACING_AABB&& aabb)
+void AABBGeometry::AddAABB(const XMFLOAT3& centre, const XMFLOAT3& halfExtent, const XMFLOAT3& uvwMin, const XMFLOAT3& uvwMax)
 {
 	ASSERT(m_AABBCount < m_AABBBuffer.GetElementCount(), "No space in aabb buffer.");
 
+	D3D12_RAYTRACING_AABB aabb = {
+			centre.x - halfExtent.x, centre.y - halfExtent.y, centre.z - halfExtent.z,
+			centre.x + halfExtent.x, centre.y + halfExtent.y, centre.z + halfExtent.z,
+	};
+	
 	const UINT index = m_AABBCount++;
 	m_AABBs[index] = aabb;
 
@@ -40,6 +37,9 @@ void AABBGeometry::AddAABB(const D3D12_RAYTRACING_AABB&& aabb)
 	primitiveData.AABBMax = { aabb.MaxX, aabb.MaxY, aabb.MaxZ, 1.0f };
 	primitiveData.LocalSpaceToBottomLevelAS = XMMatrixTranspose(transform);
 	primitiveData.BottomLevelASToLocalSpace = XMMatrixTranspose(XMMatrixInverse(nullptr, transform));
+
+	primitiveData.UVWMin = XMFLOAT4{ uvwMin.x, uvwMin.y, uvwMin.z, 0.0f };
+	primitiveData.UVWMax = XMFLOAT4{ uvwMax.x, uvwMax.y, uvwMax.z, 0.0f };
 
 	// Copy into the buffer
 	m_PrimitiveDataBuffer.CopyElement(index, 0, primitiveData);

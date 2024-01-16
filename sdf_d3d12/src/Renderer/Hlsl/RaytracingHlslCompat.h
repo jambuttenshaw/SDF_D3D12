@@ -58,6 +58,10 @@ struct AABBPrimitiveData
 
 	XMMATRIX LocalSpaceToBottomLevelAS;
 	XMMATRIX BottomLevelASToLocalSpace;
+
+	// Which section of the volume should be rendered inside this AABB
+	XMFLOAT4 UVWMin;	// Both should be in range [0,1]
+	XMFLOAT4 UVWMax;
 };
 
 #endif
