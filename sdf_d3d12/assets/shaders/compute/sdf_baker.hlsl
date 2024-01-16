@@ -1,6 +1,6 @@
 
-#include "sdf_primitives.hlsli"
-#include "sdf_operations.hlsli"
+#include "../include/sdf_primitives.hlsli"
+#include "../include/sdf_operations.hlsli"
 
 #define FLOAT_MAX 3.402823466e+38F
 

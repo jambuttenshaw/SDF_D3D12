@@ -62,8 +62,8 @@ D3DGraphicsPipeline::D3DGraphicsPipeline()
 		ComPtr<IDxcBlob> pixelShader;
 
 		// Compile shaders
-		THROW_IF_FAIL(D3DShaderCompiler::CompileFromFile(L"assets/shaders/finalpass.hlsl", L"VSMain", L"vs_6_3", nullptr, &vertexShader));
-		THROW_IF_FAIL(D3DShaderCompiler::CompileFromFile(L"assets/shaders/finalpass.hlsl", L"PSMain", L"ps_6_3", nullptr, &pixelShader));
+		THROW_IF_FAIL(D3DShaderCompiler::CompileFromFile(L"assets/shaders/graphics/finalpass.hlsl", L"VSMain", L"vs_6_3", nullptr, &vertexShader));
+		THROW_IF_FAIL(D3DShaderCompiler::CompileFromFile(L"assets/shaders/graphics/finalpass.hlsl", L"PSMain", L"ps_6_3", nullptr, &pixelShader));
 
 		// Describe and create the graphics pipeline state object (PSO)
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};

@@ -2,7 +2,7 @@
 #define RAYHELPER_H
 
 #define HLSL
-#include "../../src/Renderer/Hlsl/HlslCompat.h"
+#include "../../../src/Renderer/Hlsl/HlslCompat.h"
 
 
 bool IsInRange(in float val, in float min, in float max)

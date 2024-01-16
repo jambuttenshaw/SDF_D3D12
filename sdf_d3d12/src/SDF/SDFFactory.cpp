@@ -67,7 +67,7 @@ SDFFactory::SDFFactory()
 	D3DComputePipelineDesc desc;
 	desc.NumRootParameters = _countof(rootParameters);
 	desc.RootParameters = rootParameters;
-	desc.Shader = L"assets/shaders/sdf_baker.hlsl";
+	desc.Shader = L"assets/shaders/compute/sdf_baker.hlsl";
 	desc.EntryPoint = L"main";
 	desc.Defines = nullptr;
 

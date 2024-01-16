@@ -2,7 +2,7 @@
 #define RAYTRACING_HLSL
 
 #define HLSL
-#include "../../src/Renderer/Hlsl/RaytracingHlslCompat.h"
+#include "../../../src/Renderer/Hlsl/RaytracingHlslCompat.h"
 
 #include "ray_helper.hlsli"
 
