@@ -21,10 +21,10 @@ SamplerState g_Sampler : register(s0);
 Texture3D<float> l_SDFVolume : register(t0, space1);
 StructuredBuffer<AABBPrimitiveData> l_PrimitiveBuffer: register(t1, space1);
 
-
-#define NORMAL_DELTA_X float3(0.01f, 0.0f, 0.0f)
-#define NORMAL_DELTA_Y float3(0.0f, 0.01f, 0.0f)
-#define NORMAL_DELTA_Z float3(0.0f, 0.0f, 0.01f)
+#define NORMAL_DELTA 1.0f / 256.0f
+#define NORMAL_DELTA_X float3(NORMAL_DELTA, 0.0f, 0.0f)
+#define NORMAL_DELTA_Y float3(0.0f, NORMAL_DELTA, 0.0f)
+#define NORMAL_DELTA_Z float3(0.0f, 0.0f, NORMAL_DELTA)
 
 
 // Generate a ray in world space for a camera pixel corresponding to an index from the dispatched 2D grid.
@@ -84,10 +84,10 @@ void MyRaygenShader()
 	ray.Direction = rayDir;
     // Set TMin to a non-zero small value to avoid aliasing issues due to floating - point errors.
     // TMin should be kept small to prevent missing geometry at close contact areas.
-	ray.TMin = 0.001;
-	ray.TMax = 10000.0;
+	ray.TMin = 0.001f;
+	ray.TMax = 10000.0f;
 	RayPayload payload = { float4(0, 0, 0, 0) };
-	TraceRay(g_Scene, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, ~0, 0, 1, 0, ray, payload);
+	TraceRay(g_Scene, RAY_FLAG_NONE, ~0, 0, 1, 0, ray, payload);
 
     // Write the raytraced color to the output texture.
 	g_RenderTarget[DispatchRaysIndex().xy] = payload.color;
@@ -117,24 +117,31 @@ void MyIntersectionShader()
 		// step through volume to find surface
 		float s = 1; // can be any number > epsilon
 	
-		while (s > 0.001f)
+		while (s > 1 / 256.0f)
 		{
 			s = l_SDFVolume.SampleLevel(g_Sampler, uvw, 0);
-			tMin += 0.001f;
-			uvw += 0.001f * ray.direction;
-
+			float step = 0.25f * s;
+			tMin += step;
+			uvw += step * ray.direction;
 		
-			if (max(max(uvw.x, uvw.y), uvw.z) >= 1.0001f || min(min(uvw.x, uvw.y), uvw.z) <= -0.0001f)
+			if (max(max(uvw.x, uvw.y), uvw.z) >= 1.0f || min(min(uvw.x, uvw.y), uvw.z) <= 0.0f)
 			{
 				// Exited box: no intersection
+
+				// Visualize the AABB
+				MyAttributes attr;
+				// Transform from object space to world space
+				attr.normal = uvw;
+				ReportHit(tMin, 0, attr);
 				return;
 			}
 		}
-
 		MyAttributes attr;
 		// Transform from object space to world space
 		attr.normal = normalize(mul(ComputeSurfaceNormal(uvw), transpose((float3x3) ObjectToWorld())));
+		//attr.normal = uvw;
 		ReportHit(tMin, 0, attr);
+		return;
 	}
 }
 
