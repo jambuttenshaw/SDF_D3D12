@@ -13,7 +13,7 @@ Scene::Scene()
 
 		// Create an SDF object
 		m_SDFObject = std::make_unique<SDFObject>(1024, 1024, 1024);
-		/*
+		
 		m_SDFObject->AddPrimitive(SDFPrimitive::CreateBox(
 			{ 0.0f, -0.25f, 0.0f },
 			{ 0.4f, 0.4f, 0.4f }));
@@ -24,9 +24,9 @@ Scene::Scene()
 		Transform torusTransform(0.0f, 0.25f, 0.0f);
 		torusTransform.SetPitch(XMConvertToRadians(90.0f));
 		m_SDFObject->AddPrimitive(SDFPrimitive::CreateTorus(torusTransform, 0.2f, 0.05f, SDFOperation::SmoothUnion, 0.25f));
-		*/
+		
 
-		m_SDFObject->AddPrimitive(SDFPrimitive::CreateSphere({ 0.0f, 0.0f, 0.0f }, 0.99f));
+		//m_SDFObject->AddPrimitive(SDFPrimitive::CreateSphere({ 0.0f, 0.0f, 0.0f }, 0.99f));
 
 		// Bake the primitives into the SDF object
 		m_SDFFactory->BakeSDFSynchronous(m_SDFObject.get());
@@ -39,7 +39,7 @@ Scene::Scene()
 
 		// Construct geometry
 		AABBGeometry geometry{ 1 };
-		geometry.AddAABB({ 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f, 1.0f });
+		geometry.AddAABB({ 0.0f, 0.0f, 0.0f }, { 1.5f, 1.5f, 1.5f });
 
 		// Use move semantics to place geometry into the vector
 		aabbGeometry.Geometry.push_back(std::move(geometry));

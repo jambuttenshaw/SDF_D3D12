@@ -7,6 +7,8 @@
 #include "ray_helper.hlsli"
 
 
+//// Global Arguments ////
+
 RaytracingAccelerationStructure g_Scene : register(t0);
 RWTexture2D<float4> g_RenderTarget : register(u0);
 
@@ -15,13 +17,15 @@ ConstantBuffer<PassConstantBuffer> g_PassCB : register(b0);
 SamplerState g_Sampler : register(s0);
 
 
+//// Local Arguments ////
 
 // The SDF volume that will be ray-marched in the intersection shader
-// This is a local root argument
 Texture3D<float> l_SDFVolume : register(t0, space1);
+
 StructuredBuffer<AABBPrimitiveData> l_PrimitiveBuffer: register(t1, space1);
 
-#define NORMAL_DELTA 1.0f / 256.0f
+
+#define NORMAL_DELTA 2.0f / 256.0f
 #define NORMAL_DELTA_X float3(NORMAL_DELTA, 0.0f, 0.0f)
 #define NORMAL_DELTA_Y float3(0.0f, NORMAL_DELTA, 0.0f)
 #define NORMAL_DELTA_Z float3(0.0f, 0.0f, NORMAL_DELTA)
@@ -109,7 +113,13 @@ void MyIntersectionShader()
 	// Get the tmin and tmax of the intersection between the ray and this aabb
 	if (RayAABBIntersectionTest(ray, aabb, tMin, tMax))
 	{
+		// Calculate the step scale
+		const float halfBoxExtent = 0.5f * abs(aabb[0] - aabb[1]).x;
+		const float stepScale = (256.0f / 1024.0f) / halfBoxExtent;
+
 		float3 uvw = ray.origin + tMin * ray.direction;
+		uvw /= halfBoxExtent;
+		
 		// Remap uvw to [0,1]
 		uvw *= 0.5f;
 		uvw += 0.5f;
@@ -120,7 +130,7 @@ void MyIntersectionShader()
 		while (s > 1 / 256.0f)
 		{
 			s = l_SDFVolume.SampleLevel(g_Sampler, uvw, 0);
-			float step = 0.25f * s;
+			float step = stepScale * s;
 			tMin += step;
 			uvw += step * ray.direction;
 		
@@ -131,7 +141,7 @@ void MyIntersectionShader()
 				// Visualize the AABB
 				MyAttributes attr;
 				// Transform from object space to world space
-				attr.normal = uvw;
+				attr.normal = uvw * 2.0f - 1.0f;
 				ReportHit(tMin, 0, attr);
 				return;
 			}
@@ -149,6 +159,7 @@ void MyIntersectionShader()
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 {
 	payload.color = float4(0.5f + 0.5f * attr.normal, 1);
+	//payload.color = float4(attr.normal, 1);
 }
 
 [shader("miss")]
