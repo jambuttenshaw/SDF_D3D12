@@ -12,7 +12,7 @@ Scene::Scene()
 		m_SDFFactory = std::make_unique<SDFFactory>();
 
 		// Create an SDF object
-		m_SDFObject = std::make_unique<SDFObject>(128, 128, 128);
+		m_SDFObject = std::make_unique<SDFObject>(128);
 		//m_SDFObject = std::make_unique<SDFObject>(256, 256, 256);
 
 		/*
@@ -51,7 +51,7 @@ Scene::Scene()
 
 		// Construct a geometry instance
 		// Note: 'geometry' is no longer valid here as it has been moved from
-		aabbGeometry.GeometryInstances.push_back({ aabbGeometry.Geometry.back(), D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE, m_SDFObject->GetSRV(), m_SDFObject->GetWidth() });
+		aabbGeometry.GeometryInstances.push_back({ aabbGeometry.Geometry.back(), D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE, m_SDFObject->GetSRV(), m_SDFObject->GetResolution() });
 	}
 
 	{

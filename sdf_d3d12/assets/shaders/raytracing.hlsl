@@ -75,7 +75,7 @@ Ray GetRayInAABBPrimitiveLocalSpace()
 
 float3 ComputeSurfaceNormal(float3 p)
 {
-	const float invRes = l_VolumeCB.InvDimensions;
+	const float invRes = l_VolumeCB.InvVolumeDimensions;
 	return normalize(float3(
         l_SDFVolume.SampleLevel(g_Sampler, p + float3(invRes, 0.0f, 0.0f), 0) - l_SDFVolume.SampleLevel(g_Sampler, p - float3(invRes, 0.0f, 0.0f), 0),
         l_SDFVolume.SampleLevel(g_Sampler, p + float3(0.0f, invRes, 0.0f), 0) - l_SDFVolume.SampleLevel(g_Sampler, p - float3(0.0f, invRes, 0.0f), 0),

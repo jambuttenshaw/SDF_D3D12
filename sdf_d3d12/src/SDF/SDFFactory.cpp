@@ -191,12 +191,10 @@ void SDFFactory::BakeSDFSynchronous(const SDFObject* object)
 		m_CommandList->SetComputeRootDescriptorTable(2, object->GetUAV());
 
 		// Use fast ceiling of integer division
-		const UINT threadGroupX = (object->GetWidth() + s_NumShaderThreads - 1) / s_NumShaderThreads;
-		const UINT threadGroupY = (object->GetHeight() + s_NumShaderThreads - 1) / s_NumShaderThreads;
-		const UINT threadGroupZ = (object->GetDepth() + s_NumShaderThreads - 1) / s_NumShaderThreads;
+		const UINT threadGroupX = (object->GetResolution() + s_NumShaderThreads - 1) / s_NumShaderThreads;
 
 		// Dispatch
-		m_CommandList->Dispatch(threadGroupX, threadGroupY, threadGroupZ);
+		m_CommandList->Dispatch(threadGroupX, threadGroupX, threadGroupX);
 
 		// Perform graphics commands
 

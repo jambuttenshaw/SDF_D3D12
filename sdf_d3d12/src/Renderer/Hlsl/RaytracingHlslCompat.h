@@ -46,8 +46,8 @@ struct PassConstantBuffer
 // Data used to describe properties of a volume to a shader
 struct VolumeConstantBuffer
 {
-	UINT Dimensions;	// If volume is cubic then only one dimension is needed
-	float InvDimensions;
+	UINT VolumeDimensions;	// If volume is cubic then only one dimension is needed
+	float InvVolumeDimensions;
 };
 
 // Data used to describe each primitive to the shader

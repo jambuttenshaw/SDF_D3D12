@@ -14,14 +14,12 @@ using Microsoft::WRL::ComPtr;
 class SDFObject
 {
 public:
-	SDFObject(UINT width, UINT height, UINT depth);
+	SDFObject(UINT resolution);
 	~SDFObject();
 
 	inline ID3D12Resource* GetResource() const { return m_Resource.Get(); }
 
-	inline UINT GetWidth() const { return m_Width; }
-	inline UINT GetHeight() const { return m_Height; }
-	inline UINT GetDepth() const { return m_Depth; }
+	inline UINT GetResolution() const { return m_Resolution; }
 
 	inline D3D12_GPU_DESCRIPTOR_HANDLE GetSRV() const { return m_ResourceViews.GetGPUHandle(0); };
 	inline D3D12_GPU_DESCRIPTOR_HANDLE GetUAV() const{ return m_ResourceViews.GetGPUHandle(1); }
@@ -36,9 +34,7 @@ public:
 	RenderItem* GetRenderItem() const { return m_RenderItem; }
 
 private:
-	UINT m_Width = 0,
-		 m_Height = 0,
-		 m_Depth = 0;
+	UINT m_Resolution = 0;
 
 	ComPtr<ID3D12Resource> m_Resource;
 	D3DDescriptorAllocation m_ResourceViews;	// index 0 = SRV
