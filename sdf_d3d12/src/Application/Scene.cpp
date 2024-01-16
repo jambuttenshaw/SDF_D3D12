@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Scene.h"
 
+#include "Framework/Math.h"
 #include "Renderer/D3DGraphicsContext.h"
 #include "Renderer/Geometry/SDFGeometry.h"
 
@@ -44,7 +45,7 @@ Scene::Scene()
 		auto& aabbGeometry = m_SceneGeometry.at(0);
 
 		// Construct geometry
-		SDFGeometry geometry{ 8, 1.0f };
+		SDFGeometry geometry{ 1, 1.0f };
 		// Use move semantics to place geometry into the vector
 		aabbGeometry.Geometry.push_back(std::make_unique<SDFGeometry>(std::move(geometry)));
 
@@ -65,7 +66,6 @@ Scene::Scene()
 
 		// Create instances of BLAS
 
-		srand(0);
 		std::wstring geometryName = L"AABB Geometry";
 		for (UINT z = 0; z < s_InstanceGridDims; z++)
 		{
@@ -76,15 +76,15 @@ Scene::Scene()
 					const UINT index = (z * s_InstanceGridDims + y) * s_InstanceGridDims + x;
 
 					auto m = XMMatrixRotationRollPitchYaw(
-						XMConvertToRadians(rand() % 360),
-						XMConvertToRadians(rand() % 360),
-						XMConvertToRadians(rand() % 360)
+						XMConvertToRadians(Random::Float(360.0f)),
+						XMConvertToRadians(Random::Float(360.0f)),
+						XMConvertToRadians(Random::Float(360.0f))
 					);
 					m_InstanceRotations[index] = m;
 					m_InstanceRotationDeltas[index] = {
-						static_cast<float>(rand() % 4 - 2),
-						static_cast<float>(rand() % 4 - 2),
-						static_cast<float>(rand() % 4 - 2)
+						static_cast<float>(Random::Float(-2.0f, 2.0f)),
+						static_cast<float>(Random::Float(-2.0f, 2.0f)),
+						static_cast<float>(Random::Float(-2.0f, 2.0f))
 					};
 
 					m *= XMMatrixTranslation(x * s_InstanceSpacing, y * s_InstanceSpacing, z * s_InstanceSpacing);
