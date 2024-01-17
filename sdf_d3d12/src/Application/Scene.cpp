@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Scene.h"
 
+#include "imgui.h"
 #include "Framework/Math.h"
 #include "Renderer/D3DGraphicsContext.h"
 
@@ -13,7 +14,7 @@ Scene::Scene()
 		m_SDFFactory = std::make_unique<SDFFactory>();
 
 		// Create an SDF object
-		m_SDFObject = std::make_unique<SDFObject>(128, 32);
+		m_SDFObject = std::make_unique<SDFObject>(128, 16);
 		//m_SDFObject = std::make_unique<SDFObject>(256, 256, 256);
 
 		/*
@@ -28,11 +29,26 @@ Scene::Scene()
 		torusTransform.SetPitch(XMConvertToRadians(90.0f));
 		m_SDFObject->AddPrimitive(SDFPrimitive::CreateTorus(torusTransform, 0.25f, 0.05f, SDFOperation::SmoothUnion, 0.3f));
 		*/
-
+		/*
 		m_SDFObject->AddPrimitive(SDFPrimitive::CreateSphere({ 0.0f, 0.0f, 0.0f }, 0.5f));
 		m_SDFObject->AddPrimitive(SDFPrimitive::CreateSphere({ 0.3f, -0.4f, 0.1f }, 0.3f, SDFOperation::SmoothUnion, 0.2f));
 		m_SDFObject->AddPrimitive(SDFPrimitive::CreateSphere({ -0.2f, 0.3f, -0.4f }, 0.3f, SDFOperation::SmoothUnion, 0.2f));
 		m_SDFObject->AddPrimitive(SDFPrimitive::CreateSphere({ 0.1f, 0.0f, 0.2f }, 0.25f, SDFOperation::SmoothSubtraction, 0.3f));
+		*/
+		
+		m_SDFObject->AddPrimitive(SDFPrimitive::CreateOctahedron({}, 0.75f));
+		m_SDFObject->AddPrimitive(SDFPrimitive::CreateTorus({}, 0.9f, 0.05f));
+
+		Transform torusTransform;
+		torusTransform.SetPitch(XMConvertToRadians(90.0f));
+
+		m_SDFObject->AddPrimitive(SDFPrimitive::CreateTorus(torusTransform, 0.9f, 0.05f, SDFOperation::SmoothUnion, 0.1f));
+
+		torusTransform.SetPitch(XMConvertToRadians(0.0f));
+		torusTransform.SetRoll(XMConvertToRadians(90.0f));
+
+		m_SDFObject->AddPrimitive(SDFPrimitive::CreateTorus(torusTransform, 0.9f, 0.05f, SDFOperation::SmoothUnion, 0.1f));
+
 
 		// Bake the primitives into the SDF object
 		m_SDFFactory->BakeSDFSynchronous(m_SDFObject.get());
@@ -95,27 +111,49 @@ Scene::Scene()
 void Scene::OnUpdate(float deltaTime)
 {
 	// Manipulate objects in the scene
-
-	for (UINT z = 0; z < s_InstanceGridDims; z++)
+	if (m_RotateInstances)
 	{
+		for (UINT z = 0; z < s_InstanceGridDims; z++)
 		for (UINT y = 0; y < s_InstanceGridDims; y++)
+		for (UINT x = 0; x < s_InstanceGridDims; x++)
 		{
-			for (UINT x = 0; x < s_InstanceGridDims; x++)
-			{
-				const UINT index = (z * s_InstanceGridDims + y) * s_InstanceGridDims + x;
+			const UINT index = (z * s_InstanceGridDims + y) * s_InstanceGridDims + x;
 
-				// Update rotation
-				auto m = m_InstanceRotations[index];
-				auto d = m_InstanceRotationDeltas[index];
-				m = m * XMMatrixRotationRollPitchYaw(d.x * deltaTime, d.y * deltaTime, d.z * deltaTime);
-				m_InstanceRotations[index] = m;
+			// Update rotation
+			auto m = m_InstanceRotations[index];
+			auto d = m_InstanceRotationDeltas[index];
+			m = m * XMMatrixRotationRollPitchYaw(d.x * deltaTime, d.y * deltaTime, d.z * deltaTime);
+			m_InstanceRotations[index] = m;
 
-				const auto t = XMMatrixTranslation(x * s_InstanceSpacing, y * s_InstanceSpacing, z * s_InstanceSpacing);
+			const auto t = XMMatrixTranslation(x * s_InstanceSpacing, y * s_InstanceSpacing, z * s_InstanceSpacing);
 
-				m_AccelerationStructure->SetInstanceTransform(index, m * t);
-			}
+			m_AccelerationStructure->SetInstanceTransform(index, m * t);
 		}
 	}
+
+
+	// ImGui
+
+	ImGui::Begin("Scene");
+	{
+		ImGui::Text("Scene Info"); 
+		ImGui::Separator();
+
+		ImGui::Text("Instance Count: %d", s_InstanceCount);
+		ImGui::Text("AABBs Per Instance: %d", m_SDFObject->GetAABBCount());
+
+		const float aabbCull = 100.0f * (1.0f - static_cast<float>(m_SDFObject->GetAABBCount()) / static_cast<float>(m_SDFObject->GetMaxAABBCount()));
+		ImGui::Text("AABB Cull: %.1f", aabbCull);
+
+		ImGui::Separator();
+
+		ImGui::Text("Scene Controls");
+		ImGui::Separator();
+
+		ImGui::Checkbox("Rotate Instances", &m_RotateInstances);
+	}
+	ImGui::End();
+
 }
 
 void Scene::OnRender()

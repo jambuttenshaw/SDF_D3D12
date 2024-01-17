@@ -39,7 +39,7 @@ void D3DApplication::OnUpdate()
 	m_Scene->OnUpdate(m_Timer.GetDeltaTime());
 
 	// Build properties GUI
-	ImGui::Begin("Properties");
+	ImGui::Begin("Application");
 	ImGui::Separator();
 	{
 		ImGui::LabelText("FPS", "%.1f", m_Timer.GetFPS());
@@ -62,6 +62,23 @@ void D3DApplication::OnUpdate()
 
 		m_CameraController.Gui();
 	}
+	ImGui::Separator();
+	ImGui::Text("Renderer");
+	ImGui::Separator();
+	{
+		bool displayBoundingBox = m_RenderFlags & RENDER_FLAG_DISPLAY_BOUNDING_BOX;
+		if (ImGui::Checkbox("Display Bounding Box", &displayBoundingBox))
+		{
+			if (displayBoundingBox)
+			{
+				m_RenderFlags |= RENDER_FLAG_DISPLAY_BOUNDING_BOX;
+			}
+			else
+			{
+				m_RenderFlags &= ~RENDER_FLAG_DISPLAY_BOUNDING_BOX;
+			}
+		}
+	}
 
 	ImGui::End();
 
@@ -71,7 +88,7 @@ void D3DApplication::OnUpdate()
 void D3DApplication::OnRender()
 {
 	// Update constant buffer
-	m_GraphicsContext->UpdatePassCB(&m_Timer, &m_Camera);
+	m_GraphicsContext->UpdatePassCB(&m_Timer, &m_Camera, m_RenderFlags);
 
 	// Begin drawing
 	m_GraphicsContext->StartDraw();

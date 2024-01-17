@@ -8,6 +8,10 @@ using namespace DirectX;
 #endif
 
 
+// Flags
+#define RENDER_FLAG_DISPLAY_BOUNDING_BOX		1 << 0  // Display bounding boxes instead of raymarching to show geometry
+
+
 struct MyAttributes
 {
 	XMFLOAT3 normal;
@@ -30,13 +34,10 @@ struct PassConstantBuffer
 
 	XMFLOAT3 WorldEyePos;
 
-	float _; // padding
+	UINT Flags;
 
 	XMFLOAT2 RTSize;
 	XMFLOAT2 InvRTSize;
-
-	float NearZ;
-	float FarZ;
 
 	float TotalTime;
 	float DeltaTime;

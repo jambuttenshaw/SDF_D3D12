@@ -46,7 +46,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
 
 	{
 		// Sample the volume at uvw
-		float distance = g_SDFVolume.SampleLevel(g_Sampler, uvwCentre, 0);
+		const float distance = g_SDFVolume.SampleLevel(g_Sampler, uvwCentre, 0);
 
 		// Check if this distance value is large enough for this AABB to be omitted
 
@@ -54,7 +54,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
 		// value smaller would mean that this AABB definitely contains geometry
 
 		// This distance is half the long diagonal of the AABB
-		float diagonal = 0.5f * length(uvwMax - uvwMin);
+		const float diagonal = length(uvwMax - uvwMin);
 		if (distance > diagonal)
 			return;
 	}

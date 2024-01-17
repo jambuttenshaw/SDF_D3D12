@@ -45,4 +45,7 @@ private:
 
 	std::unique_ptr<Scene> m_Scene;
 	std::unique_ptr<Raytracer> m_Raytracer;
+
+	// Flags to pass to the renderer
+	UINT m_RenderFlags = 0;
 };

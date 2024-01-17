@@ -35,6 +35,7 @@ public:
 	// Geometry Interface
 	inline UINT GetDivisions() const { return m_Divisions; }
 	inline virtual UINT GetAABBCount() const override { return m_AABBCount; }
+	inline virtual UINT GetMaxAABBCount() const { return m_MaxAABBCount; }
 
 	inline virtual D3D12_GPU_VIRTUAL_ADDRESS GetAABBBufferAddress() const override { return m_AABBBuffer.GetAddress(); }
 	inline virtual D3D12_GPU_VIRTUAL_ADDRESS GetPrimitiveDataBufferAddress() const override { return m_PrimitiveDataBuffer.GetAddress(); }

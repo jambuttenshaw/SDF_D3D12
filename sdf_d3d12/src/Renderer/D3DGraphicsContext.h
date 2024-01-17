@@ -41,7 +41,7 @@ public:
 	void CopyRaytracingOutput(D3D12_GPU_DESCRIPTOR_HANDLE rtOutputHandle) const;
 
 	// Updating constant buffers
-	void UpdatePassCB(GameTimer* timer, Camera* camera);
+	void UpdatePassCB(GameTimer* timer, Camera* camera, UINT flags);
 	D3D12_GPU_VIRTUAL_ADDRESS GetPassCBAddress() const;
 
 	void Resize(UINT width, UINT height);

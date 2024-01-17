@@ -140,7 +140,7 @@ void MyIntersectionShader()
 		float3 uvw = ray.origin + max(tMin, 0.0f) * ray.direction;
 		uvw /= halfBoxExtent;
 
-		if (false)
+		if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_BOUNDING_BOX)
 		{ // Display AABB
 			MyAttributes attr;
 			attr.normal = uvw;

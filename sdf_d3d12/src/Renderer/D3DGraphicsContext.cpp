@@ -179,7 +179,7 @@ void D3DGraphicsContext::CopyRaytracingOutput(D3D12_GPU_DESCRIPTOR_HANDLE rtOutp
 }
 
 
-void D3DGraphicsContext::UpdatePassCB(GameTimer* timer, Camera* camera)
+void D3DGraphicsContext::UpdatePassCB(GameTimer* timer, Camera* camera, UINT flags)
 {
 	ASSERT(timer, "Must use a valid timer!");
 	ASSERT(camera, "Must use a valid camera!");
@@ -201,11 +201,10 @@ void D3DGraphicsContext::UpdatePassCB(GameTimer* timer, Camera* camera)
 
 	m_MainPassCB.WorldEyePos = camera->GetPosition();
 
+	m_MainPassCB.Flags = flags;
+
 	m_MainPassCB.RTSize = { static_cast<float>(m_ClientWidth), static_cast<float>(m_ClientHeight) };
 	m_MainPassCB.InvRTSize = { 1.0f / m_MainPassCB.RTSize.x, 1.0f / m_MainPassCB.RTSize.y };
-
-	m_MainPassCB.NearZ = m_NearPlane;
-	m_MainPassCB.FarZ = m_FarPlane;
 
 	m_MainPassCB.TotalTime = timer->GetTimeSinceReset();
 	m_MainPassCB.DeltaTime = timer->GetDeltaTime();
