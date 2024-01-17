@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Memory/D3DMemoryAllocator.h"
+#include "Renderer/Memory/D3DMemoryAllocator.h"
 
-#include "D3DGraphicsContext.h"
+#include "Renderer/D3DGraphicsContext.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -21,14 +21,16 @@ public:
 	DISALLOW_COPY(D3DAppendBuffer)
 	DEFAULT_MOVE(D3DAppendBuffer)
 
-	void Allocate(UINT elementCount, D3D12_RESOURCE_STATES initialResourceState, const wchar_t* resourceName = nullptr)
+	// Getters
+	inline D3D12_GPU_VIRTUAL_ADDRESS GetAddress() const { return m_AppendBuffer->GetGPUVirtualAddress(); }
+
+	void Allocate(UINT elementCount, UINT64 alignment, D3D12_RESOURCE_STATES initialResourceState, const wchar_t* resourceName = nullptr)
 	{
 		ASSERT(elementCount > 0, "Cannot allocate buffer with 0 elements");
 
 		m_ElementCount = elementCount;
 
 		// Align structured buffers to 16 bytes
-		constexpr UINT64 alignment = 16;
 		const UINT64 bufferSize = elementCount * sizeof(T);
 
 		// Allocate buffer resource

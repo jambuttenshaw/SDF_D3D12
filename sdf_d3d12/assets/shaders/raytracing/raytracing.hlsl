@@ -67,8 +67,8 @@ Ray GetRayInAABBPrimitiveLocalSpace()
     // Retrieve a ray origin position and direction in bottom level AS space 
     // and transform them into the AABB primitive's local space.
 	Ray ray;
-	ray.origin = mul(float4(ObjectRayOrigin(), 1), prim.BottomLevelASToLocalSpace).xyz;
-	ray.direction = mul(ObjectRayDirection(), (float3x3) prim.BottomLevelASToLocalSpace);
+	ray.origin = ObjectRayOrigin() - prim.AABBCentre.xyz;
+	ray.direction = ObjectRayDirection();
 	return ray;
 }
 
@@ -126,15 +126,12 @@ void MyIntersectionShader()
 	float3 aabb[2];
 	float tMin, tMax;
 	AABBPrimitiveData prim = l_PrimitiveBuffer[PrimitiveIndex()];
-	aabb[0] = mul(prim.AABBMin, prim.BottomLevelASToLocalSpace).xyz;
-	aabb[1] = mul(prim.AABBMax, prim.BottomLevelASToLocalSpace).xyz;
+	aabb[0] = (prim.AABBMin - prim.AABBCentre).xyz;
+	aabb[1] = (prim.AABBMax - prim.AABBCentre).xyz;
 
 	// Get the tmin and tmax of the intersection between the ray and this aabb
 	if (RayAABBIntersectionTest(ray, aabb, tMin, tMax))
 	{
-		
-
-		// 0.25 seems to be the largest that works, and seems to be invariant over different volume dimensions?
 		const float stepScale = 0.5f;
 		const float halfBoxExtent = 0.5f * abs(aabb[0] - aabb[1]).x;
 
@@ -143,7 +140,7 @@ void MyIntersectionShader()
 		float3 uvw = ray.origin + max(tMin, 0.0f) * ray.direction;
 		uvw /= halfBoxExtent;
 
-		if (false)
+		if (true)
 		{ // Display AABB
 			MyAttributes attr;
 			attr.normal = uvw;

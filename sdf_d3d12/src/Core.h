@@ -40,7 +40,7 @@
 
 #define SizeOfInUint32(obj) ((sizeof(obj) - 1) / sizeof(UINT32) + 1)
 
-inline UINT Align(UINT size, UINT alignment)
+inline UINT64 Align(UINT64 size, UINT64 alignment)
 {
 	return (size + (alignment - 1)) & ~(alignment - 1);
 }

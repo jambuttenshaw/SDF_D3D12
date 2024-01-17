@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Renderer/D3DBuffer.h"
-#include "Renderer/Geometry/Geometry.h"
+#include "Renderer/Buffer/D3DUploadBuffer.h"
+#include "AABBGeometry.h"
 
 
 using Microsoft::WRL::ComPtr;
@@ -64,7 +64,7 @@ struct BottomLevelAccelerationStructureGeometry
 	// An instance of a geometry
 	// Supplies instance-specific data such as the volume texture and geometry flags
 	std::vector<AABBGeometryInstance> GeometryInstances;
-	std::vector<std::unique_ptr<AABBGeometry>> Geometry;
+	std::vector<BaseAABBGeometry*> Geometry;
 };
 
 

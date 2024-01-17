@@ -34,7 +34,7 @@ D3DShaderTable::D3DShaderTable(ID3D12Device* device, UINT capacity, UINT recordS
 	: m_Capacity(capacity)
 {
 	// make sure record size is aligned
-	m_RecordSize = Align(recordSize, D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
+	m_RecordSize = static_cast<UINT>(Align(recordSize, D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT));
 
 	// calculate required size of buffer
 	const UINT64 width = static_cast<UINT64>(m_Capacity) * m_RecordSize;

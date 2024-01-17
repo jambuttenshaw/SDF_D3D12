@@ -3,7 +3,6 @@
 
 #include "Framework/Math.h"
 #include "Renderer/D3DGraphicsContext.h"
-#include "Renderer/Geometry/SDFGeometry.h"
 
 
 Scene::Scene()
@@ -14,7 +13,7 @@ Scene::Scene()
 		m_SDFFactory = std::make_unique<SDFFactory>();
 
 		// Create an SDF object
-		m_SDFObject = std::make_unique<SDFObject>(128);
+		m_SDFObject = std::make_unique<SDFObject>(128, 8);
 		//m_SDFObject = std::make_unique<SDFObject>(256, 256, 256);
 
 		/*
@@ -44,14 +43,10 @@ Scene::Scene()
 		m_SceneGeometry.push_back({ L"AABB Geometry" });
 		auto& aabbGeometry = m_SceneGeometry.at(0);
 
-		// Construct geometry
-		SDFGeometry geometry{ 1, 1.0f };
-		// Use move semantics to place geometry into the vector
-		aabbGeometry.Geometry.push_back(std::make_unique<SDFGeometry>(std::move(geometry)));
+		aabbGeometry.Geometry.push_back(m_SDFObject.get());
 
 		// Construct a geometry instance
-		// Note: 'geometry' is no longer valid here as it has been moved from
-		aabbGeometry.GeometryInstances.push_back({ *aabbGeometry.Geometry.back().get(), D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE, m_SDFObject->GetSRV(), m_SDFObject->GetResolution()});
+		aabbGeometry.GeometryInstances.push_back({ *m_SDFObject.get(), D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE, m_SDFObject->GetVolumeSRV(), m_SDFObject->GetVolumeResolution()});
 	}
 
 	{
@@ -82,9 +77,9 @@ Scene::Scene()
 					);
 					m_InstanceRotations[index] = m;
 					m_InstanceRotationDeltas[index] = {
-						static_cast<float>(Random::Float(-2.0f, 2.0f)),
-						static_cast<float>(Random::Float(-2.0f, 2.0f)),
-						static_cast<float>(Random::Float(-2.0f, 2.0f))
+						Random::Float(-0.2f, 0.2f),
+						Random::Float(-0.2f, 0.2f),
+						Random::Float(-0.2f, 0.2f)
 					};
 
 					m *= XMMatrixTranslation(x * s_InstanceSpacing, y * s_InstanceSpacing, z * s_InstanceSpacing);

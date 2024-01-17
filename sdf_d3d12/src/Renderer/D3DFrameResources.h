@@ -3,7 +3,7 @@
 using Microsoft::WRL::ComPtr;
 
 #include "Memory/D3DMemoryAllocator.h"
-#include "D3DBuffer.h"
+#include "Buffer/D3DUploadBuffer.h"
 
 #include "Hlsl/RaytracingHlslCompat.h"
 

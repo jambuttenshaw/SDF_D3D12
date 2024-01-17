@@ -2,6 +2,10 @@
 #include "SDFFactory.h"
 
 #include "Renderer/D3DGraphicsContext.h"
+
+#include "Renderer/Hlsl/ComputeHlslCompat.h"
+#include "Renderer/Buffer/D3DCounterResource.h"
+
 #include "SDFObject.h"
 
 
@@ -24,7 +28,9 @@ namespace AABBBuilderComputeRootSignature
 	{
 		BuildParameters = 0,
 		VolumeSlot,
+		AABBCounterSlot,
 		AABBBufferSlot,
+		PrimitiveDataSlot,
 		Count
 	};
 }
@@ -102,16 +108,20 @@ SDFFactory::~SDFFactory()
 }
 
 
-void SDFFactory::BakeSDFSynchronous(const SDFObject* object)
+void SDFFactory::BakeSDFSynchronous(SDFObject* object)
 {
+	const auto device = g_D3DGraphicsContext->GetDevice();
 
-	// Step 1: upload primitive array to gpu so that it can be accessed while rendering
+	// Resources used throughout the process
 	ComPtr<ID3D12Resource> primitiveBuffer;
 	D3DDescriptorAllocation primitiveBufferSRV;
 
+	D3DCounterResource counterResource;
+	D3DDescriptorAllocation counterResourceUAV;
+
+	// Step 1: upload primitive array to gpu so that it can be accessed while rendering
 	const size_t primitiveCount = object->GetPrimitiveCount();
 	{
-		const auto device = g_D3DGraphicsContext->GetDevice();
 
 		const UINT64 bufferSize = primitiveCount * sizeof(SDFPrimitiveBufferType);
 
@@ -161,16 +171,14 @@ void SDFFactory::BakeSDFSynchronous(const SDFObject* object)
 		bakeDataBuffer.PrimitiveCount = static_cast<UINT>(primitiveCount);
 	}
 
-	// Step 3: Build command list to execute compute shader
+	// Step 3: Build command list to execute SDF baker compute shader
 	{
 		// Scene texture must be in unordered access state
-		auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(object->GetResource(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+		auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(object->GetVolumeResource(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 		m_CommandList->ResourceBarrier(1, &barrier);
 
 		ID3D12DescriptorHeap* ppDescriptorHeaps[] = { g_D3DGraphicsContext->GetSRVHeap()->GetHeap() };
 		m_CommandList->SetDescriptorHeaps(_countof(ppDescriptorHeaps), ppDescriptorHeaps);
-
-		m_CommandList->SetPipelineState(m_BakePipeline->GetPipelineState());
 
 		// Set pipeline state
 		m_BakePipeline->Bind(m_CommandList.Get());
@@ -178,22 +186,70 @@ void SDFFactory::BakeSDFSynchronous(const SDFObject* object)
 		// Set resource views
 		m_CommandList->SetComputeRoot32BitConstants(BakeComputeRootSignature::BakeDataSlot, SizeOfInUint32(BakeDataConstantBuffer), &bakeDataBuffer, 0);
 		m_CommandList->SetComputeRootDescriptorTable(BakeComputeRootSignature::PrimitiveDataSlot, primitiveBufferSRV.GetGPUHandle());
-		m_CommandList->SetComputeRootDescriptorTable(BakeComputeRootSignature::OutputVolumeSlot, object->GetUAV());
+		m_CommandList->SetComputeRootDescriptorTable(BakeComputeRootSignature::OutputVolumeSlot, object->GetVolumeUAV());
 
 		// Use fast ceiling of integer division
-		const UINT threadGroupX = (object->GetResolution() + s_NumShaderThreads - 1) / s_NumShaderThreads;
+		const UINT threadGroupX = (object->GetVolumeResolution() + s_NumShaderThreads - 1) / s_NumShaderThreads;
 
 		// Dispatch
 		m_CommandList->Dispatch(threadGroupX, threadGroupX, threadGroupX);
 
-		// Perform graphics commands
-
-		// Scene texture will now be used to render to the back buffer
-		barrier = CD3DX12_RESOURCE_BARRIER::Transition(object->GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+		// Volume resource will now be read from in the subsequent stages
+		barrier = CD3DX12_RESOURCE_BARRIER::Transition(object->GetVolumeResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 		m_CommandList->ResourceBarrier(1, &barrier);
 	}
 
-	// Step 4: Execute command list and wait until completion
+	// Step 4: Setup data required to build the AABBs
+	AABBBuilderParametersConstantBuffer buildParamsBuffer;
+	{
+		// Allocate counter resource and create a UAV
+		counterResource.Allocate(device, L"AABB Counter");
+		counterResourceUAV = g_D3DGraphicsContext->GetSRVHeap()->Allocate(1);
+
+		D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+		uavDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+		uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+		uavDesc.Buffer.FirstElement = 0;
+		uavDesc.Buffer.NumElements = 1;
+		uavDesc.Buffer.StructureByteStride = 0;
+		uavDesc.Buffer.CounterOffsetInBytes = 0;
+		uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_RAW;
+
+		device->CreateUnorderedAccessView(counterResource.GetResource(), nullptr, &uavDesc, counterResourceUAV.GetCPUHandle());
+
+		// Populate build params
+		UINT divisions = object->GetDivisions();
+		buildParamsBuffer.Divisions = divisions;
+		buildParamsBuffer.AABBDimensions = 2.0f / static_cast<float>(divisions);
+		buildParamsBuffer.UVWIncrement = 1.0f / static_cast<float>(divisions);
+	}
+
+	// Step 5: Build command list to execute AABB builder compute shader
+	{
+		// Copy the initial counter value into the counter
+		counterResource.SetCounterValue(m_CommandList.Get(), 0);
+
+		// Setup pipeline
+		m_AABBBuildPipeline->Bind(m_CommandList.Get());
+
+		// Set resources
+		m_CommandList->SetComputeRoot32BitConstants(AABBBuilderComputeRootSignature::BuildParameters, SizeOfInUint32(buildParamsBuffer), &buildParamsBuffer, 0);
+		m_CommandList->SetComputeRootDescriptorTable(AABBBuilderComputeRootSignature::VolumeSlot, object->GetVolumeSRV());
+		m_CommandList->SetComputeRootDescriptorTable(AABBBuilderComputeRootSignature::AABBCounterSlot, counterResourceUAV.GetGPUHandle());
+		m_CommandList->SetComputeRootDescriptorTable(AABBBuilderComputeRootSignature::AABBBufferSlot, object->GetAABBBufferUAV());
+		m_CommandList->SetComputeRootDescriptorTable(AABBBuilderComputeRootSignature::PrimitiveDataSlot, object->GetPrimitiveDataBufferUAV());
+
+		// Calculate number of thread groups
+		const UINT threadGroupX = (object->GetDivisions() + s_NumShaderThreads - 1) / s_NumShaderThreads;
+
+		// Dispatch
+		m_CommandList->Dispatch(threadGroupX, threadGroupX, threadGroupX);
+
+		// Copy counter value to a readback resource
+		counterResource.CopyCounterValue(m_CommandList.Get());
+	}
+
+	// Step 6: Execute command list and wait until completion
 	{
 		THROW_IF_FAIL(m_CommandList->Close());
 		ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
@@ -208,7 +264,14 @@ void SDFFactory::BakeSDFSynchronous(const SDFObject* object)
 		}
 	}
 
-	// Step 5: Clean up
+	// Step 7: Read counter value
+	{
+		// It is only save to read the counter value after the GPU has finished its work
+		UINT aabbCount = counterResource.ReadCounterValue();
+		object->SetAABBCount(aabbCount);
+	}
+
+	// Step 8: Clean up
 	{
 		THROW_IF_FAIL(m_CommandAllocator->Reset());
 		THROW_IF_FAIL(m_CommandList->Reset(m_CommandAllocator.Get(), nullptr));
@@ -216,6 +279,7 @@ void SDFFactory::BakeSDFSynchronous(const SDFObject* object)
 		// primitiveBuffer will get released
 		// Free the srv
 		primitiveBufferSRV.Free();
+		counterResourceUAV.Free();
 	}
 }
 
@@ -246,14 +310,18 @@ void SDFFactory::InitializePipelines()
 
 	// Create pipeline to build array of AABB geometry to fit the volume texture
 	{
-		CD3DX12_DESCRIPTOR_RANGE1 ranges[2];
+		CD3DX12_DESCRIPTOR_RANGE1 ranges[4];
 		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
 		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
+		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1);
+		ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 2);
 
 		CD3DX12_ROOT_PARAMETER1 rootParameters[AABBBuilderComputeRootSignature::Count];
 		rootParameters[AABBBuilderComputeRootSignature::BuildParameters].InitAsConstants(SizeOfInUint32(AABBBuilderParametersConstantBuffer), 0);
 		rootParameters[AABBBuilderComputeRootSignature::VolumeSlot].InitAsDescriptorTable(1, &ranges[0]);
-		rootParameters[AABBBuilderComputeRootSignature::AABBBufferSlot].InitAsDescriptorTable(1, &ranges[1]);
+		rootParameters[AABBBuilderComputeRootSignature::AABBCounterSlot].InitAsDescriptorTable(1, &ranges[1]);
+		rootParameters[AABBBuilderComputeRootSignature::AABBBufferSlot].InitAsDescriptorTable(1, &ranges[2]);
+		rootParameters[AABBBuilderComputeRootSignature::PrimitiveDataSlot].InitAsDescriptorTable(1, &ranges[3]);
 
 		D3DComputePipelineDesc desc;
 		desc.NumRootParameters = ARRAYSIZE(rootParameters);

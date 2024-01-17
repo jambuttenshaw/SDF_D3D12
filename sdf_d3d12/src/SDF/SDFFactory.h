@@ -1,9 +1,6 @@
 #pragma once
 
-#include "Renderer/D3DBuffer.h"
 #include "Renderer/D3DPipeline.h"
-#include "Renderer/Memory/D3DMemoryAllocator.h"
-#include "Renderer/Hlsl/ComputeHlslCompat.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -19,7 +16,7 @@ public:
 	SDFFactory();
 	~SDFFactory();
 
-	void BakeSDFSynchronous(const SDFObject* object);
+	void BakeSDFSynchronous(SDFObject* object);
 
 private:
 	void InitializePipelines();

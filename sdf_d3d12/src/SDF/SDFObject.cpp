@@ -4,35 +4,51 @@
 #include "Renderer/D3DGraphicsContext.h"
 
 
-SDFObject::SDFObject(UINT resolution)
+SDFObject::SDFObject(UINT resolution, UINT aabbDivisions)
 	: m_Resolution(resolution)
+	, m_Divisions(aabbDivisions)
+	, m_MaxAABBCount(aabbDivisions * aabbDivisions * aabbDivisions)
 {
-	// Create the 3D texture resource that will store the sdf data
 	const auto device = g_D3DGraphicsContext->GetDevice();
+	const auto descriptorHeap = g_D3DGraphicsContext->GetSRVHeap();
 
-	auto heap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-	CD3DX12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex3D(DXGI_FORMAT_R8_UNORM, m_Resolution, m_Resolution, m_Resolution, 1, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+	// Create volume resource
+	{
+		auto heap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+		CD3DX12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex3D(DXGI_FORMAT_R8_UNORM, m_Resolution, m_Resolution, m_Resolution, 1, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 
-	THROW_IF_FAIL(device->CreateCommittedResource(
-		&heap,
-		D3D12_HEAP_FLAG_NONE,
-		&desc,
-		D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
-		nullptr,
-		IID_PPV_ARGS(&m_Resource)
-	));
-	m_Resource->SetName(L"SDF Object Volume Resource");
+		THROW_IF_FAIL(device->CreateCommittedResource(
+			&heap,
+			D3D12_HEAP_FLAG_NONE,
+			&desc,
+			D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+			nullptr,
+			IID_PPV_ARGS(&m_VolumeResource)
+		));
+		m_VolumeResource->SetName(L"SDF Object Volume Resource");
+	}
 
-	// Create UAV and SRV
-	m_ResourceViews = g_D3DGraphicsContext->GetSRVHeap()->Allocate(2);
+	// Create volume UAV and SRV
+	{
+		m_VolumeResourceViews = descriptorHeap->Allocate(2);
 
-	device->CreateShaderResourceView(m_Resource.Get(), nullptr, m_ResourceViews.GetCPUHandle(0));
-	device->CreateUnorderedAccessView(m_Resource.Get(), nullptr, nullptr, m_ResourceViews.GetCPUHandle(1));
+		device->CreateShaderResourceView(m_VolumeResource.Get(), nullptr, m_VolumeResourceViews.GetCPUHandle(0));
+		device->CreateUnorderedAccessView(m_VolumeResource.Get(), nullptr, nullptr, m_VolumeResourceViews.GetCPUHandle(1));
+	}
+
+	// Allocate Geometry buffers
+	{
+		m_AABBBuffer.Allocate(device, m_MaxAABBCount, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, L"AABB Buffer");
+		m_PrimitiveDataBuffer.Allocate(device, m_MaxAABBCount, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, L"AABB Primitive Data Buffer");
+
+		m_AABBBuffer.CreateUAV(device, descriptorHeap);
+		m_PrimitiveDataBuffer.CreateUAV(device, descriptorHeap);
+	}
 }
 
 SDFObject::~SDFObject()
 {
-	m_ResourceViews.Free();
+	m_VolumeResourceViews.Free();
 }
 
 
