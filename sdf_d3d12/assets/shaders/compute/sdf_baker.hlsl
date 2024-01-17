@@ -1,4 +1,5 @@
-
+#ifndef SDFBAKER_HLSL
+#define SDFBAKER_HLSL
 
 /*
  *
@@ -6,6 +7,8 @@
  *
  */
 
+#define HLSL
+#include "../../../src/Renderer/Hlsl/ComputeHlslCompat.h"
 #include "../include/sdf_primitives.hlsli"
 #include "../include/sdf_operations.hlsli"
 
@@ -15,10 +18,7 @@
 #define NUM_SHADER_THREADS 8
 
 
-cbuffer BakeData : register(b0)
-{
-	uint gPrimitiveCount;
-}
+ConstantBuffer<BakeDataConstantBuffer> g_BakeData : register(b0);
 
 struct PrimitiveData
 {
@@ -34,9 +34,9 @@ struct PrimitiveData
 
 	float4 Color;
 };
-StructuredBuffer<PrimitiveData> AllPrimitiveData : register(t0);
+StructuredBuffer<PrimitiveData> g_PrimitiveData : register(t0);
 
-RWTexture3D<float> OutputTexture : register(u0);
+RWTexture3D<float> g_OutputTexture : register(u0);
 
 
 //
@@ -62,7 +62,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
 {
 	// Make sure thread has a pixel in the texture to process
 	uint3 dims;
-	OutputTexture.GetDimensions(dims.x, dims.y, dims.z);
+	g_OutputTexture.GetDimensions(dims.x, dims.y, dims.z);
 	if (DTid.x >= dims.x || DTid.y >= dims.y || DTid.z >= dims.z)
 		return;
 	
@@ -80,21 +80,23 @@ void main(uint3 DTid : SV_DispatchThreadID)
 	// Evaluate SDF list
 	float4 nearest = float4(0.0f, 0.0f, 0.0f, FLOAT_MAX);
 	
-	for (uint i = 0; i < gPrimitiveCount; i++)
+	for (uint i = 0; i < g_BakeData.PrimitiveCount; i++)
 	{
 		// apply primitive transform
-		float3 p_transformed = opTransform(p, AllPrimitiveData[i].InvWorldMat) / AllPrimitiveData[i].Scale;
+		float3 p_transformed = opTransform(p, g_PrimitiveData[i].InvWorldMat) / g_PrimitiveData[i].Scale;
 		
 		// evaluate primitive
 		float4 shape = float4(
-			AllPrimitiveData[i].Color.rgb,
-			sdPrimitive(p_transformed, AllPrimitiveData[i].Shape, AllPrimitiveData[i].ShapeParams)
+			g_PrimitiveData[i].Color.rgb,
+			sdPrimitive(p_transformed, g_PrimitiveData[i].Shape, g_PrimitiveData[i].ShapeParams)
 		);
-		shape.w *= AllPrimitiveData[i].Scale;
+		shape.w *= g_PrimitiveData[i].Scale;
 
 		// combine with scene
-		nearest = opPrimitive(nearest, shape, AllPrimitiveData[i].Operation, AllPrimitiveData[i].BlendingFactor);
+		nearest = opPrimitive(nearest, shape, g_PrimitiveData[i].Operation, g_PrimitiveData[i].BlendingFactor);
 	}
 	
-	OutputTexture[DTid] = nearest.w;
+	g_OutputTexture[DTid] = nearest.w;
 }
+
+#endif

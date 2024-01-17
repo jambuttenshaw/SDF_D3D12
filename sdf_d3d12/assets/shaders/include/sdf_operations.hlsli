@@ -1,3 +1,5 @@
+#ifndef SDFOPERATIONS_H
+#define SDFOPERATIONS_H
 
 // Operation IDs
 #define OP_UNION 0u
@@ -83,3 +85,4 @@ float4 opPrimitive(float4 a, float4 b, uint op, float k)
 	}
 }
 
+#endif

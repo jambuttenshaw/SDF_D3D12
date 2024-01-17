@@ -5,6 +5,30 @@
 #include "SDFObject.h"
 
 
+// Pipeline signatures
+namespace BakeComputeRootSignature
+{
+	enum Value
+	{
+		BakeDataSlot = 0,
+		PrimitiveDataSlot,
+		OutputVolumeSlot,
+		Count
+	};
+}
+
+
+namespace AABBBuilderComputeRootSignature
+{
+	enum Value
+	{
+		BuildParameters = 0,
+		VolumeSlot,
+		AABBBufferSlot,
+		Count
+	};
+}
+
 
 struct SDFPrimitiveBufferType
 {
@@ -50,30 +74,6 @@ SDFFactory::SDFFactory()
 {
 	const auto device = g_D3DGraphicsContext->GetDevice();
 
-	// Create pipeline that is used to bake SDFs into 3D textures
-
-	// Describe the shader's parameters
-	CD3DX12_DESCRIPTOR_RANGE1 ranges[3];
-	CD3DX12_ROOT_PARAMETER1 rootParameters[3];
-
-	ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);
-	ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);
-	ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE);
-
-	rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_ALL);
-	rootParameters[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_ALL);
-	rootParameters[2].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_ALL);
-
-	D3DComputePipelineDesc desc;
-	desc.NumRootParameters = _countof(rootParameters);
-	desc.RootParameters = rootParameters;
-	desc.Shader = L"assets/shaders/compute/sdf_baker.hlsl";
-	desc.EntryPoint = L"main";
-	desc.Defines = nullptr;
-
-	m_Pipeline = std::make_unique<D3DComputePipeline>(&desc);
-
-
 	// Create command queue, allocator, and list
 	D3D12_COMMAND_QUEUE_DESC queueDesc = {};
 	queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
@@ -81,7 +81,7 @@ SDFFactory::SDFFactory()
 	THROW_IF_FAIL(device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_CommandQueue)));
 
 	THROW_IF_FAIL(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_CommandAllocator)));
-	THROW_IF_FAIL(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_CommandAllocator.Get(), m_Pipeline->GetPipelineState(), IID_PPV_ARGS(&m_CommandList)));
+	THROW_IF_FAIL(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_CommandAllocator.Get(), nullptr, IID_PPV_ARGS(&m_CommandList)));
 
 	THROW_IF_FAIL(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence)));
 	m_FenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
@@ -91,25 +91,14 @@ SDFFactory::SDFFactory()
 	}
 	m_FenceValue = 1;
 
-	// Create constant buffer to hold bake data
-	m_BakeDataBuffer = std::make_unique<D3DUploadBuffer<BakeDataBufferType>>(g_D3DGraphicsContext->GetDevice(), 1, 1, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT, L"SDF Factory Bake Data Buffer");
 
-	// Allocate CBV
-	m_BakeDataCBV = g_D3DGraphicsContext->GetSRVHeap()->Allocate(1);
-	ASSERT(m_BakeDataCBV.IsValid(), "Failed to allocate CBV!");
-
-	// Create CBV for buffer
-	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
-	cbvDesc.BufferLocation = m_BakeDataBuffer->GetAddressOfElement(0, 0);
-	cbvDesc.SizeInBytes = m_BakeDataBuffer->GetElementStride();
-	device->CreateConstantBufferView(&cbvDesc, m_BakeDataCBV.GetCPUHandle());
+	// Create compute pipelines
+	InitializePipelines();
 }
 
 SDFFactory::~SDFFactory()
 {
 	CloseHandle(m_FenceEvent);
-
-	m_BakeDataCBV.Free();
 }
 
 
@@ -167,10 +156,9 @@ void SDFFactory::BakeSDFSynchronous(const SDFObject* object)
 	}
 
 	// Step 2: Update bake data in the constant buffer
+	BakeDataConstantBuffer bakeDataBuffer;
 	{
-		BakeDataBufferType bakeDataBuffer;
 		bakeDataBuffer.PrimitiveCount = static_cast<UINT>(primitiveCount);
-		m_BakeDataBuffer->CopyElement(0, 0, bakeDataBuffer);
 	}
 
 	// Step 3: Build command list to execute compute shader
@@ -182,13 +170,15 @@ void SDFFactory::BakeSDFSynchronous(const SDFObject* object)
 		ID3D12DescriptorHeap* ppDescriptorHeaps[] = { g_D3DGraphicsContext->GetSRVHeap()->GetHeap() };
 		m_CommandList->SetDescriptorHeaps(_countof(ppDescriptorHeaps), ppDescriptorHeaps);
 
+		m_CommandList->SetPipelineState(m_BakePipeline->GetPipelineState());
+
 		// Set pipeline state
-		m_Pipeline->Bind(m_CommandList.Get());
+		m_BakePipeline->Bind(m_CommandList.Get());
 
 		// Set resource views
-		m_CommandList->SetComputeRootDescriptorTable(0, m_BakeDataCBV.GetGPUHandle(0));
-		m_CommandList->SetComputeRootDescriptorTable(1, primitiveBufferSRV.GetGPUHandle());
-		m_CommandList->SetComputeRootDescriptorTable(2, object->GetUAV());
+		m_CommandList->SetComputeRoot32BitConstants(BakeComputeRootSignature::BakeDataSlot, SizeOfInUint32(BakeDataConstantBuffer), &bakeDataBuffer, 0);
+		m_CommandList->SetComputeRootDescriptorTable(BakeComputeRootSignature::PrimitiveDataSlot, primitiveBufferSRV.GetGPUHandle());
+		m_CommandList->SetComputeRootDescriptorTable(BakeComputeRootSignature::OutputVolumeSlot, object->GetUAV());
 
 		// Use fast ceiling of integer division
 		const UINT threadGroupX = (object->GetResolution() + s_NumShaderThreads - 1) / s_NumShaderThreads;
@@ -221,10 +211,57 @@ void SDFFactory::BakeSDFSynchronous(const SDFObject* object)
 	// Step 5: Clean up
 	{
 		THROW_IF_FAIL(m_CommandAllocator->Reset());
-		THROW_IF_FAIL(m_CommandList->Reset(m_CommandAllocator.Get(), m_Pipeline->GetPipelineState()));
+		THROW_IF_FAIL(m_CommandList->Reset(m_CommandAllocator.Get(), nullptr));
 
 		// primitiveBuffer will get released
 		// Free the srv
 		primitiveBufferSRV.Free();
+	}
+}
+
+
+void SDFFactory::InitializePipelines()
+{
+	// Create pipeline that is used to bake SDFs into 3D textures
+	{
+		CD3DX12_DESCRIPTOR_RANGE1 ranges[2];
+		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
+
+		CD3DX12_ROOT_PARAMETER1 rootParameters[BakeComputeRootSignature::Count];
+		rootParameters[BakeComputeRootSignature::BakeDataSlot].InitAsConstants(SizeOfInUint32(BakeDataConstantBuffer), 0);
+		rootParameters[BakeComputeRootSignature::PrimitiveDataSlot].InitAsDescriptorTable(1, &ranges[0]);
+		rootParameters[BakeComputeRootSignature::OutputVolumeSlot].InitAsDescriptorTable(1, &ranges[1]);
+
+		D3DComputePipelineDesc desc;
+		desc.NumRootParameters = ARRAYSIZE(rootParameters);
+		desc.RootParameters = rootParameters;
+		desc.Shader = L"assets/shaders/compute/sdf_baker.hlsl";
+		desc.EntryPoint = L"main";
+		desc.Defines = nullptr;
+
+		m_BakePipeline = std::make_unique<D3DComputePipeline>(&desc);
+	}
+
+
+	// Create pipeline to build array of AABB geometry to fit the volume texture
+	{
+		CD3DX12_DESCRIPTOR_RANGE1 ranges[2];
+		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
+
+		CD3DX12_ROOT_PARAMETER1 rootParameters[AABBBuilderComputeRootSignature::Count];
+		rootParameters[AABBBuilderComputeRootSignature::BuildParameters].InitAsConstants(SizeOfInUint32(AABBBuilderParametersConstantBuffer), 0);
+		rootParameters[AABBBuilderComputeRootSignature::VolumeSlot].InitAsDescriptorTable(1, &ranges[0]);
+		rootParameters[AABBBuilderComputeRootSignature::AABBBufferSlot].InitAsDescriptorTable(1, &ranges[1]);
+
+		D3DComputePipelineDesc desc;
+		desc.NumRootParameters = ARRAYSIZE(rootParameters);
+		desc.RootParameters = rootParameters;
+		desc.Shader = L"assets/shaders/compute/aabb_builder.hlsl";
+		desc.EntryPoint = L"main";
+		desc.Defines = nullptr;
+
+		m_AABBBuildPipeline = std::make_unique<D3DComputePipeline>(&desc);
 	}
 }

@@ -4,12 +4,10 @@
 #include "Renderer/Memory/D3DMemoryAllocator.h"
 
 
-class RenderItem;
 using Microsoft::WRL::ComPtr;
 
 /**
  * A 3D volume texture that contains the SDF data of an object
- * TODO: Think of a better name for this!
  */
 class SDFObject
 {
@@ -30,19 +28,18 @@ public:
 	inline size_t GetPrimitiveCount() const { return m_Primitives.size(); }
 	inline const SDFPrimitive& GetPrimitive(size_t index) const { return m_Primitives.at(index); }
 
-	// Affect the render item that will draw the bounding box of this object
-	RenderItem* GetRenderItem() const { return m_RenderItem; }
-
 private:
+	// Volume
 	UINT m_Resolution = 0;
 
 	ComPtr<ID3D12Resource> m_Resource;
 	D3DDescriptorAllocation m_ResourceViews;	// index 0 = SRV
 												// index 1 = UAV
 
+	// Geometry
+
+
 	// The primitives that make up this object
 	// The baked SDF texture is constructed by rendering these primitives in order
 	std::vector<SDFPrimitive> m_Primitives;
-
-	RenderItem* m_RenderItem = nullptr;
 };

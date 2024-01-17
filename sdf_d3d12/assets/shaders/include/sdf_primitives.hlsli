@@ -1,3 +1,5 @@
+#ifndef SDFPRIMITIVES_H
+#define SDFPRIMITIVES_H
 
 // Shape IDs
 #define SHAPE_SPHERE 0u
@@ -72,3 +74,5 @@ float sdPrimitive(float3 p, uint prim, float4 param)
 			return 0.0f;
 	}
 }
+
+#endif

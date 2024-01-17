@@ -160,6 +160,7 @@
     <ClCompile Include="src\Framework\Transform.cpp" />
     <ClCompile Include="src\Input\InputManager.cpp" />
     <ClCompile Include="src\Main.cpp" />
+    <ClCompile Include="src\Renderer\D3DAppendBuffer.cpp" />
     <ClCompile Include="src\Renderer\D3DBuffer.cpp" />
     <ClCompile Include="src\Renderer\D3DFrameResources.cpp" />
     <ClCompile Include="src\Renderer\D3DGraphicsContext.cpp" />
@@ -219,6 +220,7 @@
     <ClInclude Include="src\Application\D3DApplication.h" />
     <ClInclude Include="src\Core.h" />
     <ClInclude Include="src\pch.h" />
+    <ClInclude Include="src\Renderer\D3DAppendBuffer.h" />
     <ClInclude Include="src\Renderer\D3DBuffer.h" />
     <ClInclude Include="src\Renderer\D3DFrameResources.h" />
     <ClInclude Include="src\Renderer\D3DGraphicsContext.h" />
@@ -227,6 +229,7 @@
     <ClInclude Include="src\Renderer\D3DShaderTable.h" />
     <ClInclude Include="src\Renderer\Geometry\Geometry.h" />
     <ClInclude Include="src\Renderer\Geometry\SDFGeometry.h" />
+    <ClInclude Include="src\Renderer\Hlsl\ComputeHlslCompat.h" />
     <ClInclude Include="src\Renderer\Hlsl\HlslCompat.h" />
     <ClInclude Include="src\Renderer\Hlsl\RaytracingHlslCompat.h" />
     <ClInclude Include="src\Renderer\Raytracing\Raytracer.h" />

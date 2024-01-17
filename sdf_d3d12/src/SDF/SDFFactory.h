@@ -3,6 +3,7 @@
 #include "Renderer/D3DBuffer.h"
 #include "Renderer/D3DPipeline.h"
 #include "Renderer/Memory/D3DMemoryAllocator.h"
+#include "Renderer/Hlsl/ComputeHlslCompat.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -14,11 +15,6 @@ class SDFObject;
  */
 class SDFFactory
 {
-	struct BakeDataBufferType
-	{
-		UINT PrimitiveCount;
-	};
-
 public:
 	SDFFactory();
 	~SDFFactory();
@@ -26,6 +22,11 @@ public:
 	void BakeSDFSynchronous(const SDFObject* object);
 
 private:
+	void InitializePipelines();
+
+private:
+	// API objects
+
 	// The SDF factory runs its own command queue, allocator, and list
 	ComPtr<ID3D12CommandQueue> m_CommandQueue;
 	ComPtr<ID3D12CommandAllocator> m_CommandAllocator;
@@ -36,12 +37,10 @@ private:
 	UINT64 m_FenceValue = 0;
 	HANDLE m_FenceEvent = nullptr;
 
-	// Pipeline state used to bake SDFs
-	std::unique_ptr<D3DComputePipeline> m_Pipeline;
 
-	// Constant data used to hold non-object specific data about how to bake the SDF
-	std::unique_ptr<D3DUploadBuffer<BakeDataBufferType>> m_BakeDataBuffer;
-	D3DDescriptorAllocation m_BakeDataCBV;
+	// Pipelines to build SDF objects
+	std::unique_ptr<D3DComputePipeline> m_BakePipeline;
+	std::unique_ptr<D3DComputePipeline> m_AABBBuildPipeline;
 
 private:
 	// number of shader threads per group in each dimension
