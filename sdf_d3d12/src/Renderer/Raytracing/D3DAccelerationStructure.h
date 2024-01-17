@@ -64,7 +64,6 @@ struct BottomLevelAccelerationStructureGeometry
 	// An instance of a geometry
 	// Supplies instance-specific data such as the volume texture and geometry flags
 	std::vector<AABBGeometryInstance> GeometryInstances;
-	std::vector<BaseAABBGeometry*> Geometry;
 };
 
 

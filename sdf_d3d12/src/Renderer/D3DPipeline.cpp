@@ -106,16 +106,6 @@ D3DComputePipeline::D3DComputePipeline(D3DComputePipelineDesc* desc)
 
 	// Create the compute root signature
 	{
-		// Deny unnecessary access to certain pipeline stages
-		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS;
-
 		// Create a default sampler
 		D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
 		samplerDesc.Filter = D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
@@ -133,7 +123,7 @@ D3DComputePipeline::D3DComputePipeline(D3DComputePipelineDesc* desc)
 		samplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
-		rootSignatureDesc.Init_1_1(desc->NumRootParameters, desc->RootParameters, 1, &samplerDesc, rootSignatureFlags);
+		rootSignatureDesc.Init_1_1(desc->NumRootParameters, desc->RootParameters, 1, &samplerDesc, D3D12_ROOT_SIGNATURE_FLAG_NONE);
 
 		ComPtr<ID3DBlob> signature;
 		THROW_IF_FAIL(D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, nullptr));

@@ -323,6 +323,8 @@ void SDFFactory::InitializePipelines()
 		rootParameters[AABBBuilderComputeRootSignature::AABBBufferSlot].InitAsDescriptorTable(1, &ranges[2]);
 		rootParameters[AABBBuilderComputeRootSignature::PrimitiveDataSlot].InitAsDescriptorTable(1, &ranges[3]);
 
+
+
 		D3DComputePipelineDesc desc;
 		desc.NumRootParameters = ARRAYSIZE(rootParameters);
 		desc.RootParameters = rootParameters;

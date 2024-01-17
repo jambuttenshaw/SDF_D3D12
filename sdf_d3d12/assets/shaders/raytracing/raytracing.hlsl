@@ -140,7 +140,7 @@ void MyIntersectionShader()
 		float3 uvw = ray.origin + max(tMin, 0.0f) * ray.direction;
 		uvw /= halfBoxExtent;
 
-		if (true)
+		if (false)
 		{ // Display AABB
 			MyAttributes attr;
 			attr.normal = uvw;
