@@ -83,20 +83,32 @@ Scene::Scene()
 				{
 					const UINT index = (z * s_InstanceGridDims + y) * s_InstanceGridDims + x;
 
-					auto m = XMMatrixRotationRollPitchYaw(
+					auto rotation = XMMatrixRotationRollPitchYaw(
 						XMConvertToRadians(Random::Float(360.0f)),
 						XMConvertToRadians(Random::Float(360.0f)),
 						XMConvertToRadians(Random::Float(360.0f))
 					);
-					m_InstanceRotations[index] = m;
+					m_InstanceRotations[index] = rotation;
 					m_InstanceRotationDeltas[index] = {
 						Random::Float(-0.2f, 0.2f),
 						Random::Float(-0.2f, 0.2f),
 						Random::Float(-0.2f, 0.2f)
 					};
 
-					m *= XMMatrixTranslation(x * s_InstanceSpacing, y * s_InstanceSpacing, z * s_InstanceSpacing);
-					m_AccelerationStructure->AddBottomLevelASInstance(geometryName, m, 1);
+
+					m_InstanceTranslation[index] = {
+						Random::Float(-1.0f, 1.0f),
+						Random::Float(-1.0f, 1.0f),
+						Random::Float(-1.0f, 1.0f)
+					};
+
+					const auto translation = XMMatrixTranslation(
+						x * s_InstanceSpacing + m_InstanceTranslation[index].x,
+						y * s_InstanceSpacing + m_InstanceTranslation[index].y,
+						z * s_InstanceSpacing + m_InstanceTranslation[index].z 
+					);
+
+					m_AccelerationStructure->AddBottomLevelASInstance(geometryName, rotation * translation, 1);
 				}
 			}
 		}
@@ -119,14 +131,18 @@ void Scene::OnUpdate(float deltaTime)
 			const UINT index = (z * s_InstanceGridDims + y) * s_InstanceGridDims + x;
 
 			// Update rotation
-			auto m = m_InstanceRotations[index];
+			auto rotation = m_InstanceRotations[index];
 			auto d = m_InstanceRotationDeltas[index];
-			m = m * XMMatrixRotationRollPitchYaw(d.x * deltaTime, d.y * deltaTime, d.z * deltaTime);
-			m_InstanceRotations[index] = m;
+			rotation = rotation * XMMatrixRotationRollPitchYaw(d.x * deltaTime, d.y * deltaTime, d.z * deltaTime);
+			m_InstanceRotations[index] = rotation;
 
-			const auto t = XMMatrixTranslation(x * s_InstanceSpacing, y * s_InstanceSpacing, z * s_InstanceSpacing);
+			const auto translation = XMMatrixTranslation(
+				x * s_InstanceSpacing + m_InstanceTranslation[index].x,
+				y * s_InstanceSpacing + m_InstanceTranslation[index].y,
+				z * s_InstanceSpacing + m_InstanceTranslation[index].z
+			);
 
-			m_AccelerationStructure->SetInstanceTransform(index, m * t);
+			m_AccelerationStructure->SetInstanceTransform(index, rotation * translation);
 		}
 	}
 

@@ -40,6 +40,8 @@ private:
 	XMMATRIX m_InstanceRotations[s_InstanceCount];
 	XMFLOAT3 m_InstanceRotationDeltas[s_InstanceCount];
 
+	XMFLOAT3 m_InstanceTranslation[s_InstanceCount];
+
 	// GUI controls
 	bool m_RotateInstances = true;
 };
