@@ -12,26 +12,63 @@
 #include "../include/sdf_primitives.hlsli"
 #include "../include/sdf_operations.hlsli"
 
-#define FLOAT_MAX 3.402823466e+38F
-
-// These must match those defined in C++
-#define NUM_SHADER_THREADS 8
-
 
 ConstantBuffer<BakeDataConstantBuffer> g_BakeData : register(b0);
-StructuredBuffer<PrimitiveData> g_PrimitiveData : register(t0);
+StructuredBuffer<EditData> g_EditList : register(t0);
+
 RWTexture3D<float> g_OutputTexture : register(u0);
 
-//
-// UTILITY
-//
 
-float map(float value, float min1, float max1, float min2, float max2)
+float EvaluateEditList(float3 p)
 {
-	return min2 + (value - min1) * (max2 - min2) / (max1 - min1);
+	// Evaluate SDF list
+	float4 nearest = float4(0.0f, 0.0f, 0.0f, FLOAT_MAX);
+	
+	for (uint i = 0; i < g_BakeData.PrimitiveCount; i++)
+	{
+		// apply primitive transform
+		const float3 p_transformed = opTransform(p, g_EditList[i].InvWorldMat) / g_EditList[i].Scale;
+		
+		// evaluate primitive
+		float4 shape = float4(
+			g_EditList[i].Color.rgb,
+			sdPrimitive(p_transformed, g_EditList[i].Shape, g_EditList[i].ShapeParams)
+		);
+		shape.w *= g_EditList[i].Scale;
+
+		// combine with scene
+		nearest = opPrimitive(nearest, shape, g_EditList[i].Operation, g_EditList[i].BlendingFactor);
+	}
+
+	return nearest.w;
 }
 
 
+float FormatDistance(float inDistance, float volumeDimensions)
+{
+	// Texture format is 8-bit unsigned normalized
+	// Values range from 0 to 1, with 256 unique values being able to be stored in the texture
+
+	// Need to decide how to map distances such that the largest steps can be taken when sphere tracing
+	// But distances must still be conservative, otherwise the sphere-tracing will intersect with geometry
+
+	// In Claybook, a distance value of 1 means 4 voxels
+	// They used a signed normalized format, so they had [-4,+4] range with 256 values to represent it
+	// giving 1/32 voxel precision
+
+	// The space the SDFs were evaluated ranged from [-1,1]
+	// Therefore a value of 2 = volume resolution
+
+	// Calculate the distance value in terms of voxels
+	// This will be in the range [0, volume resolution]
+	const float voxelDistance = max(0.0f, min(volumeDimensions, inDistance * volumeDimensions / 2));
+
+	// Now map the distance such that 1 = maxDistance
+	return saturate(voxelDistance / g_BakeData.VolumeStride);
+}
+
+
+#define NUM_SHADER_THREADS 8
 [numthreads(NUM_SHADER_THREADS, NUM_SHADER_THREADS, NUM_SHADER_THREADS)]
 void main(uint3 DTid : SV_DispatchThreadID)
 {
@@ -48,45 +85,8 @@ void main(uint3 DTid : SV_DispatchThreadID)
 	// Transform to [-1,1]
 	p = (p * 2.0f) - 1.0f;
 	
-	// Evaluate SDF list
-	float4 nearest = float4(0.0f, 0.0f, 0.0f, FLOAT_MAX);
-	
-	for (uint i = 0; i < g_BakeData.PrimitiveCount; i++)
-	{
-		// apply primitive transform
-		const float3 p_transformed = opTransform(p, g_PrimitiveData[i].InvWorldMat) / g_PrimitiveData[i].Scale;
-		
-		// evaluate primitive
-		float4 shape = float4(
-			g_PrimitiveData[i].Color.rgb,
-			sdPrimitive(p_transformed, g_PrimitiveData[i].Shape, g_PrimitiveData[i].ShapeParams)
-		);
-		shape.w *= g_PrimitiveData[i].Scale;
-
-		// combine with scene
-		nearest = opPrimitive(nearest, shape, g_PrimitiveData[i].Operation, g_PrimitiveData[i].BlendingFactor);
-	}
-
-	// Texture format is 8-bit unsigned normalized
-	// Values range from 0 to 1, with 256 unique values being able to be stored in the texture
-
-	// Need to decide how to map distances such that the largest steps can be taken when sphere tracing
-	// But distances must still be conservative, otherwise the sphere-tracing will intersect with geometry
-
-	// In Claybook, a distance value of 1 means 4 voxels
-	// They used a signed normalized format, so they had [-4,+4] range with 256 values to represent it
-	// giving 1/32 voxel precision
-
-	// The space the SDFs were evaluated ranged from [-1,1]
-	// Therefore a value of 2 = volume resolution
-
-	// Calculate the distance value in terms of voxels
-	// This will be in the range [0, volume resolution]
-	float voxelDistance = map(nearest.w, 0, 2, 0, dims.x);
-	voxelDistance = max(0.0f, min(dims.x, voxelDistance));
-
-	// Now map the distance such that 1 = maxDistance
-	const float mappedDistance = saturate(voxelDistance / g_BakeData.VolumeStride);
+	const float nearest = EvaluateEditList(p);
+	const float mappedDistance = FormatDistance(nearest, dims.x);
 
 	// Store the mapped distance in the volume
 	g_OutputTexture[DTid] = mappedDistance;

@@ -14,7 +14,7 @@ struct BakeDataConstantBuffer
 	UINT VolumeStride;
 };
 
-struct PrimitiveData
+struct EditData
 {
 	XMMATRIX InvWorldMat;
 	float Scale;
@@ -29,11 +29,14 @@ struct PrimitiveData
 	XMFLOAT4 Color;
 };
 
-struct AABBBuilderParametersConstantBuffer
+struct AABBBuilderConstantBuffer
 {
+	UINT PrimitiveCount;
+
 	UINT Divisions;				// The number of bounding boxes along each side.
 								// This is the same for each dimensions as SDF volumes are cubes
 
+	UINT VoxelsPerAABB;
 	UINT VolumeStride;
 
 	float AABBDimensions;		// All AABBs will be cubic and uniform in size

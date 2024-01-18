@@ -5,26 +5,49 @@
 #include "../../../src/Renderer/Hlsl/ComputeHlslCompat.h"
 #include "../../../src/Renderer/Hlsl/RaytracingHlslCompat.h"
 
+#include "../include/sdf_primitives.hlsli"
+#include "../include/sdf_operations.hlsli"
+
 /*
  *
  *	This shader takes a 3D texture containing distance values and builds a buffer of AABB's around the iso-surface
  *
  */
 
-// These must match those defined in C++
-#define NUM_SHADER_THREADS 8
-
-
-ConstantBuffer<AABBBuilderParametersConstantBuffer> g_BuildParameters : register(b0);
-Texture3D<float> g_SDFVolume : register(t0);
+ConstantBuffer<AABBBuilderConstantBuffer> g_BuildParameters : register(b0);
+StructuredBuffer<EditData> g_EditList : register(t0);
 
 RWByteAddressBuffer g_Counter : register(u0);
 RWStructuredBuffer<AABB> g_AABBBuffer : register(u1);
 RWStructuredBuffer<AABBPrimitiveData> g_PrimitiveDataBuffer : register(u2);
 
-SamplerState g_Sampler : register(s0);
+
+float EvaluateEditList(float3 p)
+{
+	// Evaluate SDF list
+	float4 nearest = float4(0.0f, 0.0f, 0.0f, FLOAT_MAX);
+	
+	for (uint i = 0; i < g_BuildParameters.PrimitiveCount; i++)
+	{
+		// apply primitive transform
+		const float3 p_transformed = opTransform(p, g_EditList[i].InvWorldMat) / g_EditList[i].Scale;
+		
+		// evaluate primitive
+		float4 shape = float4(
+			g_EditList[i].Color.rgb,
+			sdPrimitive(p_transformed, g_EditList[i].Shape, g_EditList[i].ShapeParams)
+		);
+		shape.w *= g_EditList[i].Scale;
+
+		// combine with scene
+		nearest = opPrimitive(nearest, shape, g_EditList[i].Operation, g_EditList[i].BlendingFactor);
+	}
+
+	return nearest.w;
+}
 
 
+#define NUM_SHADER_THREADS 8
 [numthreads(NUM_SHADER_THREADS, NUM_SHADER_THREADS, NUM_SHADER_THREADS)]
 void main(uint3 DTid : SV_DispatchThreadID)
 {
@@ -37,9 +60,6 @@ void main(uint3 DTid : SV_DispatchThreadID)
 	if (max(DTid.x, max(DTid.y, DTid.z)) >= g_BuildParameters.Divisions)
 		return;
 
-	uint3 dims;
-	g_SDFVolume.GetDimensions(dims.x, dims.y, dims.z);
-	
 	// Get UV coordinate in the volume for this thread to sample
 	const float3 uvwMin = (DTid) * g_BuildParameters.UVWIncrement;
 
@@ -49,15 +69,14 @@ void main(uint3 DTid : SV_DispatchThreadID)
 		// Basically, define a conservative upper bound distance where every distance
 		// value smaller would mean that this AABB definitely contains geometry
 
-		// How many voxels does this sub-volume take up
-		const float voxelsPerAABB = g_BuildParameters.UVWIncrement * dims.x;
+		const float3 uvwCentre = uvwMin + 0.5f * g_BuildParameters.UVWIncrement;
+		// Remap to [-1, 1]
+		const float3 p = (2.0f * uvwCentre) - 1.0f;
 
-		// Sample the volume at uvw
-		float distance = g_SDFVolume.SampleLevel(g_Sampler, uvwMin + 0.5f * g_BuildParameters.UVWIncrement, 0);
-		// Convert in terms of voxels
-		distance *= g_BuildParameters.VolumeStride;
-
-		if (distance > 1.74f /* sqrt(3) */ * voxelsPerAABB)
+		// Evaluate object at this point
+		const float distance = EvaluateEditList(p);
+		// If distance is larger than the size of this voxel then this voxel cannot contain geometry
+		if (distance > 1.74f /* sqrt(3) */ * g_BuildParameters.UVWIncrement)
 			return;
 	}
 

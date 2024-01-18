@@ -25,4 +25,8 @@ struct AABB
 	XMFLOAT3 BottomRight;
 };
 
+
+#define FLOAT_MAX 3.402823466e+38F
+
+
 #endif // HLSLCOMPAT_H

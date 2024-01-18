@@ -21,6 +21,8 @@ public:
 private:
 	void InitializePipelines();
 
+	void Flush();
+
 private:
 	// API objects
 
@@ -36,8 +38,8 @@ private:
 
 
 	// Pipelines to build SDF objects
-	std::unique_ptr<D3DComputePipeline> m_BakePipeline;
 	std::unique_ptr<D3DComputePipeline> m_AABBBuildPipeline;
+	std::unique_ptr<D3DComputePipeline> m_BakePipeline;
 
 private:
 	// number of shader threads per group in each dimension
