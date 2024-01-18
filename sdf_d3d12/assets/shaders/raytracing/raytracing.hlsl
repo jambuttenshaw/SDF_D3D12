@@ -135,6 +135,7 @@ void MyIntersectionShader()
 		{ // Display AABB
 			MyAttributes attr;
 			attr.normal = uvw;
+			attr.heatmap = 0;
 			ReportHit(max(tMin, RayTMin()), 0, attr);
 			return;
 		}
@@ -145,6 +146,7 @@ void MyIntersectionShader()
 		uvw = 0.5f * (uvw * (uvwMax - uvwMin) + uvwMax + uvwMin);
 
 		// step through volume to find surface
+		uint iterationCount = 0;
 		while (true)
 		{
 			// Sample the volume
@@ -164,6 +166,7 @@ void MyIntersectionShader()
 				// Exited box: no intersection
 				return;
 			}
+			iterationCount++;
 		}
 		// point of intersection in local space
 		const float3 pointOfIntersection = (uvw * 2.0f - 1.0f) * halfBoxExtent;
@@ -173,6 +176,7 @@ void MyIntersectionShader()
 		MyAttributes attr;
 		// Transform from object space to world space
 		attr.normal = normalize(mul(ComputeSurfaceNormal(uvw), transpose((float3x3) ObjectToWorld())));
+		attr.heatmap = iterationCount;
 		ReportHit(newT, 0, attr);
 	}
 }
@@ -185,7 +189,24 @@ void MyIntersectionShader()
 [shader("closesthit")]
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 {
-	payload.color = float4(0.5f + 0.5f * attr.normal, 1);
+	if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_HEATMAP)
+	{
+		if (attr.heatmap > 32)
+			payload.color = float4(1.0f, 1.0f, 1.0f, 1.0f);
+		else if (attr.heatmap > 16)
+			payload.color = float4(0.8f, 0.2f, 0.2f, 1.0f);
+		else if (attr.heatmap > 8)
+			payload.color = float4(0.8f, 0.8f, 0.2f, 1.0f);
+		else if (attr.heatmap > 4)
+			payload.color = float4(0.2f, 0.8f, 0.2f, 1.0f);
+		else
+			payload.color = float4(0.2f, 0.2f, 0.8f, 1.0f);
+
+	}
+	else
+	{
+		payload.color = float4(0.5f + 0.5f * attr.normal, 1);
+	} 
 }
 
 

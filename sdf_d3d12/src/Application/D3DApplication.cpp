@@ -70,13 +70,18 @@ void D3DApplication::OnUpdate()
 		if (ImGui::Checkbox("Display Bounding Box", &displayBoundingBox))
 		{
 			if (displayBoundingBox)
-			{
 				m_RenderFlags |= RENDER_FLAG_DISPLAY_BOUNDING_BOX;
-			}
 			else
-			{
 				m_RenderFlags &= ~RENDER_FLAG_DISPLAY_BOUNDING_BOX;
-			}
+		}
+
+		bool displayHeatmap = m_RenderFlags & RENDER_FLAG_DISPLAY_HEATMAP;
+		if (ImGui::Checkbox("Display Heatmap", &displayHeatmap))
+		{
+			if (displayHeatmap)
+				m_RenderFlags |= RENDER_FLAG_DISPLAY_HEATMAP;
+			else
+				m_RenderFlags &= ~RENDER_FLAG_DISPLAY_HEATMAP;
 		}
 	}
 

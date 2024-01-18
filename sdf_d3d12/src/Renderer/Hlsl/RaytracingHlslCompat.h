@@ -9,12 +9,14 @@ using namespace DirectX;
 
 
 // Flags
-#define RENDER_FLAG_DISPLAY_BOUNDING_BOX		1 << 0  // Display bounding boxes instead of raymarching to show geometry
+#define RENDER_FLAG_DISPLAY_BOUNDING_BOX		1u // Display bounding boxes instead of raymarching to show geometry
+#define RENDER_FLAG_DISPLAY_HEATMAP				2u // Display heatmap instead of raymarching
 
 
 struct MyAttributes
 {
 	XMFLOAT3 normal;
+	UINT heatmap;		// Sphere marching iteration count
 };
 struct RayPayload
 {
