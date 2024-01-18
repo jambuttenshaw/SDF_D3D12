@@ -14,7 +14,7 @@ Scene::Scene()
 		m_SDFFactory = std::make_unique<SDFFactory>();
 
 		// Create an SDF object
-		m_SDFObject = std::make_unique<SDFObject>(512, 32, 32);
+		m_SDFObject = std::make_unique<SDFObject>(128, 16, 1);
 
 		/*
 		m_SDFObject->AddPrimitive(SDFPrimitive::CreateBox(

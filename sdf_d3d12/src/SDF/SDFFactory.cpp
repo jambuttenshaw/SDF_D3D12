@@ -36,44 +36,23 @@ namespace AABBBuilderComputeRootSignature
 }
 
 
-struct SDFPrimitiveBufferType
+PrimitiveData BuildPrimitiveData(const SDFPrimitive& primitive)
 {
-	// Inverse world matrix is required to position SDF primitives
-	XMMATRIX InvWorldMat;
-	// Only uniform scale can be applied to SDFs
-	float Scale;
+	PrimitiveData primitiveData;
+	primitiveData.InvWorldMat = XMMatrixTranspose(XMMatrixInverse(nullptr, primitive.PrimitiveTransform.GetWorldMatrix()));
+	primitiveData.Scale = primitive.PrimitiveTransform.GetScale();
 
-	// SDF primitive data
-	UINT Shape;
-	UINT Operation;
-	float BlendingFactor;
+	primitiveData.Shape = static_cast<UINT>(primitive.Shape);
+	primitiveData.Operation = static_cast<UINT>(primitive.Operation);
+	primitiveData.BlendingFactor = primitive.BlendingFactor;
 
 	static_assert(sizeof(SDFShapeProperties) == sizeof(XMFLOAT4));
-	XMFLOAT4 ShapeProperties;
+	memcpy(&primitiveData.ShapeParams, &primitive.ShapeProperties, sizeof(XMFLOAT4));
 
-	XMFLOAT4 Color;
+	primitiveData.Color = primitive.Color;
 
-
-	// Constructors
-
-	SDFPrimitiveBufferType() = default;
-
-	// Construct from a SDFPrimitive
-	SDFPrimitiveBufferType(const SDFPrimitive& primitive)
-	{
-		InvWorldMat = XMMatrixTranspose(XMMatrixInverse(nullptr, primitive.PrimitiveTransform.GetWorldMatrix()));
-		Scale = primitive.PrimitiveTransform.GetScale();
-
-		Shape = static_cast<UINT>(primitive.Shape);
-		Operation = static_cast<UINT>(primitive.Operation);
-		BlendingFactor = primitive.BlendingFactor;
-
-		memcpy(&ShapeProperties, &primitive.ShapeProperties, sizeof(XMFLOAT4));
-
-		Color = primitive.Color;
-	}
-};
-
+	return primitiveData;
+}
 
 
 SDFFactory::SDFFactory()
@@ -123,7 +102,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object)
 	const size_t primitiveCount = object->GetPrimitiveCount();
 	{
 
-		const UINT64 bufferSize = primitiveCount * sizeof(SDFPrimitiveBufferType);
+		const UINT64 bufferSize = primitiveCount * sizeof(PrimitiveData);
 
 		// Create primitive buffer
 		const CD3DX12_HEAP_PROPERTIES uploadHeap(D3D12_HEAP_TYPE_UPLOAD);
@@ -148,7 +127,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object)
 		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		srvDesc.Buffer.FirstElement = 0;
 		srvDesc.Buffer.NumElements = static_cast<UINT>(primitiveCount);
-		srvDesc.Buffer.StructureByteStride = sizeof(SDFPrimitiveBufferType);
+		srvDesc.Buffer.StructureByteStride = sizeof(PrimitiveData);
 		srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 
 		// Create srv
@@ -159,8 +138,8 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object)
 		THROW_IF_FAIL(primitiveBuffer->Map(0, nullptr, &mappedData));
 		for (size_t index = 0; index < primitiveCount; index++)
 		{
-			auto primitive = static_cast<SDFPrimitiveBufferType*>(mappedData) + index;
-			*primitive = object->GetPrimitive(index);
+			auto primitive = static_cast<PrimitiveData*>(mappedData) + index;
+			*primitive = BuildPrimitiveData(object->GetPrimitive(index));
 		}
 		primitiveBuffer->Unmap(0, nullptr);
 	}

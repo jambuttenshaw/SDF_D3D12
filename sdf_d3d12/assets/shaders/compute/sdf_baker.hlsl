@@ -19,23 +19,7 @@
 
 
 ConstantBuffer<BakeDataConstantBuffer> g_BakeData : register(b0);
-
-struct PrimitiveData
-{
-	matrix InvWorldMat;
-	float Scale;
-	
-	// SDF primitive data
-	uint Shape;
-	uint Operation;
-	float BlendingFactor;
-
-	float4 ShapeParams;
-
-	float4 Color;
-};
 StructuredBuffer<PrimitiveData> g_PrimitiveData : register(t0);
-
 RWTexture3D<float> g_OutputTexture : register(u0);
 
 //

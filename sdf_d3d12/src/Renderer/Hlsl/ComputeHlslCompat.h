@@ -14,6 +14,20 @@ struct BakeDataConstantBuffer
 	UINT VolumeStride;
 };
 
+struct PrimitiveData
+{
+	XMMATRIX InvWorldMat;
+	float Scale;
+
+	// SDF primitive data
+	UINT Shape;
+	UINT Operation;
+	float BlendingFactor;
+
+	XMFLOAT4 ShapeParams;
+
+	XMFLOAT4 Color;
+};
 
 struct AABBBuilderParametersConstantBuffer
 {
