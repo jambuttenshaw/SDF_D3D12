@@ -16,7 +16,7 @@ using Microsoft::WRL::ComPtr;
 class SDFObject : public BaseAABBGeometry
 {
 public:
-	SDFObject(UINT volumeResolution, UINT aabbDivisions);
+	SDFObject(UINT volumeResolution, UINT volumeStride, UINT aabbDivisions);
 	virtual ~SDFObject();
 
 	DISALLOW_COPY(SDFObject)
@@ -27,6 +27,7 @@ public:
 	inline ID3D12Resource* GetVolumeResource() const { return m_VolumeResource.Get(); }
 
 	inline UINT GetVolumeResolution() const { return m_Resolution; }
+	inline UINT GetVolumeStride() const { return m_VolumeStride; }
 
 	inline D3D12_GPU_DESCRIPTOR_HANDLE GetVolumeSRV() const { return m_VolumeResourceViews.GetGPUHandle(0); };
 	inline D3D12_GPU_DESCRIPTOR_HANDLE GetVolumeUAV() const{ return m_VolumeResourceViews.GetGPUHandle(1); }
@@ -57,6 +58,8 @@ public:
 private:
 	// Volume
 	UINT m_Resolution = 0;
+	UINT m_VolumeStride = 0; // Volume stride is how distances are mapped in terms of the volume resolution
+							 // e.g. Volume Stride = 8 would mean a distance value of 1 in the volume would map to 8 voxels
 
 	ComPtr<ID3D12Resource> m_VolumeResource;
 	D3DDescriptorAllocation m_VolumeResourceViews;	// index 0 = SRV

@@ -169,6 +169,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object)
 	BakeDataConstantBuffer bakeDataBuffer;
 	{
 		bakeDataBuffer.PrimitiveCount = static_cast<UINT>(primitiveCount);
+		bakeDataBuffer.VolumeStride = object->GetVolumeStride();
 	}
 
 	// Step 3: Build command list to execute SDF baker compute shader
@@ -220,6 +221,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object)
 		// Populate build params
 		UINT divisions = object->GetDivisions();
 		buildParamsBuffer.Divisions = divisions;
+		buildParamsBuffer.VolumeStride = object->GetVolumeStride();
 		buildParamsBuffer.AABBDimensions = 2.0f / static_cast<float>(divisions);
 		buildParamsBuffer.UVWIncrement = 1.0f / static_cast<float>(divisions);
 	}

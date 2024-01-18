@@ -38,15 +38,6 @@ StructuredBuffer<PrimitiveData> g_PrimitiveData : register(t0);
 
 RWTexture3D<float> g_OutputTexture : register(u0);
 
-
-//
-// Constant Parameters
-// 
-
-// constants
-static const float D = 30.0f;
-static const float epsilon = 0.001f;
-
 //
 // UTILITY
 //
@@ -65,17 +56,13 @@ void main(uint3 DTid : SV_DispatchThreadID)
 	g_OutputTexture.GetDimensions(dims.x, dims.y, dims.z);
 	if (DTid.x >= dims.x || DTid.y >= dims.y || DTid.z >= dims.z)
 		return;
-	
+
+	// Calculate position to evaluate this thread
+
+	// Step 1: let p range [0,1] through the volume
 	float3 p = DTid / (float3) (dims - uint3(1, 1, 1));
+	// Transform to [-1,1]
 	p = (p * 2.0f) - 1.0f;
-	
-	// Calculate aspect ratio
-	float3 fDims = (float3) dims;
-	float maxDim = max(max(fDims.x, fDims.y), fDims.z);
-	float3 aspectRatio = fDims / maxDim;
-	
-	// Apply aspect ratio of texture
-	p *= aspectRatio;
 	
 	// Evaluate SDF list
 	float4 nearest = float4(0.0f, 0.0f, 0.0f, FLOAT_MAX);
@@ -83,7 +70,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
 	for (uint i = 0; i < g_BakeData.PrimitiveCount; i++)
 	{
 		// apply primitive transform
-		float3 p_transformed = opTransform(p, g_PrimitiveData[i].InvWorldMat) / g_PrimitiveData[i].Scale;
+		const float3 p_transformed = opTransform(p, g_PrimitiveData[i].InvWorldMat) / g_PrimitiveData[i].Scale;
 		
 		// evaluate primitive
 		float4 shape = float4(
@@ -95,8 +82,30 @@ void main(uint3 DTid : SV_DispatchThreadID)
 		// combine with scene
 		nearest = opPrimitive(nearest, shape, g_PrimitiveData[i].Operation, g_PrimitiveData[i].BlendingFactor);
 	}
-	
-	g_OutputTexture[DTid] = nearest.w;
+
+	// Texture format is 8-bit unsigned normalized
+	// Values range from 0 to 1, with 256 unique values being able to be stored in the texture
+
+	// Need to decide how to map distances such that the largest steps can be taken when sphere tracing
+	// But distances must still be conservative, otherwise the sphere-tracing will intersect with geometry
+
+	// In Claybook, a distance value of 1 means 4 voxels
+	// They used a signed normalized format, so they had [-4,+4] range with 256 values to represent it
+	// giving 1/32 voxel precision
+
+	// The space the SDFs were evaluated ranged from [-1,1]
+	// Therefore a value of 2 = volume resolution
+
+	// Calculate the distance value in terms of voxels
+	// This will be in the range [0, volume resolution]
+	float voxelDistance = map(nearest.w, 0, 2, 0, dims.x);
+	voxelDistance = max(0.0f, min(dims.x, voxelDistance));
+
+	// Now map the distance such that 1 = maxDistance
+	const float mappedDistance = saturate(voxelDistance / g_BakeData.VolumeStride);
+
+	// Store the mapped distance in the volume
+	g_OutputTexture[DTid] = mappedDistance;
 }
 
 #endif

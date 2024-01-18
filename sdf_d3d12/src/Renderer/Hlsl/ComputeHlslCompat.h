@@ -11,6 +11,7 @@ using namespace DirectX;
 struct BakeDataConstantBuffer
 {
 	UINT PrimitiveCount;
+	UINT VolumeStride;
 };
 
 
@@ -18,6 +19,8 @@ struct AABBBuilderParametersConstantBuffer
 {
 	UINT Divisions;				// The number of bounding boxes along each side.
 								// This is the same for each dimensions as SDF volumes are cubes
+
+	UINT VolumeStride;
 
 	float AABBDimensions;		// All AABBs will be cubic and uniform in size
 								// The size can be computed from the number of divisions

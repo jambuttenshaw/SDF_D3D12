@@ -49,18 +49,18 @@ struct VolumeConstantBuffer
 {
 	UINT VolumeDimensions;	// If volume is cubic then only one dimension is needed
 	float InvVolumeDimensions;
+	float UVWVolumeStride;
 };
 
 // Data used to describe each primitive to the shader
 struct AABBPrimitiveData
 {
-	XMFLOAT4 AABBMin;
-	XMFLOAT4 AABBMax;
-	XMFLOAT4 AABBCentre;
+	XMFLOAT3 AABBCentre;
+	float AABBHalfExtent;
 
 	// Which section of the volume should be rendered inside this AABB
-	XMFLOAT4 UVWMin;	// Both should be in range [0,1]
-	XMFLOAT4 UVWMax;
+	XMFLOAT3 UVW;	// Defines the top left of the uvw range
+	float UVWExtent;	// Defines the extents of the uvw range
 };
 
 #endif

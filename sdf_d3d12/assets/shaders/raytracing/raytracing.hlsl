@@ -59,19 +59,6 @@ inline void GenerateCameraRay(uint2 index, out float3 origin, out float3 directi
 	direction = normalize(world.xyz - origin);
 }
 
-// Get ray in AABB's local space.
-Ray GetRayInAABBPrimitiveLocalSpace()
-{
-	AABBPrimitiveData prim = l_PrimitiveBuffer[PrimitiveIndex()];
-
-    // Retrieve a ray origin position and direction in bottom level AS space 
-    // and transform them into the AABB primitive's local space.
-	Ray ray;
-	ray.origin = ObjectRayOrigin() - prim.AABBCentre.xyz;
-	ray.direction = ObjectRayDirection();
-	return ray;
-}
-
 
 float3 ComputeSurfaceNormal(float3 p)
 {
@@ -121,23 +108,27 @@ void MyRaygenShader()
 [shader("intersection")]
 void MyIntersectionShader()
 {
-	const Ray ray = GetRayInAABBPrimitiveLocalSpace();
+	AABBPrimitiveData prim = l_PrimitiveBuffer[PrimitiveIndex()];
+
+	Ray ray;
+	ray.origin = ObjectRayOrigin() - prim.AABBCentre.xyz;
+	ray.direction = ObjectRayDirection();
 
 	float3 aabb[2];
-	float tMin, tMax;
-	AABBPrimitiveData prim = l_PrimitiveBuffer[PrimitiveIndex()];
-	aabb[0] = (prim.AABBMin - prim.AABBCentre).xyz;
-	aabb[1] = (prim.AABBMax - prim.AABBCentre).xyz;
+	aabb[1] = float3(prim.AABBHalfExtent, prim.AABBHalfExtent, prim.AABBHalfExtent);
+	aabb[0] = -aabb[1];
 
 	// Get the tmin and tmax of the intersection between the ray and this aabb
+	float tMin, tMax;
 	if (RayAABBIntersectionTest(ray, aabb, tMin, tMax))
 	{
-		const float stepScale = 0.5f;
 		const float halfBoxExtent = 0.5f * abs(aabb[0] - aabb[1]).x;
 
 		// if we are inside the aabb, begin ray marching from t = 0
 		// otherwise, begin from where the view ray first hits the box
 		float3 uvw = ray.origin + max(tMin, 0.0f) * ray.direction;
+
+		// map uvw to range [-1,1]
 		uvw /= halfBoxExtent;
 
 		if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_BOUNDING_BOX)
@@ -149,21 +140,26 @@ void MyIntersectionShader()
 		}
 
 		// Remap uvw from [-1,1] to [UVWMin,UVWMax]
-		const float3 pMin = prim.UVWMin.xyz;
-		const float3 pMax = prim.UVWMax.xyz;
-		uvw = 0.5f * (uvw * (pMax - pMin) + pMax + pMin);
+		const float3 uvwMin = prim.UVW;
+		const float3 uvwMax = prim.UVW + prim.UVWExtent;
+		uvw = 0.5f * (uvw * (uvwMax - uvwMin) + uvwMax + uvwMin);
 
 		// step through volume to find surface
 		while (true)
 		{
-			const float s = l_SDFVolume.SampleLevel(g_Sampler, uvw, 0);
-			if (s <= EPSILON)
+			// Sample the volume
+			float s = l_SDFVolume.SampleLevel(g_Sampler, uvw, 0);
+
+			// Remap s
+			s *= l_VolumeCB.UVWVolumeStride;
+
+			if (s <= l_VolumeCB.InvVolumeDimensions)
 				break;
-			uvw += stepScale * s * ray.direction;
+
+			uvw += s * ray.direction;
 			 
-			//if (max(max(uvw.x, uvw.y), uvw.z) >= 1.0f || min(min(uvw.x, uvw.y), uvw.z) <= 0.0f)
-			if (uvw.x > pMax.x || uvw.y > pMax.y || uvw.z > pMax.z ||
-				uvw.x < pMin.x || uvw.y < pMin.y || uvw.z < pMin.z)
+			if (uvw.x > uvwMax.x || uvw.y > uvwMax.y || uvw.z > uvwMax.z ||
+				uvw.x < uvwMin.x || uvw.y < uvwMin.y || uvw.z < uvwMin.z)
 			{
 				// Exited box: no intersection
 				return;
@@ -190,7 +186,6 @@ void MyIntersectionShader()
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 {
 	payload.color = float4(0.5f + 0.5f * attr.normal, 1);
-	//payload.color = float4(attr.normal, 1);
 }
 
 

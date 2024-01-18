@@ -4,11 +4,15 @@
 #include "Renderer/D3DGraphicsContext.h"
 
 
-SDFObject::SDFObject(UINT resolution, UINT aabbDivisions)
+SDFObject::SDFObject(UINT resolution, UINT volumeStride, UINT aabbDivisions)
 	: m_Resolution(resolution)
+	, m_VolumeStride(volumeStride)
 	, m_Divisions(aabbDivisions)
 	, m_MaxAABBCount(aabbDivisions * aabbDivisions * aabbDivisions)
 {
+	ASSERT(m_Resolution > 0, "Invalid value for resolution");
+	ASSERT(m_VolumeStride > 0, "Invalid value for volume stride");
+
 	const auto device = g_D3DGraphicsContext->GetDevice();
 	const auto descriptorHeap = g_D3DGraphicsContext->GetSRVHeap();
 

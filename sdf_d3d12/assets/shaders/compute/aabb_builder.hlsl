@@ -37,25 +37,27 @@ void main(uint3 DTid : SV_DispatchThreadID)
 	if (max(DTid.x, max(DTid.y, DTid.z)) >= g_BuildParameters.Divisions)
 		return;
 
+	uint3 dims;
+	g_SDFVolume.GetDimensions(dims.x, dims.y, dims.z);
 	
-
 	// Get UV coordinate in the volume for this thread to sample
 	const float3 uvwMin = (DTid) * g_BuildParameters.UVWIncrement;
-	const float3 uvwCentre = (DTid + 0.5f) * g_BuildParameters.UVWIncrement;
-	const float3 uvwMax = (DTid + 1.0f) * g_BuildParameters.UVWIncrement;
 
 	{
-		// Sample the volume at uvw
-		const float distance = g_SDFVolume.SampleLevel(g_Sampler, uvwCentre, 0);
-
 		// Check if this distance value is large enough for this AABB to be omitted
 
 		// Basically, define a conservative upper bound distance where every distance
 		// value smaller would mean that this AABB definitely contains geometry
 
-		// This distance is half the long diagonal of the AABB
-		const float diagonal = length(uvwMax - uvwMin);
-		if (distance > diagonal)
+		// How many voxels does this sub-volume take up
+		const float voxelsPerAABB = g_BuildParameters.UVWIncrement * dims.x;
+
+		// Sample the volume at uvw
+		float distance = g_SDFVolume.SampleLevel(g_Sampler, uvwMin + 0.5f * g_BuildParameters.UVWIncrement, 0);
+		// Convert in terms of voxels
+		distance *= g_BuildParameters.VolumeStride;
+
+		if (distance > 1.74f /* sqrt(3) */ * voxelsPerAABB)
 			return;
 	}
 
@@ -75,14 +77,14 @@ void main(uint3 DTid : SV_DispatchThreadID)
 
 	// Build primitive data
 	AABBPrimitiveData primitiveData;
-	primitiveData.AABBMin = float4(outAABB.TopLeft, 1);
-	primitiveData.AABBMax = float4(outAABB.BottomRight, 1);
-	primitiveData.AABBCentre = float4(0.5f * (outAABB.TopLeft + outAABB.BottomRight), 1.0f);
 
-	primitiveData.UVWMin = float4(uvwMin, 0.0f);
-	primitiveData.UVWMax = float4(uvwMax, 0.0f);
-	
-	
+	primitiveData.AABBCentre = 0.5f * (outAABB.TopLeft + outAABB.BottomRight);
+	primitiveData.AABBHalfExtent = 0.5f * g_BuildParameters.AABBDimensions;
+
+	primitiveData.UVW = uvwMin;
+	primitiveData.UVWExtent = g_BuildParameters.UVWIncrement;
+
 	g_PrimitiveDataBuffer[aabbIndex] = primitiveData;
 }
+
 #endif

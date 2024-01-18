@@ -316,6 +316,7 @@ void Raytracer::BuildShaderTables()
 				rootArgs.volumeSRV = geometryInstance.GetVolumeSRV();
 				rootArgs.volumeCB.VolumeDimensions = geometryInstance.GetVolumeResolution();
 				rootArgs.volumeCB.InvVolumeDimensions = 1.0f / static_cast<float>(rootArgs.volumeCB.VolumeDimensions);
+				rootArgs.volumeCB.UVWVolumeStride = rootArgs.volumeCB.InvVolumeDimensions * static_cast<float>(geometryInstance.GetVolumeStride());
 				rootArgs.aabbPrimitiveData = geometryInstance.GetGeometry().GetPrimitiveDataBufferAddress();
 
 				m_HitGroupShaderTable->AddRecord(D3DShaderRecord{

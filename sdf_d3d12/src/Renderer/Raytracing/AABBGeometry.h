@@ -25,11 +25,12 @@ public:
 class AABBGeometryInstance
 {
 public:
-	AABBGeometryInstance(const BaseAABBGeometry& geometry, D3D12_RAYTRACING_GEOMETRY_FLAGS flags, D3D12_GPU_DESCRIPTOR_HANDLE volumeSRV, UINT volumeResolution)
+	AABBGeometryInstance(const BaseAABBGeometry& geometry, D3D12_RAYTRACING_GEOMETRY_FLAGS flags, D3D12_GPU_DESCRIPTOR_HANDLE volumeSRV, UINT volumeResolution, UINT volumeStride)
 		: m_Geometry(&geometry)
 		, m_Flags(flags)
 		, m_VolumeSRV(volumeSRV)
 		, m_VolumeResolution(volumeResolution)
+		, m_VolumeStride(volumeStride)
 	{}
 
 	// Getters
@@ -39,6 +40,7 @@ public:
 	inline void SetVolume(D3D12_GPU_DESCRIPTOR_HANDLE handle, UINT resolution) { m_VolumeSRV = handle; m_VolumeResolution = resolution; }
 	inline D3D12_GPU_DESCRIPTOR_HANDLE GetVolumeSRV() const { return m_VolumeSRV; }
 	inline UINT GetVolumeResolution() const { return m_VolumeResolution; }
+	inline UINT GetVolumeStride() const { return m_VolumeStride; }
 
 private:
 	const BaseAABBGeometry* m_Geometry = nullptr;
@@ -48,4 +50,5 @@ private:
 	D3D12_GPU_DESCRIPTOR_HANDLE m_VolumeSRV;
 	// The resolution of the volume
 	UINT m_VolumeResolution = 0;
+	UINT m_VolumeStride = 0;
 };
