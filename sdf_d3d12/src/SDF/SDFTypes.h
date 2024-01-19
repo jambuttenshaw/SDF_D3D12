@@ -91,21 +91,3 @@ private:
 	static SDFEdit CreateGeneric(const Transform& transform, SDFOperation op, float blend, const XMFLOAT4& color);
 
 };
-
-
-class SDFEditList
-{
-public:
-	SDFEditList() = default;
-
-	void Reset();
-	void AddPrimitive(SDFEdit&& edit);
-
-	// Getters
-	inline size_t GetEditCount() const { return m_Edits.size(); }
-	inline const SDFEdit& GetEdit(size_t index) const { return m_Edits.at(index); }
-
-private:
-	std::vector<SDFEdit> m_Edits;
-
-};

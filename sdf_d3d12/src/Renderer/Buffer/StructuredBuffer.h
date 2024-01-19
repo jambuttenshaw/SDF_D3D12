@@ -1,48 +1,50 @@
 #pragma once
+#include "DefaultBuffer.h"
 
 using Microsoft::WRL::ComPtr;
 
 
 template <typename T>
-class StructuredBuffer
+class StructuredBuffer : public DefaultBuffer
 {
 public:
 	StructuredBuffer() = default;
-	~StructuredBuffer() = default;
+	virtual ~StructuredBuffer() = default;
 
 	DISALLOW_COPY(StructuredBuffer)
 	DEFAULT_MOVE(StructuredBuffer)
 
-	// Getters
-	inline ID3D12Resource* GetResource() const { return m_StructuredBuffer.Get(); }
-	inline D3D12_GPU_VIRTUAL_ADDRESS GetAddress() const { return m_StructuredBuffer->GetGPUVirtualAddress(); }
-
-	void Allocate(ID3D12Device* device, UINT elementCount, D3D12_RESOURCE_STATES initialResourceState, const wchar_t* resourceName = nullptr)
+	void Allocate(ID3D12Device* device, UINT elementCount, D3D12_RESOURCE_STATES initialResourceState, bool readWrite = false, const wchar_t* resourceName = nullptr)
 	{
 		ASSERT(elementCount > 0, "Cannot allocate buffer with 0 elements");
 
 		m_ElementCount = elementCount;
 		const UINT64 bufferSize = elementCount * sizeof(T);
 
-		// Allocate buffer resource
-		const auto defaultHeap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-		const auto bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-		THROW_IF_FAIL(device->CreateCommittedResource(
-			&defaultHeap,
-			D3D12_HEAP_FLAG_NONE,
-			&bufferDesc,
-			initialResourceState,
-			nullptr,
-			IID_PPV_ARGS(&m_StructuredBuffer)));
-		if (resourceName)
-		{
-			THROW_IF_FAIL(m_StructuredBuffer->SetName(resourceName));
-		}
+		DefaultBuffer::Allocate(
+			device, 
+			bufferSize, 
+			initialResourceState, 
+			readWrite ? D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS : D3D12_RESOURCE_FLAG_NONE, 
+			resourceName);
+	}
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC CreateSRVDesc() const
+	{
+		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+		srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		srvDesc.Buffer.FirstElement = 0;
+		srvDesc.Buffer.NumElements = m_ElementCount;
+		srvDesc.Buffer.StructureByteStride = sizeof(T);
+		srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+
+		return srvDesc;
 	}
 
 	D3D12_UNORDERED_ACCESS_VIEW_DESC CreateUAVDesc() const
 	{
-		// Create UAV
 		D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
 		uavDesc.Format = DXGI_FORMAT_UNKNOWN;
 		uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
@@ -56,6 +58,5 @@ public:
 	}
 
 private:
-	ComPtr<ID3D12Resource> m_StructuredBuffer;
 	UINT m_ElementCount = 0;
 };

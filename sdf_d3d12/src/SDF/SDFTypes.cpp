@@ -155,14 +155,4 @@ SDFEdit SDFEdit::CreateGeneric(const Transform& transform, SDFOperation op, floa
 }
 
 
-void SDFEditList::Reset()
-{
-	m_Edits.clear();
-}
-
-void SDFEditList::AddPrimitive(SDFEdit&& edit)
-{
-	m_Edits.emplace_back(edit);
-}
-
 

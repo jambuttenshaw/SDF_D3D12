@@ -3,7 +3,7 @@
 #include "Renderer/Buffer/UploadBuffer.h"
 #include "AABBGeometry.h"
 #include "Renderer/D3DGraphicsContext.h"
-#include "Renderer/Buffer/UAVBuffer.h"
+#include "Renderer/Buffer/DefaultBuffer.h"
 
 
 using Microsoft::WRL::ComPtr;
@@ -37,7 +37,7 @@ protected:
 	void AllocateResource();
 
 protected:
-	UAVBuffer m_AccelerationStructure;
+	DefaultBuffer m_AccelerationStructure;
 
 	// Store build flags and prebuild info
 	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS m_BuildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_NONE;
@@ -152,6 +152,6 @@ private:
 	std::vector<D3D12_RAYTRACING_INSTANCE_DESC> m_BottomLevelInstanceDescsStaging;
 	UINT m_NumBottomLevelInstances = 0;
 
-	UAVBuffer m_ScratchResource;
+	DefaultBuffer m_ScratchResource;
 	UINT64 m_ScratchResourceSize = 0;
 }; 

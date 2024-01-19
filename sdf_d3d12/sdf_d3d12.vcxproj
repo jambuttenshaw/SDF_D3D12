@@ -168,6 +168,7 @@
     <ClCompile Include="src\Renderer\ShaderTable.cpp" />
     <ClCompile Include="src\Renderer\Raytracing\AccelerationStructure.cpp" />
     <ClCompile Include="src\Renderer\Raytracing\Raytracer.cpp" />
+    <ClCompile Include="src\SDF\SDFEditList.cpp" />
     <ClCompile Include="src\SDF\SDFFactory.cpp" />
     <ClCompile Include="src\SDF\SDFObject.cpp" />
     <ClCompile Include="src\SDF\SDFTypes.cpp" />
@@ -219,7 +220,7 @@
     <ClInclude Include="src\Renderer\Buffer\AppendBuffer.h" />
     <ClInclude Include="src\Renderer\Buffer\CounterResource.h" />
     <ClInclude Include="src\Renderer\Buffer\StructuredBuffer.h" />
-    <ClInclude Include="src\Renderer\Buffer\UAVBuffer.h" />
+    <ClInclude Include="src\Renderer\Buffer\DefaultBuffer.h" />
     <ClInclude Include="src\Renderer\Buffer\UploadBuffer.h" />
     <ClInclude Include="src\Renderer\D3DFrameResources.h" />
     <ClInclude Include="src\Renderer\D3DGraphicsContext.h" />
@@ -234,6 +235,7 @@
     <ClInclude Include="src\Renderer\Raytracing\RaytracingSceneDefines.h" />
     <ClInclude Include="src\Renderer\Memory\MemoryAllocator.h" />
     <ClInclude Include="src\Renderer\Raytracing\AccelerationStructure.h" />
+    <ClInclude Include="src\SDF\SDFEditList.h" />
     <ClInclude Include="src\SDF\SDFFactory.h" />
     <ClInclude Include="src\SDF\SDFObject.h" />
     <ClInclude Include="src\SDF\SDFTypes.h" />

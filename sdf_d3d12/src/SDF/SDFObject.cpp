@@ -53,10 +53,7 @@ SDFObject::SDFObject(UINT resolution, UINT volumeStride, UINT aabbDivisions)
 			const auto uavDesc = m_PrimitiveDataBuffer.CreateUAVDesc();
 			device->CreateUnorderedAccessView(m_PrimitiveDataBuffer.GetResource(), nullptr, &uavDesc, m_ResourceViews.GetCPUHandle(3));
 		}
-
 	}
-
-	
 }
 
 SDFObject::~SDFObject()

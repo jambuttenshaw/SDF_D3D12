@@ -77,12 +77,12 @@ public:
 	inline UINT GetElementStride() const { return m_ElementStride; }
 	inline UINT GetElementCount() const { return m_ElementCount; }
 
-	void CopyElement(UINT elementIndex, const T& data)
+	void CopyElement(UINT elementIndex, const T& data) const
 	{
 		ASSERT(elementIndex < m_ElementCount, "Out of bounds access");
 		memcpy(&m_MappedData[elementIndex * m_ElementStride], &data, sizeof(T));
 	}
-	void CopyElements(UINT start, UINT count, const T* const data)
+	void CopyElements(UINT start, UINT count, const T* const data) const
 	{
 		ASSERT(start + count - 1 < m_ElementCount, "Out of bounds access");
 		memcpy(&m_MappedData[start * m_ElementStride], data, count * sizeof(T));

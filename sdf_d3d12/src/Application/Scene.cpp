@@ -4,9 +4,8 @@
 #include "imgui.h"
 
 #include "Framework/Math.h"
-#include "Renderer/D3DGraphicsContext.h"
 
-#include "SDF/SDFTypes.h"
+#include "SDF/SDFEditList.h"
 
 
 Scene::Scene()
@@ -36,34 +35,34 @@ Scene::Scene()
 		
 		{
 			// Create torus object edit list
-			SDFEditList editList;
-			editList.AddPrimitive(SDFEdit::CreateTorus({}, 0.9f, 0.05f));
+			SDFEditList editList(4);
+			editList.AddEdit(SDFEdit::CreateTorus({}, 0.9f, 0.05f));
 
 			Transform torusTransform;
 			torusTransform.SetPitch(XMConvertToRadians(90.0f));
 
-			editList.AddPrimitive(SDFEdit::CreateTorus(torusTransform, 0.9f, 0.05f, SDFOperation::SmoothUnion, 0.1f));
+			editList.AddEdit(SDFEdit::CreateTorus(torusTransform, 0.9f, 0.05f, SDFOperation::SmoothUnion, 0.1f));
 
 			torusTransform.SetPitch(XMConvertToRadians(0.0f));
 			torusTransform.SetRoll(XMConvertToRadians(90.0f));
 
-			editList.AddPrimitive(SDFEdit::CreateTorus(torusTransform, 0.9f, 0.05f, SDFOperation::SmoothUnion, 0.1f));
+			editList.AddEdit(SDFEdit::CreateTorus(torusTransform, 0.9f, 0.05f, SDFOperation::SmoothUnion, 0.1f));
 
-			editList.AddPrimitive(SDFEdit::CreateOctahedron({}, 0.75f));
+			editList.AddEdit(SDFEdit::CreateOctahedron({}, 0.75f));
 
 			m_SDFFactory->BakeSDFSynchronous(m_TorusObject.get(), editList);
 		}
 
 		{
-			// Create sphere object edit list
-			SDFEditList editList;
-
 			// Create sphere object by adding and then subtracting a bunch of spheres
 			constexpr UINT addSpheres = 16;
+			constexpr int subtractSpheres = 32;
+			SDFEditList editList(addSpheres + subtractSpheres);
+
 			for (UINT i = 0; i < addSpheres; i++)
 			{
 				const float radius = Random::Float(0.3f, 0.5f);
-				editList.AddPrimitive(SDFEdit::CreateSphere(
+				editList.AddEdit(SDFEdit::CreateSphere(
 					{
 							Random::Float(-0.9f + radius, 0.9f - radius),
 							Random::Float(-0.9f + radius, 0.9f - radius),
@@ -72,11 +71,10 @@ Scene::Scene()
 					radius, i > 0 ? SDFOperation::SmoothUnion : SDFOperation::Union, 0.05f));
 			}
 
-			constexpr int subtractSpheres = 32;
 			for (UINT i = 0; i < subtractSpheres; i++)
 			{
 				const float radius = Random::Float(0.1f, 0.3f);
-				editList.AddPrimitive(SDFEdit::CreateSphere(
+				editList.AddEdit(SDFEdit::CreateSphere(
 					{
 						Random::Float(-0.99f + radius, 0.99f - radius),
 						Random::Float(-0.99f + radius, 0.99f - radius),

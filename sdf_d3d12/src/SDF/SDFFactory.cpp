@@ -7,7 +7,7 @@
 #include "Renderer/Buffer/CounterResource.h"
 
 #include "SDFObject.h"
-#include "SDFTypes.h"
+#include "SDFEditList.h"
 
 
 // Pipeline signatures
@@ -37,23 +37,6 @@ namespace BakeComputeRootSignature
 
 
 
-SDFEditData BuildPrimitiveData(const SDFEdit& primitive)
-{
-	SDFEditData primitiveData;
-	primitiveData.InvWorldMat = XMMatrixTranspose(XMMatrixInverse(nullptr, primitive.PrimitiveTransform.GetWorldMatrix()));
-	primitiveData.Scale = primitive.PrimitiveTransform.GetScale();
-
-	primitiveData.Shape = static_cast<UINT>(primitive.Shape);
-	primitiveData.Operation = static_cast<UINT>(primitive.Operation);
-	primitiveData.BlendingFactor = primitive.BlendingFactor;
-
-	static_assert(sizeof(SDFShapeProperties) == sizeof(XMFLOAT4));
-	memcpy(&primitiveData.ShapeParams, &primitive.ShapeProperties, sizeof(XMFLOAT4));
-
-	primitiveData.Color = primitive.Color;
-
-	return primitiveData;
-}
 
 
 SDFFactory::SDFFactory()
@@ -92,57 +75,14 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 {
 	const auto device = g_D3DGraphicsContext->GetDevice();
 
-	// Resources used throughout the process
-	ComPtr<ID3D12Resource> primitiveBuffer;
-	DescriptorAllocation primitiveBufferSRV;
-
+	// Temporary resources used throughout the process
 	CounterResource counterResource;
 	DescriptorAllocation counterResourceUAV;
 
 	// Step 1: upload primitive array to gpu so that it can be accessed while rendering
 	const size_t primitiveCount = editList.GetEditCount();
 	{
-
-		const UINT64 bufferSize = primitiveCount * sizeof(SDFEditData);
-
-		// Create primitive buffer
-		const CD3DX12_HEAP_PROPERTIES uploadHeap(D3D12_HEAP_TYPE_UPLOAD);
-		const auto resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
-		THROW_IF_FAIL(device->CreateCommittedResource(
-			&uploadHeap,
-			D3D12_HEAP_FLAG_NONE,
-			&resourceDesc,
-			D3D12_RESOURCE_STATE_GENERIC_READ,
-			nullptr,
-			IID_PPV_ARGS(&primitiveBuffer)));
-		primitiveBuffer->SetName(L"SDF Factory Primitive Buffer");
-
-		// Create an SRV for this resource
-		// Allocate a descriptor
-		primitiveBufferSRV = g_D3DGraphicsContext->GetSRVHeap()->Allocate(1);
-		ASSERT(primitiveBufferSRV.IsValid(), "Failed to allocate SRV");
-
-		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
-		srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		srvDesc.Buffer.FirstElement = 0;
-		srvDesc.Buffer.NumElements = static_cast<UINT>(primitiveCount);
-		srvDesc.Buffer.StructureByteStride = sizeof(SDFEditData);
-		srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
-
-		// Create srv
-		device->CreateShaderResourceView(primitiveBuffer.Get(), &srvDesc, primitiveBufferSRV.GetCPUHandle());
-
-		// Copy primitive data into buffer
-		void* mappedData;
-		THROW_IF_FAIL(primitiveBuffer->Map(0, nullptr, &mappedData));
-		for (size_t index = 0; index < primitiveCount; index++)
-		{
-			auto primitive = static_cast<SDFEditData*>(mappedData) + index;
-			*primitive = BuildPrimitiveData(editList.GetEdit(index));
-		}
-		primitiveBuffer->Unmap(0, nullptr);
+		editList.CopyStagingToGPU();
 	}
 
 	// Step 2: Setup data required to build the AABBs
@@ -187,7 +127,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 
 		// Set resources
 		m_CommandList->SetComputeRoot32BitConstants(AABBBuilderComputeRootSignature::BuildParameterSlot, SizeOfInUint32(buildParamsBuffer), &buildParamsBuffer, 0);
-		m_CommandList->SetComputeRootDescriptorTable(AABBBuilderComputeRootSignature::EditListSlot, primitiveBufferSRV.GetGPUHandle());
+		m_CommandList->SetComputeRootDescriptorTable(AABBBuilderComputeRootSignature::EditListSlot, editList.GetEditBufferSRV());
 		m_CommandList->SetComputeRootDescriptorTable(AABBBuilderComputeRootSignature::CounterResourceSlot, counterResourceUAV.GetGPUHandle());
 		m_CommandList->SetComputeRootDescriptorTable(AABBBuilderComputeRootSignature::AABBBufferSlot, object->GetAABBBufferUAV());
 		m_CommandList->SetComputeRootDescriptorTable(AABBBuilderComputeRootSignature::AABBPrimitiveDataSlot, object->GetPrimitiveDataBufferUAV());
@@ -239,7 +179,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 
 		// Set resource views
 		m_CommandList->SetComputeRoot32BitConstants(BakeComputeRootSignature::BakeDataSlot, SizeOfInUint32(BakeDataConstantBuffer), &bakeDataBuffer, 0);
-		m_CommandList->SetComputeRootDescriptorTable(BakeComputeRootSignature::EditListSlot, primitiveBufferSRV.GetGPUHandle());
+		m_CommandList->SetComputeRootDescriptorTable(BakeComputeRootSignature::EditListSlot, editList.GetEditBufferSRV());
 		m_CommandList->SetComputeRootDescriptorTable(BakeComputeRootSignature::OutputVolumeSlot, object->GetVolumeUAV());
 
 		// Use fast ceiling of integer division
@@ -264,7 +204,6 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		THROW_IF_FAIL(m_CommandList->Reset(m_CommandAllocator.Get(), nullptr));
 
 		// Free temp descriptors
-		primitiveBufferSRV.Free();
 		counterResourceUAV.Free();
 	}
 }

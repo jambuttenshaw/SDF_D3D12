@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Renderer/Memory/D3DMemoryAllocator.h"
+#include "Renderer/Memory/MemoryAllocator.h"
 
 #include "Renderer/D3DGraphicsContext.h"
 
@@ -26,6 +26,10 @@ public:
 
 	void Allocate(UINT elementCount, UINT64 alignment, D3D12_RESOURCE_STATES initialResourceState, const wchar_t* resourceName = nullptr)
 	{
+		// TODO: Combine this resource with the counter resource
+		// The counter implemented in this class will not work (cannot be placed in upload heap)
+		NOT_IMPLEMENTED
+
 		ASSERT(elementCount > 0, "Cannot allocate buffer with 0 elements");
 
 		m_ElementCount = elementCount;

@@ -4,8 +4,8 @@
 
 void AccelerationStructure::AllocateResource()
 {
-	const D3D12_RESOURCE_STATES initialResourceState = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
-	m_AccelerationStructure.Allocate(g_D3DGraphicsContext->GetDevice(), m_PrebuildInfo.ResultDataMaxSizeInBytes, initialResourceState, m_Name.c_str());
+	constexpr D3D12_RESOURCE_STATES initialResourceState = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
+	m_AccelerationStructure.Allocate(g_D3DGraphicsContext->GetDevice(), m_PrebuildInfo.ResultDataMaxSizeInBytes, initialResourceState, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, m_Name.c_str());
 }
 
 
@@ -204,7 +204,7 @@ void RaytracingAccelerationStructureManager::InitializeTopLevelAS(D3D12_RAYTRACI
 	m_ScratchResourceSize = max(m_TopLevelAS.GetRequiredScratchSize(), m_ScratchResourceSize);
 
 	// allocate buffer for scratch resource
-	m_ScratchResource.Allocate(g_D3DGraphicsContext->GetDevice(), m_ScratchResourceSize, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, L"Acceleration Structure Scratch Resource");
+	m_ScratchResource.Allocate(g_D3DGraphicsContext->GetDevice(), m_ScratchResourceSize, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, L"Acceleration Structure Scratch Resource");
 }
 
 void RaytracingAccelerationStructureManager::Build(bool forceBuild)
