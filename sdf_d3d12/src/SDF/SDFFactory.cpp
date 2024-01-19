@@ -4,7 +4,6 @@
 #include "Renderer/D3DGraphicsContext.h"
 
 #include "Renderer/Hlsl/ComputeHlslCompat.h"
-#include "Renderer/Buffer/CounterResource.h"
 
 #include "SDFObject.h"
 #include "SDFEditList.h"
@@ -63,10 +62,26 @@ SDFFactory::SDFFactory()
 
 	// Create compute pipelines
 	InitializePipelines();
+
+	m_CounterResource.Allocate(device, L"AABB Counter");
+	m_CounterResourceUAV = g_D3DGraphicsContext->GetSRVHeap()->Allocate(1);
+
+	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+	uavDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+	uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+	uavDesc.Buffer.FirstElement = 0;
+	uavDesc.Buffer.NumElements = 1;
+	uavDesc.Buffer.StructureByteStride = 0;
+	uavDesc.Buffer.CounterOffsetInBytes = 0;
+	uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_RAW;
+
+	device->CreateUnorderedAccessView(m_CounterResource.GetResource(), nullptr, &uavDesc, m_CounterResourceUAV.GetCPUHandle());
 }
 
 SDFFactory::~SDFFactory()
 {
+	m_CounterResourceUAV.Free();
+
 	CloseHandle(m_FenceEvent);
 }
 
@@ -74,10 +89,6 @@ SDFFactory::~SDFFactory()
 void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editList)
 {
 	const auto device = g_D3DGraphicsContext->GetDevice();
-
-	// Temporary resources used throughout the process
-	CounterResource counterResource;
-	DescriptorAllocation counterResourceUAV;
 
 	// Step 1: upload primitive array to gpu so that it can be accessed while rendering
 	const size_t primitiveCount = editList.GetEditCount();
@@ -88,25 +99,10 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 	// Step 2: Setup data required to build the AABBs
 	AABBBuilderConstantBuffer buildParamsBuffer;
 	{
-		// Allocate counter resource and create a UAV
-		counterResource.Allocate(device, L"AABB Counter");
-		counterResourceUAV = g_D3DGraphicsContext->GetSRVHeap()->Allocate(1);
-
-		D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-		uavDesc.Format = DXGI_FORMAT_R32_TYPELESS;
-		uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
-		uavDesc.Buffer.FirstElement = 0;
-		uavDesc.Buffer.NumElements = 1;
-		uavDesc.Buffer.StructureByteStride = 0;
-		uavDesc.Buffer.CounterOffsetInBytes = 0;
-		uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_RAW;
-
-		device->CreateUnorderedAccessView(counterResource.GetResource(), nullptr, &uavDesc, counterResourceUAV.GetCPUHandle());
-
 		// Populate build params
 
 		buildParamsBuffer.SDFEditCount = static_cast<UINT>(primitiveCount);
-		UINT divisions = object->GetDivisions();
+		const UINT divisions = object->GetDivisions();
 		buildParamsBuffer.Divisions = divisions;
 		buildParamsBuffer.VoxelsPerAABB = object->GetVolumeResolution() / divisions;
 		buildParamsBuffer.VolumeStride = object->GetVolumeStride();
@@ -120,7 +116,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		m_CommandList->SetDescriptorHeaps(_countof(ppDescriptorHeaps), ppDescriptorHeaps);
 
 		// Copy the initial counter value into the counter
-		counterResource.SetCounterValue(m_CommandList.Get(), 0);
+		m_CounterResource.SetCounterValue(m_CommandList.Get(), 0);
 
 		// Setup pipeline
 		m_AABBBuildPipeline->Bind(m_CommandList.Get());
@@ -128,7 +124,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		// Set resources
 		m_CommandList->SetComputeRoot32BitConstants(AABBBuilderComputeRootSignature::BuildParameterSlot, SizeOfInUint32(buildParamsBuffer), &buildParamsBuffer, 0);
 		m_CommandList->SetComputeRootDescriptorTable(AABBBuilderComputeRootSignature::EditListSlot, editList.GetEditBufferSRV());
-		m_CommandList->SetComputeRootDescriptorTable(AABBBuilderComputeRootSignature::CounterResourceSlot, counterResourceUAV.GetGPUHandle());
+		m_CommandList->SetComputeRootDescriptorTable(AABBBuilderComputeRootSignature::CounterResourceSlot, m_CounterResourceUAV.GetGPUHandle());
 		m_CommandList->SetComputeRootDescriptorTable(AABBBuilderComputeRootSignature::AABBBufferSlot, object->GetAABBBufferUAV());
 		m_CommandList->SetComputeRootDescriptorTable(AABBBuilderComputeRootSignature::AABBPrimitiveDataSlot, object->GetPrimitiveDataBufferUAV());
 
@@ -139,7 +135,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		m_CommandList->Dispatch(threadGroupX, threadGroupX, threadGroupX);
 
 		// Copy counter value to a readback resource
-		counterResource.CopyCounterValue(m_CommandList.Get());
+		m_CounterResource.CopyCounterValue(m_CommandList.Get());
 	}
 
 	// Step 4: Execute command list and wait until completion
@@ -154,7 +150,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 	// Step 5: Read counter value
 	{
 		// It is only save to read the counter value after the GPU has finished its work
-		UINT aabbCount = counterResource.ReadCounterValue();
+		const UINT aabbCount = m_CounterResource.ReadCounterValue();
 		object->SetAABBCount(aabbCount);
 	}
 
@@ -202,9 +198,6 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 	{
 		THROW_IF_FAIL(m_CommandAllocator->Reset());
 		THROW_IF_FAIL(m_CommandList->Reset(m_CommandAllocator.Get(), nullptr));
-
-		// Free temp descriptors
-		counterResourceUAV.Free();
 	}
 }
 

@@ -5,6 +5,7 @@
 
 #include "SDF/SDFFactory.h"
 #include "SDF/SDFObject.h"
+#include "SDF/SDFEditList.h"
 
 
 class Scene
@@ -33,6 +34,9 @@ private:
 
 	std::unique_ptr<SDFObject> m_TorusObject;
 	std::unique_ptr<SDFObject> m_SphereObject;
+
+	SDFEditList m_TorusEditList;
+	SDFEditList m_SphereEditList;
 
 	// Demo Scene
 	inline static constexpr UINT s_InstanceGridDims = 24;

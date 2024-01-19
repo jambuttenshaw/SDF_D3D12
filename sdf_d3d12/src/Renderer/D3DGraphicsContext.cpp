@@ -217,6 +217,13 @@ D3D12_GPU_VIRTUAL_ADDRESS D3DGraphicsContext::GetPassCBAddress() const
 }
 
 
+void D3DGraphicsContext::DeferRelease(const ComPtr<IUnknown>& resource) const
+{
+	m_CurrentFrameResources->DeferRelease(resource);
+}
+
+
+
 
 void D3DGraphicsContext::Resize(UINT width, UINT height)
 {
@@ -396,7 +403,7 @@ void D3DGraphicsContext::CreateDescriptorHeaps()
 	constexpr UINT CBVCount = s_FrameCount + 1;	// frame count + sdf factory
 	constexpr UINT SRVCount = 4;				// ImGui frame resource + SRV for scene texture + application resources
 	constexpr UINT UAVCount = 2;				// UAV for scene texture + application resources
-	constexpr UINT Buffer = 10;					// Extras for a rainy day
+	constexpr UINT Buffer = 12;					// Extras for a rainy day
 	m_SRVHeap = std::make_unique<DescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, CBVCount + SRVCount + UAVCount + Buffer, false);
 
 	m_SamplerHeap = std::make_unique<DescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 1, false);

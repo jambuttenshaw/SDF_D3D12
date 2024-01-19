@@ -35,9 +35,15 @@ public:
 
 protected:
 	void AllocateResource();
+	void AllocateScratchResource();
 
 protected:
 	DefaultBuffer m_AccelerationStructure;
+	DefaultBuffer m_ScratchResource;
+
+	// Previous resources to be released after next build
+	// This is in the case that the structure is rebuilt but requires a larger buffer than before
+	ComPtr<ID3D12Resource> m_PreviousAccelerationStructure;
 
 	// Store build flags and prebuild info
 	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS m_BuildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_NONE;
@@ -78,14 +84,16 @@ public:
 	DISALLOW_COPY(BottomLevelAccelerationStructure)
 	DEFAULT_MOVE(BottomLevelAccelerationStructure)
 
-	void Initialize(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags, BottomLevelAccelerationStructureGeometry& geometry,	bool allowUpdate = false, bool updateOnBuild = false);
-	void Build(ID3D12Resource* scratch);
+	void Initialize(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags, const BottomLevelAccelerationStructureGeometry& geometry,	bool allowUpdate = false, bool updateOnBuild = false);
+	void Build();
+
+	void UpdateGeometry(const BottomLevelAccelerationStructureGeometry& geometry);
 
 	inline void SetInstanceContributionToHitGroupIndex(UINT index) { m_InstanceContributionToHitGroupIndex = index; }
 	inline UINT GetInstanceContributionToHitGroupIndex() const { return m_InstanceContributionToHitGroupIndex; }
 
 private:
-	void BuildGeometryDescs(BottomLevelAccelerationStructureGeometry& geometry);
+	void BuildGeometryDescs(const BottomLevelAccelerationStructureGeometry& geometry);
 	void ComputePrebuildInfo();
 
 private:
@@ -108,7 +116,7 @@ public:
 	DEFAULT_MOVE(TopLevelAccelerationStructure)
 
 	void Initialize(UINT numBottomLevelASInstanceDescs, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags, bool allowUpdate = false, bool updateOnBuild = false, const wchar_t* resourceName = nullptr);
-	void Build(UINT numInstanceDescs, D3D12_GPU_VIRTUAL_ADDRESS instanceDescs, ID3D12Resource* scratch);
+	void Build(UINT numInstanceDescs, D3D12_GPU_VIRTUAL_ADDRESS instanceDescs);
 
 private:
 	void ComputePrebuildInfo(UINT numBottomLevelASInstanceDescs);
@@ -125,7 +133,9 @@ public:
 	DISALLOW_COPY(RaytracingAccelerationStructureManager)
 	DEFAULT_MOVE(RaytracingAccelerationStructureManager)
 
-	void AddBottomLevelAS(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags, BottomLevelAccelerationStructureGeometry& geometry, bool allowUpdate, bool updateOnBuild);
+	void AddBottomLevelAS(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags, const BottomLevelAccelerationStructureGeometry& geometry, bool allowUpdate, bool updateOnBuild);
+	void UpdateBottomLevelASGeometry(const BottomLevelAccelerationStructureGeometry& geometry);
+
 	UINT AddBottomLevelASInstance(const std::wstring& bottomLevelASName, const XMMATRIX& transform, BYTE instanceMask);
 
 	void InitializeTopLevelAS(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags, bool allowUpdate, bool updateOnBuild, const wchar_t* resourceName);
@@ -151,7 +161,4 @@ private:
 	// They are then copied into the upload buffer when the acceleration structure is built
 	std::vector<D3D12_RAYTRACING_INSTANCE_DESC> m_BottomLevelInstanceDescsStaging;
 	UINT m_NumBottomLevelInstances = 0;
-
-	DefaultBuffer m_ScratchResource;
-	UINT64 m_ScratchResourceSize = 0;
 }; 

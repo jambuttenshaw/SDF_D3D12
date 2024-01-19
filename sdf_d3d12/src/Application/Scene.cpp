@@ -5,10 +5,10 @@
 
 #include "Framework/Math.h"
 
-#include "SDF/SDFEditList.h"
-
 
 Scene::Scene()
+	: m_TorusEditList(4)
+	, m_SphereEditList(48)
 {
 	// Build SDF Object
 	{
@@ -35,34 +35,32 @@ Scene::Scene()
 		
 		{
 			// Create torus object edit list
-			SDFEditList editList(4);
-			editList.AddEdit(SDFEdit::CreateTorus({}, 0.9f, 0.05f));
+			m_TorusEditList.AddEdit(SDFEdit::CreateTorus({}, 0.9f, 0.05f));
 
 			Transform torusTransform;
 			torusTransform.SetPitch(XMConvertToRadians(90.0f));
 
-			editList.AddEdit(SDFEdit::CreateTorus(torusTransform, 0.9f, 0.05f, SDFOperation::SmoothUnion, 0.1f));
+			m_TorusEditList.AddEdit(SDFEdit::CreateTorus(torusTransform, 0.9f, 0.05f, SDFOperation::SmoothUnion, 0.1f));
 
 			torusTransform.SetPitch(XMConvertToRadians(0.0f));
 			torusTransform.SetRoll(XMConvertToRadians(90.0f));
 
-			editList.AddEdit(SDFEdit::CreateTorus(torusTransform, 0.9f, 0.05f, SDFOperation::SmoothUnion, 0.1f));
+			m_TorusEditList.AddEdit(SDFEdit::CreateTorus(torusTransform, 0.9f, 0.05f, SDFOperation::SmoothUnion, 0.1f));
 
-			editList.AddEdit(SDFEdit::CreateOctahedron({}, 0.75f));
+			m_TorusEditList.AddEdit(SDFEdit::CreateOctahedron({}, 0.75f));
 
-			m_SDFFactory->BakeSDFSynchronous(m_TorusObject.get(), editList);
+			m_SDFFactory->BakeSDFSynchronous(m_TorusObject.get(), m_TorusEditList);
 		}
 
 		{
 			// Create sphere object by adding and then subtracting a bunch of spheres
 			constexpr UINT addSpheres = 16;
 			constexpr int subtractSpheres = 32;
-			SDFEditList editList(addSpheres + subtractSpheres);
 
 			for (UINT i = 0; i < addSpheres; i++)
 			{
 				const float radius = Random::Float(0.3f, 0.5f);
-				editList.AddEdit(SDFEdit::CreateSphere(
+				m_SphereEditList.AddEdit(SDFEdit::CreateSphere(
 					{
 							Random::Float(-0.9f + radius, 0.9f - radius),
 							Random::Float(-0.9f + radius, 0.9f - radius),
@@ -74,7 +72,7 @@ Scene::Scene()
 			for (UINT i = 0; i < subtractSpheres; i++)
 			{
 				const float radius = Random::Float(0.1f, 0.3f);
-				editList.AddEdit(SDFEdit::CreateSphere(
+				m_SphereEditList.AddEdit(SDFEdit::CreateSphere(
 					{
 						Random::Float(-0.99f + radius, 0.99f - radius),
 						Random::Float(-0.99f + radius, 0.99f - radius),
@@ -84,7 +82,7 @@ Scene::Scene()
 			}
 
 			// Bake the primitives into the SDF object
-			m_SDFFactory->BakeSDFSynchronous(m_SphereObject.get(), editList);
+			m_SDFFactory->BakeSDFSynchronous(m_SphereObject.get(), m_SphereEditList);
 		}
 	}
 
@@ -109,7 +107,7 @@ Scene::Scene()
 		constexpr D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
 		m_AccelerationStructure = std::make_unique<RaytracingAccelerationStructureManager>(s_InstanceCount);
 
-		for (auto& geometry : m_SceneGeometry)
+		for (const auto& geometry : m_SceneGeometry)
 		{
 			m_AccelerationStructure->AddBottomLevelAS(buildFlags, geometry, false, false);
 		}

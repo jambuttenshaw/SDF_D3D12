@@ -29,7 +29,7 @@ public:
 	inline void SetFence(UINT64 fence) { m_FenceValue = fence; }
 
 	// Upload new constant buffer data
-	inline void CopyPassData(const PassConstantBuffer& passData) { m_PassCB.CopyElement(0, passData); }
+	inline void CopyPassData(const PassConstantBuffer& passData) const { m_PassCB.CopyElement(0, passData); }
 
 	void DeferRelease(const ComPtr<IUnknown>& resource);
 	void ProcessDeferrals();

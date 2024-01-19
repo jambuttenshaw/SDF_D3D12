@@ -44,6 +44,8 @@ public:
 	void UpdatePassCB(GameTimer* timer, Camera* camera, UINT flags);
 	D3D12_GPU_VIRTUAL_ADDRESS GetPassCBAddress() const;
 
+	void DeferRelease(const ComPtr<IUnknown>& resource) const;
+
 	void Resize(UINT width, UINT height);
 
 	void Flush() const;

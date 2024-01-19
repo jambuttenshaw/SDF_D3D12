@@ -12,8 +12,9 @@ public:
 	DISALLOW_COPY(DefaultBuffer)
 	DEFAULT_MOVE(DefaultBuffer)
 
-	inline ID3D12Resource* GetResource() const { return m_UAVBuffer.Get(); }
-	inline D3D12_GPU_VIRTUAL_ADDRESS GetAddress() const { return m_UAVBuffer->GetGPUVirtualAddress(); }
+	inline ID3D12Resource* GetResource() const { return m_Buffer.Get(); }
+	inline D3D12_GPU_VIRTUAL_ADDRESS GetAddress() const { return m_Buffer->GetGPUVirtualAddress(); }
+	inline ID3D12Resource* TransferResource() { return m_Buffer.Detach(); }
 
 	void Allocate(ID3D12Device* device, UINT64 bufferSize, D3D12_RESOURCE_STATES initialResourceState, D3D12_RESOURCE_FLAGS resourceFlags, const wchar_t* resourceName = nullptr)
 	{
@@ -26,14 +27,14 @@ public:
 			&bufferDesc,
 			initialResourceState,
 			nullptr,
-			IID_PPV_ARGS(&m_UAVBuffer)));
+			IID_PPV_ARGS(&m_Buffer)));
 
 		if (resourceName)
 		{
-			m_UAVBuffer->SetName(resourceName);
+			m_Buffer->SetName(resourceName);
 		}
 	}
 
 private:
-	ComPtr<ID3D12Resource> m_UAVBuffer;
+	ComPtr<ID3D12Resource> m_Buffer;
 };

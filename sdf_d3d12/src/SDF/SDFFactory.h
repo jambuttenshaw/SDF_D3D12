@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Renderer/D3DPipeline.h"
+#include "Renderer/Buffer/CounterResource.h"
+#include "Renderer/Memory/MemoryAllocator.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -41,6 +43,9 @@ private:
 	// Pipelines to build SDF objects
 	std::unique_ptr<D3DComputePipeline> m_AABBBuildPipeline;
 	std::unique_ptr<D3DComputePipeline> m_BakePipeline;
+
+	CounterResource m_CounterResource;
+	DescriptorAllocation m_CounterResourceUAV;
 
 private:
 	// number of shader threads per group in each dimension
