@@ -141,9 +141,13 @@ void MyIntersectionShader()
 		}
 
 		// Remap uvw from [-1,1] to [UVWMin,UVWMax]
-		const float3 uvwMin = prim.UVW;
-		const float3 uvwMax = prim.UVW + prim.UVWExtent;
+		float3 uvwMin = prim.UVW;
+		float3 uvwMax = prim.UVW + prim.UVWExtent;
 		uvw = 0.5f * (uvw * (uvwMax - uvwMin) + uvwMax + uvwMin);
+
+		// Add a small amount of padding to the uvw bounds to hide the aabb edges
+		uvwMin -= l_VolumeCB.InvVolumeDimensions;
+		uvwMax += l_VolumeCB.InvVolumeDimensions;
 
 		// step through volume to find surface
 		uint iterationCount = 0;

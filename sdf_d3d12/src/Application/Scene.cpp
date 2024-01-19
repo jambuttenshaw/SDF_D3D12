@@ -35,7 +35,6 @@ Scene::Scene()
 		m_SDFObject->AddPrimitive(SDFPrimitive::CreateSphere({ 0.1f, 0.0f, 0.2f }, 0.25f, SDFOperation::SmoothSubtraction, 0.3f));
 		*/
 		
-		m_SDFObject->AddPrimitive(SDFPrimitive::CreateOctahedron({}, 0.75f));
 		m_SDFObject->AddPrimitive(SDFPrimitive::CreateTorus({}, 0.9f, 0.05f));
 
 		Transform torusTransform;
@@ -47,6 +46,9 @@ Scene::Scene()
 		torusTransform.SetRoll(XMConvertToRadians(90.0f));
 
 		m_SDFObject->AddPrimitive(SDFPrimitive::CreateTorus(torusTransform, 0.9f, 0.05f, SDFOperation::SmoothUnion, 0.1f));
+
+		m_SDFObject->AddPrimitive(SDFPrimitive::CreateOctahedron({}, 0.75f));
+
 
 
 		// Bake the primitives into the SDF object
@@ -97,9 +99,9 @@ Scene::Scene()
 
 
 					m_InstanceTranslation[index] = {
-						Random::Float(-1.0f, 1.0f),
-						Random::Float(-1.0f, 1.0f),
-						Random::Float(-1.0f, 1.0f)
+						Random::Float(-2.0f, 2.0f),
+						Random::Float(-2.0f, 2.0f),
+						Random::Float(-2.0f, 2.0f)
 					};
 
 					const auto translation = XMMatrixTranslation(

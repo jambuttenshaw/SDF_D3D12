@@ -33,7 +33,7 @@ private:
 	std::unique_ptr<SDFObject> m_SDFObject;
 
 	// Demo Scene
-	inline static constexpr UINT s_InstanceGridDims = 32;
+	inline static constexpr UINT s_InstanceGridDims = 24;
 	inline static constexpr UINT s_InstanceCount = s_InstanceGridDims * s_InstanceGridDims * s_InstanceGridDims;
 	inline static constexpr float s_InstanceSpacing = 6.0f;
 
