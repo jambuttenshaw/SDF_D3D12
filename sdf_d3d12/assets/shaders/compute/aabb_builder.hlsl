@@ -47,8 +47,7 @@ float EvaluateEditList(float3 p)
 }
 
 
-#define NUM_SHADER_THREADS 8
-[numthreads(NUM_SHADER_THREADS, NUM_SHADER_THREADS, NUM_SHADER_THREADS)]
+[numthreads(AABB_BUILD_NUM_THREADS_PER_GROUP, AABB_BUILD_NUM_THREADS_PER_GROUP, AABB_BUILD_NUM_THREADS_PER_GROUP)]
 void main(uint3 DTid : SV_DispatchThreadID)
 {
 	// Map thread to a region of the volume

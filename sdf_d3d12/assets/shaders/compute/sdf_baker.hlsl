@@ -68,8 +68,7 @@ float FormatDistance(float inDistance, float volumeDimensions)
 }
 
 
-#define NUM_SHADER_THREADS 8
-[numthreads(NUM_SHADER_THREADS, NUM_SHADER_THREADS, NUM_SHADER_THREADS)]
+[numthreads(SDF_BAKE_NUM_THREADS_PER_GROUP, SDF_BAKE_NUM_THREADS_PER_GROUP, SDF_BAKE_NUM_THREADS_PER_GROUP)]
 void main(uint3 DTid : SV_DispatchThreadID)
 {
 	// Make sure thread has a pixel in the texture to process

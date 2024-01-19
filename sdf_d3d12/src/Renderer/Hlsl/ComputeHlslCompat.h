@@ -8,6 +8,10 @@ using namespace DirectX;
 #endif
 
 
+#define AABB_BUILD_NUM_THREADS_PER_GROUP 8 // 8x8x8
+#define SDF_BAKE_NUM_THREADS_PER_GROUP 8 // 8x8x8
+
+
 struct BakeDataConstantBuffer
 {
 	UINT SDFEditCount;
