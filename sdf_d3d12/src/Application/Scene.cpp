@@ -14,7 +14,8 @@ Scene::Scene()
 		m_SDFFactory = std::make_unique<SDFFactory>();
 
 		// Create an SDF object
-		m_SDFObject = std::make_unique<SDFObject>(128, 8, 8);
+		m_TorusObject = std::make_unique<SDFObject>(128, 8, 8);
+		m_SphereObject = std::make_unique<SDFObject>(128, 4, 16);
 
 		/*
 		m_SDFObject->AddPrimitive(SDFPrimitive::CreateBox(
@@ -28,40 +29,74 @@ Scene::Scene()
 		torusTransform.SetPitch(XMConvertToRadians(90.0f));
 		m_SDFObject->AddPrimitive(SDFPrimitive::CreateTorus(torusTransform, 0.25f, 0.05f, SDFOperation::SmoothUnion, 0.3f));
 		*/
-		/*
-		m_SDFObject->AddPrimitive(SDFPrimitive::CreateSphere({ 0.0f, 0.0f, 0.0f }, 0.5f));
-		m_SDFObject->AddPrimitive(SDFPrimitive::CreateSphere({ 0.3f, -0.4f, 0.1f }, 0.3f, SDFOperation::SmoothUnion, 0.2f));
-		m_SDFObject->AddPrimitive(SDFPrimitive::CreateSphere({ -0.2f, 0.3f, -0.4f }, 0.3f, SDFOperation::SmoothUnion, 0.2f));
-		m_SDFObject->AddPrimitive(SDFPrimitive::CreateSphere({ 0.1f, 0.0f, 0.2f }, 0.25f, SDFOperation::SmoothSubtraction, 0.3f));
-		*/
+
 		
-		m_SDFObject->AddPrimitive(SDFPrimitive::CreateTorus({}, 0.9f, 0.05f));
+		{
+			// Create torus object
+			m_TorusObject->AddPrimitive(SDFPrimitive::CreateTorus({}, 0.9f, 0.05f));
 
-		Transform torusTransform;
-		torusTransform.SetPitch(XMConvertToRadians(90.0f));
+			Transform torusTransform;
+			torusTransform.SetPitch(XMConvertToRadians(90.0f));
 
-		m_SDFObject->AddPrimitive(SDFPrimitive::CreateTorus(torusTransform, 0.9f, 0.05f, SDFOperation::SmoothUnion, 0.1f));
+			m_TorusObject->AddPrimitive(SDFPrimitive::CreateTorus(torusTransform, 0.9f, 0.05f, SDFOperation::SmoothUnion, 0.1f));
 
-		torusTransform.SetPitch(XMConvertToRadians(0.0f));
-		torusTransform.SetRoll(XMConvertToRadians(90.0f));
+			torusTransform.SetPitch(XMConvertToRadians(0.0f));
+			torusTransform.SetRoll(XMConvertToRadians(90.0f));
 
-		m_SDFObject->AddPrimitive(SDFPrimitive::CreateTorus(torusTransform, 0.9f, 0.05f, SDFOperation::SmoothUnion, 0.1f));
+			m_TorusObject->AddPrimitive(SDFPrimitive::CreateTorus(torusTransform, 0.9f, 0.05f, SDFOperation::SmoothUnion, 0.1f));
 
-		m_SDFObject->AddPrimitive(SDFPrimitive::CreateOctahedron({}, 0.75f));
+			m_TorusObject->AddPrimitive(SDFPrimitive::CreateOctahedron({}, 0.75f));
 
+			m_SDFFactory->BakeSDFSynchronous(m_TorusObject.get());
+		}
 
+		{
+			// Create sphere object by adding and then subtracting a bunch of spheres
+			constexpr UINT addSpheres = 16;
+			for (UINT i = 0; i < addSpheres; i++)
+			{
+				const float radius = Random::Float(0.3f, 0.5f);
+				m_SphereObject->AddPrimitive(SDFPrimitive::CreateSphere(
+					{
+							Random::Float(-0.9f + radius, 0.9f - radius),
+							Random::Float(-0.9f + radius, 0.9f - radius),
+							Random::Float(-0.9f + radius, 0.9f - radius)
+					}, 
+					radius, i > 0 ? SDFOperation::SmoothUnion : SDFOperation::Union, 0.05f));
+			}
 
-		// Bake the primitives into the SDF object
-		m_SDFFactory->BakeSDFSynchronous(m_SDFObject.get());
+			constexpr int subtractSpheres = 32;
+			for (UINT i = 0; i < subtractSpheres; i++)
+			{
+				const float radius = Random::Float(0.1f, 0.3f);
+				m_SphereObject->AddPrimitive(SDFPrimitive::CreateSphere(
+					{
+						Random::Float(-0.99f + radius, 0.99f - radius),
+						Random::Float(-0.99f + radius, 0.99f - radius),
+						Random::Float(-0.99f + radius, 0.99f - radius)
+					},
+					radius, SDFOperation::SmoothSubtraction, 0.2f));
+			}
+
+			// Bake the primitives into the SDF object
+			m_SDFFactory->BakeSDFSynchronous(m_SphereObject.get());
+		}
 	}
 
 	{
 		// Construct scene geometry
-		m_SceneGeometry.push_back({ L"AABB Geometry" });
-		auto& aabbGeometry = m_SceneGeometry.at(0);
+		m_SceneGeometry.push_back({ L"Torus" });
+		m_SceneGeometry.push_back({ L"Spheres" });
 
-		// Construct a geometry instance
-		aabbGeometry.GeometryInstances.push_back({ *m_SDFObject.get(), D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE, m_SDFObject->GetVolumeSRV(), m_SDFObject->GetVolumeResolution(), m_SDFObject->GetVolumeStride() });
+		auto& torusGeometry = m_SceneGeometry.at(0);
+		auto& spheresGeometry = m_SceneGeometry.at(1);
+
+		torusGeometry.GeometryInstances.push_back(
+			{ *m_TorusObject.get(), D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE, m_TorusObject->GetVolumeSRV(), m_TorusObject->GetVolumeResolution(), m_TorusObject->GetVolumeStride()
+			});
+		spheresGeometry.GeometryInstances.push_back(
+			{ *m_SphereObject.get(), D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE, m_SphereObject->GetVolumeSRV(), m_SphereObject->GetVolumeResolution(), m_SphereObject->GetVolumeStride()
+			});
 	}
 
 	{
@@ -76,7 +111,8 @@ Scene::Scene()
 
 		// Create instances of BLAS
 
-		std::wstring geometryName = L"AABB Geometry";
+		const std::wstring torusGeometry = L"Torus";
+		const std::wstring spheresGeometry = L"Spheres";
 		for (UINT z = 0; z < s_InstanceGridDims; z++)
 		{
 			for (UINT y = 0; y < s_InstanceGridDims; y++)
@@ -84,6 +120,7 @@ Scene::Scene()
 				for (UINT x = 0; x < s_InstanceGridDims; x++)
 				{
 					const UINT index = (z * s_InstanceGridDims + y) * s_InstanceGridDims + x;
+					const auto& geometryName = index % 2 ? torusGeometry : spheresGeometry;
 
 					auto rotation = XMMatrixRotationRollPitchYaw(
 						XMConvertToRadians(Random::Float(360.0f)),
@@ -153,13 +190,25 @@ void Scene::OnUpdate(float deltaTime)
 
 	ImGui::Begin("Scene");
 	{
+
 		ImGui::Text("Scene Info"); 
 		ImGui::Separator();
 
 		ImGui::Text("Instance Count: %d", s_InstanceCount);
-		ImGui::Text("AABBs Per Instance: %d", m_SDFObject->GetAABBCount());
+		ImGui::Separator();
 
-		const float aabbCull = 100.0f * (1.0f - static_cast<float>(m_SDFObject->GetAABBCount()) / static_cast<float>(m_SDFObject->GetMaxAABBCount()));
+		ImGui::Text("Torus Object"); 
+		ImGui::Text("AABBs Per Instance: %d", m_TorusObject->GetAABBCount());
+
+		float aabbCull = 100.0f * (1.0f - static_cast<float>(m_TorusObject->GetAABBCount()) / static_cast<float>(m_TorusObject->GetMaxAABBCount()));
+		ImGui::Text("AABB Cull: %.1f", aabbCull);
+
+		ImGui::Separator();
+
+		ImGui::Text("Sphere Object");
+		ImGui::Text("AABBs Per Instance: %d", m_SphereObject->GetAABBCount());
+
+		aabbCull = 100.0f * (1.0f - static_cast<float>(m_SphereObject->GetAABBCount()) / static_cast<float>(m_SphereObject->GetMaxAABBCount()));
 		ImGui::Text("AABB Cull: %.1f", aabbCull);
 
 		ImGui::Separator();

@@ -30,7 +30,9 @@ private:
 
 	// SDF Objects
 	std::unique_ptr<SDFFactory> m_SDFFactory;
-	std::unique_ptr<SDFObject> m_SDFObject;
+
+	std::unique_ptr<SDFObject> m_TorusObject;
+	std::unique_ptr<SDFObject> m_SphereObject;
 
 	// Demo Scene
 	inline static constexpr UINT s_InstanceGridDims = 24;
