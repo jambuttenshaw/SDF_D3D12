@@ -27,8 +27,7 @@ public:
 	inline UINT GetVolumeResolution() const { return m_Resolution; }
 	inline UINT GetVolumeStride() const { return m_VolumeStride; }
 
-	inline D3D12_GPU_DESCRIPTOR_HANDLE GetVolumeSRV() const { return m_VolumeResourceViews.GetGPUHandle(0); };
-	inline D3D12_GPU_DESCRIPTOR_HANDLE GetVolumeUAV() const{ return m_VolumeResourceViews.GetGPUHandle(1); }
+	
 
 
 	// Geometry Interface
@@ -39,8 +38,13 @@ public:
 	inline virtual D3D12_GPU_VIRTUAL_ADDRESS GetAABBBufferAddress() const override { return m_AABBBuffer.GetAddress(); }
 	inline virtual D3D12_GPU_VIRTUAL_ADDRESS GetPrimitiveDataBufferAddress() const override { return m_PrimitiveDataBuffer.GetAddress(); }
 
-	inline D3D12_GPU_DESCRIPTOR_HANDLE GetAABBBufferUAV() const { return m_AABBBuffer.GetUAV(); }
-	inline D3D12_GPU_DESCRIPTOR_HANDLE GetPrimitiveDataBufferUAV() const { return m_PrimitiveDataBuffer.GetUAV(); }
+
+	// Get Resource Views
+	inline D3D12_GPU_DESCRIPTOR_HANDLE GetVolumeSRV() const { return m_ResourceViews.GetGPUHandle(0); };
+	inline D3D12_GPU_DESCRIPTOR_HANDLE GetVolumeUAV() const { return m_ResourceViews.GetGPUHandle(1); }
+	inline D3D12_GPU_DESCRIPTOR_HANDLE GetAABBBufferUAV() const { return m_ResourceViews.GetGPUHandle(2); }
+	inline D3D12_GPU_DESCRIPTOR_HANDLE GetPrimitiveDataBufferUAV() const { return m_ResourceViews.GetGPUHandle(3); }
+	
 
 	// Used to update the aabb count after the AABB builder compute shader has executed
 	// Should only be called from the SDF factory
@@ -53,12 +57,16 @@ private:
 							 // e.g. Volume Stride = 8 would mean a distance value of 1 in the volume would map to 8 voxels
 
 	ComPtr<ID3D12Resource> m_VolumeResource;
-	DescriptorAllocation m_VolumeResourceViews;	// index 0 = SRV
-													// index 1 = UAV
+	
 
 	// Geometry
-	RWStructuredBuffer<D3D12_RAYTRACING_AABB> m_AABBBuffer;
-	RWStructuredBuffer<AABBPrimitiveData> m_PrimitiveDataBuffer;
+	StructuredBuffer<D3D12_RAYTRACING_AABB> m_AABBBuffer;
+	StructuredBuffer<AABBPrimitiveData> m_PrimitiveDataBuffer;
+
+	DescriptorAllocation m_ResourceViews;	// index 0 = volume SRV
+											// index 1 = volume UAV
+											// index 2 = aabb buffer uav
+											// index 3 = aabb primitive data buffer uav
 
 	UINT m_Divisions = 0;	 // The maximum number of AABBs along each axis
 

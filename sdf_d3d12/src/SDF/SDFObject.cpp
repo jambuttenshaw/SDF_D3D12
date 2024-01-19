@@ -32,25 +32,34 @@ SDFObject::SDFObject(UINT resolution, UINT volumeStride, UINT aabbDivisions)
 		m_VolumeResource->SetName(L"SDF Object Volume Resource");
 	}
 
-	// Create volume UAV and SRV
-	{
-		m_VolumeResourceViews = descriptorHeap->Allocate(2);
-
-		device->CreateShaderResourceView(m_VolumeResource.Get(), nullptr, m_VolumeResourceViews.GetCPUHandle(0));
-		device->CreateUnorderedAccessView(m_VolumeResource.Get(), nullptr, nullptr, m_VolumeResourceViews.GetCPUHandle(1));
-	}
-
 	// Allocate Geometry buffers
 	{
 		m_AABBBuffer.Allocate(device, m_MaxAABBCount, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, L"AABB Buffer");
 		m_PrimitiveDataBuffer.Allocate(device, m_MaxAABBCount, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, L"AABB Primitive Data Buffer");
-
-		m_AABBBuffer.CreateUAV(device, descriptorHeap);
-		m_PrimitiveDataBuffer.CreateUAV(device, descriptorHeap);
 	}
+
+	// Create resource views
+	{
+		m_ResourceViews = descriptorHeap->Allocate(4);
+
+		device->CreateShaderResourceView(m_VolumeResource.Get(), nullptr, m_ResourceViews.GetCPUHandle(0));
+		device->CreateUnorderedAccessView(m_VolumeResource.Get(), nullptr, nullptr, m_ResourceViews.GetCPUHandle(1));
+
+		{
+			const auto uavDesc = m_AABBBuffer.CreateUAVDesc();
+			device->CreateUnorderedAccessView(m_AABBBuffer.GetResource(), nullptr, &uavDesc, m_ResourceViews.GetCPUHandle(2));
+		}
+		{
+			const auto uavDesc = m_PrimitiveDataBuffer.CreateUAVDesc();
+			device->CreateUnorderedAccessView(m_PrimitiveDataBuffer.GetResource(), nullptr, &uavDesc, m_ResourceViews.GetCPUHandle(3));
+		}
+
+	}
+
+	
 }
 
 SDFObject::~SDFObject()
 {
-	m_VolumeResourceViews.Free();
+	m_ResourceViews.Free();
 }

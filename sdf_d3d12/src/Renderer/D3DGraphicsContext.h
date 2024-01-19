@@ -54,7 +54,7 @@ public:
 
 	inline float GetAspectRatio() const { return static_cast<float>(m_ClientWidth) / static_cast<float>(m_ClientHeight); }
 
-	inline static UINT GetBackBufferCount() { return s_FrameCount; }
+	inline static constexpr UINT GetBackBufferCount() { return s_FrameCount; }
 	inline DXGI_FORMAT GetBackBufferFormat() const { return m_BackBufferFormat; }
 	inline DXGI_FORMAT GetDepthStencilFormat() const { return m_DepthStencilFormat; }
 	inline UINT GetCurrentBackBuffer() const { return m_FrameIndex; }

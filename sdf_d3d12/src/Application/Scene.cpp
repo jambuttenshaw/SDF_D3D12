@@ -109,7 +109,7 @@ Scene::Scene()
 	{
 		// Set up acceleration structure
 		constexpr D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
-		m_AccelerationStructure = std::make_unique<RaytracingAccelerationStructureManager>(s_InstanceCount, D3DGraphicsContext::GetBackBufferCount());
+		m_AccelerationStructure = std::make_unique<RaytracingAccelerationStructureManager>(s_InstanceCount);
 
 		for (auto& geometry : m_SceneGeometry)
 		{

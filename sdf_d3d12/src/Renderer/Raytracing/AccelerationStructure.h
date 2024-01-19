@@ -2,6 +2,8 @@
 
 #include "Renderer/Buffer/UploadBuffer.h"
 #include "AABBGeometry.h"
+#include "Renderer/D3DGraphicsContext.h"
+#include "Renderer/Buffer/UAVBuffer.h"
 
 
 using Microsoft::WRL::ComPtr;
@@ -117,7 +119,7 @@ private:
 class RaytracingAccelerationStructureManager
 {
 public:
-	RaytracingAccelerationStructureManager(UINT numBottomLevelInstances, UINT frameCount);
+	RaytracingAccelerationStructureManager(UINT numBottomLevelInstances);
 	~RaytracingAccelerationStructureManager() = default;
 
 	DISALLOW_COPY(RaytracingAccelerationStructureManager)
@@ -142,7 +144,9 @@ private:
 	TopLevelAccelerationStructure m_TopLevelAS;
 	std::map<std::wstring, BottomLevelAccelerationStructure> m_BottomLevelAS;
 
-	UploadBuffer<D3D12_RAYTRACING_INSTANCE_DESC> m_BottomLevelInstanceDescs;
+	// Multiple upload buffers are required to buffer this resource
+	// As its data will be updated each frame
+	std::array<UploadBuffer<D3D12_RAYTRACING_INSTANCE_DESC>, D3DGraphicsContext::GetBackBufferCount()> m_BottomLevelInstanceDescs;
 	// A staging buffer where instance descs are collected
 	// They are then copied into the upload buffer when the acceleration structure is built
 	std::vector<D3D12_RAYTRACING_INSTANCE_DESC> m_BottomLevelInstanceDescsStaging;

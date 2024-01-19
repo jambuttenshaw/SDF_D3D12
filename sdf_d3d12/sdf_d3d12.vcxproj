@@ -219,6 +219,7 @@
     <ClInclude Include="src\Renderer\Buffer\AppendBuffer.h" />
     <ClInclude Include="src\Renderer\Buffer\CounterResource.h" />
     <ClInclude Include="src\Renderer\Buffer\StructuredBuffer.h" />
+    <ClInclude Include="src\Renderer\Buffer\UAVBuffer.h" />
     <ClInclude Include="src\Renderer\Buffer\UploadBuffer.h" />
     <ClInclude Include="src\Renderer\D3DFrameResources.h" />
     <ClInclude Include="src\Renderer\D3DGraphicsContext.h" />

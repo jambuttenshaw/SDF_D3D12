@@ -2,26 +2,20 @@
 
 using Microsoft::WRL::ComPtr;
 
-#include "Renderer/Memory/MemoryAllocator.h"
-
 
 template <typename T>
-class RWStructuredBuffer
+class StructuredBuffer
 {
 public:
-	RWStructuredBuffer() = default;
-	~RWStructuredBuffer()
-	{
-		if (m_UAV.IsValid())
-			m_UAV.Free();
-	}
+	StructuredBuffer() = default;
+	~StructuredBuffer() = default;
 
-	DISALLOW_COPY(RWStructuredBuffer)
-	DEFAULT_MOVE(RWStructuredBuffer)
+	DISALLOW_COPY(StructuredBuffer)
+	DEFAULT_MOVE(StructuredBuffer)
 
 	// Getters
+	inline ID3D12Resource* GetResource() const { return m_StructuredBuffer.Get(); }
 	inline D3D12_GPU_VIRTUAL_ADDRESS GetAddress() const { return m_StructuredBuffer->GetGPUVirtualAddress(); }
-	inline D3D12_GPU_DESCRIPTOR_HANDLE GetUAV() const { return m_UAV.GetGPUHandle(); }
 
 	void Allocate(ID3D12Device* device, UINT elementCount, D3D12_RESOURCE_STATES initialResourceState, const wchar_t* resourceName = nullptr)
 	{
@@ -46,12 +40,8 @@ public:
 		}
 	}
 
-	void CreateUAV(ID3D12Device* device, DescriptorHeap* descriptorHeap)
+	D3D12_UNORDERED_ACCESS_VIEW_DESC CreateUAVDesc() const
 	{
-		// Allocate descriptor for UAV
-		m_UAV = descriptorHeap->Allocate(1);
-		ASSERT(m_UAV.IsValid(), "Failed to allocate UAV descriptor");
-
 		// Create UAV
 		D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
 		uavDesc.Format = DXGI_FORMAT_UNKNOWN;
@@ -62,16 +52,10 @@ public:
 		uavDesc.Buffer.CounterOffsetInBytes = 0;
 		uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
 
-		device->CreateUnorderedAccessView(
-			m_StructuredBuffer.Get(),
-			nullptr,
-			&uavDesc,
-			m_UAV.GetCPUHandle());
+		return uavDesc;
 	}
 
 private:
 	ComPtr<ID3D12Resource> m_StructuredBuffer;
-
 	UINT m_ElementCount = 0;
-	DescriptorAllocation m_UAV;
 };

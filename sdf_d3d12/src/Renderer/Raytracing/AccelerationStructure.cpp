@@ -1,8 +1,6 @@
 #include "pch.h"
 #include "AccelerationStructure.h"
 
-#include "../D3DGraphicsContext.h"
-
 
 void AccelerationStructure::AllocateResource()
 {
@@ -158,15 +156,17 @@ void TopLevelAccelerationStructure::ComputePrebuildInfo(UINT numBottomLevelASIns
 }
 
 
-RaytracingAccelerationStructureManager::RaytracingAccelerationStructureManager(UINT numBottomLevelInstances, UINT frameCount)
-	: m_BottomLevelInstanceDescs(
-		g_D3DGraphicsContext->GetDevice(),
-		numBottomLevelInstances,
-		frameCount, 
-		16, 
-		L"Bottom Level Acceleration Structure Instance Descs")
-	, m_BottomLevelInstanceDescsStaging(numBottomLevelInstances, D3D12_RAYTRACING_INSTANCE_DESC{})
+RaytracingAccelerationStructureManager::RaytracingAccelerationStructureManager(UINT numBottomLevelInstances)
+	: m_BottomLevelInstanceDescsStaging(numBottomLevelInstances, D3D12_RAYTRACING_INSTANCE_DESC{})
 {
+	for (auto& instanceDescs : m_BottomLevelInstanceDescs)
+	{
+		instanceDescs.Allocate(
+			g_D3DGraphicsContext->GetDevice(),
+			numBottomLevelInstances,
+			16,
+			L"Bottom Level Acceleration Structure Instance Descs");
+	}
 }
 
 void RaytracingAccelerationStructureManager::AddBottomLevelAS(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags, BottomLevelAccelerationStructureGeometry& geometry, bool allowUpdate, bool updateOnBuild)
@@ -181,7 +181,7 @@ void RaytracingAccelerationStructureManager::AddBottomLevelAS(D3D12_RAYTRACING_A
 
 UINT RaytracingAccelerationStructureManager::AddBottomLevelASInstance(const std::wstring& bottomLevelASName, const XMMATRIX& transform, BYTE instanceMask)
 {
-	ASSERT(m_NumBottomLevelInstances < m_BottomLevelInstanceDescs.GetElementCount(), "Not enough instance desc buffer size.");
+	ASSERT(m_NumBottomLevelInstances < m_BottomLevelInstanceDescsStaging.size(), "Not enough instance desc buffer size.");
 	ASSERT(m_BottomLevelAS.find(bottomLevelASName) != m_BottomLevelAS.end(), "Bottom level AS does not exist.");
 
 	const UINT instanceIndex = m_NumBottomLevelInstances++;
@@ -210,9 +210,10 @@ void RaytracingAccelerationStructureManager::InitializeTopLevelAS(D3D12_RAYTRACI
 void RaytracingAccelerationStructureManager::Build(bool forceBuild)
 {
 	const auto commandList = g_D3DGraphicsContext->GetCommandList();
+	const auto frame = g_D3DGraphicsContext->GetCurrentBackBuffer();
 
 	// Copy staging buffer to GPU
-	m_BottomLevelInstanceDescs.CopyElements(0, m_NumBottomLevelInstances, g_D3DGraphicsContext->GetCurrentBackBuffer(), m_BottomLevelInstanceDescsStaging.data());
+	m_BottomLevelInstanceDescs.at(frame).CopyElements(0, m_NumBottomLevelInstances, m_BottomLevelInstanceDescsStaging.data());
 
 	// Build all bottom level AS
 	{
@@ -233,7 +234,7 @@ void RaytracingAccelerationStructureManager::Build(bool forceBuild)
 	// Build the top level AS
 	{
 		m_TopLevelAS.Build(m_NumBottomLevelInstances,
-			m_BottomLevelInstanceDescs.GetAddressOfElement(0, g_D3DGraphicsContext->GetCurrentBackBuffer()),
+			m_BottomLevelInstanceDescs.at(frame).GetAddressOfElement(0),
 			m_ScratchResource.GetResource());
 
 		const auto barrier = CD3DX12_RESOURCE_BARRIER::UAV(m_TopLevelAS.GetResource());
