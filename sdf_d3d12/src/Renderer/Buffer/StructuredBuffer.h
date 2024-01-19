@@ -2,22 +2,22 @@
 
 using Microsoft::WRL::ComPtr;
 
-#include "Renderer/Memory/D3DMemoryAllocator.h"
+#include "Renderer/Memory/MemoryAllocator.h"
 
 
 template <typename T>
-class D3DRWStructuredBuffer
+class RWStructuredBuffer
 {
 public:
-	D3DRWStructuredBuffer() = default;
-	~D3DRWStructuredBuffer()
+	RWStructuredBuffer() = default;
+	~RWStructuredBuffer()
 	{
 		if (m_UAV.IsValid())
 			m_UAV.Free();
 	}
 
-	DISALLOW_COPY(D3DRWStructuredBuffer)
-	DEFAULT_MOVE(D3DRWStructuredBuffer)
+	DISALLOW_COPY(RWStructuredBuffer)
+	DEFAULT_MOVE(RWStructuredBuffer)
 
 	// Getters
 	inline D3D12_GPU_VIRTUAL_ADDRESS GetAddress() const { return m_StructuredBuffer->GetGPUVirtualAddress(); }
@@ -46,7 +46,7 @@ public:
 		}
 	}
 
-	void CreateUAV(ID3D12Device* device, D3DDescriptorHeap* descriptorHeap)
+	void CreateUAV(ID3D12Device* device, DescriptorHeap* descriptorHeap)
 	{
 		// Allocate descriptor for UAV
 		m_UAV = descriptorHeap->Allocate(1);
@@ -73,5 +73,5 @@ private:
 	ComPtr<ID3D12Resource> m_StructuredBuffer;
 
 	UINT m_ElementCount = 0;
-	D3DDescriptorAllocation m_UAV;
+	DescriptorAllocation m_UAV;
 };

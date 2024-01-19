@@ -4,7 +4,7 @@
 #include "Renderer/D3DGraphicsContext.h"
 
 #include "Renderer/Hlsl/ComputeHlslCompat.h"
-#include "Renderer/Buffer/D3DCounterResource.h"
+#include "Renderer/Buffer/CounterResource.h"
 
 #include "SDFObject.h"
 #include "SDFTypes.h"
@@ -94,10 +94,10 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 
 	// Resources used throughout the process
 	ComPtr<ID3D12Resource> primitiveBuffer;
-	D3DDescriptorAllocation primitiveBufferSRV;
+	DescriptorAllocation primitiveBufferSRV;
 
-	D3DCounterResource counterResource;
-	D3DDescriptorAllocation counterResourceUAV;
+	CounterResource counterResource;
+	DescriptorAllocation counterResourceUAV;
 
 	// Step 1: upload primitive array to gpu so that it can be accessed while rendering
 	const size_t primitiveCount = editList.GetEditCount();

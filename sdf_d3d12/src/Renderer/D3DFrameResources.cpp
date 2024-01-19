@@ -11,7 +11,7 @@ D3DFrameResources::D3DFrameResources()
 	D3D_NAME(m_CommandAllocator);
 
 	// Create per-pass and per-object constant buffer
-	m_PassCB = std::make_unique<D3DUploadBuffer<PassConstantBuffer>>(g_D3DGraphicsContext->GetDevice(), 1, 1, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT, L"Pass Constant Buffer");	
+	m_PassCB = std::make_unique<UploadBuffer<PassConstantBuffer>>(g_D3DGraphicsContext->GetDevice(), 1, 1, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT, L"Pass Constant Buffer");	
 
 	// Create constant buffer views
 	// Allocate enough descriptors from the heap

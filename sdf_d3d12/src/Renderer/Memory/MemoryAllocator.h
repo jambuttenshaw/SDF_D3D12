@@ -2,24 +2,24 @@
 
 using Microsoft::WRL::ComPtr;
 
-class D3DDescriptorHeap;
+class DescriptorHeap;
 
 
-class D3DDescriptorAllocation
+class DescriptorAllocation
 {
 public:
-	D3DDescriptorAllocation() = default;
-	D3DDescriptorAllocation(
-		D3DDescriptorHeap* heap,
+	DescriptorAllocation() = default;
+	DescriptorAllocation(
+		DescriptorHeap* heap,
 		UINT index,
 		UINT count,
 		bool cpuOnly
 	);
-	~D3DDescriptorAllocation() = default;
+	~DescriptorAllocation() = default;
 
-	DISALLOW_COPY(D3DDescriptorAllocation)
-	D3DDescriptorAllocation(D3DDescriptorAllocation&& other) noexcept;
-	D3DDescriptorAllocation& operator=(D3DDescriptorAllocation&& other) noexcept;
+	DISALLOW_COPY(DescriptorAllocation)
+	DescriptorAllocation(DescriptorAllocation&& other) noexcept;
+	DescriptorAllocation& operator=(DescriptorAllocation&& other) noexcept;
 
 	D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(UINT index = 0) const;
 	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandle(UINT index = 0) const;
@@ -34,7 +34,7 @@ public:
 	inline UINT GetCount() const { return m_Count; }
 
 private:
-	D3DDescriptorHeap* m_Heap = nullptr;	// The allocator that made this allocation
+	DescriptorHeap* m_Heap = nullptr;	// The allocator that made this allocation
 	UINT m_Index = 0;						// The index this allocation begins at
 	UINT m_Count = 0;						// The number of descriptors in this allocation
 											
@@ -44,19 +44,19 @@ private:
 };
 
 
-class D3DDescriptorHeap
+class DescriptorHeap
 {
 public:
-	D3DDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, UINT capacity, bool cpuOnly, const wchar_t* resourceName = nullptr);
-	~D3DDescriptorHeap();
+	DescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, UINT capacity, bool cpuOnly, const wchar_t* resourceName = nullptr);
+	~DescriptorHeap();
 
 	// cannot be copied or moved
-	DISALLOW_COPY(D3DDescriptorHeap)
-	DISALLOW_MOVE(D3DDescriptorHeap)
+	DISALLOW_COPY(DescriptorHeap)
+	DISALLOW_MOVE(DescriptorHeap)
 
 
-	D3DDescriptorAllocation Allocate(UINT countToAlloc);
-	void Free(D3DDescriptorAllocation& allocation);
+	DescriptorAllocation Allocate(UINT countToAlloc);
+	void Free(DescriptorAllocation& allocation);
 
 	void ProcessDeferredFree(UINT frameIndex);
 

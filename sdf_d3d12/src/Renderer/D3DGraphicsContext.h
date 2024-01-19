@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Memory/D3DMemoryAllocator.h"
+#include "Memory/MemoryAllocator.h"
 
 #include "D3DPipeline.h"
 #include "Hlsl/RaytracingHlslCompat.h"
@@ -63,7 +63,7 @@ public:
 	inline UINT GetClientHeight() const { return m_ClientHeight; }
 
 	// Descriptor heaps
-	inline D3DDescriptorHeap* GetSRVHeap() const { return m_SRVHeap.get(); }
+	inline DescriptorHeap* GetSRVHeap() const { return m_SRVHeap.get(); }
 
 	// For ImGui
 	inline ID3D12DescriptorHeap* GetImGuiResourcesHeap() const { return m_ImGuiResources.GetHeap(); }
@@ -133,10 +133,10 @@ private:
 
 	ComPtr<IDXGISwapChain3> m_SwapChain;
 	ComPtr<ID3D12Resource> m_RenderTargets[s_FrameCount];
-	D3DDescriptorAllocation m_RTVs;
+	DescriptorAllocation m_RTVs;
 
 	ComPtr<ID3D12Resource> m_DepthStencilBuffer;
-	D3DDescriptorAllocation m_DSV;
+	DescriptorAllocation m_DSV;
 
 	ComPtr<ID3D12CommandAllocator> m_DirectCommandAllocator;	// Used for non-frame-specific allocations (startup, resize swap chain, etc)
 
@@ -151,10 +151,10 @@ private:
 	PassConstantBuffer m_MainPassCB;
 
 	// Descriptor heaps
-	std::unique_ptr<D3DDescriptorHeap> m_RTVHeap;
-	std::unique_ptr<D3DDescriptorHeap> m_DSVHeap;
-	std::unique_ptr<D3DDescriptorHeap> m_SRVHeap;				// SRV, UAV, and CBV heap (named SRVHeap for brevity)
-	std::unique_ptr<D3DDescriptorHeap> m_SamplerHeap;
+	std::unique_ptr<DescriptorHeap> m_RTVHeap;
+	std::unique_ptr<DescriptorHeap> m_DSVHeap;
+	std::unique_ptr<DescriptorHeap> m_SRVHeap;				// SRV, UAV, and CBV heap (named SRVHeap for brevity)
+	std::unique_ptr<DescriptorHeap> m_SamplerHeap;
 
 	// Synchronization objects
 	UINT m_FrameIndex = 0;
@@ -174,5 +174,5 @@ private:
 	std::unique_ptr<D3DGraphicsPipeline> m_GraphicsPipeline;	// A raster pass is used to copy the raytracing output to the back buffer
 
 	// ImGui Resources
-	D3DDescriptorAllocation m_ImGuiResources;
+	DescriptorAllocation m_ImGuiResources;
 };

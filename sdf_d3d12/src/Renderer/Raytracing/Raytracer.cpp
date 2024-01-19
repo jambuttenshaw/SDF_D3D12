@@ -6,7 +6,7 @@
 #include "Application/Scene.h"
 #include "RaytracingSceneDefines.h"
 #include "Renderer/D3DShaderCompiler.h"
-#include "Renderer/D3DShaderTable.h"
+#include "Renderer/ShaderTable.h"
 
 
 const wchar_t* Raytracer::c_HitGroupName = L"MyHitGroup";
@@ -276,8 +276,8 @@ void Raytracer::BuildShaderTables()
 		UINT numShaderRecords = 1;
 		UINT shaderRecordSize = shaderIDSize;
 
-		m_RayGenShaderTable = std::make_unique<D3DShaderTable>(device, numShaderRecords, shaderRecordSize, L"RayGenShaderTable");
-		m_RayGenShaderTable->AddRecord(D3DShaderRecord{ rayGenShaderIdentifier, shaderIDSize });
+		m_RayGenShaderTable = std::make_unique<ShaderTable>(device, numShaderRecords, shaderRecordSize, L"RayGenShaderTable");
+		m_RayGenShaderTable->AddRecord(ShaderRecord{ rayGenShaderIdentifier, shaderIDSize });
 	}
 
 	// Miss shader table
@@ -285,8 +285,8 @@ void Raytracer::BuildShaderTables()
 		UINT numShaderRecords = 1;
 		UINT shaderRecordSize = shaderIDSize;
 
-		m_MissShaderTable = std::make_unique<D3DShaderTable>(device, numShaderRecords, shaderRecordSize, L"MissShaderTable");
-		m_MissShaderTable->AddRecord(D3DShaderRecord{ missShaderIdentifier, shaderIDSize });
+		m_MissShaderTable = std::make_unique<ShaderTable>(device, numShaderRecords, shaderRecordSize, L"MissShaderTable");
+		m_MissShaderTable->AddRecord(ShaderRecord{ missShaderIdentifier, shaderIDSize });
 	}
 
 	// Hit group shader table
@@ -303,7 +303,7 @@ void Raytracer::BuildShaderTables()
 		}
 
 		UINT shaderRecordSize = shaderIDSize + sizeof(LocalRootSignatureParams::RootArguments);
-		m_HitGroupShaderTable = std::make_unique<D3DShaderTable>(device, numShaderRecords, shaderRecordSize, L"HitGroupShaderTable");
+		m_HitGroupShaderTable = std::make_unique<ShaderTable>(device, numShaderRecords, shaderRecordSize, L"HitGroupShaderTable");
 
 		for (auto& bottomLevelASGeometry : bottomLevelASGeometries)
 		{
@@ -319,7 +319,7 @@ void Raytracer::BuildShaderTables()
 				rootArgs.volumeCB.UVWVolumeStride = rootArgs.volumeCB.InvVolumeDimensions * static_cast<float>(geometryInstance.GetVolumeStride());
 				rootArgs.aabbPrimitiveData = geometryInstance.GetGeometry().GetPrimitiveDataBufferAddress();
 
-				m_HitGroupShaderTable->AddRecord(D3DShaderRecord{
+				m_HitGroupShaderTable->AddRecord(ShaderRecord{
 					hitGroupShaderIdentifier,
 					shaderIDSize,
 					&rootArgs,

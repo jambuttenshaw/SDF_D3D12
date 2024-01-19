@@ -12,15 +12,15 @@ using Microsoft::WRL::ComPtr;
  *	Constant buffer elements must be 256-byte aligned
  */
 template<typename T>
-class D3DUploadBuffer
+class UploadBuffer
 {
 public:
-	D3DUploadBuffer() = default;
-	D3DUploadBuffer(ID3D12Device* device, UINT elementCount, UINT instanceCount, UINT alignment, const wchar_t* name)
+	UploadBuffer() = default;
+	UploadBuffer(ID3D12Device* device, UINT elementCount, UINT instanceCount, UINT alignment, const wchar_t* name)
 	{
 		Allocate(device, elementCount, instanceCount, alignment, name);
 	}
-	~D3DUploadBuffer()
+	~UploadBuffer()
 	{
 		// Un-map
 		if (m_UploadBuffer != nullptr)
@@ -29,9 +29,9 @@ public:
 	}
 
 	// Disallow copying
-	DISALLOW_COPY(D3DUploadBuffer)
+	DISALLOW_COPY(UploadBuffer)
 	// Allow moving
-	DEFAULT_MOVE(D3DUploadBuffer)
+	DEFAULT_MOVE(UploadBuffer)
 
 	void Allocate(ID3D12Device* device, UINT elementCount, UINT instanceCount, UINT alignment, const wchar_t* name)
 	{
@@ -118,13 +118,13 @@ private:
 };
 
 
-class D3DUAVBuffer
+class UAVBuffer
 {
 public:
-	D3DUAVBuffer() = default;
+	UAVBuffer() = default;
 
-	DISALLOW_COPY(D3DUAVBuffer)
-	DEFAULT_MOVE(D3DUAVBuffer)
+	DISALLOW_COPY(UAVBuffer)
+	DEFAULT_MOVE(UAVBuffer)
 
 	inline ID3D12Resource* GetResource() const { return m_UAVBuffer.Get(); }
 	inline D3D12_GPU_VIRTUAL_ADDRESS GetAddress() const { return m_UAVBuffer->GetGPUVirtualAddress(); }

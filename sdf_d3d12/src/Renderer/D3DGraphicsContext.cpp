@@ -3,7 +3,6 @@
 
 #include "Windows/Win32Application.h"
 
-#include "Memory/D3DMemoryAllocator.h"
 #include "D3DFrameResources.h"
 #include "Application/Scene.h"
 
@@ -390,17 +389,17 @@ void D3DGraphicsContext::CreateSwapChain()
 
 void D3DGraphicsContext::CreateDescriptorHeaps()
 {
-	m_RTVHeap = std::make_unique<D3DDescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, s_FrameCount, true);
-	m_DSVHeap = std::make_unique<D3DDescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, true);
+	m_RTVHeap = std::make_unique<DescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, s_FrameCount, true);
+	m_DSVHeap = std::make_unique<DescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, true);
 
 	// SRV/CBV/UAV heap
 	constexpr UINT CBVCount = s_FrameCount + 1;	// frame count + sdf factory
 	constexpr UINT SRVCount = 4;				// ImGui frame resource + SRV for scene texture + application resources
 	constexpr UINT UAVCount = 2;				// UAV for scene texture + application resources
 	constexpr UINT Buffer = 10;					// Extras for a rainy day
-	m_SRVHeap = std::make_unique<D3DDescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, CBVCount + SRVCount + UAVCount + Buffer, false);
+	m_SRVHeap = std::make_unique<DescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, CBVCount + SRVCount + UAVCount + Buffer, false);
 
-	m_SamplerHeap = std::make_unique<D3DDescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 1, false);
+	m_SamplerHeap = std::make_unique<DescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 1, false);
 }
 
 void D3DGraphicsContext::CreateCommandAllocator()

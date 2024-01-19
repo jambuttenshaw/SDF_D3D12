@@ -8,18 +8,18 @@ using Microsoft::WRL::ComPtr;
 
 
 template<typename T>
-class D3DAppendBuffer
+class AppendBuffer
 {
 public:
-	D3DAppendBuffer() = default;
-	~D3DAppendBuffer()
+	AppendBuffer() = default;
+	~AppendBuffer()
 	{
 		if (m_UAV.IsValid())
 			m_UAV.Free();
 	}
 
-	DISALLOW_COPY(D3DAppendBuffer)
-	DEFAULT_MOVE(D3DAppendBuffer)
+	DISALLOW_COPY(AppendBuffer)
+	DEFAULT_MOVE(AppendBuffer)
 
 	// Getters
 	inline D3D12_GPU_VIRTUAL_ADDRESS GetAddress() const { return m_AppendBuffer->GetGPUVirtualAddress(); }
@@ -142,5 +142,5 @@ private:
 
 	UINT m_ElementCount = 0;
 
-	D3DDescriptorAllocation m_UAV;
+	DescriptorAllocation m_UAV;
 };

@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "D3DAccelerationStructure.h"
+#include "AccelerationStructure.h"
 
 #include "../D3DGraphicsContext.h"
 

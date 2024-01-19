@@ -4,12 +4,12 @@
 using Microsoft::WRL::ComPtr;
 
 
-class D3DShaderRecord
+class ShaderRecord
 {
 public:
-	D3DShaderRecord(void* pShaderIdentifier, UINT shaderIdentifierSize);
+	ShaderRecord(void* pShaderIdentifier, UINT shaderIdentifierSize);
 
-	D3DShaderRecord(void* pShaderIdentifier, UINT shaderIdentifierSize, void* pLocalRootArguments, UINT localRootArgumentsSize);
+	ShaderRecord(void* pShaderIdentifier, UINT shaderIdentifierSize, void* pLocalRootArguments, UINT localRootArgumentsSize);
 
 	void CopyTo(void* dest) const;
 		
@@ -30,10 +30,10 @@ private:
 };
 
 
-class D3DShaderTable
+class ShaderTable
 {
 public:
-	D3DShaderTable(ID3D12Device* device, UINT capacity, UINT recordSize, const wchar_t* name);
+	ShaderTable(ID3D12Device* device, UINT capacity, UINT recordSize, const wchar_t* name);
 
 	inline UINT GetNumRecords() const { return m_NumRecords; }
 
@@ -42,7 +42,7 @@ public:
 	inline UINT64 GetStride() const { return m_RecordSize; }
 
 	// Will copy the record (including its local arguments) into the shader table buffer resource
-	bool AddRecord(const D3DShaderRecord& record);
+	bool AddRecord(const ShaderRecord& record);
 
 private:
 	// An upload buffer to contain the shader records

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Renderer/Buffer/D3DUploadBuffer.h"
+#include "Renderer/Buffer/UploadBuffer.h"
 #include "AABBGeometry.h"
 
 
@@ -35,7 +35,7 @@ protected:
 	void AllocateResource();
 
 protected:
-	D3DUAVBuffer m_AccelerationStructure;
+	UAVBuffer m_AccelerationStructure;
 
 	// Store build flags and prebuild info
 	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS m_BuildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_NONE;
@@ -142,12 +142,12 @@ private:
 	TopLevelAccelerationStructure m_TopLevelAS;
 	std::map<std::wstring, BottomLevelAccelerationStructure> m_BottomLevelAS;
 
-	D3DUploadBuffer<D3D12_RAYTRACING_INSTANCE_DESC> m_BottomLevelInstanceDescs;
+	UploadBuffer<D3D12_RAYTRACING_INSTANCE_DESC> m_BottomLevelInstanceDescs;
 	// A staging buffer where instance descs are collected
 	// They are then copied into the upload buffer when the acceleration structure is built
 	std::vector<D3D12_RAYTRACING_INSTANCE_DESC> m_BottomLevelInstanceDescsStaging;
 	UINT m_NumBottomLevelInstances = 0;
 
-	D3DUAVBuffer m_ScratchResource;
+	UAVBuffer m_ScratchResource;
 	UINT64 m_ScratchResourceSize = 0;
 }; 

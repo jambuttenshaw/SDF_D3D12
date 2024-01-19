@@ -1,18 +1,18 @@
 #include "pch.h"
-#include "D3DShaderTable.h"
+#include "ShaderTable.h"
 
 
-D3DShaderRecord::D3DShaderRecord(void* pShaderIdentifier, UINT shaderIdentifierSize) :
+ShaderRecord::ShaderRecord(void* pShaderIdentifier, UINT shaderIdentifierSize) :
 	m_ShaderIdentifier(pShaderIdentifier, shaderIdentifierSize)
 {
 }
 
-D3DShaderRecord::D3DShaderRecord(void* pShaderIdentifier, UINT shaderIdentifierSize, void* pLocalRootArguments, UINT localRootArgumentsSize) :
+ShaderRecord::ShaderRecord(void* pShaderIdentifier, UINT shaderIdentifierSize, void* pLocalRootArguments, UINT localRootArgumentsSize) :
 	m_ShaderIdentifier(pShaderIdentifier, shaderIdentifierSize),
 	m_LocalRootArguments(pLocalRootArguments, localRootArgumentsSize)
 {
 }
-void D3DShaderRecord::CopyTo(void* dest) const
+void ShaderRecord::CopyTo(void* dest) const
 {
 	const auto destByte = static_cast<uint8_t*>(dest);
 
@@ -30,7 +30,7 @@ void D3DShaderRecord::CopyTo(void* dest) const
 }
 
 
-D3DShaderTable::D3DShaderTable(ID3D12Device* device, UINT capacity, UINT recordSize, const wchar_t* name)
+ShaderTable::ShaderTable(ID3D12Device* device, UINT capacity, UINT recordSize, const wchar_t* name)
 	: m_Capacity(capacity)
 {
 	// make sure record size is aligned
@@ -58,7 +58,7 @@ D3DShaderTable::D3DShaderTable(ID3D12Device* device, UINT capacity, UINT recordS
 }
 
 
-bool D3DShaderTable::AddRecord(const D3DShaderRecord& record)
+bool ShaderTable::AddRecord(const ShaderRecord& record)
 {
 	if (m_NumRecords >= m_Capacity)
 		return false;

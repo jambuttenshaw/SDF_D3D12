@@ -1,11 +1,11 @@
 #pragma once
 
-#include "Renderer/Memory/D3DMemoryAllocator.h"
+#include "Renderer/Memory/MemoryAllocator.h"
 
 using Microsoft::WRL::ComPtr;
 
 
-class D3DShaderTable;
+class ShaderTable;
 class Scene;
 
 
@@ -44,7 +44,7 @@ private:
 
 	// Raytracing output
 	ComPtr<ID3D12Resource> m_RaytracingOutput;
-	D3DDescriptorAllocation m_RaytracingOutputDescriptor;
+	DescriptorAllocation m_RaytracingOutputDescriptor;
 
 	// Shader names and Shader tables
 	static const wchar_t* c_HitGroupName;
@@ -52,9 +52,9 @@ private:
 	static const wchar_t* c_IntersectionShaderName;
 	static const wchar_t* c_ClosestHitShaderName;
 	static const wchar_t* c_MissShaderName;
-	std::unique_ptr<D3DShaderTable> m_MissShaderTable;
-	std::unique_ptr<D3DShaderTable> m_HitGroupShaderTable;
-	std::unique_ptr<D3DShaderTable> m_RayGenShaderTable;
+	std::unique_ptr<ShaderTable> m_MissShaderTable;
+	std::unique_ptr<ShaderTable> m_HitGroupShaderTable;
+	std::unique_ptr<ShaderTable> m_RayGenShaderTable;
 
 	// The scene to raytrace
 	const Scene* m_Scene = nullptr;

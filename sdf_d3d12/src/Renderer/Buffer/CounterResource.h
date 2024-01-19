@@ -3,14 +3,14 @@
 using Microsoft::WRL::ComPtr;
 
 
-class D3DCounterResource
+class CounterResource
 {
 public:
-	D3DCounterResource() = default;
-	~D3DCounterResource() = default;
+	CounterResource() = default;
+	~CounterResource() = default;
 
-	DISALLOW_COPY(D3DCounterResource)
-	DEFAULT_MOVE(D3DCounterResource)
+	DISALLOW_COPY(CounterResource)
+	DEFAULT_MOVE(CounterResource)
 
 	// Getters
 	inline ID3D12Resource* GetResource() const { return m_CounterResource.Get(); }

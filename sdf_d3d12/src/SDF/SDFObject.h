@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Renderer/Memory/D3DMemoryAllocator.h"
+#include "Renderer/Memory/MemoryAllocator.h"
 #include "Renderer/Raytracing/AABBGeometry.h"
 #include "Renderer/Hlsl/RaytracingHlslCompat.h"
-#include "Renderer/Buffer/D3DStructuredBuffer.h"
+#include "Renderer/Buffer/StructuredBuffer.h"
 
 
 using Microsoft::WRL::ComPtr;
@@ -53,12 +53,12 @@ private:
 							 // e.g. Volume Stride = 8 would mean a distance value of 1 in the volume would map to 8 voxels
 
 	ComPtr<ID3D12Resource> m_VolumeResource;
-	D3DDescriptorAllocation m_VolumeResourceViews;	// index 0 = SRV
+	DescriptorAllocation m_VolumeResourceViews;	// index 0 = SRV
 													// index 1 = UAV
 
 	// Geometry
-	D3DRWStructuredBuffer<D3D12_RAYTRACING_AABB> m_AABBBuffer;
-	D3DRWStructuredBuffer<AABBPrimitiveData> m_PrimitiveDataBuffer;
+	RWStructuredBuffer<D3D12_RAYTRACING_AABB> m_AABBBuffer;
+	RWStructuredBuffer<AABBPrimitiveData> m_PrimitiveDataBuffer;
 
 	UINT m_Divisions = 0;	 // The maximum number of AABBs along each axis
 

@@ -1,7 +1,7 @@
 #pragma once
 
 
-#include "Renderer/Raytracing/D3DAccelerationStructure.h"
+#include "Renderer/Raytracing/AccelerationStructure.h"
 
 #include "SDF/SDFFactory.h"
 #include "SDF/SDFObject.h"

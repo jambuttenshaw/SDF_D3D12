@@ -2,8 +2,8 @@
 
 using Microsoft::WRL::ComPtr;
 
-#include "Memory/D3DMemoryAllocator.h"
-#include "Buffer/D3DUploadBuffer.h"
+#include "Memory/MemoryAllocator.h"
+#include "Buffer/UploadBuffer.h"
 
 #include "Hlsl/RaytracingHlslCompat.h"
 
@@ -39,10 +39,10 @@ private:
 	UINT64 m_FenceValue = 0;
 
 	// Constant buffers
-	std::unique_ptr<D3DUploadBuffer<PassConstantBuffer>> m_PassCB;		// All data that is constant per pass
+	std::unique_ptr<UploadBuffer<PassConstantBuffer>> m_PassCB;		// All data that is constant per pass
 
 	// Constant buffer views
-	D3DDescriptorAllocation m_CBVs;
+	DescriptorAllocation m_CBVs;
 	UINT m_PassCBV = -1;
 
 	// Resources to be released when the GPU is finished with them

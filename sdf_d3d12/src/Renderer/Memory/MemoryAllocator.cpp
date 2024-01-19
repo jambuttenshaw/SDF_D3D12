@@ -1,13 +1,13 @@
 #include "pch.h"
-#include "D3DMemoryAllocator.h"
+#include "MemoryAllocator.h"
 
 #include "Renderer/D3DGraphicsContext.h"
 
 
-// D3DDescriptorAllocation
+// DescriptorAllocation
 
 
-D3DDescriptorAllocation::D3DDescriptorAllocation(D3DDescriptorHeap* heap, UINT index, UINT count, bool cpuOnly)
+DescriptorAllocation::DescriptorAllocation(DescriptorHeap* heap, UINT index, UINT count, bool cpuOnly)
 	: m_Heap(heap)
 	, m_Index(index)
 	, m_Count(count)
@@ -16,7 +16,7 @@ D3DDescriptorAllocation::D3DDescriptorAllocation(D3DDescriptorHeap* heap, UINT i
 {
 }
 
-D3DDescriptorAllocation::D3DDescriptorAllocation(D3DDescriptorAllocation&& other) noexcept
+DescriptorAllocation::DescriptorAllocation(DescriptorAllocation&& other) noexcept
 {
 	m_Heap = std::move(other.m_Heap);
 	m_Index = std::move(other.m_Index);
@@ -29,7 +29,7 @@ D3DDescriptorAllocation::D3DDescriptorAllocation(D3DDescriptorAllocation&& other
 	other.Reset();
 }
 
-D3DDescriptorAllocation& D3DDescriptorAllocation::operator=(D3DDescriptorAllocation&& other) noexcept
+DescriptorAllocation& DescriptorAllocation::operator=(DescriptorAllocation&& other) noexcept
 {
 	m_Heap = std::move(other.m_Heap);
 	m_Index = std::move(other.m_Index);
@@ -45,7 +45,7 @@ D3DDescriptorAllocation& D3DDescriptorAllocation::operator=(D3DDescriptorAllocat
 }
 
 
-D3D12_CPU_DESCRIPTOR_HANDLE D3DDescriptorAllocation::GetCPUHandle(UINT index) const
+D3D12_CPU_DESCRIPTOR_HANDLE DescriptorAllocation::GetCPUHandle(UINT index) const
 {
 	ASSERT(m_IsValid, "Cannot get handle on an invalid allocation");
 	ASSERT(index < m_Count, "Invalid descriptor index");
@@ -54,7 +54,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3DDescriptorAllocation::GetCPUHandle(UINT index) co
 	return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_Heap->GetHeap()->GetCPUDescriptorHandleForHeapStart(), offset, m_Heap->GetDescriptorSize());
 }
 
-D3D12_GPU_DESCRIPTOR_HANDLE D3DDescriptorAllocation::GetGPUHandle(UINT index) const
+D3D12_GPU_DESCRIPTOR_HANDLE DescriptorAllocation::GetGPUHandle(UINT index) const
 {
 	ASSERT(m_IsValid, "Cannot get handle on an invalid allocation");
 	ASSERT(!m_CPUOnly, "Cannot get GPU handle on a cpu-only descriptor");
@@ -64,12 +64,12 @@ D3D12_GPU_DESCRIPTOR_HANDLE D3DDescriptorAllocation::GetGPUHandle(UINT index) co
 	return CD3DX12_GPU_DESCRIPTOR_HANDLE(m_Heap->GetHeap()->GetGPUDescriptorHandleForHeapStart(), offset, m_Heap->GetDescriptorSize());
 }
 
-ID3D12DescriptorHeap* D3DDescriptorAllocation::GetHeap() const
+ID3D12DescriptorHeap* DescriptorAllocation::GetHeap() const
 {
 	return m_Heap->GetHeap();
 }
 
-void D3DDescriptorAllocation::Reset()
+void DescriptorAllocation::Reset()
 {
 	m_Heap = nullptr;	
 	m_Index = 0;						
@@ -80,7 +80,7 @@ void D3DDescriptorAllocation::Reset()
 	m_IsValid = false;
 }
 
-void D3DDescriptorAllocation::Free()
+void DescriptorAllocation::Free()
 {
 	if (m_IsValid && m_Heap)
 	{
@@ -89,10 +89,10 @@ void D3DDescriptorAllocation::Free()
 }
 
 
-// D3DDescriptorHeap
+// DescriptorHeap
 
 
-D3DDescriptorHeap::D3DDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, UINT capacity, bool cpuOnly, const wchar_t* resourceName)
+DescriptorHeap::DescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, UINT capacity, bool cpuOnly, const wchar_t* resourceName)
 	: m_Type(type)
 	, m_Capacity(capacity)
 	, m_CPUOnly(cpuOnly)
@@ -123,7 +123,7 @@ D3DDescriptorHeap::D3DDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, UINT capac
 	m_DeferredFrees.resize(g_D3DGraphicsContext->GetBackBufferCount());
 }
 
-D3DDescriptorHeap::~D3DDescriptorHeap()
+DescriptorHeap::~DescriptorHeap()
 {
 	ASSERT(m_Count == 0, "Don't destroy allocators that still have memory allocated!!!");
 
@@ -133,7 +133,7 @@ D3DDescriptorHeap::~D3DDescriptorHeap()
 	// TODO: defer release of the heap (to make sure GPU is idle when this is released)
 }
 
-D3DDescriptorAllocation D3DDescriptorHeap::Allocate(UINT countToAlloc)
+DescriptorAllocation DescriptorHeap::Allocate(UINT countToAlloc)
 {
 	ASSERT(countToAlloc > 0, "Invalid quantity of descriptors");
 
@@ -168,10 +168,10 @@ D3DDescriptorAllocation D3DDescriptorHeap::Allocate(UINT countToAlloc)
 
 	m_Count += countToAlloc;
 
-	return D3DDescriptorAllocation{ this, allocIndex, countToAlloc, m_CPUOnly };
+	return DescriptorAllocation{ this, allocIndex, countToAlloc, m_CPUOnly };
 }
 
-void D3DDescriptorHeap::Free(D3DDescriptorAllocation& allocation)
+void DescriptorHeap::Free(DescriptorAllocation& allocation)
 {
 	if (!allocation.IsValid())
 		return;
@@ -183,7 +183,7 @@ void D3DDescriptorHeap::Free(D3DDescriptorAllocation& allocation)
 	allocation.Reset();
 }
 
-void D3DDescriptorHeap::ProcessDeferredFree(UINT frameIndex)
+void DescriptorHeap::ProcessDeferredFree(UINT frameIndex)
 {
 	// TODO: add validation
 
