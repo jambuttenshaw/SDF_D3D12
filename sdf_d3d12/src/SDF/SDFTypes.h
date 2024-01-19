@@ -49,7 +49,7 @@ union SDFShapeProperties
 };
 
 
-struct SDFPrimitive
+struct SDFEdit
 {
 	// Transform of the primitive
 	Transform PrimitiveTransform;
@@ -66,7 +66,7 @@ struct SDFPrimitive
 	// Color
 	XMFLOAT4 Color{ 1.0f, 1.0f, 1.0f, 1.0f };
 
-	SDFPrimitive();
+	SDFEdit();
 
 	bool DrawGui();
 
@@ -77,17 +77,35 @@ private:
 public:
 
 	// Constructor for each shape type
-	static SDFPrimitive CreateSphere(const Transform& transform, float radius, SDFOperation op = SDFOperation::Union, float blend = 0.0f, const XMFLOAT4& color = { 1.0f, 1.0f, 1.0f, 1.0f });
+	static SDFEdit CreateSphere(const Transform& transform, float radius, SDFOperation op = SDFOperation::Union, float blend = 0.0f, const XMFLOAT4& color = { 1.0f, 1.0f, 1.0f, 1.0f });
 
-	static SDFPrimitive CreateBox(const Transform& transform, const XMFLOAT3& extents, SDFOperation op = SDFOperation::Union, float blend = 0.0f, const XMFLOAT4& color = { 1.0f, 1.0f, 1.0f, 1.0f });
+	static SDFEdit CreateBox(const Transform& transform, const XMFLOAT3& extents, SDFOperation op = SDFOperation::Union, float blend = 0.0f, const XMFLOAT4& color = { 1.0f, 1.0f, 1.0f, 1.0f });
 
-	static SDFPrimitive CreatePlane(const Transform& transform, const XMFLOAT3& normal, float height, SDFOperation op = SDFOperation::Union, float blend = 0.0f, const XMFLOAT4& color = { 1.0f, 1.0f, 1.0f, 1.0f });
+	static SDFEdit CreatePlane(const Transform& transform, const XMFLOAT3& normal, float height, SDFOperation op = SDFOperation::Union, float blend = 0.0f, const XMFLOAT4& color = { 1.0f, 1.0f, 1.0f, 1.0f });
 
-	static SDFPrimitive CreateTorus(const Transform& transform, float innerRadius, float torusRadius, SDFOperation op = SDFOperation::Union, float blend = 0.0f, const XMFLOAT4& color = { 1.0f, 1.0f, 1.0f, 1.0f });
+	static SDFEdit CreateTorus(const Transform& transform, float innerRadius, float torusRadius, SDFOperation op = SDFOperation::Union, float blend = 0.0f, const XMFLOAT4& color = { 1.0f, 1.0f, 1.0f, 1.0f });
 
-	static SDFPrimitive CreateOctahedron(const Transform& transform, float scale, SDFOperation op = SDFOperation::Union, float blend = 0.0f, const XMFLOAT4& color = { 1.0f, 1.0f, 1.0f, 1.0f });
+	static SDFEdit CreateOctahedron(const Transform& transform, float scale, SDFOperation op = SDFOperation::Union, float blend = 0.0f, const XMFLOAT4& color = { 1.0f, 1.0f, 1.0f, 1.0f });
 
 private:
-	static SDFPrimitive CreateGeneric(const Transform& transform, SDFOperation op, float blend, const XMFLOAT4& color);
+	static SDFEdit CreateGeneric(const Transform& transform, SDFOperation op, float blend, const XMFLOAT4& color);
+
+};
+
+
+class SDFEditList
+{
+public:
+	SDFEditList() = default;
+
+	void Reset();
+	void AddPrimitive(SDFEdit&& edit);
+
+	// Getters
+	inline size_t GetEditCount() const { return m_Edits.size(); }
+	inline const SDFEdit& GetEdit(size_t index) const { return m_Edits.at(index); }
+
+private:
+	std::vector<SDFEdit> m_Edits;
 
 };

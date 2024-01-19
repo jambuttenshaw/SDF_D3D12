@@ -54,9 +54,3 @@ SDFObject::~SDFObject()
 {
 	m_VolumeResourceViews.Free();
 }
-
-
-void SDFObject::AddPrimitive(SDFPrimitive&& primitive)
-{
-	m_Primitives.emplace_back(primitive);
-}

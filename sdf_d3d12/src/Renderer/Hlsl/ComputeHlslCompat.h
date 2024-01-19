@@ -10,11 +10,11 @@ using namespace DirectX;
 
 struct BakeDataConstantBuffer
 {
-	UINT PrimitiveCount;
+	UINT SDFEditCount;
 	UINT VolumeStride;
 };
 
-struct EditData
+struct SDFEditData
 {
 	XMMATRIX InvWorldMat;
 	float Scale;
@@ -31,7 +31,7 @@ struct EditData
 
 struct AABBBuilderConstantBuffer
 {
-	UINT PrimitiveCount;
+	UINT SDFEditCount;
 
 	UINT Divisions;				// The number of bounding boxes along each side.
 								// This is the same for each dimensions as SDF volumes are cubes

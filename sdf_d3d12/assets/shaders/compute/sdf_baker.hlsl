@@ -14,7 +14,7 @@
 
 
 ConstantBuffer<BakeDataConstantBuffer> g_BakeData : register(b0);
-StructuredBuffer<EditData> g_EditList : register(t0);
+StructuredBuffer<SDFEditData> g_EditList : register(t0);
 
 RWTexture3D<float> g_OutputTexture : register(u0);
 
@@ -24,7 +24,7 @@ float EvaluateEditList(float3 p)
 	// Evaluate SDF list
 	float4 nearest = float4(0.0f, 0.0f, 0.0f, FLOAT_MAX);
 	
-	for (uint i = 0; i < g_BakeData.PrimitiveCount; i++)
+	for (uint i = 0; i < g_BakeData.SDFEditCount; i++)
 	{
 		// apply primitive transform
 		const float3 p_transformed = opTransform(p, g_EditList[i].InvWorldMat) / g_EditList[i].Scale;

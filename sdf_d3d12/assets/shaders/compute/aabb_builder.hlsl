@@ -15,7 +15,7 @@
  */
 
 ConstantBuffer<AABBBuilderConstantBuffer> g_BuildParameters : register(b0);
-StructuredBuffer<EditData> g_EditList : register(t0);
+StructuredBuffer<SDFEditData> g_EditList : register(t0);
 
 RWByteAddressBuffer g_Counter : register(u0);
 RWStructuredBuffer<AABB> g_AABBBuffer : register(u1);
@@ -27,7 +27,7 @@ float EvaluateEditList(float3 p)
 	// Evaluate SDF list
 	float4 nearest = float4(0.0f, 0.0f, 0.0f, FLOAT_MAX);
 	
-	for (uint i = 0; i < g_BuildParameters.PrimitiveCount; i++)
+	for (uint i = 0; i < g_BuildParameters.SDFEditCount; i++)
 	{
 		// apply primitive transform
 		const float3 p_transformed = opTransform(p, g_EditList[i].InvWorldMat) / g_EditList[i].Scale;

@@ -1,7 +1,5 @@
 #pragma once
 
-#include "SDFTypes.h"
-
 #include "Renderer/Memory/D3DMemoryAllocator.h"
 #include "Renderer/Raytracing/AABBGeometry.h"
 #include "Renderer/Hlsl/RaytracingHlslCompat.h"
@@ -48,13 +46,6 @@ public:
 	// Should only be called from the SDF factory
 	inline void SetAABBCount(UINT count) { m_AABBCount = count; }
 
-
-	// Manipulate primitives list
-	void AddPrimitive(SDFPrimitive&& primitive);
-
-	inline size_t GetPrimitiveCount() const { return m_Primitives.size(); }
-	inline const SDFPrimitive& GetPrimitive(size_t index) const { return m_Primitives.at(index); }
-
 private:
 	// Volume
 	UINT m_Resolution = 0;
@@ -73,9 +64,4 @@ private:
 
 	UINT m_MaxAABBCount = 0; // The maximum possible value of AABB count
 	UINT m_AABBCount = 0;	 // The number of AABBs that actually make up this object
-
-
-	// The primitives that make up this object
-	// The baked SDF texture is constructed by rendering these primitives in order
-	std::vector<SDFPrimitive> m_Primitives;
 };

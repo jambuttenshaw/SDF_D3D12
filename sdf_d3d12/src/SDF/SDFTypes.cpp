@@ -4,13 +4,13 @@
 #include "imgui.h"
 
 
-SDFPrimitive::SDFPrimitive()
+SDFEdit::SDFEdit()
 {
 	ShapeProperties.Sphere.Radius = 1.0f;
 }
 
 
-bool SDFPrimitive::DrawGui()
+bool SDFEdit::DrawGui()
 {
 	static const char* shapeNames[] = 
 	{
@@ -76,7 +76,7 @@ bool SDFPrimitive::DrawGui()
 }
 
 
-void SDFPrimitive::SetShapePropertiesToDefault()
+void SDFEdit::SetShapePropertiesToDefault()
 {
 	switch (Shape)
 	{
@@ -102,54 +102,67 @@ void SDFPrimitive::SetShapePropertiesToDefault()
 
 
 
-SDFPrimitive SDFPrimitive::CreateSphere(const Transform& transform, float radius, SDFOperation op, float blend, const XMFLOAT4& color)
+SDFEdit SDFEdit::CreateSphere(const Transform& transform, float radius, SDFOperation op, float blend, const XMFLOAT4& color)
 {
-	SDFPrimitive prim = CreateGeneric(transform, op, blend, color);
+	SDFEdit prim = CreateGeneric(transform, op, blend, color);
 	prim.Shape = SDFShape::Sphere;
 	prim.ShapeProperties.Sphere.Radius = radius;
 	return prim;
 }
 
-SDFPrimitive SDFPrimitive::CreateBox(const Transform& transform, const XMFLOAT3& extents, SDFOperation op, float blend, const XMFLOAT4& color)
+SDFEdit SDFEdit::CreateBox(const Transform& transform, const XMFLOAT3& extents, SDFOperation op, float blend, const XMFLOAT4& color)
 {
-	SDFPrimitive prim = CreateGeneric(transform, op, blend, color);
+	SDFEdit prim = CreateGeneric(transform, op, blend, color);
 	prim.Shape = SDFShape::Box;
 	prim.ShapeProperties.Box.Extents = extents;
 	return prim;
 }
 
-SDFPrimitive SDFPrimitive::CreatePlane(const Transform& transform, const XMFLOAT3& normal, float height, SDFOperation op, float blend, const XMFLOAT4& color)
+SDFEdit SDFEdit::CreatePlane(const Transform& transform, const XMFLOAT3& normal, float height, SDFOperation op, float blend, const XMFLOAT4& color)
 {
-	SDFPrimitive prim = CreateGeneric(transform, op, blend, color);
+	SDFEdit prim = CreateGeneric(transform, op, blend, color);
 	prim.Shape = SDFShape::Plane;
 	prim.ShapeProperties.Plane.Normal = normal;
 	prim.ShapeProperties.Plane.Height = height;
 	return prim;
 }
 
-SDFPrimitive SDFPrimitive::CreateTorus(const Transform& transform, float innerRadius, float torusRadius, SDFOperation op, float blend, const XMFLOAT4& color)
+SDFEdit SDFEdit::CreateTorus(const Transform& transform, float innerRadius, float torusRadius, SDFOperation op, float blend, const XMFLOAT4& color)
 {
-	SDFPrimitive prim = CreateGeneric(transform, op, blend, color);
+	SDFEdit prim = CreateGeneric(transform, op, blend, color);
 	prim.Shape = SDFShape::Torus;
 	prim.ShapeProperties.Torus.InnerRadius = innerRadius;
 	prim.ShapeProperties.Torus.TorusRadius = torusRadius;
 	return prim;
 }
 
-SDFPrimitive SDFPrimitive::CreateOctahedron(const Transform& transform, float scale, SDFOperation op, float blend, const XMFLOAT4& color)
+SDFEdit SDFEdit::CreateOctahedron(const Transform& transform, float scale, SDFOperation op, float blend, const XMFLOAT4& color)
 {
-	SDFPrimitive prim = CreateGeneric(transform, op, blend, color);
+	SDFEdit prim = CreateGeneric(transform, op, blend, color);
 	prim.Shape = SDFShape::Octahedron;
 	prim.ShapeProperties.Octahedron.Scale = scale;
 	return prim;
 }
 
-SDFPrimitive SDFPrimitive::CreateGeneric(const Transform& transform, SDFOperation op, float blend, const XMFLOAT4& color)
+SDFEdit SDFEdit::CreateGeneric(const Transform& transform, SDFOperation op, float blend, const XMFLOAT4& color)
 {
-	SDFPrimitive prim;
+	SDFEdit prim;
 	prim.PrimitiveTransform = transform;
 	prim.Operation = op;
 	prim.BlendingFactor = blend;
 	prim.Color = color;
 	return prim;
 }
+
+
+void SDFEditList::Reset()
+{
+	m_Edits.clear();
+}
+
+void SDFEditList::AddPrimitive(SDFEdit&& edit)
+{
+	m_Edits.emplace_back(edit);
+}
+
+

@@ -6,6 +6,7 @@ using Microsoft::WRL::ComPtr;
 
 
 class SDFObject;
+class SDFEditList;
 
 /**
  * An object that will dispatch the CS to render some primitive data into a volume texture
@@ -16,7 +17,7 @@ public:
 	SDFFactory();
 	~SDFFactory();
 
-	void BakeSDFSynchronous(SDFObject* object);
+	void BakeSDFSynchronous(SDFObject* object, const SDFEditList& editList);
 
 private:
 	void InitializePipelines();

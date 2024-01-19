@@ -2,8 +2,11 @@
 #include "Scene.h"
 
 #include "imgui.h"
+
 #include "Framework/Math.h"
 #include "Renderer/D3DGraphicsContext.h"
+
+#include "SDF/SDFTypes.h"
 
 
 Scene::Scene()
@@ -18,45 +21,49 @@ Scene::Scene()
 		m_SphereObject = std::make_unique<SDFObject>(128, 4, 16);
 
 		/*
-		m_SDFObject->AddPrimitive(SDFPrimitive::CreateBox(
+		m_SDFObject->AddPrimitive(SDFEdit::CreateBox(
 			{ 0.0f, -0.25f, 0.0f },
 			{ 0.4f, 0.4f, 0.4f }));
-		m_SDFObject->AddPrimitive(SDFPrimitive::CreateOctahedron({ 0.0f, -0.25f, 0.0f }, 0.6f));
-		m_SDFObject->AddPrimitive(SDFPrimitive::CreateSphere({ 0.0f, 0.25f, 0.0f }, 0.4f, SDFOperation::Subtraction));
+		m_SDFObject->AddPrimitive(SDFEdit::CreateOctahedron({ 0.0f, -0.25f, 0.0f }, 0.6f));
+		m_SDFObject->AddPrimitive(SDFEdit::CreateSphere({ 0.0f, 0.25f, 0.0f }, 0.4f, SDFOperation::Subtraction));
 
 		// Add a torus on top
 		Transform torusTransform(0.0f, 0.25f, 0.0f);
 		torusTransform.SetPitch(XMConvertToRadians(90.0f));
-		m_SDFObject->AddPrimitive(SDFPrimitive::CreateTorus(torusTransform, 0.25f, 0.05f, SDFOperation::SmoothUnion, 0.3f));
+		m_SDFObject->AddPrimitive(SDFEdit::CreateTorus(torusTransform, 0.25f, 0.05f, SDFOperation::SmoothUnion, 0.3f));
 		*/
 
 		
 		{
-			// Create torus object
-			m_TorusObject->AddPrimitive(SDFPrimitive::CreateTorus({}, 0.9f, 0.05f));
+			// Create torus object edit list
+			SDFEditList editList;
+			editList.AddPrimitive(SDFEdit::CreateTorus({}, 0.9f, 0.05f));
 
 			Transform torusTransform;
 			torusTransform.SetPitch(XMConvertToRadians(90.0f));
 
-			m_TorusObject->AddPrimitive(SDFPrimitive::CreateTorus(torusTransform, 0.9f, 0.05f, SDFOperation::SmoothUnion, 0.1f));
+			editList.AddPrimitive(SDFEdit::CreateTorus(torusTransform, 0.9f, 0.05f, SDFOperation::SmoothUnion, 0.1f));
 
 			torusTransform.SetPitch(XMConvertToRadians(0.0f));
 			torusTransform.SetRoll(XMConvertToRadians(90.0f));
 
-			m_TorusObject->AddPrimitive(SDFPrimitive::CreateTorus(torusTransform, 0.9f, 0.05f, SDFOperation::SmoothUnion, 0.1f));
+			editList.AddPrimitive(SDFEdit::CreateTorus(torusTransform, 0.9f, 0.05f, SDFOperation::SmoothUnion, 0.1f));
 
-			m_TorusObject->AddPrimitive(SDFPrimitive::CreateOctahedron({}, 0.75f));
+			editList.AddPrimitive(SDFEdit::CreateOctahedron({}, 0.75f));
 
-			m_SDFFactory->BakeSDFSynchronous(m_TorusObject.get());
+			m_SDFFactory->BakeSDFSynchronous(m_TorusObject.get(), editList);
 		}
 
 		{
+			// Create sphere object edit list
+			SDFEditList editList;
+
 			// Create sphere object by adding and then subtracting a bunch of spheres
 			constexpr UINT addSpheres = 16;
 			for (UINT i = 0; i < addSpheres; i++)
 			{
 				const float radius = Random::Float(0.3f, 0.5f);
-				m_SphereObject->AddPrimitive(SDFPrimitive::CreateSphere(
+				editList.AddPrimitive(SDFEdit::CreateSphere(
 					{
 							Random::Float(-0.9f + radius, 0.9f - radius),
 							Random::Float(-0.9f + radius, 0.9f - radius),
@@ -69,7 +76,7 @@ Scene::Scene()
 			for (UINT i = 0; i < subtractSpheres; i++)
 			{
 				const float radius = Random::Float(0.1f, 0.3f);
-				m_SphereObject->AddPrimitive(SDFPrimitive::CreateSphere(
+				editList.AddPrimitive(SDFEdit::CreateSphere(
 					{
 						Random::Float(-0.99f + radius, 0.99f - radius),
 						Random::Float(-0.99f + radius, 0.99f - radius),
@@ -79,7 +86,7 @@ Scene::Scene()
 			}
 
 			// Bake the primitives into the SDF object
-			m_SDFFactory->BakeSDFSynchronous(m_SphereObject.get());
+			m_SDFFactory->BakeSDFSynchronous(m_SphereObject.get(), editList);
 		}
 	}
 

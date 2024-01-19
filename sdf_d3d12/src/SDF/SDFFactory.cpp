@@ -7,6 +7,7 @@
 #include "Renderer/Buffer/D3DCounterResource.h"
 
 #include "SDFObject.h"
+#include "SDFTypes.h"
 
 
 // Pipeline signatures
@@ -36,9 +37,9 @@ namespace BakeComputeRootSignature
 
 
 
-EditData BuildPrimitiveData(const SDFPrimitive& primitive)
+SDFEditData BuildPrimitiveData(const SDFEdit& primitive)
 {
-	EditData primitiveData;
+	SDFEditData primitiveData;
 	primitiveData.InvWorldMat = XMMatrixTranspose(XMMatrixInverse(nullptr, primitive.PrimitiveTransform.GetWorldMatrix()));
 	primitiveData.Scale = primitive.PrimitiveTransform.GetScale();
 
@@ -87,7 +88,7 @@ SDFFactory::~SDFFactory()
 }
 
 
-void SDFFactory::BakeSDFSynchronous(SDFObject* object)
+void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editList)
 {
 	const auto device = g_D3DGraphicsContext->GetDevice();
 
@@ -99,10 +100,10 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object)
 	D3DDescriptorAllocation counterResourceUAV;
 
 	// Step 1: upload primitive array to gpu so that it can be accessed while rendering
-	const size_t primitiveCount = object->GetPrimitiveCount();
+	const size_t primitiveCount = editList.GetEditCount();
 	{
 
-		const UINT64 bufferSize = primitiveCount * sizeof(EditData);
+		const UINT64 bufferSize = primitiveCount * sizeof(SDFEditData);
 
 		// Create primitive buffer
 		const CD3DX12_HEAP_PROPERTIES uploadHeap(D3D12_HEAP_TYPE_UPLOAD);
@@ -127,7 +128,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object)
 		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		srvDesc.Buffer.FirstElement = 0;
 		srvDesc.Buffer.NumElements = static_cast<UINT>(primitiveCount);
-		srvDesc.Buffer.StructureByteStride = sizeof(EditData);
+		srvDesc.Buffer.StructureByteStride = sizeof(SDFEditData);
 		srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 
 		// Create srv
@@ -138,8 +139,8 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object)
 		THROW_IF_FAIL(primitiveBuffer->Map(0, nullptr, &mappedData));
 		for (size_t index = 0; index < primitiveCount; index++)
 		{
-			auto primitive = static_cast<EditData*>(mappedData) + index;
-			*primitive = BuildPrimitiveData(object->GetPrimitive(index));
+			auto primitive = static_cast<SDFEditData*>(mappedData) + index;
+			*primitive = BuildPrimitiveData(editList.GetEdit(index));
 		}
 		primitiveBuffer->Unmap(0, nullptr);
 	}
@@ -164,7 +165,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object)
 
 		// Populate build params
 
-		buildParamsBuffer.PrimitiveCount = static_cast<UINT>(primitiveCount);
+		buildParamsBuffer.SDFEditCount = static_cast<UINT>(primitiveCount);
 		UINT divisions = object->GetDivisions();
 		buildParamsBuffer.Divisions = divisions;
 		buildParamsBuffer.VoxelsPerAABB = object->GetVolumeResolution() / divisions;
@@ -220,7 +221,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object)
 	// Step 6: Update bake data in the constant buffer
 	BakeDataConstantBuffer bakeDataBuffer;
 	{
-		bakeDataBuffer.PrimitiveCount = static_cast<UINT>(primitiveCount);
+		bakeDataBuffer.SDFEditCount = static_cast<UINT>(primitiveCount);
 		bakeDataBuffer.VolumeStride = object->GetVolumeStride();
 	}
 
