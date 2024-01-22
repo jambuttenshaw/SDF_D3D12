@@ -96,8 +96,9 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		editList.CopyStagingToGPU();
 	}
 
-	// Step 2: Setup data required to build the AABBs
+	// Step 2: Setup constant buffer data
 	AABBBuilderConstantBuffer buildParamsBuffer;
+	BakeDataConstantBuffer bakeDataBuffer;
 	{
 		// Populate build params
 
@@ -108,6 +109,9 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		buildParamsBuffer.VolumeStride = object->GetVolumeStride();
 		buildParamsBuffer.AABBDimensions = 2.0f / static_cast<float>(divisions);
 		buildParamsBuffer.UVWIncrement = 1.0f / static_cast<float>(divisions);
+
+		bakeDataBuffer.SDFEditCount = static_cast<UINT>(primitiveCount);
+		bakeDataBuffer.VolumeStride = object->GetVolumeStride();
 	}
 
 	// Step 3: Build command list to execute AABB builder compute shader
@@ -138,30 +142,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		m_CounterResource.CopyCounterValue(m_CommandList.Get());
 	}
 
-	// Step 4: Execute command list and wait until completion
-	{
-		Flush();
-
-		// GPU work has finished, so it is safe to reset allocator and list
-		THROW_IF_FAIL(m_CommandAllocator->Reset());
-		THROW_IF_FAIL(m_CommandList->Reset(m_CommandAllocator.Get(), nullptr));
-	}
-
-	// Step 5: Read counter value
-	{
-		// It is only save to read the counter value after the GPU has finished its work
-		const UINT aabbCount = m_CounterResource.ReadCounterValue();
-		object->SetAABBCount(aabbCount);
-	}
-
-	// Step 6: Update bake data in the constant buffer
-	BakeDataConstantBuffer bakeDataBuffer;
-	{
-		bakeDataBuffer.SDFEditCount = static_cast<UINT>(primitiveCount);
-		bakeDataBuffer.VolumeStride = object->GetVolumeStride();
-	}
-
-	// Step 7: Build command list to execute SDF baker compute shader
+	// Step 4: Build command list to execute SDF baker compute shader
 	{
 		ID3D12DescriptorHeap* ppDescriptorHeaps[] = { g_D3DGraphicsContext->GetSRVHeap()->GetHeap() };
 		m_CommandList->SetDescriptorHeaps(_countof(ppDescriptorHeaps), ppDescriptorHeaps);
@@ -189,12 +170,19 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		m_CommandList->ResourceBarrier(1, &barrier);
 	}
 
-	// Step 8: Execute command list and wait until completion
+	// Step 5: Execute command list and wait until completion
 	{
 		Flush();
 	}
 
-	// Step 9: Clean up
+	// Step 6: Read counter value
+	{
+		// It is only save to read the counter value after the GPU has finished its work
+		const UINT aabbCount = m_CounterResource.ReadCounterValue();
+		object->SetAABBCount(aabbCount);
+	}
+
+	// Step 7: Clean up
 	{
 		THROW_IF_FAIL(m_CommandAllocator->Reset());
 		THROW_IF_FAIL(m_CommandList->Reset(m_CommandAllocator.Get(), nullptr));
