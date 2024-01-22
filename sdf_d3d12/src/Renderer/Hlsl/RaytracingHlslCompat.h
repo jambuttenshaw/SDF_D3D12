@@ -9,8 +9,17 @@ using namespace DirectX;
 
 
 // Flags
-#define RENDER_FLAG_DISPLAY_BOUNDING_BOX		1u // Display bounding boxes instead of raymarching to show geometry
-#define RENDER_FLAG_DISPLAY_HEATMAP				2u // Display heatmap instead of raymarching
+namespace RenderFlags
+{
+	enum Value
+	{
+		None = 0,
+		DisplayBoundingBox = 1,
+		DisplayHeatmap = 2,
+		DisplayNormals = 4,
+		Count
+	};
+}
 
 
 struct MyAttributes

@@ -37,6 +37,8 @@ StructuredBuffer<AABBPrimitiveData> l_PrimitiveBuffer : register(t1, space1);
 
 #define EPSILON 1.0f / 256.0f // the smallest value representable in an R8_UNORM format
 
+#define LIGHT_DIRECTION float3(0.0f, 1.0f, 0.0)
+
 
 //////////////////////////
 //// HELPER FUNCTIONS ////
@@ -131,7 +133,7 @@ void MyIntersectionShader()
 		// map uvw to range [-1,1]
 		uvw /= halfBoxExtent;
 
-		if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_BOUNDING_BOX)
+		if (g_PassCB.Flags & RenderFlags::DisplayBoundingBox)
 		{ // Display AABB
 			MyAttributes attr;
 			attr.normal = uvw;
@@ -193,15 +195,20 @@ void MyIntersectionShader()
 [shader("closesthit")]
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 {
-	if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_HEATMAP)
+	if (g_PassCB.Flags & RenderFlags::DisplayHeatmap)
 	{
 		payload.color = float4(attr.heatmap / 8.0f, attr.heatmap / 16.0f, attr.heatmap / 32.0f, 1.0f);
-
+	}
+	else if (g_PassCB.Flags & (RenderFlags::DisplayNormals | RenderFlags::DisplayBoundingBox))
+	{
+		payload.color = float4(0.5f + 0.5f * attr.normal, 1);
 	}
 	else
 	{
-		payload.color = float4(0.5f + 0.5f * attr.normal, 1);
-	} 
+		// Simple phong lighting with directional light
+		const float irradiance = max(0.0f, dot(attr.normal, LIGHT_DIRECTION));
+		payload.color = irradiance * float4(1.0f, 1.0f, 1.0f, 1.0f);
+	}
 }
 
 

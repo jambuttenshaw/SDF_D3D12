@@ -66,23 +66,19 @@ void D3DApplication::OnUpdate()
 	ImGui::Text("Renderer");
 	ImGui::Separator();
 	{
-		bool displayBoundingBox = m_RenderFlags & RENDER_FLAG_DISPLAY_BOUNDING_BOX;
-		if (ImGui::Checkbox("Display Bounding Box", &displayBoundingBox))
-		{
-			if (displayBoundingBox)
-				m_RenderFlags |= RENDER_FLAG_DISPLAY_BOUNDING_BOX;
-			else
-				m_RenderFlags &= ~RENDER_FLAG_DISPLAY_BOUNDING_BOX;
-		}
-
-		bool displayHeatmap = m_RenderFlags & RENDER_FLAG_DISPLAY_HEATMAP;
-		if (ImGui::Checkbox("Display Heatmap", &displayHeatmap))
-		{
-			if (displayHeatmap)
-				m_RenderFlags |= RENDER_FLAG_DISPLAY_HEATMAP;
-			else
-				m_RenderFlags &= ~RENDER_FLAG_DISPLAY_HEATMAP;
-		}
+		auto RenderFlagOption = [&](const char* name, RenderFlags::Value value)
+			{
+				bool flag = m_RenderFlags & value;
+				if (ImGui::Checkbox(name, &flag))
+				{
+					if (flag)
+						m_RenderFlags |= value;
+					else
+						m_RenderFlags &= ~value;
+				}};
+		RenderFlagOption("Display Bounding Box", RenderFlags::DisplayBoundingBox);
+		RenderFlagOption("Display Heatmap", RenderFlags::DisplayHeatmap);
+		RenderFlagOption("Display Normals", RenderFlags::DisplayNormals);
 	}
 
 	ImGui::End();
