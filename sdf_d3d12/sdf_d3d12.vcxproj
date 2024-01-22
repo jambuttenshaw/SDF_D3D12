@@ -217,8 +217,8 @@
     <ClInclude Include="src\Application\D3DApplication.h" />
     <ClInclude Include="src\Core.h" />
     <ClInclude Include="src\pch.h" />
-    <ClInclude Include="src\Renderer\Buffer\AppendBuffer.h" />
     <ClInclude Include="src\Renderer\Buffer\CounterResource.h" />
+    <ClInclude Include="src\Renderer\Buffer\ReadbackBuffer.h" />
     <ClInclude Include="src\Renderer\Buffer\StructuredBuffer.h" />
     <ClInclude Include="src\Renderer\Buffer\DefaultBuffer.h" />
     <ClInclude Include="src\Renderer\Buffer\UploadBuffer.h" />

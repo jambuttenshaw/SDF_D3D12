@@ -41,7 +41,7 @@ public:
 		if (alignment > 0)
 		{
 			// Align m_ElementStride to 256 bytes
-			m_ElementStride = static_cast<UINT>(static_cast<UINT>(Align(m_ElementStride, m_Alignment)));
+			m_ElementStride = static_cast<UINT>(Align(m_ElementStride, m_Alignment));
 		}
 
 		const UINT64 width = m_ElementStride * m_ElementCount;

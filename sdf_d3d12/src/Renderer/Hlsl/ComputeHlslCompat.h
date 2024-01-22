@@ -8,8 +8,7 @@ using namespace DirectX;
 #endif
 
 
-#define AABB_BUILD_NUM_THREADS_PER_GROUP 8 // 8x8x8
-#define SDF_BAKE_NUM_THREADS_PER_GROUP 8 // 8x8x8
+#define AABB_BUILD_NUM_THREADS_PER_GROUP 8 // 8x8x8 threads per group to build AABBs
 
 #define SDF_BRICK_SIZE 8
 #define SDF_VOLUME_STRIDE 4

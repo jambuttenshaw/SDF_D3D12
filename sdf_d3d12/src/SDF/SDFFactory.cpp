@@ -2,8 +2,9 @@
 #include "SDFFactory.h"
 
 #include "Renderer/D3DGraphicsContext.h"
-
+#include "Renderer/Buffer/ReadbackBuffer.h"
 #include "Renderer/Hlsl/ComputeHlslCompat.h"
+
 
 #include "SDFObject.h"
 #include "SDFEditList.h"
@@ -91,8 +92,10 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 {
 	const auto device = g_D3DGraphicsContext->GetDevice();
 
-	// Step 1: Setup constant buffer data
+	// Step 1: Setup constant buffer data and counter temporary resources
 	SDFBuilderConstantBuffer buildParamsBuffer;
+	UploadBuffer<UINT32> counterUpload;
+	ReadbackBuffer<UINT32> counterReadback;
 	{
 		// Copy edit list
 		editList.CopyStagingToGPU();
@@ -101,6 +104,12 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		const UINT primitiveCount = editList.GetEditCount();
 		buildParamsBuffer.SDFEditCount = primitiveCount;
 		buildParamsBuffer.UVWPerAABB = SDF_BRICK_SIZE / static_cast<float>(object->GetVolumeResolution());
+
+		// Setup counter temporary resources
+		counterUpload.Allocate(device, 1, 0, L"Counter upload");
+		counterReadback.Allocate(device, 1, 0, L"Counter Readback");
+		// Copy 0 into the counter
+		counterUpload.CopyElement(0, 0);
 	}
 
 	// TODO: Temporary Step
@@ -158,7 +167,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		m_CommandList->SetDescriptorHeaps(_countof(ppDescriptorHeaps), ppDescriptorHeaps);
 
 		// Copy the initial counter value into the counter
-		m_CounterResource.SetCounterValue(m_CommandList.Get(), 0);
+		m_CounterResource.SetValue(m_CommandList.Get(), counterUpload.GetResource());
 
 		// Setup pipeline
 		m_AABBBuildPipeline->Bind(m_CommandList.Get());
@@ -178,7 +187,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		m_CommandList->Dispatch(threadGroupX, threadGroupX, threadGroupX);
 
 		// Copy counter value to a readback resource
-		m_CounterResource.CopyCounterValue(m_CommandList.Get());
+		m_CounterResource.ReadValue(m_CommandList.Get(), counterReadback.GetResource());
 	}
 
 	// Step 3: Execute command list and wait until completion
@@ -192,7 +201,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 	// Step 4: Read counter value
 	{
 		// It is only save to read the counter value after the GPU has finished its work
-		const UINT aabbCount = m_CounterResource.ReadCounterValue();
+		const UINT aabbCount = counterReadback.ReadElement(0);
 		object->SetAABBCount(aabbCount);
 	}
 

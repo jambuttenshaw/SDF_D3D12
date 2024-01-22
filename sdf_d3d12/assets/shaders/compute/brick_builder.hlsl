@@ -58,7 +58,7 @@ float FormatDistance(float inDistance, float UVWExtent)
 
 
 [numthreads(SDF_BRICK_SIZE, SDF_BRICK_SIZE, SDF_BRICK_SIZE)]
-void main(uint3 DTid : SV_DispatchThreadID, uint3 GroupID : SV_GroupID, uint3 GTid : SV_GroupThreadID)
+void main(uint3 GroupID : SV_GroupID, uint3 GTid : SV_GroupThreadID)
 {
 	// TODO: Eventually this will be replaced as thread ID will no longer map to volume coordinates once bricks are stored in a brick pool
 	uint3 dims;
