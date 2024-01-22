@@ -37,7 +37,9 @@ StructuredBuffer<AABBPrimitiveData> l_PrimitiveBuffer : register(t1, space1);
 
 #define EPSILON 1.0f / 256.0f // the smallest value representable in an R8_UNORM format
 
-#define LIGHT_DIRECTION float3(0.0f, 1.0f, 0.0)
+#define LIGHT_DIRECTION normalize(float3(0.5f, 1.0f, -1.0f))
+#define LIGHT_AMBIENT float3(0.2f, 0.2f, 0.2f)
+#define LIGHT_DIFFUSE float3(1.0f, 1.0f, 1.0f)
 
 
 //////////////////////////
@@ -66,9 +68,9 @@ float3 ComputeSurfaceNormal(float3 p)
 {
 	const float invRes = l_VolumeCB.InvVolumeDimensions;
 	return normalize(float3(
-        l_SDFVolume.SampleLevel(g_Sampler, p + float3(invRes, 0.0f, 0.0f), 0) - l_SDFVolume.SampleLevel(g_Sampler, p - float3(invRes, 0.0f, 0.0f), 0),
-        l_SDFVolume.SampleLevel(g_Sampler, p + float3(0.0f, invRes, 0.0f), 0) - l_SDFVolume.SampleLevel(g_Sampler, p - float3(0.0f, invRes, 0.0f), 0),
-        l_SDFVolume.SampleLevel(g_Sampler, p + float3(0.0f, 0.0f, invRes), 0) - l_SDFVolume.SampleLevel(g_Sampler, p - float3(0.0f, 0.0f, invRes), 0)
+        (l_SDFVolume.SampleLevel(g_Sampler, p + float3(invRes, 0.0f, 0.0f), 0) - l_SDFVolume.SampleLevel(g_Sampler, p - float3(invRes, 0.0f, 0.0f), 0)),
+        (l_SDFVolume.SampleLevel(g_Sampler, p + float3(0.0f, invRes, 0.0f), 0) - l_SDFVolume.SampleLevel(g_Sampler, p - float3(0.0f, invRes, 0.0f), 0)),
+        (l_SDFVolume.SampleLevel(g_Sampler, p + float3(0.0f, 0.0f, invRes), 0) - l_SDFVolume.SampleLevel(g_Sampler, p - float3(0.0f, 0.0f, invRes), 0))
     ));
 }
 
@@ -207,8 +209,9 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 	{
 		// Simple phong lighting with directional light
 		const float irradiance = max(0.0f, dot(attr.normal, LIGHT_DIRECTION));
-		payload.color = irradiance * float4(1.0f, 1.0f, 1.0f, 1.0f);
-	}
+		const float3 lightColor = LIGHT_AMBIENT + irradiance * LIGHT_DIFFUSE;
+		payload.color = float4(lightColor, 1.0f);
+		}
 }
 
 
