@@ -14,7 +14,7 @@
  *
  */
 
-ConstantBuffer<AABBBuilderConstantBuffer> g_BuildParameters : register(b0);
+ConstantBuffer<SDFBuilderConstantBuffer> g_BuildParameters : register(b0);
 StructuredBuffer<SDFEditData> g_EditList : register(t0);
 
 RWByteAddressBuffer g_Counter : register(u0);
@@ -56,11 +56,11 @@ void main(uint3 DTid : SV_DispatchThreadID)
 
 	// Work out if this thread is in range
 	// Each thread is mapped to one AABB
-	if (max(DTid.x, max(DTid.y, DTid.z)) >= g_BuildParameters.Divisions)
+	if (max(DTid.x, max(DTid.y, DTid.z)) >= 1.0f / g_BuildParameters.UVWPerAABB)
 		return;
 
 	// Get UV coordinate in the volume for this thread to sample
-	const float3 uvwMin = (DTid) * g_BuildParameters.UVWIncrement;
+	const float3 uvwMin = (DTid) * g_BuildParameters.UVWPerAABB;
 
 	{
 		// Check if this distance value is large enough for this AABB to be omitted
@@ -68,22 +68,22 @@ void main(uint3 DTid : SV_DispatchThreadID)
 		// Basically, define a conservative upper bound distance where every distance
 		// value smaller would mean that this AABB definitely contains geometry
 
-		const float3 uvwCentre = uvwMin + 0.5f * g_BuildParameters.UVWIncrement;
+		const float3 uvwCentre = uvwMin + 0.5f * g_BuildParameters.UVWPerAABB;
 		// Remap to [-1, 1]
 		const float3 p = (2.0f * uvwCentre) - 1.0f;
 
 		// Evaluate object at this point
 		const float distance = EvaluateEditList(p);
 		// If distance is larger than the size of this voxel then this voxel cannot contain geometry
-		if (distance > 1.74f /* sqrt(3) */ * g_BuildParameters.UVWIncrement)
+		if (distance > 1.74f /* sqrt(3) */ * g_BuildParameters.UVWPerAABB)
 			return;
 	}
 
 
 	// AABB positions should be such that the centre of the volume is at the origin
 	AABB outAABB;
-	outAABB.TopLeft = (DTid - 0.5f * g_BuildParameters.Divisions) * g_BuildParameters.AABBDimensions;
-	outAABB.BottomRight = outAABB.TopLeft + g_BuildParameters.AABBDimensions;
+	outAABB.TopLeft = (float3) DTid * g_BuildParameters.UVWPerAABB - 0.5f;
+	outAABB.BottomRight = outAABB.TopLeft +  g_BuildParameters.UVWPerAABB;
 
 	// Use the counter to get the index in  the aabb buffer that this thread will operate on
 	// Only do this if this thread is going to add a box
@@ -97,10 +97,10 @@ void main(uint3 DTid : SV_DispatchThreadID)
 	AABBPrimitiveData primitiveData;
 
 	primitiveData.AABBCentre = 0.5f * (outAABB.TopLeft + outAABB.BottomRight);
-	primitiveData.AABBHalfExtent = 0.5f * g_BuildParameters.AABBDimensions;
+	primitiveData.AABBHalfExtent = 0.5f * g_BuildParameters.UVWPerAABB;
 
 	primitiveData.UVW = uvwMin;
-	primitiveData.UVWExtent = g_BuildParameters.UVWIncrement;
+	primitiveData.UVWExtent = g_BuildParameters.UVWPerAABB;
 
 	g_PrimitiveDataBuffer[aabbIndex] = primitiveData;
 }

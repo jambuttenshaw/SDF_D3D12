@@ -95,10 +95,10 @@ Scene::Scene()
 		auto& spheresGeometry = m_SceneGeometry.at(1);
 
 		torusGeometry.GeometryInstances.push_back(
-			{ *m_TorusObject.get(), D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE, m_TorusObject->GetVolumeSRV(), m_TorusObject->GetVolumeResolution(), m_TorusObject->GetVolumeStride()
+			{ *m_TorusObject.get(), D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE, m_TorusObject->GetVolumeSRV(), m_TorusObject->GetVolumeResolution()
 			});
 		spheresGeometry.GeometryInstances.push_back(
-			{ *m_SphereObject.get(), D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE, m_SphereObject->GetVolumeSRV(), m_SphereObject->GetVolumeResolution(), m_SphereObject->GetVolumeStride()
+			{ *m_SphereObject.get(), D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE, m_SphereObject->GetVolumeSRV(), m_SphereObject->GetVolumeResolution()
 			});
 	}
 

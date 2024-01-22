@@ -135,7 +135,7 @@ void MyIntersectionShader()
 		// map uvw to range [-1,1]
 		uvw /= halfBoxExtent;
 
-		if (g_PassCB.Flags & RenderFlags::DisplayBoundingBox)
+		if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_BOUNDING_BOX)
 		{ // Display AABB
 			MyAttributes attr;
 			attr.normal = uvw;
@@ -197,11 +197,11 @@ void MyIntersectionShader()
 [shader("closesthit")]
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 {
-	if (g_PassCB.Flags & RenderFlags::DisplayHeatmap)
+	if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_HEATMAP)
 	{
 		payload.color = float4(attr.heatmap / 8.0f, attr.heatmap / 16.0f, attr.heatmap / 32.0f, 1.0f);
 	}
-	else if (g_PassCB.Flags & (RenderFlags::DisplayNormals | RenderFlags::DisplayBoundingBox))
+	else if (g_PassCB.Flags & (RENDER_FLAG_DISPLAY_NORMALS | RENDER_FLAG_DISPLAY_BOUNDING_BOX))
 	{
 		payload.color = float4(0.5f + 0.5f * attr.normal, 1);
 	}

@@ -13,7 +13,7 @@
 #include "../include/sdf_operations.hlsli"
 
 
-ConstantBuffer<BakeDataConstantBuffer> g_BakeData : register(b0);
+ConstantBuffer<SDFBuilderConstantBuffer> g_BuildParameters : register(b0);
 StructuredBuffer<SDFEditData> g_EditList : register(t0);
 
 RWTexture3D<float> g_OutputTexture : register(u0);
@@ -24,7 +24,7 @@ float EvaluateEditList(float3 p)
 	// Evaluate SDF list
 	float4 nearest = float4(0.0f, 0.0f, 0.0f, FLOAT_MAX);
 	
-	for (uint i = 0; i < g_BakeData.SDFEditCount; i++)
+	for (uint i = 0; i < g_BuildParameters.SDFEditCount; i++)
 	{
 		// apply primitive transform
 		const float3 p_transformed = opTransform(p, g_EditList[i].InvWorldMat) / g_EditList[i].Scale;
@@ -64,7 +64,7 @@ float FormatDistance(float inDistance, float volumeDimensions)
 	const float voxelDistance = max(0.0f, min(volumeDimensions, inDistance * volumeDimensions / 2));
 
 	// Now map the distance such that 1 = maxDistance
-	return saturate(voxelDistance / g_BakeData.VolumeStride);
+	return saturate(voxelDistance / SDF_VOLUME_STRIDE);
 }
 
 

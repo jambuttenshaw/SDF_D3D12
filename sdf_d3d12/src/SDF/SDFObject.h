@@ -20,24 +20,16 @@ public:
 	DISALLOW_COPY(SDFObject)
 	DEFAULT_MOVE(SDFObject)
 
-
-	inline static constexpr UINT GetVolumeStride() { return s_VolumeStride; }
-	inline static constexpr UINT GetBrickSize() { return s_BrickSize; }
-
-
 	// Volume
 	inline ID3D12Resource* GetVolumeResource() const { return m_VolumeResource.Get(); }
 	inline UINT GetVolumeResolution() const { return m_VolumeResolution; }
 
-
 	// Geometry Interface
-	inline UINT GetDivisions() const { return m_Divisions; }
 	inline virtual UINT GetAABBCount() const override { return m_AABBCount; }
 	inline virtual UINT GetMaxAABBCount() const { return m_MaxAABBCount; }
 
 	inline virtual D3D12_GPU_VIRTUAL_ADDRESS GetAABBBufferAddress() const override { return m_AABBBuffer.GetAddress(); }
 	inline virtual D3D12_GPU_VIRTUAL_ADDRESS GetPrimitiveDataBufferAddress() const override { return m_PrimitiveDataBuffer.GetAddress(); }
-
 
 	// Get Resource Views
 	inline D3D12_GPU_DESCRIPTOR_HANDLE GetVolumeSRV() const { return m_ResourceViews.GetGPUHandle(0); };
@@ -45,16 +37,11 @@ public:
 	inline D3D12_GPU_DESCRIPTOR_HANDLE GetAABBBufferUAV() const { return m_ResourceViews.GetGPUHandle(2); }
 	inline D3D12_GPU_DESCRIPTOR_HANDLE GetPrimitiveDataBufferUAV() const { return m_ResourceViews.GetGPUHandle(3); }
 	
-
 	// Used to update the aabb count after the AABB builder compute shader has executed
 	// Should only be called from the SDF factory
 	inline void SetAABBCount(UINT count) { m_AABBCount = count; }
 
 private:
-	// SDF Object constants
-	inline static constexpr UINT s_VolumeStride = 4;	// Maximum distance step = 4
-	inline static constexpr UINT s_BrickSize = 8;		// Build objects out of bricks made from 8x8x8 voxels
-
 	// Volume
 	UINT m_VolumeResolution = 0;
 	ComPtr<ID3D12Resource> m_VolumeResource;
@@ -67,8 +54,6 @@ private:
 											// index 1 = volume UAV
 											// index 2 = aabb buffer uav
 											// index 3 = aabb primitive data buffer uav
-
-	UINT m_Divisions = 0;	 // The maximum number of AABBs along each axis
 
 	UINT m_MaxAABBCount = 0; // The maximum possible value of AABB count
 	UINT m_AABBCount = 0;	 // The number of AABBs that actually make up this object

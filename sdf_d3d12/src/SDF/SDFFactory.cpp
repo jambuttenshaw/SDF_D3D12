@@ -27,7 +27,7 @@ namespace BakeComputeRootSignature
 {
 	enum Value
 	{
-		BakeDataSlot = 0,
+		BuildParameterSlot = 0,
 		EditListSlot,
 		OutputVolumeSlot,
 		Count
@@ -90,31 +90,19 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 {
 	const auto device = g_D3DGraphicsContext->GetDevice();
 
-	// Step 1: upload primitive array to gpu so that it can be accessed while rendering
-	const size_t primitiveCount = editList.GetEditCount();
+	// Step 1: Setup constant buffer data
+	SDFBuilderConstantBuffer buildParamsBuffer;
 	{
+		// Copy edit list
 		editList.CopyStagingToGPU();
-	}
 
-	// Step 2: Setup constant buffer data
-	AABBBuilderConstantBuffer buildParamsBuffer;
-	BakeDataConstantBuffer bakeDataBuffer;
-	{
 		// Populate build params
-
-		buildParamsBuffer.SDFEditCount = static_cast<UINT>(primitiveCount);
-		const UINT divisions = object->GetDivisions();
-		buildParamsBuffer.Divisions = divisions;
-		buildParamsBuffer.VoxelsPerAABB = object->GetVolumeResolution() / divisions;
-		buildParamsBuffer.VolumeStride = object->GetVolumeStride();
-		buildParamsBuffer.AABBDimensions = 2.0f / static_cast<float>(divisions);
-		buildParamsBuffer.UVWIncrement = 1.0f / static_cast<float>(divisions);
-
-		bakeDataBuffer.SDFEditCount = static_cast<UINT>(primitiveCount);
-		bakeDataBuffer.VolumeStride = object->GetVolumeStride();
+		const UINT primitiveCount = editList.GetEditCount();
+		buildParamsBuffer.SDFEditCount = primitiveCount;
+		buildParamsBuffer.UVWPerAABB = SDF_BRICK_SIZE / static_cast<float>(object->GetVolumeResolution());
 	}
 
-	// Step 3: Build command list to execute AABB builder compute shader
+	// Step 2: Build command list to execute AABB builder compute shader
 	{
 		ID3D12DescriptorHeap* ppDescriptorHeaps[] = { g_D3DGraphicsContext->GetSRVHeap()->GetHeap() };
 		m_CommandList->SetDescriptorHeaps(_countof(ppDescriptorHeaps), ppDescriptorHeaps);
@@ -133,7 +121,8 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		m_CommandList->SetComputeRootDescriptorTable(AABBBuilderComputeRootSignature::AABBPrimitiveDataSlot, object->GetPrimitiveDataBufferUAV());
 
 		// Calculate number of thread groups
-		const UINT threadGroupX = (object->GetDivisions() + s_NumShaderThreads - 1) / s_NumShaderThreads;
+		const UINT aabbPerAxis = object->GetVolumeResolution() / SDF_BRICK_SIZE;
+		const UINT threadGroupX = (aabbPerAxis + AABB_BUILD_NUM_THREADS_PER_GROUP - 1) / AABB_BUILD_NUM_THREADS_PER_GROUP;
 
 		// Dispatch
 		m_CommandList->Dispatch(threadGroupX, threadGroupX, threadGroupX);
@@ -142,7 +131,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		m_CounterResource.CopyCounterValue(m_CommandList.Get());
 	}
 
-	// Step 4: Build command list to execute SDF baker compute shader
+	// Step 3: Build command list to execute SDF baker compute shader
 	{
 		ID3D12DescriptorHeap* ppDescriptorHeaps[] = { g_D3DGraphicsContext->GetSRVHeap()->GetHeap() };
 		m_CommandList->SetDescriptorHeaps(_countof(ppDescriptorHeaps), ppDescriptorHeaps);
@@ -155,12 +144,12 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		m_BakePipeline->Bind(m_CommandList.Get());
 
 		// Set resource views
-		m_CommandList->SetComputeRoot32BitConstants(BakeComputeRootSignature::BakeDataSlot, SizeOfInUint32(BakeDataConstantBuffer), &bakeDataBuffer, 0);
+		m_CommandList->SetComputeRoot32BitConstants(BakeComputeRootSignature::BuildParameterSlot, SizeOfInUint32(buildParamsBuffer), &buildParamsBuffer, 0);
 		m_CommandList->SetComputeRootDescriptorTable(BakeComputeRootSignature::EditListSlot, editList.GetEditBufferSRV());
 		m_CommandList->SetComputeRootDescriptorTable(BakeComputeRootSignature::OutputVolumeSlot, object->GetVolumeUAV());
 
 		// Use fast ceiling of integer division
-		const UINT threadGroupX = (object->GetVolumeResolution() + s_NumShaderThreads - 1) / s_NumShaderThreads;
+		const UINT threadGroupX = (object->GetVolumeResolution() + SDF_BAKE_NUM_THREADS_PER_GROUP - 1) / SDF_BAKE_NUM_THREADS_PER_GROUP;
 
 		// Dispatch
 		m_CommandList->Dispatch(threadGroupX, threadGroupX, threadGroupX);
@@ -170,19 +159,19 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		m_CommandList->ResourceBarrier(1, &barrier);
 	}
 
-	// Step 5: Execute command list and wait until completion
+	// Step 4: Execute command list and wait until completion
 	{
 		Flush();
 	}
 
-	// Step 6: Read counter value
+	// Step 5: Read counter value
 	{
 		// It is only save to read the counter value after the GPU has finished its work
 		const UINT aabbCount = m_CounterResource.ReadCounterValue();
 		object->SetAABBCount(aabbCount);
 	}
 
-	// Step 7: Clean up
+	// Step 6: Clean up
 	{
 		THROW_IF_FAIL(m_CommandAllocator->Reset());
 		THROW_IF_FAIL(m_CommandList->Reset(m_CommandAllocator.Get(), nullptr));
@@ -201,7 +190,7 @@ void SDFFactory::InitializePipelines()
 		ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 2);
 
 		CD3DX12_ROOT_PARAMETER1 rootParameters[AABBBuilderComputeRootSignature::Count];
-		rootParameters[AABBBuilderComputeRootSignature::BuildParameterSlot].InitAsConstants(SizeOfInUint32(AABBBuilderConstantBuffer), 0);
+		rootParameters[AABBBuilderComputeRootSignature::BuildParameterSlot].InitAsConstants(SizeOfInUint32(SDFBuilderConstantBuffer), 0);
 		rootParameters[AABBBuilderComputeRootSignature::EditListSlot].InitAsDescriptorTable(1, &ranges[0]);
 		rootParameters[AABBBuilderComputeRootSignature::CounterResourceSlot].InitAsDescriptorTable(1, &ranges[1]);
 		rootParameters[AABBBuilderComputeRootSignature::AABBBufferSlot].InitAsDescriptorTable(1, &ranges[2]);
@@ -224,7 +213,7 @@ void SDFFactory::InitializePipelines()
 		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
 
 		CD3DX12_ROOT_PARAMETER1 rootParameters[BakeComputeRootSignature::Count];
-		rootParameters[BakeComputeRootSignature::BakeDataSlot].InitAsConstants(SizeOfInUint32(BakeDataConstantBuffer), 0);
+		rootParameters[BakeComputeRootSignature::BuildParameterSlot].InitAsConstants(SizeOfInUint32(SDFBuilderConstantBuffer), 0);
 		rootParameters[BakeComputeRootSignature::EditListSlot].InitAsDescriptorTable(1, &ranges[0]);
 		rootParameters[BakeComputeRootSignature::OutputVolumeSlot].InitAsDescriptorTable(1, &ranges[1]);
 

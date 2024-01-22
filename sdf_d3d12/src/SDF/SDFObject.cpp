@@ -2,16 +2,16 @@
 #include "SDFObject.h"
 
 #include "Renderer/D3DGraphicsContext.h"
-
+#include "Renderer/Hlsl/ComputeHlslCompat.h"
 
 SDFObject::SDFObject(UINT resolution)
 	: m_VolumeResolution(resolution)
-	, m_Divisions(resolution / s_BrickSize)
 {
-	ASSERT(resolution % s_BrickSize == 0, "Resolution must be a multiple of the brick size!");
+	ASSERT(m_VolumeResolution % SDF_BRICK_SIZE == 0, "Resolution must be a multiple of the brick size!");
 	ASSERT(m_VolumeResolution > 0, "Invalid value for resolution");
 
-	m_MaxAABBCount = m_Divisions * m_Divisions * m_Divisions;
+	UINT divisions = m_VolumeResolution / SDF_BRICK_SIZE;
+	m_MaxAABBCount = divisions * divisions * divisions;
 
 	const auto device = g_D3DGraphicsContext->GetDevice();
 	const auto descriptorHeap = g_D3DGraphicsContext->GetSRVHeap();

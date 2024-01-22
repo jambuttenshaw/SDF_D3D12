@@ -66,7 +66,7 @@ void D3DApplication::OnUpdate()
 	ImGui::Text("Renderer");
 	ImGui::Separator();
 	{
-		auto RenderFlagOption = [&](const char* name, RenderFlags::Value value)
+		auto RenderFlagOption = [&](const char* name, UINT value)
 			{
 				bool flag = m_RenderFlags & value;
 				if (ImGui::Checkbox(name, &flag))
@@ -76,9 +76,9 @@ void D3DApplication::OnUpdate()
 					else
 						m_RenderFlags &= ~value;
 				}};
-		RenderFlagOption("Display Bounding Box", RenderFlags::DisplayBoundingBox);
-		RenderFlagOption("Display Heatmap", RenderFlags::DisplayHeatmap);
-		RenderFlagOption("Display Normals", RenderFlags::DisplayNormals);
+		RenderFlagOption("Display Bounding Box", RENDER_FLAG_DISPLAY_BOUNDING_BOX);
+		RenderFlagOption("Display Heatmap", RENDER_FLAG_DISPLAY_HEATMAP);
+		RenderFlagOption("Display Normals", RENDER_FLAG_DISPLAY_NORMALS);
 	}
 
 	ImGui::End();

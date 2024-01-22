@@ -9,17 +9,9 @@ using namespace DirectX;
 
 
 // Flags
-namespace RenderFlags
-{
-	enum Value
-	{
-		None = 0,
-		DisplayBoundingBox = 1,
-		DisplayHeatmap = 2,
-		DisplayNormals = 4,
-		Count
-	};
-}
+#define RENDER_FLAG_DISPLAY_BOUNDING_BOX 1u
+#define RENDER_FLAG_DISPLAY_HEATMAP 2u
+#define RENDER_FLAG_DISPLAY_NORMALS 4u
 
 
 struct MyAttributes

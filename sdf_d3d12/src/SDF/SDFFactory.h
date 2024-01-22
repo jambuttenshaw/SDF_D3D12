@@ -49,8 +49,4 @@ private:
 
 	CounterResource m_CounterResource;
 	DescriptorAllocation m_CounterResourceUAV;
-
-private:
-	// number of shader threads per group in each dimension
-	inline static constexpr UINT s_NumShaderThreads = 8;
 };

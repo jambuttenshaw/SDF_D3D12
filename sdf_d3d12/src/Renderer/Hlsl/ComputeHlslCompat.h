@@ -11,12 +11,9 @@ using namespace DirectX;
 #define AABB_BUILD_NUM_THREADS_PER_GROUP 8 // 8x8x8
 #define SDF_BAKE_NUM_THREADS_PER_GROUP 8 // 8x8x8
 
+#define SDF_BRICK_SIZE 8
+#define SDF_VOLUME_STRIDE 4
 
-struct BakeDataConstantBuffer
-{
-	UINT SDFEditCount;
-	UINT VolumeStride;
-};
 
 struct SDFEditData
 {
@@ -33,20 +30,10 @@ struct SDFEditData
 	XMFLOAT4 Color;
 };
 
-struct AABBBuilderConstantBuffer
+struct SDFBuilderConstantBuffer
 {
 	UINT SDFEditCount;
-
-	UINT Divisions;				// The number of bounding boxes along each side.
-								// This is the same for each dimensions as SDF volumes are cubes
-
-	UINT VoxelsPerAABB;
-	UINT VolumeStride;
-
-	float AABBDimensions;		// All AABBs will be cubic and uniform in size
-								// The size can be computed from the number of divisions
-
-	float UVWIncrement;			// The UVW increment between each AABB ( = 1.0f / Divisions) 
+	float UVWPerAABB;	// The UVW increment between each AABB ( = 1.0f / Divisions) 
 };
 
 #endif
