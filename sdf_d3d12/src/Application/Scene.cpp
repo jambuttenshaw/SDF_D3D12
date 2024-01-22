@@ -35,19 +35,19 @@ Scene::Scene()
 		
 		{
 			// Create torus object edit list
-			m_TorusEditList.AddEdit(SDFEdit::CreateTorus({}, 0.9f, 0.05f));
+			m_TorusEditList.AddEdit(SDFEdit::CreateTorus({}, 0.85f, 0.05f));
 
 			Transform torusTransform;
 			torusTransform.SetPitch(XMConvertToRadians(90.0f));
 
-			m_TorusEditList.AddEdit(SDFEdit::CreateTorus(torusTransform, 0.9f, 0.05f, SDFOperation::SmoothUnion, 0.1f));
+			m_TorusEditList.AddEdit(SDFEdit::CreateTorus(torusTransform, 0.85f, 0.05f, SDFOperation::SmoothUnion, 0.1f));
 
 			torusTransform.SetPitch(XMConvertToRadians(0.0f));
 			torusTransform.SetRoll(XMConvertToRadians(90.0f));
 
-			m_TorusEditList.AddEdit(SDFEdit::CreateTorus(torusTransform, 0.9f, 0.05f, SDFOperation::SmoothUnion, 0.1f));
+			m_TorusEditList.AddEdit(SDFEdit::CreateTorus(torusTransform, 0.85f, 0.05f, SDFOperation::SmoothUnion, 0.1f));
 
-			m_TorusEditList.AddEdit(SDFEdit::CreateOctahedron({}, 0.75f));
+			m_TorusEditList.AddEdit(SDFEdit::CreateOctahedron({}, 0.7f));
 
 			m_SDFFactory->BakeSDFSynchronous(m_TorusObject.get(), m_TorusEditList);
 		}
