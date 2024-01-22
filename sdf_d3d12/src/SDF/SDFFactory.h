@@ -45,7 +45,7 @@ private:
 
 	// Pipelines to build SDF objects
 	std::unique_ptr<D3DComputePipeline> m_AABBBuildPipeline;
-	std::unique_ptr<D3DComputePipeline> m_BakePipeline;
+	std::unique_ptr<D3DComputePipeline> m_BrickBuildPipeline;
 
 	CounterResource m_CounterResource;
 	DescriptorAllocation m_CounterResourceUAV;

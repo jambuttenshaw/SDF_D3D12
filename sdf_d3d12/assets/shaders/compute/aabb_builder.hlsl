@@ -75,7 +75,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
 		// Evaluate object at this point
 		const float distance = EvaluateEditList(p);
 		// If distance is larger than the size of this voxel then this voxel cannot contain geometry
-		if (distance > 1.74f /* sqrt(3) */ * g_BuildParameters.UVWPerAABB)
+		if (distance > 5.0f * SDF_VOLUME_STRIDE * g_BuildParameters.UVWPerAABB / SDF_BRICK_SIZE)
 			return;
 	}
 

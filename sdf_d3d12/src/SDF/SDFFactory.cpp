@@ -23,12 +23,13 @@ namespace AABBBuilderComputeRootSignature
 	};
 }
 
-namespace BakeComputeRootSignature
+namespace BrickBuildComputeRootSignature
 {
 	enum Value
 	{
 		BuildParameterSlot = 0,
 		EditListSlot,
+		AABBPrimitiveDataSlot,
 		OutputVolumeSlot,
 		Count
 	};
@@ -102,6 +103,55 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		buildParamsBuffer.UVWPerAABB = SDF_BRICK_SIZE / static_cast<float>(object->GetVolumeResolution());
 	}
 
+	// TODO: Temporary Step
+	// Fill the volume with 1's
+	ComPtr<ID3D12Resource> copyVolume;
+	{
+		const auto resolution = object->GetVolumeResolution();
+		const auto uploadHeap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+		const auto desc = CD3DX12_RESOURCE_DESC::Buffer(resolution * resolution * resolution * sizeof(BYTE));
+		THROW_IF_FAIL(device->CreateCommittedResource(
+			&uploadHeap,
+			D3D12_HEAP_FLAG_NONE,
+			&desc,
+			D3D12_RESOURCE_STATE_COMMON,
+			nullptr,
+			IID_PPV_ARGS(&copyVolume)));
+
+		// Initialize a vector with all 1's
+		const std::vector<BYTE> volumeData(resolution * resolution * resolution, 0xFF);
+
+		// Copy this into the copy volume
+		BYTE* pVolume;
+		THROW_IF_FAIL(copyVolume->Map(0, nullptr, reinterpret_cast<void**>(&pVolume)));
+		memcpy(pVolume, volumeData.data(), volumeData.size());
+		copyVolume->Unmap(0, nullptr);
+
+		// Copy this resource into the volume texture
+		auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(object->GetVolumeResource(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_COPY_DEST);
+		m_CommandList->ResourceBarrier(1, &barrier);
+
+		D3D12_TEXTURE_COPY_LOCATION dest;
+		dest.pResource = object->GetVolumeResource();
+		dest.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+		dest.SubresourceIndex = 0;
+
+		D3D12_TEXTURE_COPY_LOCATION src;
+		src.pResource = copyVolume.Get();
+		src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+		src.PlacedFootprint.Offset = 0;
+		src.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R8_UINT;
+		src.PlacedFootprint.Footprint.Width = resolution;
+		src.PlacedFootprint.Footprint.Height = resolution;
+		src.PlacedFootprint.Footprint.Depth = resolution;
+		src.PlacedFootprint.Footprint.RowPitch = sizeof(BYTE) * resolution;
+
+		m_CommandList->CopyTextureRegion(&dest, 0, 0, 0, &src, nullptr);
+
+		barrier = CD3DX12_RESOURCE_BARRIER::Transition(object->GetVolumeResource(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+		m_CommandList->ResourceBarrier(1, &barrier);
+	}
+
 	// Step 2: Build command list to execute AABB builder compute shader
 	{
 		ID3D12DescriptorHeap* ppDescriptorHeaps[] = { g_D3DGraphicsContext->GetSRVHeap()->GetHeap() };
@@ -131,7 +181,22 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		m_CounterResource.CopyCounterValue(m_CommandList.Get());
 	}
 
-	// Step 3: Build command list to execute SDF baker compute shader
+	// Step 3: Execute command list and wait until completion
+	{
+		Flush();
+
+		THROW_IF_FAIL(m_CommandAllocator->Reset());
+		THROW_IF_FAIL(m_CommandList->Reset(m_CommandAllocator.Get(), nullptr));
+	}
+
+	// Step 4: Read counter value
+	{
+		// It is only save to read the counter value after the GPU has finished its work
+		const UINT aabbCount = m_CounterResource.ReadCounterValue();
+		object->SetAABBCount(aabbCount);
+	}
+
+	// Step 5: Build command list to execute SDF baker compute shader
 	{
 		ID3D12DescriptorHeap* ppDescriptorHeaps[] = { g_D3DGraphicsContext->GetSRVHeap()->GetHeap() };
 		m_CommandList->SetDescriptorHeaps(_countof(ppDescriptorHeaps), ppDescriptorHeaps);
@@ -141,37 +206,31 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		m_CommandList->ResourceBarrier(1, &barrier);
 
 		// Set pipeline state
-		m_BakePipeline->Bind(m_CommandList.Get());
+		m_BrickBuildPipeline->Bind(m_CommandList.Get());
 
 		// Set resource views
-		m_CommandList->SetComputeRoot32BitConstants(BakeComputeRootSignature::BuildParameterSlot, SizeOfInUint32(buildParamsBuffer), &buildParamsBuffer, 0);
-		m_CommandList->SetComputeRootDescriptorTable(BakeComputeRootSignature::EditListSlot, editList.GetEditBufferSRV());
-		m_CommandList->SetComputeRootDescriptorTable(BakeComputeRootSignature::OutputVolumeSlot, object->GetVolumeUAV());
+		m_CommandList->SetComputeRoot32BitConstants(BrickBuildComputeRootSignature::BuildParameterSlot, SizeOfInUint32(buildParamsBuffer), &buildParamsBuffer, 0);
+		m_CommandList->SetComputeRootDescriptorTable(BrickBuildComputeRootSignature::EditListSlot, editList.GetEditBufferSRV());
+		m_CommandList->SetComputeRootDescriptorTable(BrickBuildComputeRootSignature::AABBPrimitiveDataSlot, object->GetPrimitiveDataBufferUAV());
+		m_CommandList->SetComputeRootDescriptorTable(BrickBuildComputeRootSignature::OutputVolumeSlot, object->GetVolumeUAV());
 
-		// Use fast ceiling of integer division
-		const UINT threadGroupX = (object->GetVolumeResolution() + SDF_BAKE_NUM_THREADS_PER_GROUP - 1) / SDF_BAKE_NUM_THREADS_PER_GROUP;
+		// Execute one group for each AABB
+		const UINT threadGroupX = object->GetAABBCount();
 
 		// Dispatch
-		m_CommandList->Dispatch(threadGroupX, threadGroupX, threadGroupX);
+		m_CommandList->Dispatch(threadGroupX, 1, 1);
 
 		// Volume resource will now be read from in the subsequent stages
 		barrier = CD3DX12_RESOURCE_BARRIER::Transition(object->GetVolumeResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 		m_CommandList->ResourceBarrier(1, &barrier);
 	}
 
-	// Step 4: Execute command list and wait until completion
+	// Step 6: Execute command list and wait until completion
 	{
 		Flush();
 	}
 
-	// Step 5: Read counter value
-	{
-		// It is only save to read the counter value after the GPU has finished its work
-		const UINT aabbCount = m_CounterResource.ReadCounterValue();
-		object->SetAABBCount(aabbCount);
-	}
-
-	// Step 6: Clean up
+	// Step 7: Clean up
 	{
 		THROW_IF_FAIL(m_CommandAllocator->Reset());
 		THROW_IF_FAIL(m_CommandList->Reset(m_CommandAllocator.Get(), nullptr));
@@ -208,23 +267,25 @@ void SDFFactory::InitializePipelines()
 
 	// Create pipeline that is used to bake SDFs into 3D textures
 	{
-		CD3DX12_DESCRIPTOR_RANGE1 ranges[2];
+		CD3DX12_DESCRIPTOR_RANGE1 ranges[3];
 		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
 		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
+		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1);
 
-		CD3DX12_ROOT_PARAMETER1 rootParameters[BakeComputeRootSignature::Count];
-		rootParameters[BakeComputeRootSignature::BuildParameterSlot].InitAsConstants(SizeOfInUint32(SDFBuilderConstantBuffer), 0);
-		rootParameters[BakeComputeRootSignature::EditListSlot].InitAsDescriptorTable(1, &ranges[0]);
-		rootParameters[BakeComputeRootSignature::OutputVolumeSlot].InitAsDescriptorTable(1, &ranges[1]);
+		CD3DX12_ROOT_PARAMETER1 rootParameters[BrickBuildComputeRootSignature::Count];
+		rootParameters[BrickBuildComputeRootSignature::BuildParameterSlot].InitAsConstants(SizeOfInUint32(SDFBuilderConstantBuffer), 0);
+		rootParameters[BrickBuildComputeRootSignature::EditListSlot].InitAsDescriptorTable(1, &ranges[0]);
+		rootParameters[BrickBuildComputeRootSignature::AABBPrimitiveDataSlot].InitAsDescriptorTable(1, &ranges[1]);
+		rootParameters[BrickBuildComputeRootSignature::OutputVolumeSlot].InitAsDescriptorTable(1, &ranges[2]);
 
 		D3DComputePipelineDesc desc;
 		desc.NumRootParameters = ARRAYSIZE(rootParameters);
 		desc.RootParameters = rootParameters;
-		desc.Shader = L"assets/shaders/compute/sdf_baker.hlsl";
+		desc.Shader = L"assets/shaders/compute/brick_builder.hlsl";
 		desc.EntryPoint = L"main";
 		desc.Defines = nullptr;
 
-		m_BakePipeline = std::make_unique<D3DComputePipeline>(&desc);
+		m_BrickBuildPipeline = std::make_unique<D3DComputePipeline>(&desc);
 	}
 }
 
