@@ -16,8 +16,8 @@ Scene::Scene()
 		m_SDFFactory = std::make_unique<SDFFactory>();
 
 		// Create an SDF object
-		m_TorusObject = std::make_unique<SDFObject>(128, 8, 8);
-		m_SphereObject = std::make_unique<SDFObject>(128, 4, 16);
+		m_TorusObject = std::make_unique<SDFObject>(128);
+		m_SphereObject = std::make_unique<SDFObject>(128);
 
 		/*
 		m_SDFObject->AddPrimitive(SDFEdit::CreateBox(

@@ -14,20 +14,20 @@ using Microsoft::WRL::ComPtr;
 class SDFObject : public BaseAABBGeometry
 {
 public:
-	SDFObject(UINT volumeResolution, UINT volumeStride, UINT aabbDivisions);
+	SDFObject(UINT volumeResolution);
 	virtual ~SDFObject();
 
 	DISALLOW_COPY(SDFObject)
 	DEFAULT_MOVE(SDFObject)
 
 
+	inline static constexpr UINT GetVolumeStride() { return s_VolumeStride; }
+	inline static constexpr UINT GetBrickSize() { return s_BrickSize; }
+
+
 	// Volume
 	inline ID3D12Resource* GetVolumeResource() const { return m_VolumeResource.Get(); }
-
-	inline UINT GetVolumeResolution() const { return m_Resolution; }
-	inline UINT GetVolumeStride() const { return m_VolumeStride; }
-
-	
+	inline UINT GetVolumeResolution() const { return m_VolumeResolution; }
 
 
 	// Geometry Interface
@@ -51,14 +51,14 @@ public:
 	inline void SetAABBCount(UINT count) { m_AABBCount = count; }
 
 private:
-	// Volume
-	UINT m_Resolution = 0;
-	UINT m_VolumeStride = 0; // Volume stride is how distances are mapped in terms of the volume resolution
-							 // e.g. Volume Stride = 8 would mean a distance value of 1 in the volume would map to 8 voxels
+	// SDF Object constants
+	inline static constexpr UINT s_VolumeStride = 4;	// Maximum distance step = 4
+	inline static constexpr UINT s_BrickSize = 8;		// Build objects out of bricks made from 8x8x8 voxels
 
+	// Volume
+	UINT m_VolumeResolution = 0;
 	ComPtr<ID3D12Resource> m_VolumeResource;
 	
-
 	// Geometry
 	StructuredBuffer<D3D12_RAYTRACING_AABB> m_AABBBuffer;
 	StructuredBuffer<AABBPrimitiveData> m_PrimitiveDataBuffer;

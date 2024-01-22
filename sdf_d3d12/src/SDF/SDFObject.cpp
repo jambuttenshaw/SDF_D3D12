@@ -4,14 +4,14 @@
 #include "Renderer/D3DGraphicsContext.h"
 
 
-SDFObject::SDFObject(UINT resolution, UINT volumeStride, UINT aabbDivisions)
-	: m_Resolution(resolution)
-	, m_VolumeStride(volumeStride)
-	, m_Divisions(aabbDivisions)
-	, m_MaxAABBCount(aabbDivisions * aabbDivisions * aabbDivisions)
+SDFObject::SDFObject(UINT resolution)
+	: m_VolumeResolution(resolution)
+	, m_Divisions(resolution / s_BrickSize)
 {
-	ASSERT(m_Resolution > 0, "Invalid value for resolution");
-	ASSERT(m_VolumeStride > 0, "Invalid value for volume stride");
+	ASSERT(resolution % s_BrickSize == 0, "Resolution must be a multiple of the brick size!");
+	ASSERT(m_VolumeResolution > 0, "Invalid value for resolution");
+
+	m_MaxAABBCount = m_Divisions * m_Divisions * m_Divisions;
 
 	const auto device = g_D3DGraphicsContext->GetDevice();
 	const auto descriptorHeap = g_D3DGraphicsContext->GetSRVHeap();
@@ -19,7 +19,7 @@ SDFObject::SDFObject(UINT resolution, UINT volumeStride, UINT aabbDivisions)
 	// Create volume resource
 	{
 		auto heap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-		CD3DX12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex3D(DXGI_FORMAT_R8_UNORM, m_Resolution, m_Resolution, m_Resolution, 1, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+		CD3DX12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex3D(DXGI_FORMAT_R8_UNORM, m_VolumeResolution, m_VolumeResolution, m_VolumeResolution, 1, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 
 		THROW_IF_FAIL(device->CreateCommittedResource(
 			&heap,
