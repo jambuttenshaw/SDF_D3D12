@@ -19,7 +19,7 @@ void AccelerationStructure::AllocateScratchResource()
 	m_ScratchResource.Allocate(
 		g_D3DGraphicsContext->GetDevice(),
 		m_PrebuildInfo.ScratchDataSizeInBytes,
-		D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+		D3D12_RESOURCE_STATE_COMMON,
 		D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS,
 		L"Acceleration Structure Scratch Resource"
 	);

@@ -26,7 +26,7 @@ public:
 			&defaultHeap,
 			D3D12_HEAP_FLAG_NONE,
 			&counterDesc,
-			D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+			D3D12_RESOURCE_STATE_COMMON,
 			nullptr,
 			IID_PPV_ARGS(&m_CounterResource)));
 		if (resourceName)

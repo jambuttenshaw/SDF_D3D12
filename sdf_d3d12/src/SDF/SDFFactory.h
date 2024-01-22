@@ -19,6 +19,9 @@ public:
 	SDFFactory();
 	~SDFFactory();
 
+	DISALLOW_COPY(SDFFactory)
+	DEFAULT_MOVE(SDFFactory)
+
 	void BakeSDFSynchronous(SDFObject* object, const SDFEditList& editList);
 
 private:

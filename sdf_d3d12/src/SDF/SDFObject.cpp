@@ -34,8 +34,8 @@ SDFObject::SDFObject(UINT resolution, UINT volumeStride, UINT aabbDivisions)
 
 	// Allocate Geometry buffers
 	{
-		m_AABBBuffer.Allocate(device, m_MaxAABBCount, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, L"AABB Buffer");
-		m_PrimitiveDataBuffer.Allocate(device, m_MaxAABBCount, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, L"AABB Primitive Data Buffer");
+		m_AABBBuffer.Allocate(device, m_MaxAABBCount, D3D12_RESOURCE_STATE_COMMON, L"AABB Buffer");
+		m_PrimitiveDataBuffer.Allocate(device, m_MaxAABBCount, D3D12_RESOURCE_STATE_COMMON, L"AABB Primitive Data Buffer");
 	}
 
 	// Create resource views
