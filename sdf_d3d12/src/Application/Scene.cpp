@@ -139,9 +139,9 @@ Scene::Scene()
 
 
 					m_InstanceTranslation[index] = {
-						Random::Float(-2.0f, 2.0f),
-						Random::Float(-2.0f, 2.0f),
-						Random::Float(-2.0f, 2.0f)
+						Random::Float(-1.0f, 1.0f),
+						Random::Float(-1.0f, 1.0f),
+						Random::Float(-1.0f, 1.0f)
 					};
 
 					const auto translation = XMMatrixTranslation(
