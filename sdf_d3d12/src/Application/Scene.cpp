@@ -8,7 +8,7 @@
 
 Scene::Scene()
 	: m_TorusEditList(4)
-	, m_SphereEditList(48)
+	, m_SphereEditList(64)
 {
 	// Build SDF Object
 	{
@@ -16,8 +16,8 @@ Scene::Scene()
 		m_SDFFactory = std::make_unique<SDFFactory>();
 
 		// Create an SDF object
-		m_TorusObject = std::make_unique<SDFObject>(128);
-		m_SphereObject = std::make_unique<SDFObject>(128);
+		m_TorusObject = std::make_unique<SDFObject>();
+		m_SphereObject = std::make_unique<SDFObject>();
 
 		/*
 		m_SDFObject->AddPrimitive(SDFEdit::CreateBox(
@@ -55,7 +55,7 @@ Scene::Scene()
 		{
 			// Create sphere object by adding and then subtracting a bunch of spheres
 			constexpr UINT addSpheres = 16;
-			constexpr int subtractSpheres = 32;
+			constexpr int subtractSpheres = 48;
 
 			for (UINT i = 0; i < addSpheres; i++)
 			{
@@ -94,12 +94,16 @@ Scene::Scene()
 		auto& torusGeometry = m_SceneGeometry.at(0);
 		auto& spheresGeometry = m_SceneGeometry.at(1);
 
-		torusGeometry.GeometryInstances.push_back(
-			{ *m_TorusObject.get(), D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE, m_TorusObject->GetVolumeSRV(), m_TorusObject->GetVolumeResolution()
-			});
-		spheresGeometry.GeometryInstances.push_back(
-			{ *m_SphereObject.get(), D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE, m_SphereObject->GetVolumeSRV(), m_SphereObject->GetVolumeResolution()
-			});
+		torusGeometry.GeometryInstances.push_back({
+			*m_TorusObject.get(),
+			D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE,
+			m_TorusObject->GetVolumeSRV()
+		});
+		spheresGeometry.GeometryInstances.push_back({
+			*m_SphereObject.get(),
+			D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE,
+			m_SphereObject->GetVolumeSRV()
+		});
 	}
 
 	{
@@ -203,7 +207,7 @@ void Scene::OnUpdate(float deltaTime)
 		ImGui::Text("Torus Object"); 
 		ImGui::Text("AABBs Per Instance: %d", m_TorusObject->GetAABBCount());
 
-		float aabbCull = 100.0f * (1.0f - static_cast<float>(m_TorusObject->GetAABBCount()) / static_cast<float>(m_TorusObject->GetMaxAABBCount()));
+		float aabbCull = 100.0f * (1.0f - static_cast<float>(m_TorusObject->GetAABBCount()) / static_cast<float>(m_TorusObject->GetBrickCapacity()));
 		ImGui::Text("AABB Cull: %.1f", aabbCull);
 
 		ImGui::Separator();
@@ -211,7 +215,7 @@ void Scene::OnUpdate(float deltaTime)
 		ImGui::Text("Sphere Object");
 		ImGui::Text("AABBs Per Instance: %d", m_SphereObject->GetAABBCount());
 
-		aabbCull = 100.0f * (1.0f - static_cast<float>(m_SphereObject->GetAABBCount()) / static_cast<float>(m_SphereObject->GetMaxAABBCount()));
+		aabbCull = 100.0f * (1.0f - static_cast<float>(m_SphereObject->GetAABBCount()) / static_cast<float>(m_SphereObject->GetBrickCapacity()));
 		ImGui::Text("AABB Cull: %.1f", aabbCull);
 
 		ImGui::Separator();

@@ -46,15 +46,17 @@ struct PassConstantBuffer
 	float DeltaTime;
 };
 
-// Data used to describe each primitive to the shader
-struct AABBPrimitiveData
-{
-	XMFLOAT3 AABBCentre;
-	float AABBHalfExtent;
 
-	// Which section of the volume should be rendered inside this AABB
-	XMFLOAT3 UVW;	// Defines the top left of the uvw range
-	float UVWExtent;	// Defines the extents of the uvw range
+// This structure associates a raytracing AABB with a brick in the pool
+struct BrickPointer
+{
+	// Where this brick is placed in object space
+	// For transforming rays to local space of the brick
+	XMFLOAT3 AABBCentre;
+	float AABBHalfExtent; // this could be constant?
+
+	// Which brick in the pool does this point to
+	UINT BrickIndex;
 };
 
 #endif

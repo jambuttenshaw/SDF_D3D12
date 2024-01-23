@@ -1,24 +1,25 @@
-#ifndef SDFBAKER_HLSL
-#define SDFBAKER_HLSL
-
-/*
- *
- *	This shader takes a buffer of edits to evaluate and stores the result in a 3D Texture
- *
- */
+#ifndef AABBBUILDER_HLSL
+#define AABBBUILDER_HLSL
 
 #define HLSL
 #include "../../../src/Renderer/Hlsl/ComputeHlslCompat.h"
 #include "../../../src/Renderer/Hlsl/RaytracingHlslCompat.h"
+
 #include "../include/sdf_primitives.hlsli"
 #include "../include/sdf_operations.hlsli"
 
+/*
+ *
+ *	This shader takes a 3D texture containing distance values and builds a buffer of AABB's around the iso-surface
+ *
+ */
 
 ConstantBuffer<SDFBuilderConstantBuffer> g_BuildParameters : register(b0);
 StructuredBuffer<SDFEditData> g_EditList : register(t0);
 
-StructuredBuffer<AABBPrimitiveData> g_PrimitiveData : register(t1);
-RWTexture3D<float> g_OutputTexture : register(u1);
+RWByteAddressBuffer g_Counter : register(u0);
+RWStructuredBuffer<AABB> g_AABBBuffer : register(u1);
+RWStructuredBuffer<BrickPointer> g_BrickBuffer : register(u2);
 
 
 float EvaluateEditList(float3 p)
@@ -45,45 +46,53 @@ float EvaluateEditList(float3 p)
 	return nearest.w;
 }
 
-
-float FormatDistance(float inDistance, float UVWExtent)
+float FormatDistance(float inDistance)
 {
 	// Calculate the distance value in terms of voxels
-	const float voxelsPerUnit = 0.5f * SDF_BRICK_SIZE / UVWExtent;
+	const float voxelsPerAxis = g_BuildParameters.EvalSpace_BricksPerAxis.x * SDF_BRICK_SIZE_IN_VOXELS;
+	const float voxelsPerUnit = voxelsPerAxis / (g_BuildParameters.EvalSpace_MaxBoundary - g_BuildParameters.EvalSpace_MinBoundary).x;
 	const float voxelDistance = inDistance * voxelsPerUnit;
 
-	// Now map the distance such that 1 = maxDistance
-	// The formatted distance will be clamped to [-1, 1] when it is written to the brick
+	// Now map the distance such that 1 = SDF_VOLUME_STRIDE number of voxels
 	return voxelDistance / SDF_VOLUME_STRIDE;
 }
 
 
-[numthreads(SDF_BRICK_SIZE, SDF_BRICK_SIZE, SDF_BRICK_SIZE)]
-void main(uint3 GroupID : SV_GroupID, uint3 GTid : SV_GroupThreadID)
+[numthreads(AABB_BUILD_NUM_THREADS_PER_GROUP, AABB_BUILD_NUM_THREADS_PER_GROUP, AABB_BUILD_NUM_THREADS_PER_GROUP)]
+void main(uint3 DTid : SV_DispatchThreadID)
 {
-	// TODO: Eventually this will be replaced as thread ID will no longer map to volume coordinates once bricks are stored in a brick pool
-	uint3 dims;
-	g_OutputTexture.GetDimensions(dims.x, dims.y, dims.z);
-	
-	// Get the bounding box that this group will fill
-	const AABBPrimitiveData primitiveData = g_PrimitiveData[GroupID.x];
+	// Map thread to a region of space
+	// The thread will determine if space is empty in that region
+	// If space is not empty, then it will create a brick for that region
 
-	// Calculate position to evaluate this thread
-	// Step 1: Get UVW of this thread
-	float3 uvw = primitiveData.UVW + primitiveData.UVWExtent * (float3) GTid / (float) SDF_BRICK_SIZE;
-	// Save the voxel that this thread is evaluating
-	const uint3 voxel = uvw * dims;
+	// Calculate where in the evaluation region the centre of this brick lies
+	const float3 t = DTid / float3(g_BuildParameters.EvalSpace_BricksPerAxis) + 0.5f * g_BuildParameters.EvalSpace_BrickSize;
+	const float3 brickCentre = (1.0f - t) * g_BuildParameters.EvalSpace_MinBoundary.xyz + t * g_BuildParameters.EvalSpace_MaxBoundary.xyz;
 
-	// Step 2: Remap to [-1,1]
-	uvw *= 2.0f;
-	uvw -= 1.0f;
+	// Evaluate object at this point
+	const float distance = EvaluateEditList(brickCentre);
+	const float mappedDistance = FormatDistance(distance);
 
-	// Evaluate SDF volume
-	const float nearest = EvaluateEditList(uvw);
-	const float mappedDistance = FormatDistance(nearest, primitiveData.UVWExtent);
+	// If distance is larger than the size of this voxel then this voxel cannot contain geometry
+	// Use abs(distance) to cull bounding boxes within the geometry
+	if (abs(mappedDistance) > 2.25f)
+		return;
 
-	// Store the mapped distance in the volume
-	g_OutputTexture[voxel] = mappedDistance;
+	// Use the counter to get the index in  the aabb buffer that this thread will operate on
+	// Only do this if this thread is going to add a box
+	uint brickIndex;
+	g_Counter.InterlockedAdd(0, 1, brickIndex);
+
+	AABB outAABB;
+	outAABB.TopLeft = brickCentre - 0.5f * g_BuildParameters.EvalSpace_BrickSize;
+	outAABB.BottomRight = brickCentre + 0.5f * g_BuildParameters.EvalSpace_BrickSize;
+	g_AABBBuffer[brickIndex] = outAABB;
+
+	BrickPointer brickPointer;
+	brickPointer.AABBCentre = brickCentre;
+	brickPointer.AABBHalfExtent = 0.5f * g_BuildParameters.EvalSpace_BrickSize;
+	brickPointer.BrickIndex = brickIndex;
+	g_BrickBuffer[brickIndex] = brickPointer;
 }
 
 #endif

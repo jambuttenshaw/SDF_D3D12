@@ -10,7 +10,7 @@ using namespace DirectX;
 
 #define AABB_BUILD_NUM_THREADS_PER_GROUP 8 // 8x8x8 threads per group to build AABBs
 
-#define SDF_BRICK_SIZE 8
+#define SDF_BRICK_SIZE_IN_VOXELS 8
 #define SDF_VOLUME_STRIDE 4
 
 
@@ -31,8 +31,17 @@ struct SDFEditData
 
 struct SDFBuilderConstantBuffer
 {
+	// The region of space to run the brick builder over
+	XMVECTOR EvalSpace_MinBoundary;
+	XMVECTOR EvalSpace_MaxBoundary;
+
+	XMUINT3 EvalSpace_BricksPerAxis;	// The number of bricks along each axis in the space to evaluate
+	float EvalSpace_BrickSize;			// Object-space size of a brick
+
+	// Information about how many bricks the pool can store
+	XMUINT3 BrickPool_BrickCapacityPerAxis;
+
 	UINT SDFEditCount;
-	float UVWPerAABB;	// The UVW increment between each AABB ( = 1.0f / Divisions) 
 };
 
 #endif

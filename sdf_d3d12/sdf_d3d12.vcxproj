@@ -250,10 +250,10 @@
     <ClInclude Include="vendor\imgui\imstb_truetype.h" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="assets\shaders\compute\aabb_builder.hlsl">
+    <FxCompile Include="assets\shaders\compute\brick_builder.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </FxCompile>
-    <FxCompile Include="assets\shaders\compute\brick_builder.hlsl">
+    <FxCompile Include="assets\shaders\compute\brick_evaluator.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="assets\shaders\graphics\finalpass.hlsl">

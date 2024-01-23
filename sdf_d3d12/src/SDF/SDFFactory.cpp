@@ -101,9 +101,16 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		editList.CopyStagingToGPU();
 
 		// Populate build params
-		const UINT primitiveCount = editList.GetEditCount();
-		buildParamsBuffer.SDFEditCount = primitiveCount;
-		buildParamsBuffer.UVWPerAABB = SDF_BRICK_SIZE / static_cast<float>(object->GetVolumeResolution());
+		buildParamsBuffer.EvalSpace_MinBoundary = { -1.0f, -1.0f, -1.0f, 0.0f };
+		buildParamsBuffer.EvalSpace_MaxBoundary = { 1.0f,  1.0f,  1.0f, 0.0f };
+		buildParamsBuffer.EvalSpace_BrickSize = SDF_BRICK_SIZE_IN_VOXELS / 128.0f;
+
+		const auto bricksPerAxis = (buildParamsBuffer.EvalSpace_MaxBoundary - buildParamsBuffer.EvalSpace_MinBoundary) / buildParamsBuffer.EvalSpace_BrickSize;
+		XMStoreUInt3(&buildParamsBuffer.EvalSpace_BricksPerAxis, bricksPerAxis);
+
+		buildParamsBuffer.BrickPool_BrickCapacityPerAxis = object->GetBrickCapacityPerAxis();
+
+		buildParamsBuffer.SDFEditCount = editList.GetEditCount();
 
 		// Setup counter temporary resources
 		counterUpload.Allocate(device, 1, 0, L"Counter upload");
@@ -116,9 +123,13 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 	// Fill the volume with 1's
 	ComPtr<ID3D12Resource> copyVolume;
 	{
-		const auto resolution = object->GetVolumeResolution();
+		const UINT width = object->GetBrickCapacityPerAxis().x * SDF_BRICK_SIZE_IN_VOXELS;
+		const UINT height = object->GetBrickCapacityPerAxis().y * SDF_BRICK_SIZE_IN_VOXELS;
+		const UINT depth = object->GetBrickCapacityPerAxis().z * SDF_BRICK_SIZE_IN_VOXELS;
+		const UINT64 bufferSize = static_cast<UINT64>(width) * height * depth * sizeof(BYTE);
+
 		const auto uploadHeap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-		const auto desc = CD3DX12_RESOURCE_DESC::Buffer(resolution * resolution * resolution * sizeof(BYTE));
+		const auto desc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
 		THROW_IF_FAIL(device->CreateCommittedResource(
 			&uploadHeap,
 			D3D12_HEAP_FLAG_NONE,
@@ -128,7 +139,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 			IID_PPV_ARGS(&copyVolume)));
 
 		// Initialize a vector with all 1's
-		const std::vector<BYTE> volumeData(resolution * resolution * resolution, 0x7F);	
+		const std::vector<BYTE> volumeData(width * width * width, 0x7F);	
 
 		// Copy this into the copy volume
 		BYTE* pVolume;
@@ -150,10 +161,10 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 		src.PlacedFootprint.Offset = 0;
 		src.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R8_UINT;
-		src.PlacedFootprint.Footprint.Width = resolution;
-		src.PlacedFootprint.Footprint.Height = resolution;
-		src.PlacedFootprint.Footprint.Depth = resolution;
-		src.PlacedFootprint.Footprint.RowPitch = sizeof(BYTE) * resolution;
+		src.PlacedFootprint.Footprint.Width = width;
+		src.PlacedFootprint.Footprint.Height = height;
+		src.PlacedFootprint.Footprint.Depth = depth;
+		src.PlacedFootprint.Footprint.RowPitch = sizeof(BYTE) * width;
 
 		m_CommandList->CopyTextureRegion(&dest, 0, 0, 0, &src, nullptr);
 
@@ -170,7 +181,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		m_CounterResource.SetValue(m_CommandList.Get(), counterUpload.GetResource());
 
 		// Setup pipeline
-		m_AABBBuildPipeline->Bind(m_CommandList.Get());
+		m_BrickBuilderPipeline->Bind(m_CommandList.Get());
 
 		// Set resources
 		m_CommandList->SetComputeRoot32BitConstants(AABBBuilderComputeRootSignature::BuildParameterSlot, SizeOfInUint32(buildParamsBuffer), &buildParamsBuffer, 0);
@@ -180,11 +191,13 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		m_CommandList->SetComputeRootDescriptorTable(AABBBuilderComputeRootSignature::AABBPrimitiveDataSlot, object->GetPrimitiveDataBufferUAV());
 
 		// Calculate number of thread groups
-		const UINT aabbPerAxis = object->GetVolumeResolution() / SDF_BRICK_SIZE;
-		const UINT threadGroupX = (aabbPerAxis + AABB_BUILD_NUM_THREADS_PER_GROUP - 1) / AABB_BUILD_NUM_THREADS_PER_GROUP;
+		
+		const UINT threadGroupX = (buildParamsBuffer.EvalSpace_BricksPerAxis.x + AABB_BUILD_NUM_THREADS_PER_GROUP - 1) / AABB_BUILD_NUM_THREADS_PER_GROUP;
+		const UINT threadGroupY = (buildParamsBuffer.EvalSpace_BricksPerAxis.y + AABB_BUILD_NUM_THREADS_PER_GROUP - 1) / AABB_BUILD_NUM_THREADS_PER_GROUP;
+		const UINT threadGroupZ = (buildParamsBuffer.EvalSpace_BricksPerAxis.z + AABB_BUILD_NUM_THREADS_PER_GROUP - 1) / AABB_BUILD_NUM_THREADS_PER_GROUP;
 
 		// Dispatch
-		m_CommandList->Dispatch(threadGroupX, threadGroupX, threadGroupX);
+		m_CommandList->Dispatch(threadGroupX, threadGroupY, threadGroupZ);
 
 		// Copy counter value to a readback resource
 		m_CounterResource.ReadValue(m_CommandList.Get(), counterReadback.GetResource());
@@ -201,8 +214,8 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 	// Step 4: Read counter value
 	{
 		// It is only save to read the counter value after the GPU has finished its work
-		const UINT aabbCount = counterReadback.ReadElement(0);
-		object->SetAABBCount(aabbCount);
+		const UINT brickCount = counterReadback.ReadElement(0);
+		object->SetBrickCount(brickCount);
 	}
 
 	// Step 5: Build command list to execute SDF baker compute shader
@@ -215,7 +228,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		m_CommandList->ResourceBarrier(1, &barrier);
 
 		// Set pipeline state
-		m_BrickBuildPipeline->Bind(m_CommandList.Get());
+		m_BrickEvaluatorPipeline->Bind(m_CommandList.Get());
 
 		// Set resource views
 		m_CommandList->SetComputeRoot32BitConstants(BrickBuildComputeRootSignature::BuildParameterSlot, SizeOfInUint32(buildParamsBuffer), &buildParamsBuffer, 0);
@@ -266,11 +279,11 @@ void SDFFactory::InitializePipelines()
 		D3DComputePipelineDesc desc;
 		desc.NumRootParameters = ARRAYSIZE(rootParameters);
 		desc.RootParameters = rootParameters;
-		desc.Shader = L"assets/shaders/compute/aabb_builder.hlsl";
+		desc.Shader = L"assets/shaders/compute/brick_builder.hlsl";
 		desc.EntryPoint = L"main";
 		desc.Defines = nullptr;
 
-		m_AABBBuildPipeline = std::make_unique<D3DComputePipeline>(&desc);
+		m_BrickBuilderPipeline = std::make_unique<D3DComputePipeline>(&desc);
 	}
 
 	// Create pipeline that is used to bake SDFs into 3D textures
@@ -287,11 +300,11 @@ void SDFFactory::InitializePipelines()
 		D3DComputePipelineDesc desc;
 		desc.NumRootParameters = ARRAYSIZE(rootParameters);
 		desc.RootParameters = rootParameters;
-		desc.Shader = L"assets/shaders/compute/brick_builder.hlsl";
+		desc.Shader = L"assets/shaders/compute/brick_evaluator.hlsl";
 		desc.EntryPoint = L"main";
 		desc.Defines = nullptr;
 
-		m_BrickBuildPipeline = std::make_unique<D3DComputePipeline>(&desc);
+		m_BrickEvaluatorPipeline = std::make_unique<D3DComputePipeline>(&desc);
 	}
 }
 

@@ -27,7 +27,7 @@ SamplerState g_Sampler : register(s0);
 
 // The SDF volume that will be ray-marched in the intersection shader
 Texture3D<float> l_SDFVolume : register(t0, space1);
-StructuredBuffer<AABBPrimitiveData> l_PrimitiveBuffer : register(t1, space1);
+StructuredBuffer<BrickPointer> l_BrickBuffer : register(t1, space1);
 
 
 /////////////////
@@ -74,6 +74,39 @@ float3 ComputeSurfaceNormal(float3 p)
 }
 
 
+// Calculates which voxel in the brick pool this thread will map to
+uint3 CalculateBrickPoolPosition(uint brickIndex, uint3 brickPoolDimensions)
+{
+	// For now bricks are stored linearly
+	uint3 groupTopLeft;
+
+	const uint bricksX = brickPoolDimensions.x / SDF_BRICK_SIZE_IN_VOXELS;
+	const uint bricksY = brickPoolDimensions.y / SDF_BRICK_SIZE_IN_VOXELS;
+
+	groupTopLeft.x = brickIndex % (bricksX + 1);
+	brickIndex /= (bricksX + 1);
+	groupTopLeft.y = brickIndex % (bricksY + 1);
+	brickIndex /= (bricksY + 1);
+	groupTopLeft.z = brickIndex;
+
+	return groupTopLeft;
+}
+
+// Maps from a voxel within a brick to its uvw coordinate within the entire brick pool
+// Uses float3 instead of uint3 to maintain sub-voxel precision
+float3 BrickVoxelToPoolUVW(float3 voxel, float3 brickTopLeft, float3 uvwPerVoxel)
+{
+	return (brickTopLeft + voxel) * uvwPerVoxel;
+}
+
+// Maps from a uvw coordinate within the entire brick pool to its voxel within a brick 
+// Uses float3 instead of uint3 to maintain sub-voxel precision
+float3 PoolUVWToBrickVoxel(float3 uvw, float3 brickTopLeft, uint3 brickPoolDims)
+{
+	return (uvw * brickPoolDims) - brickTopLeft;
+}
+
+
 ////////////////////////
 //// RAYGEN SHADERS ////
 ////////////////////////
@@ -111,62 +144,69 @@ void MyRaygenShader()
 [shader("intersection")]
 void MyIntersectionShader()
 {
-	AABBPrimitiveData prim = l_PrimitiveBuffer[PrimitiveIndex()];
+	BrickPointer pBrick = l_BrickBuffer[PrimitiveIndex()];
 
 	Ray ray;
-	ray.origin = ObjectRayOrigin() - prim.AABBCentre.xyz;
+	ray.origin = ObjectRayOrigin() - pBrick.AABBCentre;
 	ray.direction = ObjectRayDirection();
 
 	float3 aabb[2];
-	aabb[1] = float3(prim.AABBHalfExtent, prim.AABBHalfExtent, prim.AABBHalfExtent);
+	aabb[1] = float3(pBrick.AABBHalfExtent, pBrick.AABBHalfExtent, pBrick.AABBHalfExtent);
 	aabb[0] = -aabb[1];
 
 	// Get the tmin and tmax of the intersection between the ray and this aabb
 	float tMin, tMax;
 	if (RayAABBIntersectionTest(ray, aabb, tMin, tMax))
 	{
+		// The dimensions of the pool texture are required to convert from voxel coordinates to uvw for sampling
+		uint3 poolDims;
+		l_SDFVolume.GetDimensions(poolDims.x, poolDims.y, poolDims.z);
+		float3 uvwPerVoxel = 1.0f / (float3)poolDims;
+
 		// if we are inside the aabb, begin ray marching from t = 0
 		// otherwise, begin from where the view ray first hits the box
 		float3 uvw = ray.origin + max(tMin, 0.0f) * ray.direction;
 		// map uvw to range [-1,1]
-		uvw /= prim.AABBHalfExtent;
-
-		// Remap uvw from [-1,1] to [UVWMin,UVWMax]
-		float3 uvwMin = prim.UVW;
-		float3 uvwMax = prim.UVW + prim.UVWExtent;
-		uvw = 0.5f * (uvw * (uvwMax - uvwMin) + uvwMax + uvwMin);
+		uvw /= pBrick.AABBHalfExtent;
+		// map to [0,1]
+		uvw = uvw * 2.0f - 1.0f;
 
 		if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_BOUNDING_BOX)
 		{ // Display AABB
 			MyAttributes attr;
-			attr.normal = uvw * 2.0f - 1.0f;
+			attr.normal = uvw;
 			attr.heatmap = 0;
 			ReportHit(max(tMin, RayTMin()), 0, attr);
 			return;
 		}
 
-		// Add a small amount of padding to the uvw bounds to hide the aabb edges
-		uvwMin -= prim.UVWExtent / SDF_BRICK_SIZE;
-		uvwMax += prim.UVWExtent / SDF_BRICK_SIZE;
+		// get voxel coordinate of top left of brick
+		const uint3 brickTopLeftVoxel = CalculateBrickPoolPosition(pBrick.BrickIndex, poolDims);
+
+		float3 voxel = uvw * SDF_BRICK_SIZE_IN_VOXELS;
+
+		// calculate voxel boundaries
 
 		// step through volume to find surface
 		uint iterationCount = 0;
+
+		// 0.0625 was the largest threshold before unacceptable artifacts were produced
 		while (true)
 		{
 			// Sample the volume
-			float s = l_SDFVolume.SampleLevel(g_Sampler, uvw, 0);
+			float s = l_SDFVolume.SampleLevel(g_Sampler, BrickVoxelToPoolUVW(voxel, brickTopLeftVoxel, uvwPerVoxel), 0);
 
-			// 0.0625 was the largest threshold before unacceptable artifacts were produced
 			if (s <= 0.0625f)
 				break;
 
 			// Remap s
-			s *= SDF_VOLUME_STRIDE * prim.UVWExtent / SDF_BRICK_SIZE;
-
-			uvw += s * ray.direction;
+			s *= SDF_VOLUME_STRIDE;
+			voxel += s * ray.direction;
 			 
-			if (uvw.x > uvwMax.x || uvw.y > uvwMax.y || uvw.z > uvwMax.z ||
-				uvw.x < uvwMin.x || uvw.y < uvwMin.y || uvw.z < uvwMin.z)
+			//if (uvw.x > uvwMax.x || uvw.y > uvwMax.y || uvw.z > uvwMax.z ||
+			//	uvw.x < uvwMin.x || uvw.y < uvwMin.y || uvw.z < uvwMin.z)
+			if (uvw.x > SDF_BRICK_SIZE_IN_VOXELS || uvw.y > SDF_BRICK_SIZE_IN_VOXELS || uvw.z > SDF_BRICK_SIZE_IN_VOXELS ||
+				uvw.x < 0 || uvw.y < 0 || uvw.z < 0)
 			{
 				// Exited box: no intersection
 				return;
@@ -174,7 +214,7 @@ void MyIntersectionShader()
 			iterationCount++;
 		}
 		// point of intersection in local space
-		const float3 pointOfIntersection = (uvw * 2.0f - 1.0f) * prim.AABBHalfExtent;
+		const float3 pointOfIntersection = (uvw * 2.0f - 1.0f) * pBrick.AABBHalfExtent;
 		// t is the distance from the ray origin to the point of intersection
 		const float newT = length(ray.origin - pointOfIntersection);
 
