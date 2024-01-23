@@ -128,7 +128,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 			IID_PPV_ARGS(&copyVolume)));
 
 		// Initialize a vector with all 1's
-		const std::vector<BYTE> volumeData(resolution * resolution * resolution, 0xFF);
+		const std::vector<BYTE> volumeData(resolution * resolution * resolution, 0x7F);	
 
 		// Copy this into the copy volume
 		BYTE* pVolume;

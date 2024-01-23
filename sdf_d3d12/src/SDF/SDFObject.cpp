@@ -19,7 +19,7 @@ SDFObject::SDFObject(UINT resolution)
 	// Create volume resource
 	{
 		auto heap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-		CD3DX12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex3D(DXGI_FORMAT_R8_UNORM, m_VolumeResolution, m_VolumeResolution, m_VolumeResolution, 1, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+		CD3DX12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex3D(DXGI_FORMAT_R8_SNORM, m_VolumeResolution, m_VolumeResolution, m_VolumeResolution, 1, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 
 		THROW_IF_FAIL(device->CreateCommittedResource(
 			&heap,

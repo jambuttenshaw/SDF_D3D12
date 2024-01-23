@@ -50,10 +50,10 @@ float FormatDistance(float inDistance, float UVWExtent)
 {
 	// Calculate the distance value in terms of voxels
 	const float voxelsPerUnit = 0.5f * SDF_BRICK_SIZE / UVWExtent;
-	const float voxelDistance = max(0.0f, inDistance * voxelsPerUnit);
+	const float voxelDistance = inDistance * voxelsPerUnit;
 
 	// Now map the distance such that 1 = maxDistance
-	return saturate(voxelDistance / SDF_VOLUME_STRIDE);
+	return min(1.0f, max(-1.0f, voxelDistance / SDF_VOLUME_STRIDE));
 }
 
 
