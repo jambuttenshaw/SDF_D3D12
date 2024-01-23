@@ -174,7 +174,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 
 		// Set resources
 		m_CommandList->SetComputeRoot32BitConstants(AABBBuilderComputeRootSignature::BuildParameterSlot, SizeOfInUint32(buildParamsBuffer), &buildParamsBuffer, 0);
-		m_CommandList->SetComputeRootDescriptorTable(AABBBuilderComputeRootSignature::EditListSlot, editList.GetEditBufferSRV());
+		m_CommandList->SetComputeRootShaderResourceView(AABBBuilderComputeRootSignature::EditListSlot, editList.GetEditBufferAddress());
 		m_CommandList->SetComputeRootDescriptorTable(AABBBuilderComputeRootSignature::CounterResourceSlot, m_CounterResourceUAV.GetGPUHandle());
 		m_CommandList->SetComputeRootDescriptorTable(AABBBuilderComputeRootSignature::AABBBufferSlot, object->GetAABBBufferUAV());
 		m_CommandList->SetComputeRootDescriptorTable(AABBBuilderComputeRootSignature::AABBPrimitiveDataSlot, object->GetPrimitiveDataBufferUAV());
@@ -219,8 +219,8 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 
 		// Set resource views
 		m_CommandList->SetComputeRoot32BitConstants(BrickBuildComputeRootSignature::BuildParameterSlot, SizeOfInUint32(buildParamsBuffer), &buildParamsBuffer, 0);
-		m_CommandList->SetComputeRootDescriptorTable(BrickBuildComputeRootSignature::EditListSlot, editList.GetEditBufferSRV());
-		m_CommandList->SetComputeRootDescriptorTable(BrickBuildComputeRootSignature::AABBPrimitiveDataSlot, object->GetPrimitiveDataBufferUAV());
+		m_CommandList->SetComputeRootShaderResourceView(BrickBuildComputeRootSignature::EditListSlot, editList.GetEditBufferAddress());
+		m_CommandList->SetComputeRootShaderResourceView(BrickBuildComputeRootSignature::AABBPrimitiveDataSlot, object->GetPrimitiveDataBufferAddress());
 		m_CommandList->SetComputeRootDescriptorTable(BrickBuildComputeRootSignature::OutputVolumeSlot, object->GetVolumeUAV());
 
 		// Execute one group for each AABB
@@ -251,18 +251,17 @@ void SDFFactory::InitializePipelines()
 {
 	// Create pipeline to build array of AABB geometry to fit the volume texture
 	{
-		CD3DX12_DESCRIPTOR_RANGE1 ranges[4];
-		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
-		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
-		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1);
-		ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 2);
+		CD3DX12_DESCRIPTOR_RANGE1 ranges[3];
+		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
+		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1);
+		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 2);
 
 		CD3DX12_ROOT_PARAMETER1 rootParameters[AABBBuilderComputeRootSignature::Count];
 		rootParameters[AABBBuilderComputeRootSignature::BuildParameterSlot].InitAsConstants(SizeOfInUint32(SDFBuilderConstantBuffer), 0);
-		rootParameters[AABBBuilderComputeRootSignature::EditListSlot].InitAsDescriptorTable(1, &ranges[0]);
-		rootParameters[AABBBuilderComputeRootSignature::CounterResourceSlot].InitAsDescriptorTable(1, &ranges[1]);
-		rootParameters[AABBBuilderComputeRootSignature::AABBBufferSlot].InitAsDescriptorTable(1, &ranges[2]);
-		rootParameters[AABBBuilderComputeRootSignature::AABBPrimitiveDataSlot].InitAsDescriptorTable(1, &ranges[3]);
+		rootParameters[AABBBuilderComputeRootSignature::EditListSlot].InitAsShaderResourceView(0);
+		rootParameters[AABBBuilderComputeRootSignature::CounterResourceSlot].InitAsDescriptorTable(1, &ranges[0]);
+		rootParameters[AABBBuilderComputeRootSignature::AABBBufferSlot].InitAsDescriptorTable(1, &ranges[1]);
+		rootParameters[AABBBuilderComputeRootSignature::AABBPrimitiveDataSlot].InitAsDescriptorTable(1, &ranges[2]);
 
 		D3DComputePipelineDesc desc;
 		desc.NumRootParameters = ARRAYSIZE(rootParameters);
@@ -276,16 +275,14 @@ void SDFFactory::InitializePipelines()
 
 	// Create pipeline that is used to bake SDFs into 3D textures
 	{
-		CD3DX12_DESCRIPTOR_RANGE1 ranges[3];
-		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
-		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
-		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1);
+		CD3DX12_DESCRIPTOR_RANGE1 ranges[1];
+		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1);
 
 		CD3DX12_ROOT_PARAMETER1 rootParameters[BrickBuildComputeRootSignature::Count];
 		rootParameters[BrickBuildComputeRootSignature::BuildParameterSlot].InitAsConstants(SizeOfInUint32(SDFBuilderConstantBuffer), 0);
-		rootParameters[BrickBuildComputeRootSignature::EditListSlot].InitAsDescriptorTable(1, &ranges[0]);
-		rootParameters[BrickBuildComputeRootSignature::AABBPrimitiveDataSlot].InitAsDescriptorTable(1, &ranges[1]);
-		rootParameters[BrickBuildComputeRootSignature::OutputVolumeSlot].InitAsDescriptorTable(1, &ranges[2]);
+		rootParameters[BrickBuildComputeRootSignature::EditListSlot].InitAsShaderResourceView(0);
+		rootParameters[BrickBuildComputeRootSignature::AABBPrimitiveDataSlot].InitAsShaderResourceView(1);
+		rootParameters[BrickBuildComputeRootSignature::OutputVolumeSlot].InitAsDescriptorTable(1, &ranges[0]);
 
 		D3DComputePipelineDesc desc;
 		desc.NumRootParameters = ARRAYSIZE(rootParameters);

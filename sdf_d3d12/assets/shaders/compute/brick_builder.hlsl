@@ -17,7 +17,7 @@
 ConstantBuffer<SDFBuilderConstantBuffer> g_BuildParameters : register(b0);
 StructuredBuffer<SDFEditData> g_EditList : register(t0);
 
-RWStructuredBuffer<AABBPrimitiveData> g_PrimitiveData : register(u0);
+StructuredBuffer<AABBPrimitiveData> g_PrimitiveData : register(t1);
 RWTexture3D<float> g_OutputTexture : register(u1);
 
 
