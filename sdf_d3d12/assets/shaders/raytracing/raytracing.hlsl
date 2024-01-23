@@ -3,6 +3,7 @@
 
 #define HLSL
 #include "../../../src/Renderer/Hlsl/RaytracingHlslCompat.h"
+#include "../../../src/Renderer/Hlsl/ComputeHlslCompat.h"
 
 #include "ray_helper.hlsli"
 
@@ -26,8 +27,6 @@ SamplerState g_Sampler : register(s0);
 
 // The SDF volume that will be ray-marched in the intersection shader
 Texture3D<float> l_SDFVolume : register(t0, space1);
-
-ConstantBuffer<VolumeConstantBuffer> l_VolumeCB : register(b0, space1);
 StructuredBuffer<AABBPrimitiveData> l_PrimitiveBuffer : register(t1, space1);
 
 
@@ -66,7 +65,7 @@ inline void GenerateCameraRay(uint2 index, out float3 origin, out float3 directi
 
 float3 ComputeSurfaceNormal(float3 p)
 {
-	const float invRes = l_VolumeCB.InvVolumeDimensions;
+	const float invRes = 0.01f;
 	return normalize(float3(
         (l_SDFVolume.SampleLevel(g_Sampler, p + float3(invRes, 0.0f, 0.0f), 0) - l_SDFVolume.SampleLevel(g_Sampler, p - float3(invRes, 0.0f, 0.0f), 0)),
         (l_SDFVolume.SampleLevel(g_Sampler, p + float3(0.0f, invRes, 0.0f), 0) - l_SDFVolume.SampleLevel(g_Sampler, p - float3(0.0f, invRes, 0.0f), 0)),
@@ -147,8 +146,8 @@ void MyIntersectionShader()
 		}
 
 		// Add a small amount of padding to the uvw bounds to hide the aabb edges
-		uvwMin -= l_VolumeCB.InvVolumeDimensions;
-		uvwMax += l_VolumeCB.InvVolumeDimensions;
+		uvwMin -= prim.UVWExtent / SDF_BRICK_SIZE;
+		uvwMax += prim.UVWExtent / SDF_BRICK_SIZE;
 
 		// step through volume to find surface
 		uint iterationCount = 0;
@@ -162,7 +161,7 @@ void MyIntersectionShader()
 				break;
 
 			// Remap s
-			s *= l_VolumeCB.UVWVolumeStride;
+			s *= SDF_VOLUME_STRIDE * prim.UVWExtent / SDF_BRICK_SIZE;
 
 			uvw += s * ray.direction;
 			 

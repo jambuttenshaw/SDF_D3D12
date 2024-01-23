@@ -152,7 +152,6 @@ void Raytracer::CreateRootSignatures()
 
 		CD3DX12_ROOT_PARAMETER rootParameters[LocalRootSignatureParams::Count];
 		rootParameters[LocalRootSignatureParams::SDFVolumeSlot].InitAsDescriptorTable(1, &SRVDescriptor);
-		rootParameters[LocalRootSignatureParams::VolumeCBSlot].InitAsConstants(SizeOfInUint32(VolumeConstantBuffer), 0, 1);
 		rootParameters[LocalRootSignatureParams::AABBPrimitiveDataSlot].InitAsShaderResourceView(1, 1);
 
 		CD3DX12_ROOT_SIGNATURE_DESC localRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE);
@@ -314,9 +313,6 @@ void Raytracer::BuildShaderTables()
 			{
 				LocalRootSignatureParams::RootArguments rootArgs;
 				rootArgs.volumeSRV = geometryInstance.GetVolumeSRV();
-				rootArgs.volumeCB.VolumeDimensions = geometryInstance.GetVolumeResolution();
-				rootArgs.volumeCB.InvVolumeDimensions = 1.0f / static_cast<float>(rootArgs.volumeCB.VolumeDimensions);
-				rootArgs.volumeCB.UVWVolumeStride = rootArgs.volumeCB.InvVolumeDimensions * static_cast<float>(SDF_VOLUME_STRIDE);
 				rootArgs.aabbPrimitiveData = geometryInstance.GetGeometry().GetPrimitiveDataBufferAddress();
 
 				m_HitGroupShaderTable->AddRecord(ShaderRecord{

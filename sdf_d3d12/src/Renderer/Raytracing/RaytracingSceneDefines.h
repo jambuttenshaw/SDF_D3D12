@@ -18,7 +18,6 @@ namespace LocalRootSignatureParams
 	enum Value
 	{
 		SDFVolumeSlot = 0,			// SDF Volume to raymarch
-		VolumeCBSlot,				// CB values pertaining to the volume
 		AABBPrimitiveDataSlot,		// Array of data pertaining to each AABB primitive
 		Count
 	};
@@ -26,7 +25,6 @@ namespace LocalRootSignatureParams
 	struct RootArguments
 	{
 		D3D12_GPU_DESCRIPTOR_HANDLE volumeSRV;
-		VolumeConstantBuffer volumeCB;
 		D3D12_GPU_VIRTUAL_ADDRESS aabbPrimitiveData;
 	};
 }
