@@ -53,7 +53,8 @@ float FormatDistance(float inDistance, float UVWExtent)
 	const float voxelDistance = inDistance * voxelsPerUnit;
 
 	// Now map the distance such that 1 = maxDistance
-	return min(1.0f, max(-1.0f, voxelDistance / SDF_VOLUME_STRIDE));
+	// The formatted distance will be clamped to [-1, 1] when it is written to the brick
+	return voxelDistance / SDF_VOLUME_STRIDE;
 }
 
 

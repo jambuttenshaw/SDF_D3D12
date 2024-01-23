@@ -126,32 +126,29 @@ void MyIntersectionShader()
 	float tMin, tMax;
 	if (RayAABBIntersectionTest(ray, aabb, tMin, tMax))
 	{
-		const float halfBoxExtent = 0.5f * abs(aabb[0] - aabb[1]).x;
-
 		// if we are inside the aabb, begin ray marching from t = 0
 		// otherwise, begin from where the view ray first hits the box
 		float3 uvw = ray.origin + max(tMin, 0.0f) * ray.direction;
-
 		// map uvw to range [-1,1]
-		uvw /= halfBoxExtent;
-
-		if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_BOUNDING_BOX)
-		{ // Display AABB
-			MyAttributes attr;
-			attr.normal = uvw;
-			attr.heatmap = 0;
-			ReportHit(max(tMin, RayTMin()), 0, attr);
-			return;
-		}
+		uvw /= prim.AABBHalfExtent;
 
 		// Remap uvw from [-1,1] to [UVWMin,UVWMax]
 		float3 uvwMin = prim.UVW;
 		float3 uvwMax = prim.UVW + prim.UVWExtent;
 		uvw = 0.5f * (uvw * (uvwMax - uvwMin) + uvwMax + uvwMin);
 
+		if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_BOUNDING_BOX)
+		{ // Display AABB
+			MyAttributes attr;
+			attr.normal = uvw * 2.0f - 1.0f;
+			attr.heatmap = 0;
+			ReportHit(max(tMin, RayTMin()), 0, attr);
+			return;
+		}
+
 		// Add a small amount of padding to the uvw bounds to hide the aabb edges
-		uvwMin -= l_VolumeCB.UVWVolumeStride;
-		uvwMax += l_VolumeCB.UVWVolumeStride;
+		uvwMin -= l_VolumeCB.InvVolumeDimensions;
+		uvwMax += l_VolumeCB.InvVolumeDimensions;
 
 		// step through volume to find surface
 		uint iterationCount = 0;
@@ -160,11 +157,11 @@ void MyIntersectionShader()
 			// Sample the volume
 			float s = l_SDFVolume.SampleLevel(g_Sampler, uvw, 0);
 
+			if (s <= 0.0625f)
+				break;
+
 			// Remap s
 			s *= l_VolumeCB.UVWVolumeStride;
-
-			if (s <= l_VolumeCB.InvVolumeDimensions)
-				break;
 
 			uvw += s * ray.direction;
 			 
@@ -177,7 +174,7 @@ void MyIntersectionShader()
 			iterationCount++;
 		}
 		// point of intersection in local space
-		const float3 pointOfIntersection = (uvw * 2.0f - 1.0f) * halfBoxExtent;
+		const float3 pointOfIntersection = (uvw * 2.0f - 1.0f) * prim.AABBHalfExtent;
 		// t is the distance from the ray origin to the point of intersection
 		const float newT = length(ray.origin - pointOfIntersection);
 

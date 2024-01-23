@@ -47,5 +47,5 @@ private:
 	std::unique_ptr<Raytracer> m_Raytracer;
 
 	// Flags to pass to the renderer
-	UINT m_RenderFlags = 0;
+	UINT m_RenderFlags = RENDER_FLAG_DISPLAY_NORMALS;
 };

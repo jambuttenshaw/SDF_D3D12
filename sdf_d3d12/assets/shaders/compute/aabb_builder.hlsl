@@ -46,6 +46,16 @@ float EvaluateEditList(float3 p)
 	return nearest.w;
 }
 
+float FormatDistance(float inDistance, float UVWExtent)
+{
+	// Calculate the distance value in terms of voxels
+	const float voxelsPerUnit = 0.5f * SDF_BRICK_SIZE / UVWExtent;
+	const float voxelDistance = inDistance * voxelsPerUnit;
+
+	// Now map the distance such that 1 = maxDistance
+	return voxelDistance / SDF_VOLUME_STRIDE;
+}
+
 
 [numthreads(AABB_BUILD_NUM_THREADS_PER_GROUP, AABB_BUILD_NUM_THREADS_PER_GROUP, AABB_BUILD_NUM_THREADS_PER_GROUP)]
 void main(uint3 DTid : SV_DispatchThreadID)
@@ -74,9 +84,10 @@ void main(uint3 DTid : SV_DispatchThreadID)
 
 		// Evaluate object at this point
 		const float distance = EvaluateEditList(p);
+		const float mappedDistance = FormatDistance(distance, g_BuildParameters.UVWPerAABB);
 		// If distance is larger than the size of this voxel then this voxel cannot contain geometry
 		// Use abs(distance) to cull bounding boxes within the geometry
-		if (abs(distance) > 5.0f * SDF_VOLUME_STRIDE * g_BuildParameters.UVWPerAABB / SDF_BRICK_SIZE)
+		if (abs(mappedDistance) > 2.25f)
 			return;
 	}
 
