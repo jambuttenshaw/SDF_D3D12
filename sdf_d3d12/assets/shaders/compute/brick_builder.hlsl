@@ -61,6 +61,11 @@ float FormatDistance(float inDistance)
 [numthreads(AABB_BUILD_NUM_THREADS_PER_GROUP, AABB_BUILD_NUM_THREADS_PER_GROUP, AABB_BUILD_NUM_THREADS_PER_GROUP)]
 void main(uint3 DTid : SV_DispatchThreadID)
 {
+	if (DTid.x > g_BuildParameters.EvalSpace_BricksPerAxis.x ||
+		DTid.y > g_BuildParameters.EvalSpace_BricksPerAxis.y || 
+		DTid.z > g_BuildParameters.EvalSpace_BricksPerAxis.z)
+		return;
+
 	// Map thread to a region of space
 	// The thread will determine if space is empty in that region
 	// If space is not empty, then it will create a brick for that region

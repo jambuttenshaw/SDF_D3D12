@@ -11,7 +11,7 @@ SDFObject::SDFObject()
 
 	// TODO: Temporary
 	// TODO: This is part of the process of removing the dependency on volume resolution for calculations
-	UINT divisions = 128 / SDF_BRICK_SIZE_IN_VOXELS;
+	UINT divisions = 16;
 	m_BrickCapacityPerAxis = { divisions, divisions, divisions };
 
 	const auto device = g_D3DGraphicsContext->GetDevice();

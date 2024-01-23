@@ -78,18 +78,18 @@ float3 ComputeSurfaceNormal(float3 p)
 uint3 CalculateBrickPoolPosition(uint brickIndex, uint3 brickPoolDimensions)
 {
 	// For now bricks are stored linearly
-	uint3 groupTopLeft;
+	uint3 brickTopLeft;
 
 	const uint bricksX = brickPoolDimensions.x / SDF_BRICK_SIZE_IN_VOXELS;
 	const uint bricksY = brickPoolDimensions.y / SDF_BRICK_SIZE_IN_VOXELS;
 
-	groupTopLeft.x = brickIndex % (bricksX + 1);
+	brickTopLeft.x = brickIndex % (bricksX + 1);
 	brickIndex /= (bricksX + 1);
-	groupTopLeft.y = brickIndex % (bricksY + 1);
+	brickTopLeft.y = brickIndex % (bricksY + 1);
 	brickIndex /= (bricksY + 1);
-	groupTopLeft.z = brickIndex;
+	brickTopLeft.z = brickIndex;
 
-	return groupTopLeft;
+	return brickTopLeft * SDF_BRICK_SIZE_IN_VOXELS;
 }
 
 // Maps from a voxel within a brick to its uvw coordinate within the entire brick pool
@@ -191,7 +191,7 @@ void MyIntersectionShader()
 		uint iterationCount = 0;
 
 		// 0.0625 was the largest threshold before unacceptable artifacts were produced
-		while (true)
+		while (iterationCount < 32)
 		{
 			// Sample the volume
 			float s = l_SDFVolume.SampleLevel(g_Sampler, BrickVoxelToPoolUVW(voxel, brickTopLeftVoxel, uvwPerVoxel), 0);

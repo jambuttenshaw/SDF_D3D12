@@ -59,18 +59,18 @@ float FormatDistance(float inDistance)
 
 
 // Calculates which voxel in the brick pool this thread will map to
-uint3 CalculateGroupBrickPoolPosition(uint brickIndex)
+uint3 CalculateBrickPoolPosition(uint brickIndex)
 {
 	// For now bricks are stored linearly
-	uint3 groupTopLeft;
+	uint3 brickTopLeft;
 
-	groupTopLeft.x = brickIndex % (g_BuildParameters.BrickPool_BrickCapacityPerAxis.x + 1);
+	brickTopLeft.x = brickIndex % (g_BuildParameters.BrickPool_BrickCapacityPerAxis.x + 1);
 	brickIndex /= (g_BuildParameters.BrickPool_BrickCapacityPerAxis.x + 1);
-	groupTopLeft.y = brickIndex % (g_BuildParameters.BrickPool_BrickCapacityPerAxis.y + 1);
+	brickTopLeft.y = brickIndex % (g_BuildParameters.BrickPool_BrickCapacityPerAxis.y + 1);
 	brickIndex /= (g_BuildParameters.BrickPool_BrickCapacityPerAxis.y + 1);
-	groupTopLeft.z = brickIndex;
+	brickTopLeft.z = brickIndex;
 
-	return groupTopLeft;
+	return brickTopLeft * SDF_BRICK_SIZE_IN_VOXELS;
 }
 
 
@@ -93,7 +93,7 @@ void main(uint3 GroupID : SV_GroupID, uint3 GTid : SV_GroupThreadID)
 	const float mappedDistance = FormatDistance(nearest);
 
 	// Now calculate where to store the voxel in the brick pool
-	const uint3 brickVoxel = CalculateGroupBrickPoolPosition(brick.BrickIndex) + GTid;
+	const uint3 brickVoxel = CalculateBrickPoolPosition(brick.BrickIndex) + GTid;
 
 	// Store the mapped distance in the volume
 	g_OutputTexture[brickVoxel] = mappedDistance;
