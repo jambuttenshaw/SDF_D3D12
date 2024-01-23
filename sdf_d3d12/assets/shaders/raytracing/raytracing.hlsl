@@ -157,6 +157,7 @@ void MyIntersectionShader()
 			// Sample the volume
 			float s = l_SDFVolume.SampleLevel(g_Sampler, uvw, 0);
 
+			// 0.0625 was the largest threshold before unacceptable artifacts were produced
 			if (s <= 0.0625f)
 				break;
 
@@ -208,7 +209,7 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 		const float irradiance = max(0.0f, dot(attr.normal, LIGHT_DIRECTION));
 		const float3 lightColor = LIGHT_AMBIENT + irradiance * LIGHT_DIFFUSE;
 		payload.color = float4(lightColor, 1.0f);
-		}
+	}
 }
 
 
