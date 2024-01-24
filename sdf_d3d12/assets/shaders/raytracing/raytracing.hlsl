@@ -83,10 +83,10 @@ uint3 CalculateBrickPoolPosition(uint brickIndex, uint3 brickPoolDimensions)
 	const uint bricksX = brickPoolDimensions.x / SDF_BRICK_SIZE_IN_VOXELS;
 	const uint bricksY = brickPoolDimensions.y / SDF_BRICK_SIZE_IN_VOXELS;
 
-	brickTopLeft.x = brickIndex % (bricksX + 1);
-	brickIndex /= (bricksX + 1);
-	brickTopLeft.y = brickIndex % (bricksY + 1);
-	brickIndex /= (bricksY + 1);
+	brickTopLeft.x = brickIndex % bricksX;
+	brickIndex /= bricksX;
+	brickTopLeft.y = brickIndex % bricksY;
+	brickIndex /= bricksY;
 	brickTopLeft.z = brickIndex;
 
 	return brickTopLeft * SDF_BRICK_SIZE_IN_VOXELS;
@@ -161,7 +161,7 @@ void MyIntersectionShader()
 		// The dimensions of the pool texture are required to convert from voxel coordinates to uvw for sampling
 		uint3 poolDims;
 		l_SDFVolume.GetDimensions(poolDims.x, poolDims.y, poolDims.z);
-		float3 uvwPerVoxel = 1.0f / (float3)poolDims;
+		const float3 uvwPerVoxel = 1.0f / (float3)poolDims;
 
 		// if we are inside the aabb, begin ray marching from t = 0
 		// otherwise, begin from where the view ray first hits the box
@@ -174,7 +174,10 @@ void MyIntersectionShader()
 		if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_BOUNDING_BOX)
 		{ // Display AABB
 			MyAttributes attr;
-			attr.normal = uvw;
+			if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_BRICK_INDEX)
+				attr.normal = float3(pBrick.BrickIndex / 2.0f, pBrick.BrickIndex / 4.0f, pBrick.BrickIndex / 8.0f) * 2.0f - 1.0f;
+			else
+				attr.normal = uvw;
 			attr.heatmap = 0;
 			ReportHit(max(tMin, RayTMin()), 0, attr);
 			return;
@@ -203,8 +206,6 @@ void MyIntersectionShader()
 			s *= SDF_VOLUME_STRIDE;
 			voxel += s * ray.direction;
 			 
-			//if (uvw.x > uvwMax.x || uvw.y > uvwMax.y || uvw.z > uvwMax.z ||
-			//	uvw.x < uvwMin.x || uvw.y < uvwMin.y || uvw.z < uvwMin.z)
 			if (uvw.x > SDF_BRICK_SIZE_IN_VOXELS || uvw.y > SDF_BRICK_SIZE_IN_VOXELS || uvw.z > SDF_BRICK_SIZE_IN_VOXELS ||
 				uvw.x < 0 || uvw.y < 0 || uvw.z < 0)
 			{

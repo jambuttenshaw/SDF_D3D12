@@ -12,6 +12,7 @@ using namespace DirectX;
 #define RENDER_FLAG_DISPLAY_BOUNDING_BOX 1u
 #define RENDER_FLAG_DISPLAY_HEATMAP 2u
 #define RENDER_FLAG_DISPLAY_NORMALS 4u
+#define RENDER_FLAG_DISPLAY_BRICK_INDEX 8u
 
 
 struct MyAttributes

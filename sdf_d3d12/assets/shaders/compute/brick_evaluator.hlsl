@@ -64,10 +64,10 @@ uint3 CalculateBrickPoolPosition(uint brickIndex)
 	// For now bricks are stored linearly
 	uint3 brickTopLeft;
 
-	brickTopLeft.x = brickIndex % (g_BuildParameters.BrickPool_BrickCapacityPerAxis.x + 1);
-	brickIndex /= (g_BuildParameters.BrickPool_BrickCapacityPerAxis.x + 1);
-	brickTopLeft.y = brickIndex % (g_BuildParameters.BrickPool_BrickCapacityPerAxis.y + 1);
-	brickIndex /= (g_BuildParameters.BrickPool_BrickCapacityPerAxis.y + 1);
+	brickTopLeft.x = brickIndex % g_BuildParameters.BrickPool_BrickCapacityPerAxis.x;
+	brickIndex /= g_BuildParameters.BrickPool_BrickCapacityPerAxis.x;
+	brickTopLeft.y = brickIndex % g_BuildParameters.BrickPool_BrickCapacityPerAxis.y;
+	brickIndex /= g_BuildParameters.BrickPool_BrickCapacityPerAxis.y;
 	brickTopLeft.z = brickIndex;
 
 	return brickTopLeft * SDF_BRICK_SIZE_IN_VOXELS;
@@ -84,9 +84,7 @@ void main(uint3 GroupID : SV_GroupID, uint3 GTid : SV_GroupThreadID)
 	const float voxelInEvaluationSpaceUnits = g_BuildParameters.EvalSpace_BrickSize / SDF_BRICK_SIZE_IN_VOXELS;
 
 	// Calculate the point in space that this thread is processing
-	const float3 evaluationPosition = (brick.AABBCentre - brick.AABBHalfExtent)	// Top left of brick
-									+ ((float3)GTid / SDF_BRICK_SIZE_IN_VOXELS) // Offset by which thread this is in the group
-									+ 0.5f * voxelInEvaluationSpaceUnits;		// Offset by half a voxel to evaluate at voxel centre
+	const float3 evaluationPosition = (brick.AABBCentre - brick.AABBHalfExtent) + ((float3) GTid + 0.5f) * voxelInEvaluationSpaceUnits;		
 
 	// Evaluate SDF volume
 	const float nearest = EvaluateEditList(evaluationPosition);

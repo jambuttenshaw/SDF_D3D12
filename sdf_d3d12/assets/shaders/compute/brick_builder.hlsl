@@ -61,9 +61,9 @@ float FormatDistance(float inDistance)
 [numthreads(AABB_BUILD_NUM_THREADS_PER_GROUP, AABB_BUILD_NUM_THREADS_PER_GROUP, AABB_BUILD_NUM_THREADS_PER_GROUP)]
 void main(uint3 DTid : SV_DispatchThreadID)
 {
-	if (DTid.x > g_BuildParameters.EvalSpace_BricksPerAxis.x ||
-		DTid.y > g_BuildParameters.EvalSpace_BricksPerAxis.y || 
-		DTid.z > g_BuildParameters.EvalSpace_BricksPerAxis.z)
+	if (DTid.x >= g_BuildParameters.EvalSpace_BricksPerAxis.x ||
+		DTid.y >= g_BuildParameters.EvalSpace_BricksPerAxis.y || 
+		DTid.z >= g_BuildParameters.EvalSpace_BricksPerAxis.z)
 		return;
 
 	// Map thread to a region of space
@@ -71,8 +71,8 @@ void main(uint3 DTid : SV_DispatchThreadID)
 	// If space is not empty, then it will create a brick for that region
 
 	// Calculate where in the evaluation region the centre of this brick lies
-	const float3 t = DTid / float3(g_BuildParameters.EvalSpace_BricksPerAxis) + 0.5f * g_BuildParameters.EvalSpace_BrickSize;
-	const float3 brickCentre = (1.0f - t) * g_BuildParameters.EvalSpace_MinBoundary.xyz + t * g_BuildParameters.EvalSpace_MaxBoundary.xyz;
+	const float3 t = DTid / float3(g_BuildParameters.EvalSpace_BricksPerAxis);
+	const float3 brickCentre = ((1.0f - t) * g_BuildParameters.EvalSpace_MinBoundary.xyz + t * g_BuildParameters.EvalSpace_MaxBoundary.xyz) + 0.5f * g_BuildParameters.EvalSpace_BrickSize;
 
 	// Evaluate object at this point
 	const float distance = EvaluateEditList(brickCentre);
@@ -80,8 +80,8 @@ void main(uint3 DTid : SV_DispatchThreadID)
 
 	// If distance is larger than the size of this voxel then this voxel cannot contain geometry
 	// Use abs(distance) to cull bounding boxes within the geometry
-	if (abs(mappedDistance) > 2.25f)
-		return;
+	//if (abs(mappedDistance) > 2.25f)
+	//	return;
 
 	// Use the counter to get the index in  the aabb buffer that this thread will operate on
 	// Only do this if this thread is going to add a box
