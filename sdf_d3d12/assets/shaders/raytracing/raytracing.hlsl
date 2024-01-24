@@ -165,57 +165,83 @@ void MyIntersectionShader()
 
 		// if we are inside the aabb, begin ray marching from t = 0
 		// otherwise, begin from where the view ray first hits the box
-		float3 uvw = ray.origin + max(tMin, 0.0f) * ray.direction;
+		float3 uvwAABB = ray.origin + max(tMin, 0.0f) * ray.direction;
 		// map uvw to range [-1,1]
-		uvw /= pBrick.AABBHalfExtent;
+		uvwAABB /= pBrick.AABBHalfExtent;
 		// map to [0,1]
-		uvw = uvw * 2.0f - 1.0f;
+		uvwAABB = uvwAABB * 0.5f + 0.5f;
 
+		// get voxel coordinate of top left of brick
+		const uint3 brickTopLeftVoxel = CalculateBrickPoolPosition(pBrick.BrickIndex, poolDims);
+		const float3 brickVoxel = uvwAABB * SDF_BRICK_SIZE_IN_VOXELS;
+
+
+		// Debug: Display the bounding box directly instead of sphere tracing the contents
 		if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_BOUNDING_BOX)
 		{ // Display AABB
 			MyAttributes attr;
+
+			// Debug: Display the brick index that this bounding box would sphere trace
 			if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_BRICK_INDEX)
-				attr.normal = float3(pBrick.BrickIndex / 2.0f, pBrick.BrickIndex / 4.0f, pBrick.BrickIndex / 8.0f) * 2.0f - 1.0f;
+			{
+				// Some method of turning the index into a color
+				attr.normal = float3(pBrick.BrickIndex / 2.0f, pBrick.BrickIndex / 4.0f, pBrick.BrickIndex / 8.0f);
+				attr.remap = false;
+			}
+			// Debug: Display the brick pool uvw of the intersection with the surface of the box
+			else if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_POOL_UVW)
+			{
+				attr.normal = BrickVoxelToPoolUVW(brickVoxel, brickTopLeftVoxel, uvwPerVoxel);
+				attr.remap = false;
+			}
 			else
-				attr.normal = uvw;
+			{
+				attr.normal = uvwAABB;
+				attr.remap = false;
+			}
+			
 			attr.heatmap = 0;
 			ReportHit(max(tMin, RayTMin()), 0, attr);
 			return;
 		}
 
-		// get voxel coordinate of top left of brick
-		const uint3 brickTopLeftVoxel = CalculateBrickPoolPosition(pBrick.BrickIndex, poolDims);
 
-		float3 voxel = uvw * SDF_BRICK_SIZE_IN_VOXELS;
+		// Get the pool UVW
+		float3 uvw = BrickVoxelToPoolUVW(brickVoxel, brickTopLeftVoxel, uvwPerVoxel);
+		float3 uvwMin = BrickVoxelToPoolUVW(0.0f, brickTopLeftVoxel, uvwPerVoxel);
+		float3 uvwMax = BrickVoxelToPoolUVW(SDF_BRICK_SIZE_IN_VOXELS, brickTopLeftVoxel, uvwPerVoxel);
 
-		// calculate voxel boundaries
+		const float stride_voxelToUVW = (uvwMax - uvwMin) / SDF_BRICK_SIZE_IN_VOXELS;
+
 
 		// step through volume to find surface
 		uint iterationCount = 0;
-
-		// 0.0625 was the largest threshold before unacceptable artifacts were produced
-		while (iterationCount < 32)
+		while (iterationCount < 32) // iteration guard
 		{
 			// Sample the volume
-			float s = l_SDFVolume.SampleLevel(g_Sampler, BrickVoxelToPoolUVW(voxel, brickTopLeftVoxel, uvwPerVoxel), 0);
+			float s = l_SDFVolume.SampleLevel(g_Sampler, uvw, 0);
 
+			// 0.0625 was the largest threshold before unacceptable artifacts were produced
 			if (s <= 0.0625f)
 				break;
 
 			// Remap s
-			s *= SDF_VOLUME_STRIDE;
-			voxel += s * ray.direction;
+			s *= SDF_VOLUME_STRIDE * stride_voxelToUVW;
+			uvw += s * ray.direction;
 			 
-			if (uvw.x > SDF_BRICK_SIZE_IN_VOXELS || uvw.y > SDF_BRICK_SIZE_IN_VOXELS || uvw.z > SDF_BRICK_SIZE_IN_VOXELS ||
-				uvw.x < 0 || uvw.y < 0 || uvw.z < 0)
+			if (uvw.x > uvwMax.x || uvw.y > uvwMax.y || uvw.z > uvwMax.z ||
+				uvw.x < uvwMin.x || uvw.y < uvwMin.y || uvw.z < uvwMin.z)
 			{
 				// Exited box: no intersection
 				return;
 			}
 			iterationCount++;
 		}
+
+		// Calculate the hit point as a UVW of the AABB
+		float3 hitUVWAABB = PoolUVWToBrickVoxel(uvw, brickTopLeftVoxel, poolDims) / SDF_BRICK_SIZE_IN_VOXELS;
 		// point of intersection in local space
-		const float3 pointOfIntersection = (uvw * 2.0f - 1.0f) * pBrick.AABBHalfExtent;
+		const float3 pointOfIntersection = (hitUVWAABB * 2.0f - 1.0f) * pBrick.AABBHalfExtent;
 		// t is the distance from the ray origin to the point of intersection
 		const float newT = length(ray.origin - pointOfIntersection);
 
@@ -223,6 +249,7 @@ void MyIntersectionShader()
 		// Transform from object space to world space
 		attr.normal = normalize(mul(ComputeSurfaceNormal(uvw), transpose((float3x3) ObjectToWorld())));
 		attr.heatmap = iterationCount;
+		attr.remap = true;
 		ReportHit(newT, 0, attr);
 	}
 }
@@ -241,7 +268,12 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 	}
 	else if (g_PassCB.Flags & (RENDER_FLAG_DISPLAY_NORMALS | RENDER_FLAG_DISPLAY_BOUNDING_BOX))
 	{
-		payload.color = float4(0.5f + 0.5f * attr.normal, 1);
+		float3 normalColor;
+		if (attr.remap)
+			normalColor = 0.5f + 0.5f * attr.normal;
+		else
+			normalColor = attr.normal;
+		payload.color = float4(normalColor, 1);
 	}
 	else
 	{

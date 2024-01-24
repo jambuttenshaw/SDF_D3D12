@@ -9,16 +9,18 @@ using namespace DirectX;
 
 
 // Flags
-#define RENDER_FLAG_DISPLAY_BOUNDING_BOX 1u
-#define RENDER_FLAG_DISPLAY_HEATMAP 2u
-#define RENDER_FLAG_DISPLAY_NORMALS 4u
-#define RENDER_FLAG_DISPLAY_BRICK_INDEX 8u
+#define RENDER_FLAG_DISPLAY_BOUNDING_BOX	1u
+#define RENDER_FLAG_DISPLAY_HEATMAP			2u
+#define RENDER_FLAG_DISPLAY_NORMALS			4u
+#define RENDER_FLAG_DISPLAY_BRICK_INDEX		8u
+#define RENDER_FLAG_DISPLAY_POOL_UVW		16u
 
 
 struct MyAttributes
 {
 	XMFLOAT3 normal;
 	UINT heatmap;		// Sphere marching iteration count
+	bool remap;			// Remap normal from [-1,1] to [0,1]. Mostly for debugging when the normal isn't actually passed through
 };
 struct RayPayload
 {

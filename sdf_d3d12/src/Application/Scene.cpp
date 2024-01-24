@@ -159,7 +159,8 @@ Scene::Scene()
 						z * s_InstanceSpacing + m_InstanceTranslation[index].z 
 					);
 
-					m_AccelerationStructure->AddBottomLevelASInstance(geometryName, rotation * translation, 1);
+					//m_AccelerationStructure->AddBottomLevelASInstance(geometryName, rotation * translation, 1);
+					m_AccelerationStructure->AddBottomLevelASInstance(geometryName, XMMatrixIdentity(), 1);
 				}
 			}
 		}

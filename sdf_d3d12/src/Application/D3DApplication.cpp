@@ -80,6 +80,7 @@ void D3DApplication::OnUpdate()
 		RenderFlagOption("Display Heatmap", RENDER_FLAG_DISPLAY_HEATMAP);
 		RenderFlagOption("Display Normals", RENDER_FLAG_DISPLAY_NORMALS);
 		RenderFlagOption("Display Brick Index", RENDER_FLAG_DISPLAY_BRICK_INDEX);
+		RenderFlagOption("Display Pool UVW", RENDER_FLAG_DISPLAY_POOL_UVW);
 	}
 
 	ImGui::End();
