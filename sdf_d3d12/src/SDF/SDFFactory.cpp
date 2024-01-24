@@ -105,7 +105,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		buildParamsBuffer.EvalSpace_MinBoundary = { -1.0f, -1.0f, -1.0f, 0.0f };
 		buildParamsBuffer.EvalSpace_MaxBoundary = { 1.0f,  1.0f,  1.0f, 0.0f };
 		// TODO: Hard code unit cubes
-		buildParamsBuffer.EvalSpace_BrickSize = 1.0f; // Eval space domain / BRICK_SIZE
+		buildParamsBuffer.EvalSpace_BrickSize = 0.125f; // Eval space domain / BRICK_SIZE
 
 		const auto bricksPerAxis = (buildParamsBuffer.EvalSpace_MaxBoundary - buildParamsBuffer.EvalSpace_MinBoundary) / buildParamsBuffer.EvalSpace_BrickSize;
 		XMStoreUInt3(&buildParamsBuffer.EvalSpace_BricksPerAxis, bricksPerAxis);
@@ -125,9 +125,9 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 	// Fill the volume with 1's
 	ComPtr<ID3D12Resource> copyVolume;
 	{
-		const UINT width = object->GetBrickCapacityPerAxis().x * SDF_BRICK_SIZE_IN_VOXELS;
-		const UINT height = object->GetBrickCapacityPerAxis().y * SDF_BRICK_SIZE_IN_VOXELS;
-		const UINT depth = object->GetBrickCapacityPerAxis().z * SDF_BRICK_SIZE_IN_VOXELS;
+		const UINT width = object->GetBrickCapacityPerAxis().x * SDF_BRICK_SIZE_VOXELS_ADJACENCY;
+		const UINT height = object->GetBrickCapacityPerAxis().y * SDF_BRICK_SIZE_VOXELS_ADJACENCY;
+		const UINT depth = object->GetBrickCapacityPerAxis().z * SDF_BRICK_SIZE_VOXELS_ADJACENCY;
 		const UINT64 bufferSize = static_cast<UINT64>(width) * height * depth * sizeof(BYTE);
 
 		const auto uploadHeap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);

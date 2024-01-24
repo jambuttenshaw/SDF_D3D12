@@ -11,7 +11,7 @@ SDFObject::SDFObject()
 
 	// TODO: Temporary
 	// TODO: This is part of the process of removing the dependency on volume resolution for calculations
-	m_BrickCapacityPerAxis = { 2, 2, 2 };
+	m_BrickCapacityPerAxis = { 16, 16, 16 };
 
 	const auto device = g_D3DGraphicsContext->GetDevice();
 	const auto descriptorHeap = g_D3DGraphicsContext->GetSRVHeap();
@@ -21,9 +21,9 @@ SDFObject::SDFObject()
 		auto heap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 		CD3DX12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex3D(
 			DXGI_FORMAT_R8_SNORM,
-			m_BrickCapacityPerAxis.x * SDF_BRICK_SIZE_IN_VOXELS,
-			m_BrickCapacityPerAxis.y * SDF_BRICK_SIZE_IN_VOXELS,
-			m_BrickCapacityPerAxis.z * SDF_BRICK_SIZE_IN_VOXELS,
+			m_BrickCapacityPerAxis.x * SDF_BRICK_SIZE_VOXELS_ADJACENCY,
+			m_BrickCapacityPerAxis.y * SDF_BRICK_SIZE_VOXELS_ADJACENCY,
+			m_BrickCapacityPerAxis.z * SDF_BRICK_SIZE_VOXELS_ADJACENCY,
 			1,
 			D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 

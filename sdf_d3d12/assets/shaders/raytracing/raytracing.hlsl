@@ -62,13 +62,12 @@ inline void GenerateCameraRay(uint2 index, out float3 origin, out float3 directi
 }
 
 
-float3 ComputeSurfaceNormal(float3 p)
+float3 ComputeSurfaceNormal(float3 p, float delta)
 {
-	const float invRes = 0.01f;
 	return normalize(float3(
-        (l_SDFVolume.SampleLevel(g_Sampler, p + float3(invRes, 0.0f, 0.0f), 0) - l_SDFVolume.SampleLevel(g_Sampler, p - float3(invRes, 0.0f, 0.0f), 0)),
-        (l_SDFVolume.SampleLevel(g_Sampler, p + float3(0.0f, invRes, 0.0f), 0) - l_SDFVolume.SampleLevel(g_Sampler, p - float3(0.0f, invRes, 0.0f), 0)),
-        (l_SDFVolume.SampleLevel(g_Sampler, p + float3(0.0f, 0.0f, invRes), 0) - l_SDFVolume.SampleLevel(g_Sampler, p - float3(0.0f, 0.0f, invRes), 0))
+        (l_SDFVolume.SampleLevel(g_Sampler, p + float3(delta, 0.0f, 0.0f), 0) - l_SDFVolume.SampleLevel(g_Sampler, p - float3(delta, 0.0f, 0.0f), 0)),
+        (l_SDFVolume.SampleLevel(g_Sampler, p + float3(0.0f, delta, 0.0f), 0) - l_SDFVolume.SampleLevel(g_Sampler, p - float3(0.0f, delta, 0.0f), 0)),
+        (l_SDFVolume.SampleLevel(g_Sampler, p + float3(0.0f, 0.0f, delta), 0) - l_SDFVolume.SampleLevel(g_Sampler, p - float3(0.0f, 0.0f, delta), 0))
     ));
 }
 
@@ -79,8 +78,8 @@ uint3 CalculateBrickPoolPosition(uint brickIndex, uint3 brickPoolDimensions)
 	// For now bricks are stored linearly
 	uint3 brickTopLeft;
 
-	const uint bricksX = brickPoolDimensions.x / SDF_BRICK_SIZE_IN_VOXELS;
-	const uint bricksY = brickPoolDimensions.y / SDF_BRICK_SIZE_IN_VOXELS;
+	const uint bricksX = brickPoolDimensions.x / SDF_BRICK_SIZE_VOXELS_ADJACENCY;
+	const uint bricksY = brickPoolDimensions.y / SDF_BRICK_SIZE_VOXELS_ADJACENCY;
 
 	brickTopLeft.x = brickIndex % bricksX;
 	brickIndex /= bricksX;
@@ -88,7 +87,7 @@ uint3 CalculateBrickPoolPosition(uint brickIndex, uint3 brickPoolDimensions)
 	brickIndex /= bricksY;
 	brickTopLeft.z = brickIndex;
 
-	return brickTopLeft * SDF_BRICK_SIZE_IN_VOXELS;
+	return brickTopLeft * SDF_BRICK_SIZE_VOXELS_ADJACENCY;
 }
 
 // Maps from a voxel within a brick to its uvw coordinate within the entire brick pool
@@ -180,7 +179,10 @@ void MyIntersectionShader()
 
 		// get voxel coordinate of top left of brick
 		const uint3 brickTopLeftVoxel = CalculateBrickPoolPosition(pBrick.BrickIndex, poolDims);
-		const float3 brickVoxel = uvwAABB * SDF_BRICK_SIZE_IN_VOXELS;
+
+		// Offset by 1 due to adjacency data
+		// e.g., uvwAABB of (0, 0, 0) actually references the voxel at (1, 1, 1) - not (0, 0, 0)
+		const float3 brickVoxel = (uvwAABB * SDF_BRICK_SIZE_VOXELS) + 1.0f;
 
 
 		// Debug: Display the bounding box directly instead of sphere tracing the contents
@@ -215,10 +217,10 @@ void MyIntersectionShader()
 
 		// Get the pool UVW
 		float3 uvw = BrickVoxelToPoolUVW(brickVoxel, brickTopLeftVoxel, uvwPerVoxel);
-		float3 uvwMin = BrickVoxelToPoolUVW(0.0f, brickTopLeftVoxel, uvwPerVoxel);
-		float3 uvwMax = BrickVoxelToPoolUVW(SDF_BRICK_SIZE_IN_VOXELS, brickTopLeftVoxel, uvwPerVoxel);
+		float3 uvwMin = BrickVoxelToPoolUVW(1.0f, brickTopLeftVoxel, uvwPerVoxel);
+		float3 uvwMax = BrickVoxelToPoolUVW(SDF_BRICK_SIZE_VOXELS + 1.0f, brickTopLeftVoxel, uvwPerVoxel);
 
-		const float stride_voxelToUVW = (uvwMax - uvwMin).x / SDF_BRICK_SIZE_IN_VOXELS;
+		const float stride_voxelToUVW = (uvwMax - uvwMin).x / SDF_BRICK_SIZE_VOXELS;
 
 
 		// step through volume to find surface
@@ -246,7 +248,7 @@ void MyIntersectionShader()
 		}
 
 		// Calculate the hit point as a UVW of the AABB
-		float3 hitUVWAABB = PoolUVWToBrickVoxel(uvw, brickTopLeftVoxel, poolDims) / SDF_BRICK_SIZE_IN_VOXELS;
+		float3 hitUVWAABB = (PoolUVWToBrickVoxel(uvw, brickTopLeftVoxel, poolDims) - 1.0f) / SDF_BRICK_SIZE_VOXELS;
 		// point of intersection in local space
 		const float3 pointOfIntersection = (hitUVWAABB * 2.0f - 1.0f) * pBrick.AABBHalfExtent;
 		// t is the distance from the ray origin to the point of intersection
@@ -254,7 +256,7 @@ void MyIntersectionShader()
 
 		MyAttributes attr;
 		// Transform from object space to world space
-		attr.normal = normalize(mul(ComputeSurfaceNormal(uvw), transpose((float3x3) ObjectToWorld())));
+		attr.normal = normalize(mul(ComputeSurfaceNormal(uvw, 0.5f * uvwPerVoxel), transpose((float3x3) ObjectToWorld())));
 		attr.heatmap = iterationCount;
 		attr.remap = true;
 		ReportHit(newT, 0, attr);

@@ -49,7 +49,7 @@ float EvaluateEditList(float3 p)
 float FormatDistance(float inDistance)
 {
 	// Calculate the distance value in terms of voxels
-	const float voxelsPerAxis = g_BuildParameters.EvalSpace_BricksPerAxis.x * SDF_BRICK_SIZE_IN_VOXELS;
+	const float voxelsPerAxis = g_BuildParameters.EvalSpace_BricksPerAxis.x * SDF_BRICK_SIZE_VOXELS;
 	const float voxelsPerUnit = voxelsPerAxis / (g_BuildParameters.EvalSpace_MaxBoundary - g_BuildParameters.EvalSpace_MinBoundary).x;
 	const float voxelDistance = inDistance * voxelsPerUnit;
 

@@ -49,7 +49,7 @@ float EvaluateEditList(float3 p)
 float FormatDistance(float inDistance)
 {
 	// Calculate the distance value in terms of voxels
-	const float voxelsPerAxis = g_BuildParameters.EvalSpace_BricksPerAxis.x * SDF_BRICK_SIZE_IN_VOXELS;
+	const float voxelsPerAxis = g_BuildParameters.EvalSpace_BricksPerAxis.x * SDF_BRICK_SIZE_VOXELS;
 	const float voxelsPerUnit = voxelsPerAxis / (g_BuildParameters.EvalSpace_MaxBoundary - g_BuildParameters.EvalSpace_MinBoundary).x;
 	const float voxelDistance = inDistance * voxelsPerUnit;
 
@@ -70,21 +70,21 @@ uint3 CalculateBrickPoolPosition(uint brickIndex)
 	brickIndex /= g_BuildParameters.BrickPool_BrickCapacityPerAxis.y;
 	brickTopLeft.z = brickIndex;
 
-	return brickTopLeft * SDF_BRICK_SIZE_IN_VOXELS;
+	return brickTopLeft * SDF_BRICK_SIZE_VOXELS_ADJACENCY;
 }
 
 
-[numthreads(SDF_BRICK_SIZE_IN_VOXELS, SDF_BRICK_SIZE_IN_VOXELS, SDF_BRICK_SIZE_IN_VOXELS)]
+[numthreads(SDF_BRICK_SIZE_VOXELS_ADJACENCY, SDF_BRICK_SIZE_VOXELS_ADJACENCY, SDF_BRICK_SIZE_VOXELS_ADJACENCY)]
 void main(uint3 GroupID : SV_GroupID, uint3 GTid : SV_GroupThreadID)
 {
 	// Which brick is this thread processing
 	const BrickPointer brick = g_BrickBuffer[GroupID.x];
 
 	// How much of evaluation space does 1 voxel take up
-	const float voxelInEvaluationSpaceUnits = g_BuildParameters.EvalSpace_BrickSize / SDF_BRICK_SIZE_IN_VOXELS;
+	const float voxelInEvaluationSpaceUnits = g_BuildParameters.EvalSpace_BrickSize / SDF_BRICK_SIZE_VOXELS;
 
 	// Calculate the point in space that this thread is processing
-	const float3 evaluationPosition = (brick.AABBCentre - brick.AABBHalfExtent) + ((float3) GTid + 0.5f) * voxelInEvaluationSpaceUnits;		
+	const float3 evaluationPosition = (brick.AABBCentre - brick.AABBHalfExtent) + ((float3) GTid - 0.5f) * voxelInEvaluationSpaceUnits;		
 
 	// Evaluate SDF volume
 	const float nearest = EvaluateEditList(evaluationPosition);
