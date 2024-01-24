@@ -17,14 +17,14 @@ namespace LocalRootSignatureParams
 {
 	enum Value
 	{
-		SDFVolumeSlot = 0,			// SDF Volume to raymarch
-		AABBPrimitiveDataSlot,		// Array of data pertaining to each AABB primitive
+		BrickPoolSlot = 0,		// Brick pool to raymarch
+		BrickBufferSlot,		// Indirection data for brick
 		Count
 	};
 
 	struct RootArguments
 	{
-		D3D12_GPU_DESCRIPTOR_HANDLE volumeSRV;
-		D3D12_GPU_VIRTUAL_ADDRESS aabbPrimitiveData;
+		D3D12_GPU_DESCRIPTOR_HANDLE brickPoolSRV;
+		D3D12_GPU_VIRTUAL_ADDRESS brickBuffer;
 	};
 }

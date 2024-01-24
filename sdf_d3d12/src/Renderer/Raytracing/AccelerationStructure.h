@@ -1,13 +1,14 @@
 #pragma once
 
 #include "Renderer/Buffer/UploadBuffer.h"
-#include "AABBGeometry.h"
 #include "Renderer/D3DGraphicsContext.h"
 #include "Renderer/Buffer/DefaultBuffer.h"
 
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
+
+class SDFObject;
 
 
 // Acceleration Structure base class for functionality shared between bottom- and top-level structures
@@ -68,10 +69,7 @@ struct BottomLevelAccelerationStructureGeometry
 	DEFAULT_MOVE(BottomLevelAccelerationStructureGeometry)
 
 	std::wstring Name;
-
-	// An instance of a geometry
-	// Supplies instance-specific data such as the volume texture and geometry flags
-	std::vector<AABBGeometryInstance> GeometryInstances;
+	std::vector<SDFObject*> GeometryInstances;
 };
 
 

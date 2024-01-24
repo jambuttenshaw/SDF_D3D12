@@ -146,13 +146,13 @@ void Raytracer::CreateRootSignatures()
 	// Local Root Signature
 	// This root signature is only used by the hit group
 	{
-		// volume descriptor
+		// brick pool descriptor
 		CD3DX12_DESCRIPTOR_RANGE SRVDescriptor;
 		SRVDescriptor.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 1);
 
 		CD3DX12_ROOT_PARAMETER rootParameters[LocalRootSignatureParams::Count];
-		rootParameters[LocalRootSignatureParams::SDFVolumeSlot].InitAsDescriptorTable(1, &SRVDescriptor);
-		rootParameters[LocalRootSignatureParams::AABBPrimitiveDataSlot].InitAsShaderResourceView(1, 1);
+		rootParameters[LocalRootSignatureParams::BrickPoolSlot].InitAsDescriptorTable(1, &SRVDescriptor);
+		rootParameters[LocalRootSignatureParams::BrickBufferSlot].InitAsShaderResourceView(1, 1);
 
 		CD3DX12_ROOT_SIGNATURE_DESC localRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE);
 		SerializeAndCreateRaytracingRootSignature(localRootSignatureDesc, &m_RaytracingLocalRootSignature);
@@ -312,8 +312,8 @@ void Raytracer::BuildShaderTables()
 			for (auto& geometryInstance : bottomLevelASGeometry.GeometryInstances)
 			{
 				LocalRootSignatureParams::RootArguments rootArgs;
-				rootArgs.volumeSRV = geometryInstance.GetVolumeSRV();
-				rootArgs.aabbPrimitiveData = geometryInstance.GetGeometry().GetPrimitiveDataBufferAddress();
+				rootArgs.brickPoolSRV = geometryInstance->GetBrickPoolSRV();
+				rootArgs.brickBuffer = geometryInstance->GetBrickBufferAddress();
 
 				m_HitGroupShaderTable->AddRecord(ShaderRecord{
 					hitGroupShaderIdentifier,

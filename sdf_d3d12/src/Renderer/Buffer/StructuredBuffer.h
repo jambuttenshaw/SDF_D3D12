@@ -14,6 +14,8 @@ public:
 	DISALLOW_COPY(StructuredBuffer)
 	DEFAULT_MOVE(StructuredBuffer)
 
+	inline static constexpr UINT GetElementStride() { return sizeof(T); }
+
 	void Allocate(ID3D12Device* device, UINT elementCount, D3D12_RESOURCE_STATES initialResourceState, bool readWrite = false, const wchar_t* resourceName = nullptr)
 	{
 		ASSERT(elementCount > 0, "Cannot allocate buffer with 0 elements");

@@ -93,16 +93,8 @@ Scene::Scene()
 		auto& torusGeometry = m_SceneGeometry.at(0);
 		auto& spheresGeometry = m_SceneGeometry.at(1);
 
-		torusGeometry.GeometryInstances.push_back({
-			*m_TorusObject.get(),
-			D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE,
-			m_TorusObject->GetBrickPoolSRV()
-			});
-		spheresGeometry.GeometryInstances.push_back({
-			*m_SphereObject.get(),
-			D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE,
-			m_SphereObject->GetBrickPoolSRV()
-		});
+		torusGeometry.GeometryInstances.push_back(m_TorusObject.get());
+		spheresGeometry.GeometryInstances.push_back(m_SphereObject.get());
 	}
 
 	{
@@ -231,15 +223,15 @@ void Scene::DebugInfo(const char* name, const SDFObject* object) const
 {
 	ImGui::Text(name);
 
-	ImGui::Text("Brick count: %d", object->GetAABBCount());
+	ImGui::Text("Brick count: %d", object->GetBrickCount());
 
-	const float aabbCull = 100.0f * (1.0f - static_cast<float>(object->GetAABBCount()) / static_cast<float>(object->GetBrickBufferCapacity()));
+	const float aabbCull = 100.0f * (1.0f - static_cast<float>(object->GetBrickCount()) / static_cast<float>(object->GetBrickBufferCapacity()));
 	ImGui::Text("Brick Cull: %.1f", aabbCull);
 
 	const auto brickPoolSize = object->GetBrickPoolDimensions();
 	ImGui::Text("Brick Pool Size: %d, %d, %d", brickPoolSize.x, brickPoolSize.y, brickPoolSize.z);
 
-	const float poolUsage = 100.0f * (static_cast<float>(object->GetAABBCount()) / static_cast<float>(object->GetBrickPoolCapacity()));
+	const float poolUsage = 100.0f * (static_cast<float>(object->GetBrickCount()) / static_cast<float>(object->GetBrickPoolCapacity()));
 	ImGui::Text("Brick Pool Usage: %.1f", poolUsage);
 
 	ImGui::Separator();

@@ -4,7 +4,8 @@
 #include "Renderer/D3DGraphicsContext.h"
 #include "Renderer/Hlsl/ComputeHlslCompat.h"
 
-SDFObject::SDFObject(float brickSize, UINT brickCapacity)
+SDFObject::SDFObject(float brickSize, UINT brickCapacity, D3D12_RAYTRACING_GEOMETRY_FLAGS geometryFlags)
+	: m_GeometryFlags(geometryFlags)
 {
 	ASSERT(brickSize > 0.0f, "Invalid brick size!");
 	ASSERT(brickCapacity > 0, "Invalid brick capacity!");
@@ -44,12 +45,12 @@ void SDFObject::AllocateOptimalBrickPool(UINT brickCount)
 
 	// Calculate dimensions for the brick pool such that it contains at least m_BrickCount entries
 	// but is also a useful shape
-	UINT nextCube = std::floor(std::cbrtf(m_BrickCount)) + 1;
+	UINT nextCube = static_cast<UINT>(std::floor(std::cbrtf(static_cast<float>(m_BrickCount)))) + 1;
 	m_BrickPoolDimensions = { nextCube, nextCube, nextCube };
 
 	const auto device = g_D3DGraphicsContext->GetDevice();
 
-	// Create volume resource
+	// Create brick pool resource
 	{
 		const auto heap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 		const CD3DX12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex3D(
@@ -71,7 +72,7 @@ void SDFObject::AllocateOptimalBrickPool(UINT brickCount)
 		m_BrickPool->SetName(L"SDF Brick Pool");
 	}
 
-	// Create resource views for volume
+	// Create resource views for brick pool
 	{
 		device->CreateShaderResourceView(m_BrickPool.Get(), nullptr, m_ResourceViews.GetCPUHandle(0));
 		device->CreateUnorderedAccessView(m_BrickPool.Get(), nullptr, nullptr, m_ResourceViews.GetCPUHandle(1));

@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "AccelerationStructure.h"
 
+#include "SDF/SDFObject.h"
+
 
 void AccelerationStructure::AllocateResource()
 {
@@ -147,10 +149,10 @@ void BottomLevelAccelerationStructure::BuildGeometryDescs(const BottomLevelAccel
 		m_GeometryDescs.push_back(geometryDescTemplate);
 		auto& desc = m_GeometryDescs.back();
 
-		desc.Flags = geometryInstance.GetFlags();
-		desc.AABBs.AABBCount = geometryInstance.GetGeometry().GetAABBCount();
-		desc.AABBs.AABBs.StartAddress = geometryInstance.GetGeometry().GetAABBBufferAddress();
-		desc.AABBs.AABBs.StrideInBytes = geometryInstance.GetGeometry().GetAABBBufferStride();
+		desc.Flags = geometryInstance->GetGeometryFlags();
+		desc.AABBs.AABBCount = geometryInstance->GetBrickCount();
+		desc.AABBs.AABBs.StartAddress = geometryInstance->GetAABBBufferAddress();
+		desc.AABBs.AABBs.StrideInBytes = geometryInstance->GetAABBBufferStride();
 	}
 }
 

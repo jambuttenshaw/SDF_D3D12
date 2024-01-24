@@ -228,7 +228,6 @@
     <ClInclude Include="src\Renderer\D3DShaderCompiler.h" />
     <ClInclude Include="src\Renderer\Hlsl\HlslDefines.h" />
     <ClInclude Include="src\Renderer\ShaderTable.h" />
-    <ClInclude Include="src\Renderer\Raytracing\AABBGeometry.h" />
     <ClInclude Include="src\Renderer\Hlsl\ComputeHlslCompat.h" />
     <ClInclude Include="src\Renderer\Hlsl\HlslCompat.h" />
     <ClInclude Include="src\Renderer\Hlsl\RaytracingHlslCompat.h" />
