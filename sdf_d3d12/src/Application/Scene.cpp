@@ -126,7 +126,7 @@ Scene::Scene()
 				for (UINT x = 0; x < s_InstanceGridDims; x++)
 				{
 					const UINT index = (z * s_InstanceGridDims + y) * s_InstanceGridDims + x;
-					const auto& geometryName = index % 2 ? torusGeometry : spheresGeometry;
+					const auto& geometryName = x + y - z % 2 ? torusGeometry : spheresGeometry;
 
 					auto rotation = XMMatrixRotationRollPitchYaw(
 						XMConvertToRadians(Random::Float(360.0f)),
