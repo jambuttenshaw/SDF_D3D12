@@ -17,7 +17,7 @@ Scene::Scene()
 
 		// Create an SDF object
 		m_TorusObject = std::make_unique<SDFObject>();
-		//m_SphereObject = std::make_unique<SDFObject>();
+		m_SphereObject = std::make_unique<SDFObject>();
 
 		/*
 		m_SDFObject->AddPrimitive(SDFEdit::CreateBox(
@@ -34,7 +34,6 @@ Scene::Scene()
 
 		
 		{
-			/*
 			// Create torus object edit list
 			m_TorusEditList.AddEdit(SDFEdit::CreateTorus({}, 0.85f, 0.05f));
 
@@ -49,11 +48,9 @@ Scene::Scene()
 			m_TorusEditList.AddEdit(SDFEdit::CreateTorus(torusTransform, 0.85f, 0.05f, SDFOperation::SmoothUnion, 0.1f));
 
 			m_TorusEditList.AddEdit(SDFEdit::CreateOctahedron({}, 0.7f));
-			*/
-			m_TorusEditList.AddEdit(SDFEdit::CreateSphere({}, 0.75f));
+			
 			m_SDFFactory->BakeSDFSynchronous(m_TorusObject.get(), m_TorusEditList);
 		}
-		/*
 		{
 			// Create sphere object by adding and then subtracting a bunch of spheres
 			constexpr UINT addSpheres = 16;
@@ -86,29 +83,26 @@ Scene::Scene()
 			// Bake the primitives into the SDF object
 			m_SDFFactory->BakeSDFSynchronous(m_SphereObject.get(), m_SphereEditList);
 		}
-		*/
 	}
 
 	{
 		// Construct scene geometry
 		m_SceneGeometry.push_back({ L"Torus" });
-		//m_SceneGeometry.push_back({ L"Spheres" });
+		m_SceneGeometry.push_back({ L"Spheres" });
 
 		auto& torusGeometry = m_SceneGeometry.at(0);
-		//auto& spheresGeometry = m_SceneGeometry.at(1);
+		auto& spheresGeometry = m_SceneGeometry.at(1);
 
 		torusGeometry.GeometryInstances.push_back({
 			*m_TorusObject.get(),
 			D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE,
 			m_TorusObject->GetVolumeSRV()
-		});
-		/*
+			});
 		spheresGeometry.GeometryInstances.push_back({
 			*m_SphereObject.get(),
 			D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE,
 			m_SphereObject->GetVolumeSRV()
 		});
-		*/
 	}
 
 	{
@@ -132,7 +126,7 @@ Scene::Scene()
 				for (UINT x = 0; x < s_InstanceGridDims; x++)
 				{
 					const UINT index = (z * s_InstanceGridDims + y) * s_InstanceGridDims + x;
-					const auto& geometryName = index % 2 ? spheresGeometry : torusGeometry;
+					const auto& geometryName = index % 2 ? torusGeometry : spheresGeometry;
 
 					auto rotation = XMMatrixRotationRollPitchYaw(
 						XMConvertToRadians(Random::Float(360.0f)),
@@ -159,8 +153,7 @@ Scene::Scene()
 						z * s_InstanceSpacing + m_InstanceTranslation[index].z 
 					);
 
-					//m_AccelerationStructure->AddBottomLevelASInstance(geometryName, rotation * translation, 1);
-					m_AccelerationStructure->AddBottomLevelASInstance(geometryName, XMMatrixIdentity(), 1);
+					m_AccelerationStructure->AddBottomLevelASInstance(geometryName, rotation * translation, 1);
 				}
 			}
 		}
@@ -217,7 +210,7 @@ void Scene::OnUpdate(float deltaTime)
 		ImGui::Text("AABB Cull: %.1f", aabbCull);
 
 		ImGui::Separator();
-		/*
+		
 		ImGui::Text("Sphere Object");
 		ImGui::Text("AABBs Per Instance: %d", m_SphereObject->GetAABBCount());
 
@@ -225,7 +218,7 @@ void Scene::OnUpdate(float deltaTime)
 		ImGui::Text("AABB Cull: %.1f", aabbCull);
 
 		ImGui::Separator();
-		*/
+		
 		ImGui::Text("Scene Controls");
 		ImGui::Separator();
 

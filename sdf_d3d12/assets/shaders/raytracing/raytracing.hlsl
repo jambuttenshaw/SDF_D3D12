@@ -256,7 +256,7 @@ void MyIntersectionShader()
 
 		MyAttributes attr;
 		// Transform from object space to world space
-		attr.normal = normalize(mul(ComputeSurfaceNormal(uvw, 0.5f * uvwPerVoxel), transpose((float3x3) ObjectToWorld())));
+		attr.normal = normalize(mul(ComputeSurfaceNormal(uvw, 0.5f * uvwPerVoxel.x), transpose((float3x3) ObjectToWorld())));
 		attr.heatmap = iterationCount;
 		attr.remap = true;
 		ReportHit(newT, 0, attr);
