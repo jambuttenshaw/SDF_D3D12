@@ -7,11 +7,9 @@
 using namespace DirectX;
 #endif
 
+#include "HlslDefines.h"
 
 #define AABB_BUILD_NUM_THREADS_PER_GROUP 8 // 8x8x8 threads per group to build AABBs
-
-#define SDF_BRICK_SIZE_IN_VOXELS 8
-#define SDF_VOLUME_STRIDE 4
 
 
 struct SDFEditData

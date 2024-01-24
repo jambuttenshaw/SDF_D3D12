@@ -7,6 +7,8 @@
 using namespace DirectX;
 #endif
 
+#include "HlslDefines.h"
+
 
 // Flags
 #define RENDER_FLAG_DISPLAY_BOUNDING_BOX	1u

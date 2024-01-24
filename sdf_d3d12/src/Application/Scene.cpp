@@ -50,7 +50,7 @@ Scene::Scene()
 
 			m_TorusEditList.AddEdit(SDFEdit::CreateOctahedron({}, 0.7f));
 			*/
-			m_TorusEditList.AddEdit(SDFEdit::CreateSphere({}, 0.5f));
+			m_TorusEditList.AddEdit(SDFEdit::CreateSphere({}, 0.75f));
 			m_SDFFactory->BakeSDFSynchronous(m_TorusObject.get(), m_TorusEditList);
 		}
 		/*

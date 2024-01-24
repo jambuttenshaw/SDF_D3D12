@@ -3,7 +3,6 @@
 
 #define HLSL
 #include "../../../src/Renderer/Hlsl/RaytracingHlslCompat.h"
-#include "../../../src/Renderer/Hlsl/ComputeHlslCompat.h"
 
 #include "ray_helper.hlsli"
 
