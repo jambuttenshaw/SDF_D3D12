@@ -105,11 +105,11 @@ float3 PoolUVWToBrickVoxel(float3 uvw, float3 brickTopLeft, uint3 brickPoolDims)
 }
 
 
-float3 RGBFromHue(float hue)
+float3 RGBFromHSV(float3 input)
 {
-	const float4 K = float4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-	const float3 p = abs(frac(hue.xxx + K.xyz) * 6.0 - K.www);
-	return saturate(p - K.xxx);
+	float4 K = float4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+	float3 p = abs(frac(input.xxx + K.xyz) * 6.0 - K.www);
+	return input.z * lerp(K.xxx, clamp(p - K.xxx, 0.0, 1.0), input.y);
 }
 
 
@@ -194,7 +194,8 @@ void MyIntersectionShader()
 			if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_BRICK_INDEX)
 			{
 				// Some method of turning the index into a color
-				attr.normal = RGBFromHue(frac(pBrick.BrickIndex / 64.0f));
+				const uint i = pBrick.BrickIndex;
+				attr.normal = RGBFromHSV(float3(frac(i / 64.0f), 1, 0.5f + 0.5f * frac(i / 256.0f)));
 				attr.remap = false;
 			}
 			// Debug: Display the brick pool uvw of the intersection with the surface of the box

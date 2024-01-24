@@ -80,7 +80,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
 
 	// If distance is larger than the size of this voxel then this voxel cannot contain geometry
 	// Use abs(distance) to cull bounding boxes within the geometry
-	if (abs(mappedDistance) > 2.25f)
+	if (abs(mappedDistance) > 1.2f)
 		return;
 
 	// Use the counter to get the index in  the aabb buffer that this thread will operate on

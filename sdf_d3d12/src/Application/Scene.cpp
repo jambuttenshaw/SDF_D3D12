@@ -17,7 +17,7 @@ Scene::Scene()
 
 		// Create an SDF object
 		m_TorusObject = std::make_unique<SDFObject>(0.125f, 4096);
-		m_SphereObject = std::make_unique<SDFObject>(0.125f, 4096);
+		m_SphereObject = std::make_unique<SDFObject>(0.0625f, 65536);
 
 		/*
 		m_SDFObject->AddPrimitive(SDFEdit::CreateBox(
@@ -126,8 +126,7 @@ Scene::Scene()
 				for (UINT x = 0; x < s_InstanceGridDims; x++)
 				{
 					const UINT index = (z * s_InstanceGridDims + y) * s_InstanceGridDims + x;
-					//const auto& geometryName = x + y - z % 2 ? torusGeometry : spheresGeometry;
-					const auto& geometryName = torusGeometry;
+					const auto& geometryName = index % 2 ? torusGeometry : spheresGeometry;
 
 					auto rotation = XMMatrixRotationRollPitchYaw(
 						XMConvertToRadians(Random::Float(360.0f)),

@@ -110,8 +110,8 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		XMStoreUInt3(&buildParamsBuffer.EvalSpace_BricksPerAxis, bricksPerAxis);
 
 		// Make sure the object is large enough to store this many bricks
-		ASSERT(buildParamsBuffer.EvalSpace_BricksPerAxis.x * buildParamsBuffer.EvalSpace_BricksPerAxis.y * buildParamsBuffer.EvalSpace_BricksPerAxis.z <= object->GetBrickBufferCapacity(), 
-			"Object does not have large enough brick capacity and buffer overflow is likely!");
+		const UINT requiredCapacity = buildParamsBuffer.EvalSpace_BricksPerAxis.x * buildParamsBuffer.EvalSpace_BricksPerAxis.y * buildParamsBuffer.EvalSpace_BricksPerAxis.z;
+		ASSERT(requiredCapacity <= object->GetBrickBufferCapacity(), "Object does not have large enough brick capacity and buffer overflow is likely!");
 
 		// Brick capacity has not been determined until brick builder has executed
 		buildParamsBuffer.BrickPool_BrickCapacityPerAxis = XMUINT3{ 0, 0, 0 };
