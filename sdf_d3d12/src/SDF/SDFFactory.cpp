@@ -103,8 +103,8 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		// Populate build params
 		buildParamsBuffer.EvalSpace_MinBoundary = { -1.0f, -1.0f, -1.0f, 0.0f };
 		buildParamsBuffer.EvalSpace_MaxBoundary = { 1.0f,  1.0f,  1.0f, 0.0f };
-		// TODO: Hard-code 16 bricks per axis
-		buildParamsBuffer.EvalSpace_BrickSize = 0.125f; // Eval space domain / BRICK_SIZE
+		// TODO: Hard code unit cubes
+		buildParamsBuffer.EvalSpace_BrickSize = 1.0f; // Eval space domain / BRICK_SIZE
 
 		const auto bricksPerAxis = (buildParamsBuffer.EvalSpace_MaxBoundary - buildParamsBuffer.EvalSpace_MinBoundary) / buildParamsBuffer.EvalSpace_BrickSize;
 		XMStoreUInt3(&buildParamsBuffer.EvalSpace_BricksPerAxis, bricksPerAxis);

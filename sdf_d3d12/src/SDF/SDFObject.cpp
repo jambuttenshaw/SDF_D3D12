@@ -11,8 +11,7 @@ SDFObject::SDFObject()
 
 	// TODO: Temporary
 	// TODO: This is part of the process of removing the dependency on volume resolution for calculations
-	UINT divisions = 16;
-	m_BrickCapacityPerAxis = { divisions, divisions, divisions };
+	m_BrickCapacityPerAxis = { 2, 2, 2 };
 
 	const auto device = g_D3DGraphicsContext->GetDevice();
 	const auto descriptorHeap = g_D3DGraphicsContext->GetSRVHeap();
