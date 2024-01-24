@@ -107,6 +107,14 @@ float3 PoolUVWToBrickVoxel(float3 uvw, float3 brickTopLeft, uint3 brickPoolDims)
 }
 
 
+float3 RGBFromHue(float hue)
+{
+	const float4 K = float4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+	const float3 p = abs(frac(hue.xxx + K.xyz) * 6.0 - K.www);
+	return saturate(p - K.xxx);
+}
+
+
 ////////////////////////
 //// RAYGEN SHADERS ////
 ////////////////////////
@@ -185,7 +193,7 @@ void MyIntersectionShader()
 			if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_BRICK_INDEX)
 			{
 				// Some method of turning the index into a color
-				attr.normal = float3(pBrick.BrickIndex / 2.0f, pBrick.BrickIndex / 4.0f, pBrick.BrickIndex / 8.0f);
+				attr.normal = RGBFromHue(frac(pBrick.BrickIndex / 64.0f));
 				attr.remap = false;
 			}
 			// Debug: Display the brick pool uvw of the intersection with the surface of the box
@@ -211,7 +219,7 @@ void MyIntersectionShader()
 		float3 uvwMin = BrickVoxelToPoolUVW(0.0f, brickTopLeftVoxel, uvwPerVoxel);
 		float3 uvwMax = BrickVoxelToPoolUVW(SDF_BRICK_SIZE_IN_VOXELS, brickTopLeftVoxel, uvwPerVoxel);
 
-		const float stride_voxelToUVW = (uvwMax - uvwMin) / SDF_BRICK_SIZE_IN_VOXELS;
+		const float stride_voxelToUVW = (uvwMax - uvwMin).x / SDF_BRICK_SIZE_IN_VOXELS;
 
 
 		// step through volume to find surface
