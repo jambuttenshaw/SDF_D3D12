@@ -16,8 +16,8 @@ Scene::Scene()
 		m_SDFFactory = std::make_unique<SDFFactory>();
 
 		// Create an SDF object
-		m_TorusObject = std::make_unique<SDFObject>();
-		m_SphereObject = std::make_unique<SDFObject>();
+		m_TorusObject = std::make_unique<SDFObject>(0.125f, 4096);
+		m_SphereObject = std::make_unique<SDFObject>(0.125f, 4096);
 
 		/*
 		m_SDFObject->AddPrimitive(SDFEdit::CreateBox(
@@ -96,12 +96,12 @@ Scene::Scene()
 		torusGeometry.GeometryInstances.push_back({
 			*m_TorusObject.get(),
 			D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE,
-			m_TorusObject->GetVolumeSRV()
+			m_TorusObject->GetBrickPoolSRV()
 			});
 		spheresGeometry.GeometryInstances.push_back({
 			*m_SphereObject.get(),
 			D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE,
-			m_SphereObject->GetVolumeSRV()
+			m_SphereObject->GetBrickPoolSRV()
 		});
 	}
 
@@ -126,7 +126,8 @@ Scene::Scene()
 				for (UINT x = 0; x < s_InstanceGridDims; x++)
 				{
 					const UINT index = (z * s_InstanceGridDims + y) * s_InstanceGridDims + x;
-					const auto& geometryName = x + y - z % 2 ? torusGeometry : spheresGeometry;
+					//const auto& geometryName = x + y - z % 2 ? torusGeometry : spheresGeometry;
+					const auto& geometryName = torusGeometry;
 
 					auto rotation = XMMatrixRotationRollPitchYaw(
 						XMConvertToRadians(Random::Float(360.0f)),
@@ -203,22 +204,9 @@ void Scene::OnUpdate(float deltaTime)
 		ImGui::Text("Instance Count: %d", s_InstanceCount);
 		ImGui::Separator();
 
-		ImGui::Text("Torus Object"); 
-		ImGui::Text("AABBs Per Instance: %d", m_TorusObject->GetAABBCount());
+		DebugInfo("Torus Object", m_TorusObject.get());
+		DebugInfo("Sphere Object", m_SphereObject.get());
 
-		float aabbCull = 100.0f * (1.0f - static_cast<float>(m_TorusObject->GetAABBCount()) / static_cast<float>(m_TorusObject->GetBrickCapacity()));
-		ImGui::Text("AABB Cull: %.1f", aabbCull);
-
-		ImGui::Separator();
-		
-		ImGui::Text("Sphere Object");
-		ImGui::Text("AABBs Per Instance: %d", m_SphereObject->GetAABBCount());
-
-		aabbCull = 100.0f * (1.0f - static_cast<float>(m_SphereObject->GetAABBCount()) / static_cast<float>(m_SphereObject->GetBrickCapacity()));
-		ImGui::Text("AABB Cull: %.1f", aabbCull);
-
-		ImGui::Separator();
-		
 		ImGui::Text("Scene Controls");
 		ImGui::Separator();
 
@@ -237,5 +225,24 @@ void Scene::OnRender()
 void Scene::UpdateAccelerationStructure()
 {
 	m_AccelerationStructure->Build();
+}
+
+
+void Scene::DebugInfo(const char* name, const SDFObject* object) const
+{
+	ImGui::Text(name);
+
+	ImGui::Text("Brick count: %d", object->GetAABBCount());
+
+	const float aabbCull = 100.0f * (1.0f - static_cast<float>(object->GetAABBCount()) / static_cast<float>(object->GetBrickBufferCapacity()));
+	ImGui::Text("Brick Cull: %.1f", aabbCull);
+
+	const auto brickPoolSize = object->GetBrickPoolDimensions();
+	ImGui::Text("Brick Pool Size: %d, %d, %d", brickPoolSize.x, brickPoolSize.y, brickPoolSize.z);
+
+	const float poolUsage = 100.0f * (static_cast<float>(object->GetAABBCount()) / static_cast<float>(object->GetBrickPoolCapacity()));
+	ImGui::Text("Brick Pool Usage: %.1f", poolUsage);
+
+	ImGui::Separator();
 }
 

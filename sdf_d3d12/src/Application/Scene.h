@@ -23,6 +23,8 @@ public:
 private:
 	void UpdateAccelerationStructure();
 
+	void DebugInfo(const char* name, const SDFObject* object) const;
+
 private:
 	// A description of all the different types of geometry in the scene
 	std::vector<BottomLevelAccelerationStructureGeometry> m_SceneGeometry;
@@ -39,7 +41,7 @@ private:
 	SDFEditList m_SphereEditList;
 
 	// Demo Scene
-	inline static constexpr UINT s_InstanceGridDims = 2;
+	inline static constexpr UINT s_InstanceGridDims = 1;
 	inline static constexpr UINT s_InstanceCount = s_InstanceGridDims * s_InstanceGridDims * s_InstanceGridDims;
 	inline static constexpr float s_InstanceSpacing = 4.0f;
 

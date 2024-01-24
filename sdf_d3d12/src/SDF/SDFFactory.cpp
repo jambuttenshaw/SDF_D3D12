@@ -104,13 +104,17 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		// Populate build params
 		buildParamsBuffer.EvalSpace_MinBoundary = { -1.0f, -1.0f, -1.0f, 0.0f };
 		buildParamsBuffer.EvalSpace_MaxBoundary = { 1.0f,  1.0f,  1.0f, 0.0f };
-		// TODO: Hard code unit cubes
-		buildParamsBuffer.EvalSpace_BrickSize = 0.125f; // Eval space domain / BRICK_SIZE
+		buildParamsBuffer.EvalSpace_BrickSize = object->GetBrickSize();
 
 		const auto bricksPerAxis = (buildParamsBuffer.EvalSpace_MaxBoundary - buildParamsBuffer.EvalSpace_MinBoundary) / buildParamsBuffer.EvalSpace_BrickSize;
 		XMStoreUInt3(&buildParamsBuffer.EvalSpace_BricksPerAxis, bricksPerAxis);
 
-		buildParamsBuffer.BrickPool_BrickCapacityPerAxis = object->GetBrickCapacityPerAxis();
+		// Make sure the object is large enough to store this many bricks
+		ASSERT(buildParamsBuffer.EvalSpace_BricksPerAxis.x * buildParamsBuffer.EvalSpace_BricksPerAxis.y * buildParamsBuffer.EvalSpace_BricksPerAxis.z <= object->GetBrickBufferCapacity(), 
+			"Object does not have large enough brick capacity and buffer overflow is likely!");
+
+		// Brick capacity has not been determined until brick builder has executed
+		buildParamsBuffer.BrickPool_BrickCapacityPerAxis = XMUINT3{ 0, 0, 0 };
 
 		buildParamsBuffer.SDFEditCount = editList.GetEditCount();
 
@@ -121,6 +125,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		counterUpload.CopyElement(0, 0);
 	}
 
+	/*
 	// TODO: Temporary Step
 	// Fill the volume with 1's
 	ComPtr<ID3D12Resource> copyVolume;
@@ -173,6 +178,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		barrier = CD3DX12_RESOURCE_BARRIER::Transition(object->GetVolumeResource(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 		m_CommandList->ResourceBarrier(1, &barrier);
 	}
+	*/
 
 	// Step 2: Build command list to execute AABB builder compute shader
 	{
@@ -190,7 +196,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		m_CommandList->SetComputeRootShaderResourceView(AABBBuilderComputeRootSignature::EditListSlot, editList.GetEditBufferAddress());
 		m_CommandList->SetComputeRootDescriptorTable(AABBBuilderComputeRootSignature::CounterResourceSlot, m_CounterResourceUAV.GetGPUHandle());
 		m_CommandList->SetComputeRootDescriptorTable(AABBBuilderComputeRootSignature::AABBBufferSlot, object->GetAABBBufferUAV());
-		m_CommandList->SetComputeRootDescriptorTable(AABBBuilderComputeRootSignature::AABBPrimitiveDataSlot, object->GetPrimitiveDataBufferUAV());
+		m_CommandList->SetComputeRootDescriptorTable(AABBBuilderComputeRootSignature::AABBPrimitiveDataSlot, object->GetBrickBufferUAV());
 
 		// Calculate number of thread groups
 		
@@ -217,7 +223,10 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 	{
 		// It is only save to read the counter value after the GPU has finished its work
 		const UINT brickCount = counterReadback.ReadElement(0);
-		object->SetBrickCount(brickCount);
+		object->AllocateOptimalBrickPool(brickCount);
+
+		// Update build data required for the next stage
+		buildParamsBuffer.BrickPool_BrickCapacityPerAxis = object->GetBrickPoolDimensions();
 	}
 
 	// Step 5: Build command list to execute SDF baker compute shader
@@ -226,7 +235,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		m_CommandList->SetDescriptorHeaps(_countof(ppDescriptorHeaps), ppDescriptorHeaps);
 
 		// Scene texture must be in unordered access state
-		auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(object->GetVolumeResource(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+		auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(object->GetBrickPool(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 		m_CommandList->ResourceBarrier(1, &barrier);
 
 		// Set pipeline state
@@ -236,7 +245,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		m_CommandList->SetComputeRoot32BitConstants(BrickBuildComputeRootSignature::BuildParameterSlot, SizeOfInUint32(buildParamsBuffer), &buildParamsBuffer, 0);
 		m_CommandList->SetComputeRootShaderResourceView(BrickBuildComputeRootSignature::EditListSlot, editList.GetEditBufferAddress());
 		m_CommandList->SetComputeRootShaderResourceView(BrickBuildComputeRootSignature::AABBPrimitiveDataSlot, object->GetPrimitiveDataBufferAddress());
-		m_CommandList->SetComputeRootDescriptorTable(BrickBuildComputeRootSignature::OutputVolumeSlot, object->GetVolumeUAV());
+		m_CommandList->SetComputeRootDescriptorTable(BrickBuildComputeRootSignature::OutputVolumeSlot, object->GetBrickPoolUAV());
 
 		// Execute one group for each AABB
 		const UINT threadGroupX = object->GetAABBCount();
@@ -245,7 +254,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		m_CommandList->Dispatch(threadGroupX, 1, 1);
 
 		// Volume resource will now be read from in the subsequent stages
-		barrier = CD3DX12_RESOURCE_BARRIER::Transition(object->GetVolumeResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+		barrier = CD3DX12_RESOURCE_BARRIER::Transition(object->GetBrickPool(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 		m_CommandList->ResourceBarrier(1, &barrier);
 	}
 

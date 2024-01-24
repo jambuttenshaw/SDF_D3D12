@@ -62,12 +62,12 @@ inline void GenerateCameraRay(uint2 index, out float3 origin, out float3 directi
 }
 
 
-float3 ComputeSurfaceNormal(float3 p, float delta)
+float3 ComputeSurfaceNormal(float3 p, float3 delta)
 {
 	return normalize(float3(
-        (l_SDFVolume.SampleLevel(g_Sampler, p + float3(delta, 0.0f, 0.0f), 0) - l_SDFVolume.SampleLevel(g_Sampler, p - float3(delta, 0.0f, 0.0f), 0)),
-        (l_SDFVolume.SampleLevel(g_Sampler, p + float3(0.0f, delta, 0.0f), 0) - l_SDFVolume.SampleLevel(g_Sampler, p - float3(0.0f, delta, 0.0f), 0)),
-        (l_SDFVolume.SampleLevel(g_Sampler, p + float3(0.0f, 0.0f, delta), 0) - l_SDFVolume.SampleLevel(g_Sampler, p - float3(0.0f, 0.0f, delta), 0))
+        (l_SDFVolume.SampleLevel(g_Sampler, p + float3(delta.x, 0.0f, 0.0f), 0) - l_SDFVolume.SampleLevel(g_Sampler, p - float3(delta.x, 0.0f, 0.0f), 0)),
+        (l_SDFVolume.SampleLevel(g_Sampler, p + float3(0.0f, delta.y, 0.0f), 0) - l_SDFVolume.SampleLevel(g_Sampler, p - float3(0.0f, delta.y, 0.0f), 0)),
+        (l_SDFVolume.SampleLevel(g_Sampler, p + float3(0.0f, 0.0f, delta.z), 0) - l_SDFVolume.SampleLevel(g_Sampler, p - float3(0.0f, 0.0f, delta.z), 0))
     ));
 }
 
@@ -214,13 +214,14 @@ void MyIntersectionShader()
 			return;
 		}
 
-
 		// Get the pool UVW
 		float3 uvw = BrickVoxelToPoolUVW(brickVoxel, brickTopLeftVoxel, uvwPerVoxel);
 		float3 uvwMin = BrickVoxelToPoolUVW(1.0f, brickTopLeftVoxel, uvwPerVoxel);
 		float3 uvwMax = BrickVoxelToPoolUVW(SDF_BRICK_SIZE_VOXELS + 1.0f, brickTopLeftVoxel, uvwPerVoxel);
 
-		const float stride_voxelToUVW = (uvwMax - uvwMin).x / SDF_BRICK_SIZE_VOXELS;
+		// This is a vector type as uvw range in each direction might not be uniform
+		// This is the case in non-cubic brick pools
+		const float3 stride_voxelToUVW = (uvwMax - uvwMin) / SDF_BRICK_SIZE_VOXELS;
 
 
 		// step through volume to find surface
@@ -234,9 +235,8 @@ void MyIntersectionShader()
 			if (s <= 0.0625f)
 				break;
 
-			// Remap s
-			s *= SDF_VOLUME_STRIDE * stride_voxelToUVW;
-			uvw += s * ray.direction;
+			uvw += (s * SDF_VOLUME_STRIDE * stride_voxelToUVW) // Convert from formatted distance in texture to a distance in the uvw space of the brick pool
+					* ray.direction;
 			 
 			if (uvw.x > uvwMax.x || uvw.y > uvwMax.y || uvw.z > uvwMax.z ||
 				uvw.x < uvwMin.x || uvw.y < uvwMin.y || uvw.z < uvwMin.z)
@@ -248,7 +248,7 @@ void MyIntersectionShader()
 		}
 
 		// Calculate the hit point as a UVW of the AABB
-		float3 hitUVWAABB = (PoolUVWToBrickVoxel(uvw, brickTopLeftVoxel, poolDims) - 1.0f) / SDF_BRICK_SIZE_VOXELS;
+		float3 hitUVWAABB = (PoolUVWToBrickVoxel(uvw, brickTopLeftVoxel, poolDims) - float3(1.0f, 1.0f, 1.0f)) / SDF_BRICK_SIZE_VOXELS;
 		// point of intersection in local space
 		const float3 pointOfIntersection = (hitUVWAABB * 2.0f - 1.0f) * pBrick.AABBHalfExtent;
 		// t is the distance from the ray origin to the point of intersection
@@ -256,7 +256,7 @@ void MyIntersectionShader()
 
 		MyAttributes attr;
 		// Transform from object space to world space
-		attr.normal = normalize(mul(ComputeSurfaceNormal(uvw, 0.5f * uvwPerVoxel.x), transpose((float3x3) ObjectToWorld())));
+		attr.normal = normalize(mul(ComputeSurfaceNormal(uvw, 0.5f * uvwPerVoxel), transpose((float3x3) ObjectToWorld())));
 		attr.heatmap = iterationCount;
 		attr.remap = true;
 		ReportHit(newT, 0, attr);

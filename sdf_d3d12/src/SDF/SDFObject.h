@@ -14,16 +14,24 @@ using Microsoft::WRL::ComPtr;
 class SDFObject : public BaseAABBGeometry
 {
 public:
-	SDFObject();
+	SDFObject(float brickSize, UINT brickCapacity);
 	virtual ~SDFObject();
 
 	DISALLOW_COPY(SDFObject)
 	DEFAULT_MOVE(SDFObject)
 
-	// Volume
-	inline ID3D12Resource* GetVolumeResource() const { return m_VolumeResource.Get(); }
-	inline UINT GetBrickCapacity() const { return m_BrickCapacityPerAxis.x * m_BrickCapacityPerAxis.y * m_BrickCapacityPerAxis.z; }
-	inline const XMUINT3& GetBrickCapacityPerAxis() const { return m_BrickCapacityPerAxis; }
+	// Brick Pool
+	void AllocateOptimalBrickPool(UINT brickCount);
+
+	inline ID3D12Resource* GetBrickPool() const { return m_BrickPool.Get(); }
+
+	inline UINT GetBrickCount() const { return m_BrickCount; }
+	inline float GetBrickSize() const { return m_BrickSize; }
+
+	inline UINT GetBrickBufferCapacity() const { return m_BrickCapacity; }
+
+	inline const XMUINT3& GetBrickPoolDimensions() const { return m_BrickPoolDimensions; }
+	inline UINT GetBrickPoolCapacity() const { return m_BrickPoolDimensions.x * m_BrickPoolDimensions.y * m_BrickPoolDimensions.z; }
 
 	// Geometry Interface
 	inline virtual UINT GetAABBCount() const override { return m_BrickCount; }
@@ -32,18 +40,14 @@ public:
 	inline virtual D3D12_GPU_VIRTUAL_ADDRESS GetPrimitiveDataBufferAddress() const override { return m_BrickBuffer.GetAddress(); }
 
 	// Get Resource Views
-	inline D3D12_GPU_DESCRIPTOR_HANDLE GetVolumeSRV() const { return m_ResourceViews.GetGPUHandle(0); };
-	inline D3D12_GPU_DESCRIPTOR_HANDLE GetVolumeUAV() const { return m_ResourceViews.GetGPUHandle(1); }
+	inline D3D12_GPU_DESCRIPTOR_HANDLE GetBrickPoolSRV() const { return m_ResourceViews.GetGPUHandle(0); };
+	inline D3D12_GPU_DESCRIPTOR_HANDLE GetBrickPoolUAV() const { return m_ResourceViews.GetGPUHandle(1); }
 	inline D3D12_GPU_DESCRIPTOR_HANDLE GetAABBBufferUAV() const { return m_ResourceViews.GetGPUHandle(2); }
-	inline D3D12_GPU_DESCRIPTOR_HANDLE GetPrimitiveDataBufferUAV() const { return m_ResourceViews.GetGPUHandle(3); }
-	
-	// Used to update the aabb count after the AABB builder compute shader has executed
-	// Should only be called from the SDF factory
-	inline void SetBrickCount(UINT count) { m_BrickCount = count; }
+	inline D3D12_GPU_DESCRIPTOR_HANDLE GetBrickBufferUAV() const { return m_ResourceViews.GetGPUHandle(3); }
 
 private:
 	// Volume
-	ComPtr<ID3D12Resource> m_VolumeResource;
+	ComPtr<ID3D12Resource> m_BrickPool;
 	
 	// Geometry
 	StructuredBuffer<D3D12_RAYTRACING_AABB> m_AABBBuffer;
@@ -52,8 +56,11 @@ private:
 	DescriptorAllocation m_ResourceViews;	// index 0 = volume SRV
 											// index 1 = volume UAV
 											// index 2 = aabb buffer uav
-											// index 3 = aabb primitive data buffer uav
+											// index 3 = brick buffer uav
 
-	XMUINT3 m_BrickCapacityPerAxis = { 0, 0, 0 }; // The maximum possible value of AABB count
-	UINT m_BrickCount = 0;	 // The number of AABBs that actually make up this object
+	float m_BrickSize = 0.0f;
+	UINT m_BrickCapacity = 0; // The maximum possible number of bricks
+
+	UINT m_BrickCount = 0; // The number of bricks that actually make up this object
+	XMUINT3 m_BrickPoolDimensions = { 0, 0, 0 }; // The dimensions of the brick pool in number of bricks
 };
