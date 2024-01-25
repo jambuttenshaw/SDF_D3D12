@@ -7,6 +7,8 @@
 
 #include "../include/sdf_primitives.hlsli"
 #include "../include/sdf_operations.hlsli"
+#include "../include/brick_helper.hlsli"
+
 
 /*
  *
@@ -46,17 +48,6 @@ float EvaluateEditList(float3 p)
 	return nearest.w;
 }
 
-float FormatDistance(float inDistance)
-{
-	// Calculate the distance value in terms of voxels
-	const float voxelsPerAxis = g_BuildParameters.EvalSpace_BricksPerAxis.x * SDF_BRICK_SIZE_VOXELS;
-	const float voxelsPerUnit = voxelsPerAxis / (g_BuildParameters.EvalSpace_MaxBoundary - g_BuildParameters.EvalSpace_MinBoundary).x;
-	const float voxelDistance = inDistance * voxelsPerUnit;
-
-	// Now map the distance such that 1 = SDF_VOLUME_STRIDE number of voxels
-	return voxelDistance / SDF_VOLUME_STRIDE;
-}
-
 
 [numthreads(AABB_BUILD_NUM_THREADS_PER_GROUP, AABB_BUILD_NUM_THREADS_PER_GROUP, AABB_BUILD_NUM_THREADS_PER_GROUP)]
 void main(uint3 DTid : SV_DispatchThreadID)
@@ -76,7 +67,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
 
 	// Evaluate object at this point
 	const float distance = EvaluateEditList(brickCentre);
-	const float mappedDistance = FormatDistance(distance);
+	const float mappedDistance = FormatDistance(distance, g_BuildParameters.EvalSpace_VoxelsPerUnit);
 
 	// If distance is larger than the size of this voxel then this voxel cannot contain geometry
 	// Use abs(distance) to cull bounding boxes within the geometry
@@ -89,8 +80,8 @@ void main(uint3 DTid : SV_DispatchThreadID)
 	g_Counter.InterlockedAdd(0, 1, brickIndex);
 
 	AABB outAABB;
-	outAABB.TopLeft = brickCentre - 0.5f * g_BuildParameters.EvalSpace_BrickSize;
-	outAABB.BottomRight = brickCentre + 0.5f * g_BuildParameters.EvalSpace_BrickSize;
+	outAABB.TopLeft =		brickCentre - 0.5f * g_BuildParameters.EvalSpace_BrickSize;
+	outAABB.BottomRight =	brickCentre + 0.5f * g_BuildParameters.EvalSpace_BrickSize;
 	g_AABBBuffer[brickIndex] = outAABB;
 
 	BrickPointer brickPointer;

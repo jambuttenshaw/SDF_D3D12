@@ -116,6 +116,11 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		// Brick capacity has not been determined until brick builder has executed
 		buildParamsBuffer.BrickPool_BrickCapacityPerAxis = XMUINT3{ 0, 0, 0 };
 
+		// Helpful values that can be calculated once on the CPU
+		XMFLOAT3 evalSpaceRange;
+		XMStoreFloat3(&evalSpaceRange, buildParamsBuffer.EvalSpace_MaxBoundary - buildParamsBuffer.EvalSpace_MinBoundary);
+		buildParamsBuffer.EvalSpace_VoxelsPerUnit = static_cast<float>(buildParamsBuffer.EvalSpace_BricksPerAxis.x * SDF_BRICK_SIZE_VOXELS) / evalSpaceRange.x;
+
 		buildParamsBuffer.SDFEditCount = editList.GetEditCount();
 
 		// Setup counter temporary resources

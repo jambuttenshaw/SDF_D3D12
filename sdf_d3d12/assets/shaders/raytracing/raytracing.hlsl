@@ -5,6 +5,7 @@
 #include "../../../src/Renderer/Hlsl/RaytracingHlslCompat.h"
 
 #include "ray_helper.hlsli"
+#include "../include/brick_helper.hlsli"
 
 
 //////////////////////////
@@ -33,7 +34,7 @@ StructuredBuffer<BrickPointer> l_BrickBuffer : register(t1, space1);
 //// DEFINES ////
 /////////////////
 
-#define EPSILON 1.0f / 256.0f // the smallest value representable in an R8_UNORM format
+#define EPSILON 0.00390625f // 1 / 256 - the smallest value representable in an R8_UNORM format
 
 #define LIGHT_DIRECTION normalize(float3(0.5f, 1.0f, -1.0f))
 #define LIGHT_AMBIENT float3(0.2f, 0.2f, 0.2f)
@@ -70,40 +71,6 @@ float3 ComputeSurfaceNormal(float3 p, float3 delta)
         (l_BrickPool.SampleLevel(g_Sampler, p + float3(0.0f, 0.0f, delta.z), 0) - l_BrickPool.SampleLevel(g_Sampler, p - float3(0.0f, 0.0f, delta.z), 0))
     ));
 }
-
-
-// Calculates which voxel in the brick pool this thread will map to
-uint3 CalculateBrickPoolPosition(uint brickIndex, uint3 brickPoolDimensions)
-{
-	// For now bricks are stored linearly
-	uint3 brickTopLeft;
-
-	const uint bricksX = brickPoolDimensions.x / SDF_BRICK_SIZE_VOXELS_ADJACENCY;
-	const uint bricksY = brickPoolDimensions.y / SDF_BRICK_SIZE_VOXELS_ADJACENCY;
-
-	brickTopLeft.x = brickIndex % bricksX;
-	brickIndex /= bricksX;
-	brickTopLeft.y = brickIndex % bricksY;
-	brickIndex /= bricksY;
-	brickTopLeft.z = brickIndex;
-
-	return brickTopLeft * SDF_BRICK_SIZE_VOXELS_ADJACENCY;
-}
-
-// Maps from a voxel within a brick to its uvw coordinate within the entire brick pool
-// Uses float3 instead of uint3 to maintain sub-voxel precision
-float3 BrickVoxelToPoolUVW(float3 voxel, float3 brickTopLeft, float3 uvwPerVoxel)
-{
-	return (brickTopLeft + voxel) * uvwPerVoxel;
-}
-
-// Maps from a uvw coordinate within the entire brick pool to its voxel within a brick 
-// Uses float3 instead of uint3 to maintain sub-voxel precision
-float3 PoolUVWToBrickVoxel(float3 uvw, float3 brickTopLeft, uint3 brickPoolDims)
-{
-	return (uvw * brickPoolDims) - brickTopLeft;
-}
-
 
 float3 RGBFromHSV(float3 input)
 {
@@ -150,10 +117,10 @@ void MyRaygenShader()
 [shader("intersection")]
 void MyIntersectionShader()
 {
-	BrickPointer pBrick = l_BrickBuffer[PrimitiveIndex()];
+	const BrickPointer brick = l_BrickBuffer[PrimitiveIndex()];
 
 	Ray ray;
-	ray.origin = ObjectRayOrigin() - pBrick.AABBCentre;
+	ray.origin = ObjectRayOrigin() - brick.AABBCentre;
 	ray.direction = ObjectRayDirection();
 
 	float3 aabb[2];
@@ -164,6 +131,11 @@ void MyIntersectionShader()
 	float tMin, tMax;
 	if (RayAABBIntersectionTest(ray, aabb, tMin, tMax))
 	{
+		// Intersection attributes to be filled out
+		MyAttributes attr;
+		attr.flags = INTERSECTION_FLAG_NONE;
+
+
 		// The dimensions of the pool texture are required to convert from voxel coordinates to uvw for sampling
 		uint3 poolDims;
 		l_BrickPool.GetDimensions(poolDims.x, poolDims.y, poolDims.z);
@@ -178,7 +150,7 @@ void MyIntersectionShader()
 		uvwAABB = uvwAABB * 0.5f + 0.5f;
 
 		// get voxel coordinate of top left of brick
-		const uint3 brickTopLeftVoxel = CalculateBrickPoolPosition(pBrick.BrickIndex, poolDims);
+		const uint3 brickTopLeftVoxel = CalculateBrickPoolPosition(brick.BrickIndex, poolDims);
 
 		// Offset by 1 due to adjacency data
 		// e.g., uvwAABB of (0, 0, 0) actually references the voxel at (1, 1, 1) - not (0, 0, 0)
@@ -188,26 +160,23 @@ void MyIntersectionShader()
 		// Debug: Display the bounding box directly instead of sphere tracing the contents
 		if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_BOUNDING_BOX)
 		{ // Display AABB
-			MyAttributes attr;
+			attr.flags |= INTERSECTION_FLAG_NO_REMAP_NORMALS;
 
 			// Debug: Display the brick index that this bounding box would sphere trace
 			if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_BRICK_INDEX)
 			{
 				// Some method of turning the index into a color
-				const uint i = pBrick.BrickIndex;
+				const uint i = brick.BrickIndex;
 				attr.normal = RGBFromHSV(float3(frac(i / 64.0f), 1, 0.5f + 0.5f * frac(i / 256.0f)));
-				attr.remap = false;
 			}
 			// Debug: Display the brick pool uvw of the intersection with the surface of the box
 			else if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_POOL_UVW)
 			{
 				attr.normal = BrickVoxelToPoolUVW(brickVoxel, brickTopLeftVoxel, uvwPerVoxel);
-				attr.remap = false;
 			}
 			else
 			{
 				attr.normal = uvwAABB;
-				attr.remap = false;
 			}
 			
 			attr.heatmap = 0;
@@ -227,14 +196,20 @@ void MyIntersectionShader()
 
 		// step through volume to find surface
 		uint iterationCount = 0;
-		while (iterationCount < 32) // iteration guard
+		attr.flags |= INTERSECTION_FLAG_ITERATION_GUARD_TERMINATION;
+
+		while (iterationCount < 24) // iteration guard
 		{
 			// Sample the volume
-			float s = l_BrickPool.SampleLevel(g_Sampler, uvw, 0);
+			const float s = l_BrickPool.SampleLevel(g_Sampler, uvw, 0);
 
 			// 0.0625 was the largest threshold before unacceptable artifacts were produced
 			if (s <= 0.0625f)
+			{
+				// Not early terminated - clear flag
+				attr.flags &= ~INTERSECTION_FLAG_ITERATION_GUARD_TERMINATION;
 				break;
+			}
 
 			uvw += (s * SDF_VOLUME_STRIDE * stride_voxelToUVW) // Convert from formatted distance in texture to a distance in the uvw space of the brick pool
 					* ray.direction;
@@ -255,11 +230,9 @@ void MyIntersectionShader()
 		// t is the distance from the ray origin to the point of intersection
 		const float newT = length(ray.origin - pointOfIntersection);
 
-		MyAttributes attr;
 		// Transform from object space to world space
 		attr.normal = normalize(mul(ComputeSurfaceNormal(uvw, 0.5f * uvwPerVoxel), transpose((float3x3) ObjectToWorld())));
 		attr.heatmap = iterationCount;
-		attr.remap = true;
 		ReportHit(newT, 0, attr);
 	}
 }
@@ -274,15 +247,21 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 {
 	if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_HEATMAP)
 	{
-		payload.color = float4(attr.heatmap / 8.0f, attr.heatmap / 16.0f, attr.heatmap / 32.0f, 1.0f);
+		payload.color = float4(attr.heatmap / 4.0f, attr.heatmap / 8.0f, attr.heatmap / 16.0f, 1.0f);
+	}
+	else if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_ITERATION_GUARD_TERMINATIONS)
+	{
+		payload.color = attr.flags & INTERSECTION_FLAG_ITERATION_GUARD_TERMINATION ?
+						float4(1.0f, 0.2f, 0.2f, 1.0f) :
+						float4(0.2f, 0.4f, 0.2f, 1.0f);
 	}
 	else if (g_PassCB.Flags & (RENDER_FLAG_DISPLAY_NORMALS | RENDER_FLAG_DISPLAY_BOUNDING_BOX))
 	{
 		float3 normalColor;
-		if (attr.remap)
-			normalColor = 0.5f + 0.5f * attr.normal;
-		else
+		if (attr.flags & INTERSECTION_FLAG_NO_REMAP_NORMALS)
 			normalColor = attr.normal;
+		else
+			normalColor = 0.5f + 0.5f * attr.normal;
 		payload.color = float4(normalColor, 1);
 	}
 	else

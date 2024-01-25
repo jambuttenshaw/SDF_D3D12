@@ -1,8 +1,7 @@
 #include "pch.h"
 #include "Scene.h"
 
-#include <codecvt>
-
+#include "SDF/SDFEditList.h"
 #include "imgui.h"
 
 #include "Framework/Math.h"
@@ -27,10 +26,10 @@ Scene::Scene()
 		m_SDFFactory = std::make_unique<SDFFactory>();
 
 		// Create an SDF object
-		//m_TorusObject = std::make_unique<SDFObject>(0.0625f, 65536);
-		//m_SphereObject = std::make_unique<SDFObject>(0.0625f, 65536);
-		m_TorusObject = std::make_unique<SDFObject>(0.125f, 4096);
-		m_SphereObject = std::make_unique<SDFObject>(0.125f, 4096);
+		m_TorusObject = std::make_unique<SDFObject>(0.05f, 65536);
+		m_SphereObject = std::make_unique<SDFObject>(0.05f, 65536);
+		//m_TorusObject = std::make_unique<SDFObject>(0.125f, 4096);
+		//m_SphereObject = std::make_unique<SDFObject>(0.125f, 4096);
 
 
 		/*

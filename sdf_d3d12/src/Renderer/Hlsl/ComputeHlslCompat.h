@@ -39,6 +39,9 @@ struct SDFBuilderConstantBuffer
 	// Information about how many bricks the pool can store
 	XMUINT3 BrickPool_BrickCapacityPerAxis;
 
+	// Helpful values
+	float EvalSpace_VoxelsPerUnit;
+
 	UINT SDFEditCount;
 };
 

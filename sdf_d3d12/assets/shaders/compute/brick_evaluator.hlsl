@@ -10,6 +10,8 @@
 #define HLSL
 #include "../../../src/Renderer/Hlsl/ComputeHlslCompat.h"
 #include "../../../src/Renderer/Hlsl/RaytracingHlslCompat.h"
+
+#include "../include/brick_helper.hlsli"
 #include "../include/sdf_primitives.hlsli"
 #include "../include/sdf_operations.hlsli"
 
@@ -46,18 +48,6 @@ float EvaluateEditList(float3 p)
 }
 
 
-float FormatDistance(float inDistance)
-{
-	// Calculate the distance value in terms of voxels
-	const float voxelsPerAxis = g_BuildParameters.EvalSpace_BricksPerAxis.x * SDF_BRICK_SIZE_VOXELS;
-	const float voxelsPerUnit = voxelsPerAxis / (g_BuildParameters.EvalSpace_MaxBoundary - g_BuildParameters.EvalSpace_MinBoundary).x;
-	const float voxelDistance = inDistance * voxelsPerUnit;
-
-	// Now map the distance such that 1 = SDF_VOLUME_STRIDE number of voxels
-	return voxelDistance / SDF_VOLUME_STRIDE;
-}
-
-
 // Calculates which voxel in the brick pool this thread will map to
 uint3 CalculateBrickPoolPosition(uint brickIndex)
 {
@@ -80,16 +70,16 @@ void main(uint3 GroupID : SV_GroupID, uint3 GTid : SV_GroupThreadID)
 	// Which brick is this thread processing
 	const BrickPointer brick = g_BrickBuffer[GroupID.x];
 
-	// How much of evaluation space does 1 voxel take up
-	const float voxelInEvaluationSpaceUnits = g_BuildParameters.EvalSpace_BrickSize / SDF_BRICK_SIZE_VOXELS;
-
 	// Calculate the point in space that this thread is processing
-	const float3 evaluationPosition = (brick.AABBCentre - 0.5f * g_BuildParameters.EvalSpace_BrickSize)
-									+ ((float3) GTid - 0.5f) * voxelInEvaluationSpaceUnits;
+	const float3 evaluationPosition = (brick.AABBCentre - 0.5f * g_BuildParameters.EvalSpace_BrickSize)		// Top left of brick
+									+ ((float3) GTid - 0.5f) / g_BuildParameters.EvalSpace_VoxelsPerUnit;	// Offset within brick
+																											// such that group thread (0,0,0) goes to (-0.5, -0.5, -0.5)
+																											// and (7,7,7) goes to (6.5, 6.5, 6.5)
+																											// and then map from voxels to eval space units
 
 	// Evaluate SDF volume
 	const float nearest = EvaluateEditList(evaluationPosition);
-	const float mappedDistance = FormatDistance(nearest);
+	const float mappedDistance = FormatDistance(nearest, g_BuildParameters.EvalSpace_VoxelsPerUnit);
 
 	// Now calculate where to store the voxel in the brick pool
 	const uint3 brickVoxel = CalculateBrickPoolPosition(brick.BrickIndex) + GTid;

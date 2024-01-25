@@ -5,7 +5,6 @@
 
 #include "SDF/SDFFactory.h"
 #include "SDF/SDFObject.h"
-#include "SDF/SDFEditList.h"
 
 
 class Scene
@@ -39,9 +38,9 @@ private:
 	std::unique_ptr<SDFObject> m_SphereObject;
 
 	// Demo Scene
-	inline static constexpr UINT s_InstanceGridDims = 2;
+	inline static constexpr UINT s_InstanceGridDims = 24;
 	inline static constexpr UINT s_InstanceCount = s_InstanceGridDims * s_InstanceGridDims * s_InstanceGridDims;
-	inline static constexpr float s_InstanceSpacing = 4.0f;
+	inline static constexpr float s_InstanceSpacing = 8.0f;
 
 	XMMATRIX m_InstanceRotations[s_InstanceCount];
 	XMFLOAT3 m_InstanceRotationDeltas[s_InstanceCount];
