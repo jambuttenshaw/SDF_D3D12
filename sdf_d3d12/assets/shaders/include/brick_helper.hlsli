@@ -18,18 +18,15 @@ float FormatDistance(float inDistance, float voxelsPerUnit)
 
 
 // Calculates which voxel in the brick pool this thread will map to
-uint3 CalculateBrickPoolPosition(uint brickIndex, uint3 brickPoolDimensions)
+uint3 CalculateBrickPoolPosition(uint brickIndex, uint3 brickPoolCapacity)
 {
 	// For now bricks are stored linearly
 	uint3 brickTopLeft;
 
-	const uint bricksX = brickPoolDimensions.x / SDF_BRICK_SIZE_VOXELS_ADJACENCY;
-	const uint bricksY = brickPoolDimensions.y / SDF_BRICK_SIZE_VOXELS_ADJACENCY;
-
-	brickTopLeft.x = brickIndex % bricksX;
-	brickIndex /= bricksX;
-	brickTopLeft.y = brickIndex % bricksY;
-	brickIndex /= bricksY;
+	brickTopLeft.x = brickIndex % brickPoolCapacity.x;
+	brickIndex /= brickPoolCapacity.x;
+	brickTopLeft.y = brickIndex % brickPoolCapacity.y;
+	brickIndex /= brickPoolCapacity.y;
 	brickTopLeft.z = brickIndex;
 
 	return brickTopLeft * SDF_BRICK_SIZE_VOXELS_ADJACENCY;

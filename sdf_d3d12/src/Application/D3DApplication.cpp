@@ -87,11 +87,17 @@ void D3DApplication::OnUpdate()
 				}};
 		ImGui::Text("Display Options");
 		RenderFlagOption("Bounding Box", RENDER_FLAG_DISPLAY_BOUNDING_BOX);
-		RenderFlagOption("Heatmap", RENDER_FLAG_DISPLAY_HEATMAP);
-		RenderFlagOption("Normals", RENDER_FLAG_DISPLAY_NORMALS);
-		RenderFlagOption("Brick Index", RENDER_FLAG_DISPLAY_BRICK_INDEX);
-		RenderFlagOption("Pool UVW", RENDER_FLAG_DISPLAY_POOL_UVW);
-		RenderFlagOption("Iteration Guard Terminations", RENDER_FLAG_DISPLAY_ITERATION_GUARD_TERMINATIONS);
+		if (m_RenderFlags & RENDER_FLAG_DISPLAY_BOUNDING_BOX)
+		{
+			RenderFlagOption("Brick Index", RENDER_FLAG_DISPLAY_BRICK_INDEX);
+			RenderFlagOption("Pool UVW", RENDER_FLAG_DISPLAY_POOL_UVW);
+		}
+		else
+		{
+			RenderFlagOption("Heatmap", RENDER_FLAG_DISPLAY_HEATMAP);
+			RenderFlagOption("Normals", RENDER_FLAG_DISPLAY_NORMALS);
+			RenderFlagOption("Iteration Guard Terminations", RENDER_FLAG_DISPLAY_ITERATION_GUARD_TERMINATIONS);
+		}
 	}
 
 	ImGui::End();

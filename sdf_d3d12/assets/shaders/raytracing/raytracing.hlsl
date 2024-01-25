@@ -150,7 +150,7 @@ void MyIntersectionShader()
 		uvwAABB = uvwAABB * 0.5f + 0.5f;
 
 		// get voxel coordinate of top left of brick
-		const uint3 brickTopLeftVoxel = CalculateBrickPoolPosition(brick.BrickIndex, poolDims);
+		const uint3 brickTopLeftVoxel = CalculateBrickPoolPosition(brick.BrickIndex, poolDims / SDF_BRICK_SIZE_VOXELS_ADJACENCY);
 
 		// Offset by 1 due to adjacency data
 		// e.g., uvwAABB of (0, 0, 0) actually references the voxel at (1, 1, 1) - not (0, 0, 0)
@@ -198,7 +198,7 @@ void MyIntersectionShader()
 		uint iterationCount = 0;
 		attr.flags |= INTERSECTION_FLAG_ITERATION_GUARD_TERMINATION;
 
-		while (iterationCount < 24) // iteration guard
+		while (iterationCount < 32) // iteration guard
 		{
 			// Sample the volume
 			const float s = l_BrickPool.SampleLevel(g_Sampler, uvw, 0);
@@ -247,7 +247,7 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 {
 	if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_HEATMAP)
 	{
-		payload.color = float4(attr.heatmap / 4.0f, attr.heatmap / 8.0f, attr.heatmap / 16.0f, 1.0f);
+		payload.color = float4(RGBFromHSV(float3(attr.heatmap / 64.0f, 1.0f, 1.0f)), 1.0f);
 	}
 	else if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_ITERATION_GUARD_TERMINATIONS)
 	{
