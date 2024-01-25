@@ -14,6 +14,8 @@ D3DApplication::D3DApplication(UINT width, UINT height, const std::wstring& name
 
 void D3DApplication::OnInit()
 {
+	LOG_INFO("Application startup.");
+
 	// Create graphics context
 	m_GraphicsContext = std::make_unique<D3DGraphicsContext>(Win32Application::GetHwnd(), GetWidth(), GetHeight());
 
@@ -30,6 +32,8 @@ void D3DApplication::OnInit()
 
 	m_Raytracer = std::make_unique<Raytracer>();
 	m_Raytracer->Setup(*m_Scene);
+
+	LOG_INFO("Application startup complete.");
 }
 
 void D3DApplication::OnUpdate()

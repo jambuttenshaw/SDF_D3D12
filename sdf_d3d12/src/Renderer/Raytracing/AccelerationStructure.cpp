@@ -6,6 +6,8 @@
 
 void AccelerationStructure::AllocateResource()
 {
+	LOG_TRACE("Acceleration Structure: Allocating resource ({} KB)", m_PrebuildInfo.ResultDataMaxSizeInBytes / 1024);
+
 	constexpr D3D12_RESOURCE_STATES initialResourceState = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
 	m_AccelerationStructure.Allocate(
 		g_D3DGraphicsContext->GetDevice(),
@@ -18,6 +20,8 @@ void AccelerationStructure::AllocateResource()
 
 void AccelerationStructure::AllocateScratchResource()
 {
+	LOG_TRACE("Acceleration Structure: Allocating scratch ({} KB)", m_PrebuildInfo.ScratchDataSizeInBytes / 1024);
+
 	m_ScratchResource.Allocate(
 		g_D3DGraphicsContext->GetDevice(),
 		m_PrebuildInfo.ScratchDataSizeInBytes,
@@ -87,7 +91,10 @@ void BottomLevelAccelerationStructure::Build()
 
 	// Schedule previous resources to be released next frame
 	if (m_PreviousAccelerationStructure)
+	{
 		g_D3DGraphicsContext->DeferRelease(m_PreviousAccelerationStructure);
+		m_PreviousAccelerationStructure = nullptr;
+	}
 
 	m_IsDirty = false;
 	m_IsBuilt = true;
@@ -101,6 +108,8 @@ void BottomLevelAccelerationStructure::UpdateGeometry(const BottomLevelAccelerat
 		return;
 	}
 
+	LOG_TRACE("BLAS: Performing geometry update.");
+
 	// Rebuild geometry descriptions
 	m_GeometryDescs.clear();
 	BuildGeometryDescs(geometry);
@@ -112,7 +121,7 @@ void BottomLevelAccelerationStructure::UpdateGeometry(const BottomLevelAccelerat
 	// Check if the required acceleration structure size has increased
 	if (m_PrebuildInfo.ResultDataMaxSizeInBytes > prevPrebuildInfo.ResultDataMaxSizeInBytes)
 	{
-		// Need a larger buffer to hold the acceleration structure
+		LOG_TRACE("BLAS: Buffer resize required.");
 
 		// Keep hold of the previous acceleration structure
 		m_PreviousAccelerationStructure.Attach(m_AccelerationStructure.TransferResource());
@@ -122,7 +131,7 @@ void BottomLevelAccelerationStructure::UpdateGeometry(const BottomLevelAccelerat
 
 	if (m_PrebuildInfo.ScratchDataSizeInBytes > prevPrebuildInfo.ScratchDataSizeInBytes)
 	{
-		// Need a larger buffer to hold the scratch resource
+		LOG_TRACE("BLAS: Scratch resize required.");
 
 		// Schedule current scratch resource for release
 		ComPtr<IUnknown> scratch;

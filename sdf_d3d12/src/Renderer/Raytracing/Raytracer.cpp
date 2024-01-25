@@ -18,6 +18,7 @@ const wchar_t* Raytracer::c_MissShaderName = L"MyMissShader";
 
 Raytracer::Raytracer()
 {
+	LOG_INFO("Initializing raytracer...");
 	// Create resources
 
 	// Create root signatures for the shaders.
@@ -28,6 +29,8 @@ Raytracer::Raytracer()
 
 	// Create an output 2D texture to store the raytracing result to.
 	CreateRaytracingOutputResource();
+
+	LOG_INFO("Raytracing initialization complete.");
 }
 
 Raytracer::~Raytracer()
@@ -164,8 +167,9 @@ void Raytracer::CreateRootSignatures()
 
 void Raytracer::CreateRaytracingPipelineStateObject()
 {
-	CD3DX12_STATE_OBJECT_DESC raytracingPipeline{ D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE };
+	LOG_INFO("Create pipeline state object...");
 
+	CD3DX12_STATE_OBJECT_DESC raytracingPipeline{ D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE };
 
 	// DXIL library
 	const auto lib = raytracingPipeline.CreateSubobject<CD3DX12_DXIL_LIBRARY_SUBOBJECT>();
@@ -221,6 +225,8 @@ void Raytracer::CreateRaytracingPipelineStateObject()
 
 	// Create the state object.
 	THROW_IF_FAIL(g_D3DGraphicsContext->GetDXRDevice()->CreateStateObject(raytracingPipeline, IID_PPV_ARGS(&m_DXRStateObject)));
+
+	LOG_INFO("Pipeline state object created.");
 }
 
 // Create 2D output texture for raytracing.
@@ -251,6 +257,7 @@ void Raytracer::CreateRaytracingOutputResource()
 void Raytracer::BuildShaderTables()
 {
 	ASSERT(m_Scene, "No scene to raytrace!");
+	LOG_INFO("Building shader tables...");
 
 	const auto device = g_D3DGraphicsContext->GetDevice();
 
@@ -326,4 +333,6 @@ void Raytracer::BuildShaderTables()
 			}
 		}
 	}
+
+	LOG_INFO("Shader tables construction complete.");
 }

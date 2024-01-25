@@ -91,6 +91,8 @@ SDFFactory::~SDFFactory()
 
 void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editList)
 {
+	LOG_TRACE("-----SDF Factory Synchronous Bake Begin--------");
+
 	const auto device = g_D3DGraphicsContext->GetDevice();
 
 	// Step 1: Setup constant buffer data and counter temporary resources
@@ -155,6 +157,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		const UINT threadGroupZ = (buildParamsBuffer.EvalSpace_BricksPerAxis.z + AABB_BUILD_NUM_THREADS_PER_GROUP - 1) / AABB_BUILD_NUM_THREADS_PER_GROUP;
 
 		// Dispatch
+		LOG_TRACE("Building bricks with {}x{}x{} thread groups...", threadGroupX, threadGroupY, threadGroupZ);
 		m_CommandList->Dispatch(threadGroupX, threadGroupY, threadGroupZ);
 
 		// Copy counter value to a readback resource
@@ -201,6 +204,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		const UINT threadGroupX = object->GetBrickCount();
 
 		// Dispatch
+		LOG_TRACE("Evaluating bricks with {} thread groups...", threadGroupX);
 		m_CommandList->Dispatch(threadGroupX, 1, 1);
 
 		// Brick pool resource will now be read from in the subsequent stages
@@ -218,6 +222,8 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		THROW_IF_FAIL(m_CommandAllocator->Reset());
 		THROW_IF_FAIL(m_CommandList->Reset(m_CommandAllocator.Get(), nullptr));
 	}
+
+	LOG_TRACE("-----SDF Factory Synchronous Bake Complete-----");
 }
 
 
@@ -278,6 +284,8 @@ void SDFFactory::Flush()
 	m_CommandQueue->Signal(m_Fence.Get(), fence);
 	if (m_Fence->GetCompletedValue() < fence)								// block until async compute has completed using a fence
 	{
+		LOG_TRACE("SDF Factory: Waiting on GPU...");
+
 		m_Fence->SetEventOnCompletion(fence, m_FenceEvent);
 		WaitForSingleObject(m_FenceEvent, INFINITE);
 	}
