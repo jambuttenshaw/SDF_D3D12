@@ -148,6 +148,10 @@ public:
 	// Getters
 	inline D3D12_GPU_VIRTUAL_ADDRESS GetAccelerationStructureAddress() const { return m_TopLevelAS.GetResource()->GetGPUVirtualAddress(); }
 
+
+	inline const TopLevelAccelerationStructure& GetTopLevelAccelerationStructure() const { return m_TopLevelAS; }
+	inline const BottomLevelAccelerationStructure& GetBottomLevelAccelerationStructure(const std::wstring& name) const { return m_BottomLevelAS.at(name); }
+
 private:
 	TopLevelAccelerationStructure m_TopLevelAS;
 	std::map<std::wstring, BottomLevelAccelerationStructure> m_BottomLevelAS;

@@ -1,9 +1,22 @@
 #include "pch.h"
 #include "Scene.h"
 
+#include <codecvt>
+
 #include "imgui.h"
 
 #include "Framework/Math.h"
+
+
+// For debug output
+// convert wstring to UTF-8 string
+#pragma warning( push )
+#pragma warning( disable : 4244)
+std::string wstring_to_utf8(const std::wstring& str)
+{
+	return { str.begin(), str.end() };
+}
+#pragma warning( pop ) 
 
 
 Scene::Scene()
@@ -14,8 +27,10 @@ Scene::Scene()
 		m_SDFFactory = std::make_unique<SDFFactory>();
 
 		// Create an SDF object
-		m_TorusObject = std::make_unique<SDFObject>(0.0625f, 65536);
-		m_SphereObject = std::make_unique<SDFObject>(0.0625f, 65536);
+		//m_TorusObject = std::make_unique<SDFObject>(0.0625f, 65536);
+		//m_SphereObject = std::make_unique<SDFObject>(0.0625f, 65536);
+		m_TorusObject = std::make_unique<SDFObject>(0.125f, 4096);
+		m_SphereObject = std::make_unique<SDFObject>(0.125f, 4096);
 
 
 		/*
@@ -57,33 +72,23 @@ Scene::Scene()
 		}
 		{
 			// Create sphere object by adding and then subtracting a bunch of spheres
-			constexpr UINT addSpheres = 768;
-			constexpr int subtractSpheres = 256;
+			constexpr UINT spheres = 256;
 
-			SDFEditList sphereEditList(addSpheres + subtractSpheres);
+			SDFEditList sphereEditList(spheres);
 
-			for (UINT i = 0; i < addSpheres; i++)
+			for (UINT i = 0; i < spheres; i++)
 			{
-				const float radius = Random::Float(0.1f, 0.3f);
+				SDFOperation op = SDFOperation::Union;
+				if (i > 0)
+					op = i % 2 == 0 ? SDFOperation::SmoothSubtraction : SDFOperation::SmoothUnion;
+
+				const float radius = Random::Float(0.1f, 0.4f);
 				sphereEditList.AddEdit(SDFEdit::CreateSphere(
 					{
-							Random::Float(-0.9f + radius, 0.9f - radius),
-							Random::Float(-0.9f + radius, 0.9f - radius),
-							Random::Float(-0.9f + radius, 0.9f - radius)
-					}, 
-					radius, i > 0 ? SDFOperation::SmoothUnion : SDFOperation::Union, 0.05f));
-			}
-
-			for (UINT i = 0; i < subtractSpheres; i++)
-			{
-				const float radius = Random::Float(0.05f, 0.1f);
-				sphereEditList.AddEdit(SDFEdit::CreateSphere(
-					{
-						Random::Float(-0.9f + radius, 0.9f - radius),
-						Random::Float(-0.9f + radius, 0.9f - radius),
-						Random::Float(-0.9f + radius, 0.9f - radius)
-					},
-					radius, SDFOperation::SmoothSubtraction, 0.2f));
+							Random::Float(-0.8f + radius, 0.8f - radius),
+							Random::Float(-0.8f + radius, 0.8f - radius),
+							Random::Float(-0.8f + radius, 0.8f - radius)
+					}, radius, op, 0.3f));
 			}
 
 			// Bake the primitives into the SDF object
@@ -194,17 +199,26 @@ void Scene::OnUpdate(float deltaTime)
 
 	ImGui::Begin("Scene");
 	{
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
+		ImGui::Text("Scene");
+		ImGui::PopStyleColor();
 
-		ImGui::Text("Scene Info"); 
 		ImGui::Separator();
 
 		ImGui::Text("Instance Count: %d", s_InstanceCount);
 		ImGui::Separator();
 
-		DebugInfo("Torus Object", m_TorusObject.get());
-		DebugInfo("Sphere Object", m_SphereObject.get());
+		DisplaySDFObjectDebugInfo("Torus Object", m_TorusObject.get());
+		DisplaySDFObjectDebugInfo("Sphere Object", m_SphereObject.get());
 
-		ImGui::Text("Scene Controls");
+		DisplayAccelerationStructureDebugInfo();
+
+		ImGui::Separator();
+
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
+		ImGui::Text("Controls");
+		ImGui::PopStyleColor();
+
 		ImGui::Separator();
 
 		ImGui::Checkbox("Rotate Instances", &m_RotateInstances);
@@ -225,21 +239,53 @@ void Scene::UpdateAccelerationStructure()
 }
 
 
-void Scene::DebugInfo(const char* name, const SDFObject* object) const
+void Scene::DisplaySDFObjectDebugInfo(const char* name, const SDFObject* object) const
 {
+	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
 	ImGui::Text(name);
+	ImGui::PopStyleColor();
 
-	ImGui::Text("Brick count: %d", object->GetBrickCount());
+	ImGui::Text("Brick Count: %d", object->GetBrickCount());
 
 	const float aabbCull = 100.0f * (1.0f - static_cast<float>(object->GetBrickCount()) / static_cast<float>(object->GetBrickBufferCapacity()));
 	ImGui::Text("Brick Cull: %.1f", aabbCull);
 
 	const auto brickPoolSize = object->GetBrickPoolDimensions();
-	ImGui::Text("Brick Pool Size: %d, %d, %d", brickPoolSize.x, brickPoolSize.y, brickPoolSize.z);
+	ImGui::Text("Brick Pool Size (bricks): %d, %d, %d", brickPoolSize.x, brickPoolSize.y, brickPoolSize.z);
+	ImGui::Text("Brick Pool Size (KB): %d", object->GetBrickPoolSizeBytes() / 1024);
 
 	const float poolUsage = 100.0f * (static_cast<float>(object->GetBrickCount()) / static_cast<float>(object->GetBrickPoolCapacity()));
 	ImGui::Text("Brick Pool Usage: %.1f", poolUsage);
 
+	ImGui::Text("AABB Buffer Size (KB): %d", object->GetAABBBufferSizeBytes() / 1024);
+	ImGui::Text("Brick Buffer Size (KB): %d", object->GetBrickBufferSizeBytes() / 1024);
+
 	ImGui::Separator();
 }
 
+void Scene::DisplayAccelerationStructureDebugInfo() const
+{
+	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
+	ImGui::Text("Acceleration Structure");
+	ImGui::PopStyleColor();
+
+	ImGui::Separator();
+	{
+		ImGui::Text("Top Level");
+
+		const auto& tlas = m_AccelerationStructure->GetTopLevelAccelerationStructure();
+		ImGui::Text("Size: %d KB", tlas.GetResourceSize() / 1024);
+	}
+
+
+	for (const auto& blasGeometry : m_SceneGeometry)
+	{
+		ImGui::Separator();
+
+		auto name = wstring_to_utf8(blasGeometry.Name);
+		ImGui::Text("Bottom Level - %s", name.c_str());
+
+		const auto& blas = m_AccelerationStructure->GetBottomLevelAccelerationStructure(blasGeometry.Name);
+		ImGui::Text("Size: %d KB", blas.GetResourceSize() / 1024);
+	}
+}

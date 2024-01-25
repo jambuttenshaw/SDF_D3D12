@@ -151,6 +151,7 @@ void Raytracer::CreateRootSignatures()
 		SRVDescriptor.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 1);
 
 		CD3DX12_ROOT_PARAMETER rootParameters[LocalRootSignatureParams::Count];
+		rootParameters[LocalRootSignatureParams::BrickPropertiesBuffer].InitAsConstants(SizeOfInUint32(BrickPropertiesConstantBuffer), 0, 1);
 		rootParameters[LocalRootSignatureParams::BrickPoolSlot].InitAsDescriptorTable(1, &SRVDescriptor);
 		rootParameters[LocalRootSignatureParams::BrickBufferSlot].InitAsShaderResourceView(1, 1);
 
@@ -312,6 +313,7 @@ void Raytracer::BuildShaderTables()
 			for (auto& geometryInstance : bottomLevelASGeometry.GeometryInstances)
 			{
 				LocalRootSignatureParams::RootArguments rootArgs;
+				rootArgs.brickProperties.BrickHalfSize = 0.5f * geometryInstance->GetBrickSize();
 				rootArgs.brickPoolSRV = geometryInstance->GetBrickPoolSRV();
 				rootArgs.brickBuffer = geometryInstance->GetBrickBufferAddress();
 

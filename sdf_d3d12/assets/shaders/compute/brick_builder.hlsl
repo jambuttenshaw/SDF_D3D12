@@ -95,7 +95,6 @@ void main(uint3 DTid : SV_DispatchThreadID)
 
 	BrickPointer brickPointer;
 	brickPointer.AABBCentre = brickCentre;
-	brickPointer.AABBHalfExtent = 0.5f * g_BuildParameters.EvalSpace_BrickSize;
 	brickPointer.BrickIndex = brickIndex;
 	g_BrickBuffer[brickIndex] = brickPointer;
 }

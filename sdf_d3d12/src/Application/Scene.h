@@ -23,7 +23,8 @@ public:
 private:
 	void UpdateAccelerationStructure();
 
-	void DebugInfo(const char* name, const SDFObject* object) const;
+	void DisplaySDFObjectDebugInfo(const char* name, const SDFObject* object) const;
+	void DisplayAccelerationStructureDebugInfo() const;
 
 private:
 	// A description of all the different types of geometry in the scene

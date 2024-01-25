@@ -17,13 +17,15 @@ namespace LocalRootSignatureParams
 {
 	enum Value
 	{
-		BrickPoolSlot = 0,		// Brick pool to raymarch
-		BrickBufferSlot,		// Indirection data for brick
+		BrickPropertiesBuffer = 0,	// Properties constant among all bricks
+		BrickPoolSlot,				// Brick pool to raymarch
+		BrickBufferSlot,			// Indirection data for brick
 		Count
 	};
 
 	struct RootArguments
 	{
+		BrickPropertiesConstantBuffer brickProperties;
 		D3D12_GPU_DESCRIPTOR_HANDLE brickPoolSRV;
 		D3D12_GPU_VIRTUAL_ADDRESS brickBuffer;
 	};

@@ -46,7 +46,12 @@ void D3DApplication::OnUpdate()
 	}
 	ImGui::Separator();
 	{
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
 		ImGui::Text("Camera");
+		ImGui::PopStyleColor();
+
+		ImGui::Separator();
+
 		auto camPos = m_Camera.GetPosition();
 		auto camYaw = m_Camera.GetYaw();
 		auto camPitch = m_Camera.GetPitch();
@@ -63,7 +68,11 @@ void D3DApplication::OnUpdate()
 		m_CameraController.Gui();
 	}
 	ImGui::Separator();
+
+	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
 	ImGui::Text("Renderer");
+	ImGui::PopStyleColor();
+
 	ImGui::Separator();
 	{
 		auto RenderFlagOption = [&](const char* name, UINT value)

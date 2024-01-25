@@ -45,6 +45,11 @@ public:
 
 	inline D3D12_RAYTRACING_GEOMETRY_FLAGS GetGeometryFlags() const { return m_GeometryFlags; }
 
+	// Memory usage
+	UINT64 GetBrickPoolSizeBytes() const;
+	UINT64 GetAABBBufferSizeBytes() const;
+	UINT64 GetBrickBufferSizeBytes() const;
+
 private:
 	ComPtr<ID3D12Resource> m_BrickPool;
 	

@@ -25,9 +25,9 @@ SamplerState g_Sampler : register(s0);
 /////////////////////////
 
 // The SDF volume that will be ray-marched in the intersection shader
-Texture3D<float> l_SDFVolume : register(t0, space1);
+ConstantBuffer<BrickPropertiesConstantBuffer> l_BrickProperties : register(b0, space1);
+Texture3D<float> l_BrickPool : register(t0, space1);
 StructuredBuffer<BrickPointer> l_BrickBuffer : register(t1, space1);
-
 
 /////////////////
 //// DEFINES ////
@@ -65,9 +65,9 @@ inline void GenerateCameraRay(uint2 index, out float3 origin, out float3 directi
 float3 ComputeSurfaceNormal(float3 p, float3 delta)
 {
 	return normalize(float3(
-        (l_SDFVolume.SampleLevel(g_Sampler, p + float3(delta.x, 0.0f, 0.0f), 0) - l_SDFVolume.SampleLevel(g_Sampler, p - float3(delta.x, 0.0f, 0.0f), 0)),
-        (l_SDFVolume.SampleLevel(g_Sampler, p + float3(0.0f, delta.y, 0.0f), 0) - l_SDFVolume.SampleLevel(g_Sampler, p - float3(0.0f, delta.y, 0.0f), 0)),
-        (l_SDFVolume.SampleLevel(g_Sampler, p + float3(0.0f, 0.0f, delta.z), 0) - l_SDFVolume.SampleLevel(g_Sampler, p - float3(0.0f, 0.0f, delta.z), 0))
+        (l_BrickPool.SampleLevel(g_Sampler, p + float3(delta.x, 0.0f, 0.0f), 0) - l_BrickPool.SampleLevel(g_Sampler, p - float3(delta.x, 0.0f, 0.0f), 0)),
+        (l_BrickPool.SampleLevel(g_Sampler, p + float3(0.0f, delta.y, 0.0f), 0) - l_BrickPool.SampleLevel(g_Sampler, p - float3(0.0f, delta.y, 0.0f), 0)),
+        (l_BrickPool.SampleLevel(g_Sampler, p + float3(0.0f, 0.0f, delta.z), 0) - l_BrickPool.SampleLevel(g_Sampler, p - float3(0.0f, 0.0f, delta.z), 0))
     ));
 }
 
@@ -157,7 +157,7 @@ void MyIntersectionShader()
 	ray.direction = ObjectRayDirection();
 
 	float3 aabb[2];
-	aabb[1] = float3(pBrick.AABBHalfExtent, pBrick.AABBHalfExtent, pBrick.AABBHalfExtent);
+	aabb[1] = float3(l_BrickProperties.BrickHalfSize, l_BrickProperties.BrickHalfSize, l_BrickProperties.BrickHalfSize);
 	aabb[0] = -aabb[1];
 
 	// Get the tmin and tmax of the intersection between the ray and this aabb
@@ -166,14 +166,14 @@ void MyIntersectionShader()
 	{
 		// The dimensions of the pool texture are required to convert from voxel coordinates to uvw for sampling
 		uint3 poolDims;
-		l_SDFVolume.GetDimensions(poolDims.x, poolDims.y, poolDims.z);
+		l_BrickPool.GetDimensions(poolDims.x, poolDims.y, poolDims.z);
 		const float3 uvwPerVoxel = 1.0f / (float3)poolDims;
 
 		// if we are inside the aabb, begin ray marching from t = 0
 		// otherwise, begin from where the view ray first hits the box
 		float3 uvwAABB = ray.origin + max(tMin, 0.0f) * ray.direction;
 		// map uvw to range [-1,1]
-		uvwAABB /= pBrick.AABBHalfExtent;
+		uvwAABB /= l_BrickProperties.BrickHalfSize;
 		// map to [0,1]
 		uvwAABB = uvwAABB * 0.5f + 0.5f;
 
@@ -230,7 +230,7 @@ void MyIntersectionShader()
 		while (iterationCount < 32) // iteration guard
 		{
 			// Sample the volume
-			float s = l_SDFVolume.SampleLevel(g_Sampler, uvw, 0);
+			float s = l_BrickPool.SampleLevel(g_Sampler, uvw, 0);
 
 			// 0.0625 was the largest threshold before unacceptable artifacts were produced
 			if (s <= 0.0625f)
@@ -251,7 +251,7 @@ void MyIntersectionShader()
 		// Calculate the hit point as a UVW of the AABB
 		float3 hitUVWAABB = (PoolUVWToBrickVoxel(uvw, brickTopLeftVoxel, poolDims) - float3(1.0f, 1.0f, 1.0f)) / SDF_BRICK_SIZE_VOXELS;
 		// point of intersection in local space
-		const float3 pointOfIntersection = (hitUVWAABB * 2.0f - 1.0f) * pBrick.AABBHalfExtent;
+		const float3 pointOfIntersection = (hitUVWAABB * 2.0f - 1.0f) * l_BrickProperties.BrickHalfSize;
 		// t is the distance from the ray origin to the point of intersection
 		const float newT = length(ray.origin - pointOfIntersection);
 

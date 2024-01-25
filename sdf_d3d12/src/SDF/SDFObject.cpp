@@ -38,6 +38,11 @@ SDFObject::SDFObject(float brickSize, UINT brickCapacity, D3D12_RAYTRACING_GEOME
 	}
 }
 
+SDFObject::~SDFObject()
+{
+	m_ResourceViews.Free();
+}
+
 void SDFObject::AllocateOptimalBrickPool(UINT brickCount)
 {
 	ASSERT(brickCount > 0, "SDF Object does not have any bricks!");
@@ -79,7 +84,23 @@ void SDFObject::AllocateOptimalBrickPool(UINT brickCount)
 	}
 }
 
-SDFObject::~SDFObject()
+UINT64 SDFObject::GetBrickPoolSizeBytes() const
 {
-	m_ResourceViews.Free();
+	if (!m_BrickPool)
+		return 0;
+
+	const auto desc = m_BrickPool->GetDesc();
+	const auto elements = desc.Width * desc.Height * desc.DepthOrArraySize;
+	constexpr auto elementSize = sizeof(BYTE); // R8_SNORM one byte per element
+	return elements * elementSize;
+}
+
+UINT64 SDFObject::GetAABBBufferSizeBytes() const
+{
+	return m_AABBBuffer.GetElementCount() * m_AABBBuffer.GetElementStride();
+}
+
+UINT64 SDFObject::GetBrickBufferSizeBytes() const
+{
+	return m_BrickBuffer.GetElementCount() * m_BrickBuffer.GetElementStride();
 }

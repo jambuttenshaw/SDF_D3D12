@@ -58,10 +58,16 @@ struct BrickPointer
 	// Where this brick is placed in object space
 	// For transforming rays to local space of the brick
 	XMFLOAT3 AABBCentre;
-	float AABBHalfExtent; // this could be constant?
 
 	// Which brick in the pool does this point to
 	UINT BrickIndex;
+};
+
+// Data that is constant among all bricks in an object
+struct BrickPropertiesConstantBuffer
+{
+	// Half the brick dimensions
+	float BrickHalfSize;
 };
 
 #endif
