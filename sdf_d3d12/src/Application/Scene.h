@@ -37,9 +37,6 @@ private:
 	std::unique_ptr<SDFObject> m_TorusObject;
 	std::unique_ptr<SDFObject> m_SphereObject;
 
-	SDFEditList m_TorusEditList;
-	SDFEditList m_SphereEditList;
-
 	// Demo Scene
 	inline static constexpr UINT s_InstanceGridDims = 2;
 	inline static constexpr UINT s_InstanceCount = s_InstanceGridDims * s_InstanceGridDims * s_InstanceGridDims;
