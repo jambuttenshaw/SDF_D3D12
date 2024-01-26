@@ -141,6 +141,7 @@ void D3DDebugTools::D3DMessageHandler(D3D12_MESSAGE_CATEGORY Category, D3D12_MES
 void D3DDebugTools::LogAutoBreadcrumbs(const D3D12_AUTO_BREADCRUMB_NODE1* breadcrumb)
 {
 	LOG_INFO("DRED Auto Breadcrumbs:");
+	LOG_INFO("-------------");
 
 	while (breadcrumb)
 	{
@@ -169,7 +170,7 @@ void D3DDebugTools::LogAutoBreadcrumbs(const D3D12_AUTO_BREADCRUMB_NODE1* breadc
 					command++;
 				}
 			}
-			LOG_INFO("-------------"); // separator
+			LOG_INFO("-------------");
 		}
 
 		breadcrumb = breadcrumb->pNext;

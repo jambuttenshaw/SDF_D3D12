@@ -50,9 +50,12 @@ SDFFactory::SDFFactory()
 	queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
 	queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 	THROW_IF_FAIL(device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_CommandQueue)));
+	m_CommandQueue->SetName(L"SDFFactory Command Queue");
 
 	THROW_IF_FAIL(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_CommandAllocator)));
+	m_CommandAllocator->SetName(L"SDFFactory Command Allocator");
 	THROW_IF_FAIL(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_CommandAllocator.Get(), nullptr, IID_PPV_ARGS(&m_CommandList)));
+	m_CommandList->SetName(L"SDFFactory Command List");
 
 	THROW_IF_FAIL(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence)));
 	m_FenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);

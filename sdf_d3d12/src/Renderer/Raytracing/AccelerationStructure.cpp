@@ -17,6 +17,7 @@ void AccelerationStructure::AllocateResource()
 		D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS,
 		name.c_str()
 	);
+	m_IsBuilt = false;
 }
 
 void AccelerationStructure::AllocateScratchResource()
@@ -31,6 +32,7 @@ void AccelerationStructure::AllocateScratchResource()
 		D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS,
 		name.c_str()
 	);
+	m_IsBuilt = false;
 }
 
 
@@ -66,8 +68,8 @@ void BottomLevelAccelerationStructure::Build()
 {
 	ASSERT(m_PrebuildInfo.ScratchDataSizeInBytes <= m_ScratchResource.GetResource()->GetDesc().Width, "Scratch buffer is too small.");
 
-	m_CurrentID = g_D3DGraphicsContext->GetCurrentBackBuffer();
-	m_CachedGeometryDescs[m_CurrentID] = m_GeometryDescs;
+	const auto current = g_D3DGraphicsContext->GetCurrentBackBuffer();
+	m_CachedGeometryDescs[current] = m_GeometryDescs;
 
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottomLevelBuildDesc = {};
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& bottomLevelInputs = bottomLevelBuildDesc.Inputs;
@@ -82,8 +84,8 @@ void BottomLevelAccelerationStructure::Build()
 				m_PreviousAccelerationStructure->GetGPUVirtualAddress() :
 				m_AccelerationStructure.GetAddress();
 		}
-		bottomLevelInputs.NumDescs = static_cast<UINT>(m_CachedGeometryDescs[m_CurrentID].size());
-		bottomLevelInputs.pGeometryDescs = m_CachedGeometryDescs[m_CurrentID].data();
+		bottomLevelInputs.NumDescs = static_cast<UINT>(m_CachedGeometryDescs[current].size());
+		bottomLevelInputs.pGeometryDescs = m_CachedGeometryDescs[current].data();
 
 		bottomLevelBuildDesc.ScratchAccelerationStructureData = m_ScratchResource.GetAddress();
 		bottomLevelBuildDesc.DestAccelerationStructureData = m_AccelerationStructure.GetAddress();
@@ -139,7 +141,7 @@ void BottomLevelAccelerationStructure::UpdateGeometry(const BottomLevelAccelerat
 		ComPtr<IUnknown> scratch;
 		scratch.Attach(m_ScratchResource.TransferResource());
 		g_D3DGraphicsContext->DeferRelease(scratch);
-
+		
 		// Allocate a new scratch resource
 		AllocateScratchResource();
 	}
@@ -180,8 +182,10 @@ void BottomLevelAccelerationStructure::ComputePrebuildInfo()
 	g_D3DGraphicsContext->GetDXRDevice()->GetRaytracingAccelerationStructurePrebuildInfo(&bottomLevelInputs, &prebuildInfo);
 	ASSERT(prebuildInfo.ResultDataMaxSizeInBytes > 0, "Failed to get acceleration structure prebuild info.");
 
+	// Check if prebuild info has been computed before
 	if (m_PrebuildInfo.ResultDataMaxSizeInBytes > 0)
 	{
+		// Don't attempt to downsize the max size required - this could cause the acceleration structure to reallocate even if it was previously large enough
 		m_PrebuildInfo.ResultDataMaxSizeInBytes = max(m_PrebuildInfo.ResultDataMaxSizeInBytes, prebuildInfo.ResultDataMaxSizeInBytes);
 		m_PrebuildInfo.ScratchDataSizeInBytes = max(m_PrebuildInfo.ScratchDataSizeInBytes, prebuildInfo.ScratchDataSizeInBytes);
 		m_PrebuildInfo.UpdateScratchDataSizeInBytes = max(m_PrebuildInfo.UpdateScratchDataSizeInBytes, prebuildInfo.UpdateScratchDataSizeInBytes);
@@ -262,6 +266,7 @@ void TopLevelAccelerationStructure::ComputePrebuildInfo(UINT numBottomLevelASIns
 
 RaytracingAccelerationStructureManager::RaytracingAccelerationStructureManager(UINT numBottomLevelInstances)
 	: m_BottomLevelInstanceDescsStaging(numBottomLevelInstances, D3D12_RAYTRACING_INSTANCE_DESC{})
+	, m_InstanceMetadata(numBottomLevelInstances)
 {
 	for (auto& instanceDescs : m_BottomLevelInstanceDescs)
 	{
@@ -275,28 +280,47 @@ RaytracingAccelerationStructureManager::RaytracingAccelerationStructureManager(U
 
 void RaytracingAccelerationStructureManager::AddBottomLevelAS(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags, const BottomLevelAccelerationStructureGeometry& geometry, bool allowUpdate, bool updateOnBuild)
 {
-	ASSERT(m_BottomLevelAS.find(geometry.Name) == m_BottomLevelAS.end(), "A bottom level acceleration structure with that name already exists");
+	ASSERT(m_BottomLevelASNames.find(geometry.Name) == m_BottomLevelASNames.end(), "A bottom level acceleration structure with that name already exists");
 
-	auto& bottomLevelAS = m_BottomLevelAS[geometry.Name];
-	bottomLevelAS.Initialize(buildFlags, geometry, allowUpdate, updateOnBuild);
+	const size_t index = m_BottomLevelAS.size();
+	m_BottomLevelASNames[geometry.Name] = index;
+
+	m_BottomLevelAS.emplace_back();
+	m_BottomLevelAS.back().Initialize(buildFlags, geometry, allowUpdate, updateOnBuild);
 }
 
 void RaytracingAccelerationStructureManager::UpdateBottomLevelASGeometry(const BottomLevelAccelerationStructureGeometry& geometry)
 {
-	ASSERT(m_BottomLevelAS.find(geometry.Name) != m_BottomLevelAS.end(), "BLAS does not exist.");
+	ASSERT(m_BottomLevelASNames.find(geometry.Name) != m_BottomLevelASNames.end(), "BLAS does not exist.");
 
-	auto& bottomLevelAS = m_BottomLevelAS.at(geometry.Name);
+	auto& bottomLevelAS = m_BottomLevelAS.at(m_BottomLevelASNames.at(geometry.Name));
 	bottomLevelAS.UpdateGeometry(geometry);
+
+	if (!bottomLevelAS.IsBuilt())
+	{
+		// If the acceleration structure is not built; then a re-allocation likely has occurred
+		// All instances should have their acceleration structure pointer amended
+		const size_t blasIndex = m_BottomLevelASNames.at(bottomLevelAS.GetName());
+		for (size_t i = 0; i < m_NumBottomLevelInstances; i++)
+		{
+			const auto& metadata = m_InstanceMetadata.at(i);
+			if (metadata.BLASIndex == blasIndex)
+			{
+				auto& instanceDesc = m_BottomLevelInstanceDescsStaging.at(i);
+				instanceDesc.AccelerationStructure = bottomLevelAS.GetResource()->GetGPUVirtualAddress();
+			}
+		}
+	}
 }
 
 
 UINT RaytracingAccelerationStructureManager::AddBottomLevelASInstance(const std::wstring& bottomLevelASName, const XMMATRIX& transform, BYTE instanceMask)
 {
 	ASSERT(m_NumBottomLevelInstances < m_BottomLevelInstanceDescsStaging.size(), "Not enough instance desc buffer size.");
-	ASSERT(m_BottomLevelAS.find(bottomLevelASName) != m_BottomLevelAS.end(), "Bottom level AS does not exist.");
+	ASSERT(m_BottomLevelASNames.find(bottomLevelASName) != m_BottomLevelASNames.end(), "Bottom level AS does not exist.");
 
 	const UINT instanceIndex = m_NumBottomLevelInstances++;
-	const auto& bottomLevelAS = m_BottomLevelAS.at(bottomLevelASName);
+	const auto& bottomLevelAS = m_BottomLevelAS.at(m_BottomLevelASNames.at(bottomLevelASName));
 
 	// Populate the next element in the staging buffer
 	D3D12_RAYTRACING_INSTANCE_DESC& instanceDesc = m_BottomLevelInstanceDescsStaging.at(instanceIndex);
@@ -304,6 +328,9 @@ UINT RaytracingAccelerationStructureManager::AddBottomLevelASInstance(const std:
 	instanceDesc.InstanceContributionToHitGroupIndex = bottomLevelAS.GetInstanceContributionToHitGroupIndex();
 	instanceDesc.AccelerationStructure = bottomLevelAS.GetResource()->GetGPUVirtualAddress();
 	XMStoreFloat3x4(reinterpret_cast<XMFLOAT3X4*>(instanceDesc.Transform), transform);
+
+	auto& instanceMetadata = m_InstanceMetadata.at(instanceIndex);
+	instanceMetadata.BLASIndex = m_BottomLevelASNames.at(bottomLevelASName);
 
 	return instanceIndex;
 }
@@ -327,7 +354,7 @@ void RaytracingAccelerationStructureManager::Build(bool forceBuild)
 		std::vector<CD3DX12_RESOURCE_BARRIER> barriers;
 		barriers.reserve(m_BottomLevelAS.size());
 
-		for (auto&[name, bottomLevelAS] : m_BottomLevelAS)
+		for (auto& bottomLevelAS : m_BottomLevelAS)
 		{
 			if (forceBuild || bottomLevelAS.IsDirty())
 			{
@@ -363,13 +390,14 @@ void RaytracingAccelerationStructureManager::SetInstanceTransform(UINT instanceI
 
 void RaytracingAccelerationStructureManager::SetBLASInstanceContributionToHitGroup(const std::wstring& blas, UINT instanceContributionToHitGroupIndex)
 {
+	//NOT_IMPLEMENTED; // TODO: This function is horribly written and should not be used until it is amended
 	// This must be done through the AS manager as the instance buffer requires updating
 
 	// Make sure BLAS exists
-	ASSERT(m_BottomLevelAS.find(blas) != m_BottomLevelAS.end(), "BLAS doesn't exist!");
+	ASSERT(m_BottomLevelASNames.find(blas) != m_BottomLevelASNames.end(), "BLAS doesn't exist!");
 
-	m_BottomLevelAS.at(blas).SetInstanceContributionToHitGroupIndex(instanceContributionToHitGroupIndex);
-	const D3D12_GPU_VIRTUAL_ADDRESS blasAddress = m_BottomLevelAS.at(blas).GetResource()->GetGPUVirtualAddress();
+	m_BottomLevelAS.at(m_BottomLevelASNames.at(blas)).SetInstanceContributionToHitGroupIndex(instanceContributionToHitGroupIndex);
+	const D3D12_GPU_VIRTUAL_ADDRESS blasAddress = m_BottomLevelAS.at(m_BottomLevelASNames.at(blas)).GetResource()->GetGPUVirtualAddress();
 
 	for (auto& instanceDesc : m_BottomLevelInstanceDescsStaging)
 	{

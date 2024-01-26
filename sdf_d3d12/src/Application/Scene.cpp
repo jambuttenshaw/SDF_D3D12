@@ -29,7 +29,7 @@ Scene::Scene()
 		// Create an SDF object
 		//m_TorusObject = std::make_unique<SDFObject>(0.05f, 65536);
 		//m_SphereObject = std::make_unique<SDFObject>(0.05f, 65536);
-		m_Object = std::make_unique<SDFObject>(0.25f, 65536);
+		m_Object = std::make_unique<SDFObject>(0.0625f, 65536);
 
 
 		/*
@@ -124,7 +124,7 @@ Scene::Scene()
 
 	{
 		// Set up acceleration structure
-		constexpr D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
+		constexpr D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_BUILD;
 		m_AccelerationStructure = std::make_unique<RaytracingAccelerationStructureManager>(s_InstanceCount);
 
 		for (const auto& geometry : m_SceneGeometry)

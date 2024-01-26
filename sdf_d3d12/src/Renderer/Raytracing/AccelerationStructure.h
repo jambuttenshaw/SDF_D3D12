@@ -31,6 +31,7 @@ public:
 
 	inline void SetDirty(bool dirty) { m_IsDirty = dirty; }
 	inline bool IsDirty() const { return m_IsDirty; }
+	inline bool IsBuilt() const { return m_IsBuilt; }
 
 	inline UINT64 GetResourceSize() const { return m_AccelerationStructure.GetResource()->GetDesc().Width; }
 
@@ -97,7 +98,6 @@ private:
 private:
 	std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> m_GeometryDescs;
 
-	UINT m_CurrentID = 0;
 	std::vector<std::vector<D3D12_RAYTRACING_GEOMETRY_DESC>> m_CachedGeometryDescs;
 
 	UINT m_InstanceContributionToHitGroupIndex = 0;
@@ -124,6 +124,12 @@ private:
 
 class RaytracingAccelerationStructureManager
 {
+	struct BLASInstanceMetadata
+	{
+		// The index into the BLAS vector for the BLAS that this is an instance of
+		size_t BLASIndex;
+	};
+
 public:
 	RaytracingAccelerationStructureManager(UINT numBottomLevelInstances);
 	~RaytracingAccelerationStructureManager() = default;
@@ -146,21 +152,25 @@ public:
 	void SetBLASInstanceContributionToHitGroup(const std::wstring& blas, UINT instanceContributionToHitGroupIndex);
 
 	// Getters
-	inline D3D12_GPU_VIRTUAL_ADDRESS GetAccelerationStructureAddress() const { return m_TopLevelAS.GetResource()->GetGPUVirtualAddress(); }
+	inline D3D12_GPU_VIRTUAL_ADDRESS GetTopLevelAccelerationStructureAddress() const { return m_TopLevelAS.GetResource()->GetGPUVirtualAddress(); }
 
 
 	inline const TopLevelAccelerationStructure& GetTopLevelAccelerationStructure() const { return m_TopLevelAS; }
-	inline const BottomLevelAccelerationStructure& GetBottomLevelAccelerationStructure(const std::wstring& name) const { return m_BottomLevelAS.at(name); }
+	inline const BottomLevelAccelerationStructure& GetBottomLevelAccelerationStructure(const std::wstring& name) const { return m_BottomLevelAS.at(m_BottomLevelASNames.at(name)); }
 
 private:
 	TopLevelAccelerationStructure m_TopLevelAS;
-	std::map<std::wstring, BottomLevelAccelerationStructure> m_BottomLevelAS;
+	std::map<std::wstring, size_t> m_BottomLevelASNames;
+	std::vector<BottomLevelAccelerationStructure> m_BottomLevelAS;
 
 	// Multiple upload buffers are required to buffer this resource
 	// As its data will be updated each frame
 	std::array<UploadBuffer<D3D12_RAYTRACING_INSTANCE_DESC>, D3DGraphicsContext::GetBackBufferCount()> m_BottomLevelInstanceDescs;
+
 	// A staging buffer where instance descs are collected
 	// They are then copied into the upload buffer when the acceleration structure is built
 	std::vector<D3D12_RAYTRACING_INSTANCE_DESC> m_BottomLevelInstanceDescsStaging;
+
+	std::vector<BLASInstanceMetadata> m_InstanceMetadata;
 	UINT m_NumBottomLevelInstances = 0;
 }; 
