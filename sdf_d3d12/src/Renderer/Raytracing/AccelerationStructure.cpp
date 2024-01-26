@@ -6,7 +6,7 @@
 
 void AccelerationStructure::AllocateResource()
 {
-	LOG_TRACE("Acceleration Structure: Allocating resource ({} KB)", m_PrebuildInfo.ResultDataMaxSizeInBytes / 1024);
+	LOG_TRACE("Acceleration Structure: Allocating resource ({} Bytes)", m_PrebuildInfo.ResultDataMaxSizeInBytes);
 
 	constexpr D3D12_RESOURCE_STATES initialResourceState = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
 	m_AccelerationStructure.Allocate(
@@ -20,7 +20,7 @@ void AccelerationStructure::AllocateResource()
 
 void AccelerationStructure::AllocateScratchResource()
 {
-	LOG_TRACE("Acceleration Structure: Allocating scratch ({} KB)", m_PrebuildInfo.ScratchDataSizeInBytes / 1024);
+	LOG_TRACE("Acceleration Structure: Allocating scratch ({} Bytes)", m_PrebuildInfo.ScratchDataSizeInBytes);
 
 	m_ScratchResource.Allocate(
 		g_D3DGraphicsContext->GetDevice(),
@@ -121,7 +121,7 @@ void BottomLevelAccelerationStructure::UpdateGeometry(const BottomLevelAccelerat
 	// Check if the required acceleration structure size has increased
 	if (m_PrebuildInfo.ResultDataMaxSizeInBytes > prevPrebuildInfo.ResultDataMaxSizeInBytes)
 	{
-		LOG_TRACE("BLAS: Buffer resize required.");
+		LOG_INFO("BLAS: Buffer resize required.");
 
 		// Keep hold of the previous acceleration structure
 		m_PreviousAccelerationStructure.Attach(m_AccelerationStructure.TransferResource());
@@ -131,7 +131,7 @@ void BottomLevelAccelerationStructure::UpdateGeometry(const BottomLevelAccelerat
 
 	if (m_PrebuildInfo.ScratchDataSizeInBytes > prevPrebuildInfo.ScratchDataSizeInBytes)
 	{
-		LOG_TRACE("BLAS: Scratch resize required.");
+		LOG_INFO("BLAS: Scratch resize required.");
 
 		// Schedule current scratch resource for release
 		ComPtr<IUnknown> scratch;
@@ -174,8 +174,20 @@ void BottomLevelAccelerationStructure::ComputePrebuildInfo()
 	bottomLevelInputs.NumDescs = static_cast<UINT>(m_GeometryDescs.size());
 	bottomLevelInputs.pGeometryDescs = m_GeometryDescs.data();
 
-	g_D3DGraphicsContext->GetDXRDevice()->GetRaytracingAccelerationStructurePrebuildInfo(&bottomLevelInputs, &m_PrebuildInfo);
-	ASSERT(m_PrebuildInfo.ResultDataMaxSizeInBytes > 0, "Failed to get acceleration structure prebuild info.");
+	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO prebuildInfo;
+	g_D3DGraphicsContext->GetDXRDevice()->GetRaytracingAccelerationStructurePrebuildInfo(&bottomLevelInputs, &prebuildInfo);
+	ASSERT(prebuildInfo.ResultDataMaxSizeInBytes > 0, "Failed to get acceleration structure prebuild info.");
+
+	if (m_PrebuildInfo.ResultDataMaxSizeInBytes > 0)
+	{
+		m_PrebuildInfo.ResultDataMaxSizeInBytes = max(m_PrebuildInfo.ResultDataMaxSizeInBytes, prebuildInfo.ResultDataMaxSizeInBytes);
+		m_PrebuildInfo.ScratchDataSizeInBytes = max(m_PrebuildInfo.ScratchDataSizeInBytes, prebuildInfo.ScratchDataSizeInBytes);
+		m_PrebuildInfo.UpdateScratchDataSizeInBytes = max(m_PrebuildInfo.UpdateScratchDataSizeInBytes, prebuildInfo.UpdateScratchDataSizeInBytes);
+	}
+	else
+	{
+		m_PrebuildInfo = prebuildInfo;
+	}
 }
 
 

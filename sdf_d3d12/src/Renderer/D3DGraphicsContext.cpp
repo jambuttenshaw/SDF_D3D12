@@ -99,24 +99,36 @@ D3DGraphicsContext::~D3DGraphicsContext()
 
 void D3DGraphicsContext::Present()
 {
-	// TODO: This could fail for a reason, it shouldn't always throw
 	const HRESULT result = m_SwapChain->Present(1, 0);
 	if (result != S_OK)
 	{
 		switch(result)
 		{
 		case DXGI_ERROR_DEVICE_RESET:
-			LOG_FATAL("Present failed: Device reset!");
 		case DXGI_ERROR_DEVICE_REMOVED:
-			LOG_FATAL("Present failed: m_Device removed!");
+			CheckDeviceRemovedStatus();
+			LOG_FATAL("Present failed: Device removed!");
+			break;
 		default:
+			CheckDeviceRemovedStatus();
 			LOG_FATAL("Present failed: unknown error!");
+			break;
 		}
 	}
 
 	MoveToNextFrame();
 	ProcessDeferrals(m_FrameIndex);
 }
+
+void D3DGraphicsContext::CheckDeviceRemovedStatus() const
+{
+	const HRESULT result = m_Device->GetDeviceRemovedReason();
+	if (result != S_OK)
+	{
+		LOG_ERROR(DXException(result).ToString().c_str());
+	}
+}
+
 
 void D3DGraphicsContext::StartDraw() const
 {
@@ -281,11 +293,16 @@ void D3DGraphicsContext::Flush() const
 
 void D3DGraphicsContext::WaitForGPU() const
 {
+	LOG_INFO("Graphics Context: Waiting for GPU...");
+
 	// Signal and increment the fence
 	THROW_IF_FAIL(m_CommandQueue->Signal(m_Fence.Get(), m_CurrentFrameResources->GetFenceValue()));
 
-	THROW_IF_FAIL(m_Fence->SetEventOnCompletion(m_CurrentFrameResources->GetFenceValue(), m_FenceEvent));
-	WaitForSingleObject(m_FenceEvent, INFINITE);
+	if (m_Fence->GetCompletedValue() < m_CurrentFrameResources->GetFenceValue())
+	{
+		THROW_IF_FAIL(m_Fence->SetEventOnCompletion(m_CurrentFrameResources->GetFenceValue(), m_FenceEvent));
+		WaitForSingleObject(m_FenceEvent, INFINITE);
+	}
 
 	m_CurrentFrameResources->IncrementFence();
 }

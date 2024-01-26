@@ -34,6 +34,7 @@ public:
 
 
 	void Present();
+	void CheckDeviceRemovedStatus() const;
 
 	void StartDraw() const;
 	void EndDraw() const;

@@ -19,6 +19,7 @@ std::string wstring_to_utf8(const std::wstring& str)
 
 
 Scene::Scene()
+	: m_EditList(16)
 {
 	// Build SDF Object
 	{
@@ -26,10 +27,9 @@ Scene::Scene()
 		m_SDFFactory = std::make_unique<SDFFactory>();
 
 		// Create an SDF object
-		m_TorusObject = std::make_unique<SDFObject>(0.05f, 65536);
-		m_SphereObject = std::make_unique<SDFObject>(0.05f, 65536);
-		//m_TorusObject = std::make_unique<SDFObject>(0.125f, 4096);
-		//m_SphereObject = std::make_unique<SDFObject>(0.125f, 4096);
+		//m_TorusObject = std::make_unique<SDFObject>(0.05f, 65536);
+		//m_SphereObject = std::make_unique<SDFObject>(0.05f, 65536);
+		m_Object = std::make_unique<SDFObject>(0.5f, 4096);
 
 
 		/*
@@ -49,7 +49,7 @@ Scene::Scene()
 		}
 		*/
 
-
+		/*
 		{
 			SDFEditList torusEditList(4);
 			// Create torus object edit list
@@ -93,8 +93,16 @@ Scene::Scene()
 			// Bake the primitives into the SDF object
 			m_SDFFactory->BakeSDFSynchronous(m_SphereObject.get(), sphereEditList);
 		}
+		*/
+		{
+			// Create torus object edit list
+			m_EditList.AddEdit(SDFEdit::CreateTorus({}, 0.75f, 0.2f));
+			m_EditList.AddEdit(SDFEdit::CreateOctahedron({}, 0.3f));
+			m_SDFFactory->BakeSDFSynchronous(m_Object.get(), m_EditList);
+		}
 	}
 
+	/*
 	{
 		// Construct scene geometry
 		m_SceneGeometry.push_back({ L"Torus" });
@@ -106,6 +114,13 @@ Scene::Scene()
 		torusGeometry.GeometryInstances.push_back(m_TorusObject.get());
 		spheresGeometry.GeometryInstances.push_back(m_SphereObject.get());
 	}
+	*/
+	{
+		// Construct scene geometry
+		m_SceneGeometry.push_back({ L"Sphere" });
+		auto& sphereGeometry = m_SceneGeometry.at(0);
+		sphereGeometry.GeometryInstances.push_back(m_Object.get());
+	}
 
 	{
 		// Set up acceleration structure
@@ -114,13 +129,12 @@ Scene::Scene()
 
 		for (const auto& geometry : m_SceneGeometry)
 		{
-			m_AccelerationStructure->AddBottomLevelAS(buildFlags, geometry, false, false);
+			m_AccelerationStructure->AddBottomLevelAS(buildFlags, geometry, true, true);
 		}
 
 		// Create instances of BLAS
 
-		const std::wstring torusGeometry = L"Torus";
-		const std::wstring spheresGeometry = L"Spheres";
+		const std::wstring sphereGeometry = L"Sphere";
 		for (UINT z = 0; z < s_InstanceGridDims; z++)
 		{
 			for (UINT y = 0; y < s_InstanceGridDims; y++)
@@ -128,7 +142,6 @@ Scene::Scene()
 				for (UINT x = 0; x < s_InstanceGridDims; x++)
 				{
 					const UINT index = (z * s_InstanceGridDims + y) * s_InstanceGridDims + x;
-					const auto& geometryName = index % 2 ? torusGeometry : spheresGeometry;
 
 					auto rotation = XMMatrixRotationRollPitchYaw(
 						XMConvertToRadians(Random::Float(360.0f)),
@@ -155,13 +168,13 @@ Scene::Scene()
 						z * s_InstanceSpacing + m_InstanceTranslation[index].z 
 					);
 
-					m_AccelerationStructure->AddBottomLevelASInstance(geometryName, rotation * translation, 1);
+					m_AccelerationStructure->AddBottomLevelASInstance(sphereGeometry, rotation * translation, 1);
 				}
 			}
 		}
 
 		// Init top level AS
-		m_AccelerationStructure->InitializeTopLevelAS(buildFlags, false, false, L"Top Level Acceleration Structure");
+		m_AccelerationStructure->InitializeTopLevelAS(buildFlags, true, true, L"Top Level Acceleration Structure");
 	}
 }
 
@@ -194,8 +207,6 @@ void Scene::OnUpdate(float deltaTime)
 	}
 
 
-	// ImGui
-
 	ImGui::Begin("Scene");
 	{
 		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
@@ -207,8 +218,9 @@ void Scene::OnUpdate(float deltaTime)
 		ImGui::Text("Instance Count: %d", s_InstanceCount);
 		ImGui::Separator();
 
-		DisplaySDFObjectDebugInfo("Torus Object", m_TorusObject.get());
-		DisplaySDFObjectDebugInfo("Sphere Object", m_SphereObject.get());
+		//DisplaySDFObjectDebugInfo("Torus Object", m_TorusObject.get());
+		//DisplaySDFObjectDebugInfo("Sphere Object", m_SphereObject.get());
+		DisplaySDFObjectDebugInfo("Sphere Object", m_Object.get());
 
 		DisplayAccelerationStructureDebugInfo();
 
@@ -234,6 +246,10 @@ void Scene::OnRender()
 
 void Scene::UpdateAccelerationStructure()
 {
+	// Update geometry
+	m_AccelerationStructure->UpdateBottomLevelASGeometry(m_SceneGeometry.at(0));
+
+	// Rebuild
 	m_AccelerationStructure->Build();
 }
 

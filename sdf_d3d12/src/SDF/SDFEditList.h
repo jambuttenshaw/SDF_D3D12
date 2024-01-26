@@ -23,7 +23,7 @@ public:
 	inline UINT GetEditCount() const { return static_cast<UINT>(m_EditsStaging.size()); }
 	inline UINT GetMaxEdits() const { return m_MaxEdits; }
 
-	inline D3D12_GPU_VIRTUAL_ADDRESS GetEditBufferAddress() const { return m_EditsBuffer.GetAddressOfElement(0); }
+	D3D12_GPU_VIRTUAL_ADDRESS GetEditBufferAddress() const;
 
 private:
 	SDFEditData BuildEditData(const SDFEdit& edit);
@@ -33,7 +33,7 @@ private:
 	std::vector<SDFEditData> m_EditsStaging;
 
 	// A structured buffer to contain the edits in GPU memory
-	UploadBuffer<SDFEditData> m_EditsBuffer;
+	std::vector<UploadBuffer<SDFEditData>> m_EditsBuffers;
 
 	// Buffer capacity
 	UINT m_MaxEdits = 0;

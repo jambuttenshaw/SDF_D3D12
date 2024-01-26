@@ -46,6 +46,25 @@ SDFObject::~SDFObject()
 void SDFObject::AllocateOptimalBrickPool(UINT brickCount)
 {
 	ASSERT(brickCount > 0, "SDF Object does not have any bricks!");
+
+	if (m_BrickPool)
+	{
+		// Brick pool has already been allocated
+		// A larger brick pool might be required
+		if (brickCount > GetBrickPoolCapacity())
+		{
+			// TODO: In this case a new brick pool should be allocated and the previous one released
+			LOG_ERROR("Brick pool is too small - reallocation required!");
+		}
+		else
+		{
+			// Existing brick pool is large enough, no allocation required
+			// Just update brick count
+			m_BrickCount = brickCount;
+			return;
+		}
+	}
+
 	m_BrickCount = brickCount;
 
 	// Calculate dimensions for the brick pool such that it contains at least m_BrickCount entries

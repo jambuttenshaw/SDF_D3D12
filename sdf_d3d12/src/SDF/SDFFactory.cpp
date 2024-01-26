@@ -162,6 +162,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 
 		// Copy counter value to a readback resource
 		m_CounterResource.ReadValue(m_CommandList.Get(), counterReadback.GetResource());
+
 	}
 
 	// Step 3: Execute command list and wait until completion

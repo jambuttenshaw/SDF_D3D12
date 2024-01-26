@@ -5,10 +5,12 @@
 
 
 SDFEditList::SDFEditList(UINT maxEdits)
-	: m_MaxEdits(maxEdits)
+	: m_EditsBuffers(D3DGraphicsContext::GetBackBufferCount())
+	, m_MaxEdits(maxEdits)
 {
 	m_EditsStaging.reserve(maxEdits);
-	m_EditsBuffer.Allocate(g_D3DGraphicsContext->GetDevice(), m_MaxEdits, 0, L"Edit Buffer");
+	for (auto& buffer : m_EditsBuffers)
+		buffer.Allocate(g_D3DGraphicsContext->GetDevice(), m_MaxEdits, 0, L"Edit Buffer");
 }
 
 void SDFEditList::Reset()
@@ -30,7 +32,12 @@ bool SDFEditList::AddEdit(const SDFEdit& edit)
 
 void SDFEditList::CopyStagingToGPU() const
 {
-	m_EditsBuffer.CopyElements(0, static_cast<UINT>(m_EditsStaging.size()), m_EditsStaging.data());
+	m_EditsBuffers[g_D3DGraphicsContext->GetCurrentBackBuffer()].CopyElements(0, static_cast<UINT>(m_EditsStaging.size()), m_EditsStaging.data());
+}
+
+D3D12_GPU_VIRTUAL_ADDRESS SDFEditList::GetEditBufferAddress() const
+{
+	return m_EditsBuffers[g_D3DGraphicsContext->GetCurrentBackBuffer()].GetAddressOfElement(0);
 }
 
 
