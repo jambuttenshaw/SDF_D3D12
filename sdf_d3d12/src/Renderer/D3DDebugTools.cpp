@@ -148,13 +148,13 @@ void D3DDebugTools::LogAutoBreadcrumbs(const D3D12_AUTO_BREADCRUMB_NODE1* breadc
 		if (breadcrumb->BreadcrumbCount && breadcrumb->BreadcrumbCount > lastBreadcrumb)
 		{
 			if (breadcrumb->pCommandQueueDebugNameW)
-				LOG_TRACE(L"Command Queue: {}", breadcrumb->pCommandQueueDebugNameW);
+				LOG_INFO(L"Command Queue: {}", breadcrumb->pCommandQueueDebugNameW);
 			if (breadcrumb->pCommandListDebugNameW)
-				LOG_TRACE(L"Command List: {}", breadcrumb->pCommandListDebugNameW);
+				LOG_INFO(L"Command List: {}", breadcrumb->pCommandListDebugNameW);
 
 			if (breadcrumb->pCommandHistory)
 			{
-				LOG_TRACE("Operation History:");
+				LOG_INFO("Operation History:");
 				auto command = breadcrumb->pCommandHistory;
 				for (UINT i = 0; i < breadcrumb->BreadcrumbCount && command; i++)
 				{
@@ -164,7 +164,7 @@ void D3DDebugTools::LogAutoBreadcrumbs(const D3D12_AUTO_BREADCRUMB_NODE1* breadc
 					}
 					else
 					{
-						LOG_TRACE("    {}", BreadCrumbOpToStr(*command));
+						LOG_INFO("    {}", BreadCrumbOpToStr(*command));
 					}
 					command++;
 				}
@@ -181,23 +181,37 @@ void D3DDebugTools::LogPageFault(D3D12_DRED_PAGE_FAULT_OUTPUT* pageFault)
 {
 	LOG_INFO("Page Fault VA: {}", pageFault->PageFaultVA);
 
-	LOG_INFO("Existing objects with matching VA:");
 	auto allocation = pageFault->pHeadExistingAllocationNode;
-	while (allocation)
+	if (allocation)
 	{
-		LOG_TRACE(L"	Name: {}", allocation->ObjectNameW);
-		LOG_TRACE("	Type: {}", AllocationTypeToStr(allocation->AllocationType));
-		LOG_INFO("    -------------");
-		allocation = allocation->pNext;
+		LOG_INFO("Existing objects with matching VA:");
+		while (allocation)
+		{
+			LOG_INFO(L"	Name: {}", allocation->ObjectNameW);
+			LOG_INFO("	Type: {}", AllocationTypeToStr(allocation->AllocationType));
+			LOG_INFO("    -------------");
+			allocation = allocation->pNext;
+		}
+	}
+	else
+	{
+		LOG_INFO("No existing objects matching VA.");
 	}
 
-	LOG_INFO("Recently freed objects with matching VA:");
 	allocation = pageFault->pHeadRecentFreedAllocationNode;
-	while (allocation)
+	if (allocation)
 	{
-		LOG_TRACE(L"	Name: {}", allocation->ObjectNameW);
-		LOG_TRACE("	Type: {}", AllocationTypeToStr(allocation->AllocationType));
-		LOG_INFO("    -------------");
-		allocation = allocation->pNext;
+		LOG_INFO("Recently freed objects with matching VA:");
+		while (allocation)
+		{
+			LOG_INFO(L"	Name: {}", allocation->ObjectNameW);
+			LOG_INFO("	Type: {}", AllocationTypeToStr(allocation->AllocationType));
+			LOG_INFO("    -------------");
+			allocation = allocation->pNext;
+		}
+	}
+	else
+	{
+		LOG_TRACE("No recently freed objects matching VA.");
 	}
 }

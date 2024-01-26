@@ -7,6 +7,7 @@
 void AccelerationStructure::AllocateResource()
 {
 	LOG_TRACE("Acceleration Structure: Allocating resource ({} Bytes)", m_PrebuildInfo.ResultDataMaxSizeInBytes);
+	const std::wstring name = m_Name + L"BLAS";
 
 	constexpr D3D12_RESOURCE_STATES initialResourceState = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
 	m_AccelerationStructure.Allocate(
@@ -14,20 +15,21 @@ void AccelerationStructure::AllocateResource()
 		m_PrebuildInfo.ResultDataMaxSizeInBytes,
 		initialResourceState,
 		D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS,
-		m_Name.c_str()
+		name.c_str()
 	);
 }
 
 void AccelerationStructure::AllocateScratchResource()
 {
 	LOG_TRACE("Acceleration Structure: Allocating scratch ({} Bytes)", m_PrebuildInfo.ScratchDataSizeInBytes);
+	const std::wstring name = m_Name + L"BLAS Scratch";
 
 	m_ScratchResource.Allocate(
 		g_D3DGraphicsContext->GetDevice(),
 		m_PrebuildInfo.ScratchDataSizeInBytes,
 		D3D12_RESOURCE_STATE_COMMON,
 		D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS,
-		L"Acceleration Structure Scratch Resource"
+		name.c_str()
 	);
 }
 

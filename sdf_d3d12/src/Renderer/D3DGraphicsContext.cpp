@@ -105,17 +105,17 @@ D3DGraphicsContext::~D3DGraphicsContext()
 
 void D3DGraphicsContext::Present()
 {
-	const HRESULT result = m_SwapChain->Present(0, 0);
-	if (result != S_OK)
+	const HRESULT result = m_SwapChain->Present(1, 0);
+	if (FAILED(result))
 	{
 		switch(result)
 		{
 		case DXGI_ERROR_DEVICE_RESET:
 		case DXGI_ERROR_DEVICE_REMOVED:
-			LOG_FATAL("Present failed: Device removed!");
+			LOG_FATAL("Present Failed: Device Removed!");
 			break;
 		default:
-			LOG_FATAL("Present failed: unknown error!");
+			LOG_FATAL("Present Failed: Unknown Error!");
 			break;
 		}
 	}
@@ -299,7 +299,7 @@ void D3DGraphicsContext::Flush() const
 
 void D3DGraphicsContext::WaitForGPU() const
 {
-	LOG_INFO("Graphics Context: Waiting for GPU...");
+	LOG_TRACE("Graphics Context: Waiting for GPU...");
 
 	// Signal and increment the fence
 	THROW_IF_FAIL(m_CommandQueue->Signal(m_Fence.Get(), m_CurrentFrameResources->GetFenceValue()));
