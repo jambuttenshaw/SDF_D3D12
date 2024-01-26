@@ -160,6 +160,7 @@
     <ClCompile Include="src\Framework\Transform.cpp" />
     <ClCompile Include="src\Input\InputManager.cpp" />
     <ClCompile Include="src\Main.cpp" />
+    <ClCompile Include="src\Renderer\D3DDebugTools.cpp" />
     <ClCompile Include="src\Renderer\D3DFrameResources.cpp" />
     <ClCompile Include="src\Renderer\D3DGraphicsContext.cpp" />
     <ClCompile Include="src\Renderer\D3DPipeline.cpp" />
@@ -222,6 +223,7 @@
     <ClInclude Include="src\Renderer\Buffer\StructuredBuffer.h" />
     <ClInclude Include="src\Renderer\Buffer\DefaultBuffer.h" />
     <ClInclude Include="src\Renderer\Buffer\UploadBuffer.h" />
+    <ClInclude Include="src\Renderer\D3DDebugTools.h" />
     <ClInclude Include="src\Renderer\D3DFrameResources.h" />
     <ClInclude Include="src\Renderer\D3DGraphicsContext.h" />
     <ClInclude Include="src\Renderer\D3DPipeline.h" />

@@ -34,7 +34,8 @@ public:
 
 
 	void Present();
-	void CheckDeviceRemovedStatus() const;
+	// Returns true if device is removed
+	bool CheckDeviceRemovedStatus() const;
 
 	void StartDraw() const;
 	void EndDraw() const;
@@ -133,6 +134,11 @@ private:
 	ComPtr<IDXGIAdapter1> m_Adapter;
 	ComPtr<IDXGIFactory6> m_Factory;
 	ComPtr<ID3D12Device> m_Device;
+
+	// Device debug objects
+	inline static constexpr bool s_EnableDRED = true;
+	ComPtr<ID3D12InfoQueue1> m_InfoQueue;
+	DWORD m_MessageCallbackCookie;
 
 	ComPtr<IDXGISwapChain3> m_SwapChain;
 	ComPtr<ID3D12Resource> m_RenderTargets[s_FrameCount];

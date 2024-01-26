@@ -29,7 +29,7 @@ Scene::Scene()
 		// Create an SDF object
 		//m_TorusObject = std::make_unique<SDFObject>(0.05f, 65536);
 		//m_SphereObject = std::make_unique<SDFObject>(0.05f, 65536);
-		m_Object = std::make_unique<SDFObject>(0.5f, 4096);
+		m_Object = std::make_unique<SDFObject>(0.0625f, 65536);
 
 
 		/*
@@ -206,6 +206,21 @@ void Scene::OnUpdate(float deltaTime)
 		}
 	}
 
+	{
+		g_D3DGraphicsContext->WaitForGPU();
+
+		static float t = 0;
+		t += deltaTime;
+
+		m_EditList.Reset();
+		m_EditList.AddEdit(SDFEdit::CreateTorus({}, 0.75f, 0.2f));
+
+		Transform transform;
+		transform.SetYaw(t);
+		m_EditList.AddEdit(SDFEdit::CreateOctahedron(transform, 0.3f));
+
+		m_SDFFactory->BakeSDFSynchronous(m_Object.get(), m_EditList);
+	}
 
 	ImGui::Begin("Scene");
 	{

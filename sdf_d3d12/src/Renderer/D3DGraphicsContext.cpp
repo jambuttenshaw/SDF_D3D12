@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "D3DGraphicsContext.h"
 
+#include "D3DDebugTools.h"
 #include "Windows/Win32Application.h"
 
 #include "D3DFrameResources.h"
@@ -94,23 +95,26 @@ D3DGraphicsContext::~D3DGraphicsContext()
 	ProcessAllDeferrals();
 
 	CloseHandle(m_FenceEvent);
+
+	if (m_InfoQueue)
+	{
+		(void)m_InfoQueue->UnregisterMessageCallback(m_MessageCallbackCookie);
+	}
 }
 
 
 void D3DGraphicsContext::Present()
 {
-	const HRESULT result = m_SwapChain->Present(1, 0);
+	const HRESULT result = m_SwapChain->Present(0, 0);
 	if (result != S_OK)
 	{
 		switch(result)
 		{
 		case DXGI_ERROR_DEVICE_RESET:
 		case DXGI_ERROR_DEVICE_REMOVED:
-			CheckDeviceRemovedStatus();
 			LOG_FATAL("Present failed: Device removed!");
 			break;
 		default:
-			CheckDeviceRemovedStatus();
 			LOG_FATAL("Present failed: unknown error!");
 			break;
 		}
@@ -120,13 +124,15 @@ void D3DGraphicsContext::Present()
 	ProcessDeferrals(m_FrameIndex);
 }
 
-void D3DGraphicsContext::CheckDeviceRemovedStatus() const
+bool D3DGraphicsContext::CheckDeviceRemovedStatus() const
 {
 	const HRESULT result = m_Device->GetDeviceRemovedReason();
 	if (result != S_OK)
 	{
-		LOG_ERROR(DXException(result).ToString().c_str());
+		LOG_ERROR(L"Device removed reason: {}", DXException(result).ToString().c_str());
+		return true;
 	}
+	return false;
 }
 
 
@@ -323,6 +329,18 @@ void D3DGraphicsContext::CreateAdapter()
 
 		LOG_INFO("D3D12 Debug Layer Created")
 	}
+
+	// Enable DRED
+	ComPtr<ID3D12DeviceRemovedExtendedDataSettings1> dredSettings;
+	if (s_EnableDRED && SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&dredSettings))))
+	{
+		// Turn on AutoBreadcrumbs and Page Fault reporting
+		dredSettings->SetAutoBreadcrumbsEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
+		dredSettings->SetPageFaultEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
+
+		LOG_INFO("DRED Enabled")
+	}
+
 #endif
 
 	THROW_IF_FAIL(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&m_Factory)));
@@ -370,6 +388,16 @@ void D3DGraphicsContext::CreateDevice()
 	// Create the D3D12 Device object
 	THROW_IF_FAIL(D3D12CreateDevice(m_Adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&m_Device)));
 	D3D_NAME(m_Device);
+
+#ifdef _DEBUG
+	// Set up the info queue for the device
+	// Debug layer must be enabled for this: so only perform this in debug
+	// Note that means that m_InfoQueue should always be checked for existence before use
+	THROW_IF_FAIL(m_Device->QueryInterface(IID_PPV_ARGS(&m_InfoQueue)));
+
+	// Set up message callback
+	THROW_IF_FAIL(m_InfoQueue->RegisterMessageCallback(D3DDebugTools::D3DMessageHandler, D3D12_MESSAGE_CALLBACK_FLAG_NONE, nullptr, &m_MessageCallbackCookie));
+#endif
 }
 
 void D3DGraphicsContext::CreateCommandQueue()
@@ -531,7 +559,6 @@ void D3DGraphicsContext::CreateFence()
 		THROW_IF_FAIL(HRESULT_FROM_WIN32(GetLastError()));
 	}
 }
-
 
 bool D3DGraphicsContext::CheckRaytracingSupport() const
 {
