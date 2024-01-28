@@ -6,7 +6,7 @@
 
 void AccelerationStructure::AllocateResource()
 {
-	LOG_TRACE("Acceleration Structure: Allocating resource ({} Bytes)", m_PrebuildInfo.ResultDataMaxSizeInBytes);
+	LOG_INFO("Acceleration Structure: Allocating resource ({} Bytes)", m_PrebuildInfo.ResultDataMaxSizeInBytes);
 	const std::wstring name = m_Name + L"BLAS";
 
 	constexpr D3D12_RESOURCE_STATES initialResourceState = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
@@ -22,7 +22,7 @@ void AccelerationStructure::AllocateResource()
 
 void AccelerationStructure::AllocateScratchResource()
 {
-	LOG_TRACE("Acceleration Structure: Allocating scratch ({} Bytes)", m_PrebuildInfo.ScratchDataSizeInBytes);
+	LOG_INFO("Acceleration Structure: Allocating scratch ({} Bytes)", m_PrebuildInfo.ScratchDataSizeInBytes);
 	const std::wstring name = m_Name + L"BLAS Scratch";
 
 	m_ScratchResource.Allocate(
@@ -66,6 +66,7 @@ void BottomLevelAccelerationStructure::Initialize(D3D12_RAYTRACING_ACCELERATION_
 // The caller must add a UAV barrier before using the resource.
 void BottomLevelAccelerationStructure::Build()
 {
+	ASSERT(m_PrebuildInfo.ResultDataMaxSizeInBytes <= m_AccelerationStructure.GetResource()->GetDesc().Width, "Acceleration structure buffer is too small.");
 	ASSERT(m_PrebuildInfo.ScratchDataSizeInBytes <= m_ScratchResource.GetResource()->GetDesc().Width, "Scratch buffer is too small.");
 
 	const auto current = g_D3DGraphicsContext->GetCurrentBackBuffer();
@@ -80,9 +81,7 @@ void BottomLevelAccelerationStructure::Build()
 		if (m_IsBuilt && m_AllowUpdate && m_UpdateOnBuild)
 		{
 			bottomLevelInputs.Flags |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE;
-			bottomLevelBuildDesc.SourceAccelerationStructureData = m_PreviousAccelerationStructure ? 
-				m_PreviousAccelerationStructure->GetGPUVirtualAddress() :
-				m_AccelerationStructure.GetAddress();
+			bottomLevelBuildDesc.SourceAccelerationStructureData = m_AccelerationStructure.GetAddress();
 		}
 		bottomLevelInputs.NumDescs = static_cast<UINT>(m_CachedGeometryDescs[current].size());
 		bottomLevelInputs.pGeometryDescs = m_CachedGeometryDescs[current].data();
@@ -92,13 +91,6 @@ void BottomLevelAccelerationStructure::Build()
 	}
 
 	g_D3DGraphicsContext->GetDXRCommandList()->BuildRaytracingAccelerationStructure(&bottomLevelBuildDesc, 0, nullptr);
-
-	// Schedule previous resources to be released next frame
-	if (m_PreviousAccelerationStructure)
-	{
-		g_D3DGraphicsContext->DeferRelease(m_PreviousAccelerationStructure);
-		m_PreviousAccelerationStructure = nullptr;
-	}
 
 	m_IsDirty = false;
 	m_IsBuilt = true;
@@ -112,30 +104,32 @@ void BottomLevelAccelerationStructure::UpdateGeometry(const BottomLevelAccelerat
 		return;
 	}
 
-	LOG_TRACE("BLAS: Performing geometry update.");
-
 	// Rebuild geometry descriptions
 	m_GeometryDescs.clear();
 	BuildGeometryDescs(geometry);
 
 	// Prebuild info will need recomputed
-	const auto prevPrebuildInfo = m_PrebuildInfo;
 	ComputePrebuildInfo();
 
 	// Check if the required acceleration structure size has increased
-	if (m_PrebuildInfo.ResultDataMaxSizeInBytes > prevPrebuildInfo.ResultDataMaxSizeInBytes)
+	const UINT64 accelerationStructureWidth = m_AccelerationStructure.GetResource()->GetDesc().Width;
+	if (m_PrebuildInfo.ResultDataMaxSizeInBytes > accelerationStructureWidth)
 	{
-		LOG_INFO("BLAS: Buffer resize required.");
+		LOG_INFO("BLAS: Acceleration structure resize required. ({} bytes to {} bytes)", accelerationStructureWidth, m_PrebuildInfo.ResultDataMaxSizeInBytes);
 
-		// Keep hold of the previous acceleration structure
-		m_PreviousAccelerationStructure.Attach(m_AccelerationStructure.TransferResource());
+		// Schedule current acceleration structure resource for release
+		ComPtr<IUnknown> accelerationStructure;
+		accelerationStructure.Attach(m_AccelerationStructure.TransferResource());
+		g_D3DGraphicsContext->DeferRelease(accelerationStructure);
+
 		// Allocate a new acceleration structure
 		AllocateResource();
 	}
 
-	if (m_PrebuildInfo.ScratchDataSizeInBytes > prevPrebuildInfo.ScratchDataSizeInBytes)
+	const UINT64 scratchWidth = m_ScratchResource.GetResource()->GetDesc().Width;
+	if (m_PrebuildInfo.ScratchDataSizeInBytes > scratchWidth)
 	{
-		LOG_INFO("BLAS: Scratch resize required.");
+		LOG_INFO("BLAS: Scratch resize required. ({} bytes to {} bytes)", scratchWidth, m_PrebuildInfo.ScratchDataSizeInBytes);
 
 		// Schedule current scratch resource for release
 		ComPtr<IUnknown> scratch;
@@ -178,22 +172,8 @@ void BottomLevelAccelerationStructure::ComputePrebuildInfo()
 	bottomLevelInputs.NumDescs = static_cast<UINT>(m_GeometryDescs.size());
 	bottomLevelInputs.pGeometryDescs = m_GeometryDescs.data();
 
-	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO prebuildInfo;
-	g_D3DGraphicsContext->GetDXRDevice()->GetRaytracingAccelerationStructurePrebuildInfo(&bottomLevelInputs, &prebuildInfo);
-	ASSERT(prebuildInfo.ResultDataMaxSizeInBytes > 0, "Failed to get acceleration structure prebuild info.");
-
-	// Check if prebuild info has been computed before
-	if (m_PrebuildInfo.ResultDataMaxSizeInBytes > 0)
-	{
-		// Don't attempt to downsize the max size required - this could cause the acceleration structure to reallocate even if it was previously large enough
-		m_PrebuildInfo.ResultDataMaxSizeInBytes = max(m_PrebuildInfo.ResultDataMaxSizeInBytes, prebuildInfo.ResultDataMaxSizeInBytes);
-		m_PrebuildInfo.ScratchDataSizeInBytes = max(m_PrebuildInfo.ScratchDataSizeInBytes, prebuildInfo.ScratchDataSizeInBytes);
-		m_PrebuildInfo.UpdateScratchDataSizeInBytes = max(m_PrebuildInfo.UpdateScratchDataSizeInBytes, prebuildInfo.UpdateScratchDataSizeInBytes);
-	}
-	else
-	{
-		m_PrebuildInfo = prebuildInfo;
-	}
+	g_D3DGraphicsContext->GetDXRDevice()->GetRaytracingAccelerationStructurePrebuildInfo(&bottomLevelInputs, &m_PrebuildInfo);
+	ASSERT(m_PrebuildInfo.ResultDataMaxSizeInBytes > 0, "Failed to get acceleration structure prebuild info.");
 }
 
 
@@ -222,6 +202,7 @@ void TopLevelAccelerationStructure::Initialize(UINT numBottomLevelASInstanceDesc
 
 void TopLevelAccelerationStructure::Build(UINT numInstanceDescs, D3D12_GPU_VIRTUAL_ADDRESS instanceDescs)
 {
+	ASSERT(m_PrebuildInfo.ResultDataMaxSizeInBytes <= m_AccelerationStructure.GetResource()->GetDesc().Width, "Scratch buffer is too small.");
 	ASSERT(m_PrebuildInfo.ScratchDataSizeInBytes <= m_ScratchResource.GetResource()->GetDesc().Width, "Scratch buffer is too small.");
 
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC topLevelBuildDesc = {};

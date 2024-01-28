@@ -29,7 +29,7 @@ Scene::Scene()
 		// Create an SDF object
 		//m_TorusObject = std::make_unique<SDFObject>(0.05f, 65536);
 		//m_SphereObject = std::make_unique<SDFObject>(0.05f, 65536);
-		m_Object = std::make_unique<SDFObject>(0.0625f, 65536);
+		m_Object = std::make_unique<SDFObject>(0.05f, 65536);
 
 
 		/*
@@ -124,7 +124,7 @@ Scene::Scene()
 
 	{
 		// Set up acceleration structure
-		constexpr D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_BUILD;
+		constexpr D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
 		m_AccelerationStructure = std::make_unique<RaytracingAccelerationStructureManager>(s_InstanceCount);
 
 		for (const auto& geometry : m_SceneGeometry)
@@ -205,25 +205,27 @@ void Scene::OnUpdate(float deltaTime)
 			m_AccelerationStructure->SetInstanceTransform(index, rotation * translation);
 		}
 	}
-
+	
 	{
 		g_D3DGraphicsContext->WaitForGPU();
 
 		static float t = 0;
-		t += deltaTime;
+		t += 0.1f * deltaTime;
 
 		m_EditList.Reset();
 		m_EditList.AddEdit(SDFEdit::CreateTorus({}, 0.75f, 0.2f));
 
 		Transform transform;
 		transform.SetYaw(t);
-		m_EditList.AddEdit(SDFEdit::CreateOctahedron(transform, 0.3f));
+		m_EditList.AddEdit(SDFEdit::CreateOctahedron({transform}, 0.3f));
 
 		transform.SetTranslation({ 0.6f * sinf(t), 0.0f, 0.0f });
 		m_EditList.AddEdit(SDFEdit::CreateSphere(transform, 0.1f));
 
 		m_SDFFactory->BakeSDFSynchronous(m_Object.get(), m_EditList);
+		g_D3DGraphicsContext->WaitForGPU();
 	}
+	
 
 	ImGui::Begin("Scene");
 	{

@@ -43,10 +43,6 @@ protected:
 	DefaultBuffer m_AccelerationStructure;
 	DefaultBuffer m_ScratchResource;
 
-	// Previous resources to be released after next build
-	// This is in the case that the structure is rebuilt but requires a larger buffer than before
-	ComPtr<ID3D12Resource> m_PreviousAccelerationStructure;
-
 	// Store build flags and prebuild info
 	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS m_BuildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_NONE;
 	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO m_PrebuildInfo = {};
