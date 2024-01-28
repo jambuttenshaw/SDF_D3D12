@@ -70,15 +70,17 @@ void Raytracer::DoRaytracing() const
 	dxrCommandList->SetPipelineState1(m_DXRStateObject.Get());
 
 	D3D12_DISPATCH_RAYS_DESC dispatchDesc = {};
-
+	m_HitGroupShaderTable->CopyStagingToGPU();
 	dispatchDesc.HitGroupTable.StartAddress = m_HitGroupShaderTable->GetAddress();
 	dispatchDesc.HitGroupTable.SizeInBytes = m_HitGroupShaderTable->GetSize();
 	dispatchDesc.HitGroupTable.StrideInBytes = m_HitGroupShaderTable->GetStride();
 
+	m_MissShaderTable->CopyStagingToGPU();
 	dispatchDesc.MissShaderTable.StartAddress = m_MissShaderTable->GetAddress();
 	dispatchDesc.MissShaderTable.SizeInBytes = m_MissShaderTable->GetSize();
 	dispatchDesc.MissShaderTable.StrideInBytes = m_MissShaderTable->GetStride();
 
+	m_RayGenShaderTable->CopyStagingToGPU();
 	dispatchDesc.RayGenerationShaderRecord.StartAddress = m_RayGenShaderTable->GetAddress();
 	dispatchDesc.RayGenerationShaderRecord.SizeInBytes = m_RayGenShaderTable->GetStride(); // size of one element
 
