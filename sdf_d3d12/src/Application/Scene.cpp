@@ -207,8 +207,6 @@ void Scene::OnUpdate(float deltaTime)
 	}
 	
 	{
-		g_D3DGraphicsContext->WaitForGPU();
-
 		static float t = 0;
 		t += 0.1f * deltaTime;
 
@@ -223,7 +221,6 @@ void Scene::OnUpdate(float deltaTime)
 		m_EditList.AddEdit(SDFEdit::CreateSphere(transform, 0.1f));
 
 		m_SDFFactory->BakeSDFSynchronous(m_Object.get(), m_EditList);
-		g_D3DGraphicsContext->WaitForGPU();
 	}
 	
 
@@ -287,6 +284,7 @@ void Scene::DisplaySDFObjectDebugInfo(const char* name, const SDFObject* object)
 
 	const auto brickPoolSize = object->GetBrickPoolDimensions();
 	ImGui::Text("Brick Pool Size (bricks): %d, %d, %d", brickPoolSize.x, brickPoolSize.y, brickPoolSize.z);
+	ImGui::Text("Brick Pool Capacity: %d", object->GetBrickPoolCapacity());
 	ImGui::Text("Brick Pool Size (KB): %d", object->GetBrickPoolSizeBytes() / 1024);
 
 	const float poolUsage = 100.0f * (static_cast<float>(object->GetBrickCount()) / static_cast<float>(object->GetBrickPoolCapacity()));

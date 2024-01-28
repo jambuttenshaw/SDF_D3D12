@@ -20,7 +20,7 @@ public:
 	// Brick Pool
 	void AllocateOptimalBrickPool(UINT brickCount);
 
-	inline ID3D12Resource* GetBrickPool() const { return m_BrickPool.Get(); }
+	ID3D12Resource* GetBrickPool() const;
 
 	inline UINT GetBrickCount() const { return m_BrickCount; }
 	inline float GetBrickSize() const { return m_BrickSize; }
@@ -31,19 +31,31 @@ public:
 	inline UINT GetBrickPoolCapacity() const { return m_BrickPoolDimensions.x * m_BrickPoolDimensions.y * m_BrickPoolDimensions.z; }
 
 	// Geometry buffer
-	inline D3D12_GPU_VIRTUAL_ADDRESS GetAABBBufferAddress() const { return m_AABBBuffer.GetAddress(); }
-	inline UINT GetAABBBufferStride() const { return m_AABBBuffer.GetElementStride(); }
+	D3D12_GPU_VIRTUAL_ADDRESS GetAABBBufferAddress() const;
+	UINT GetAABBBufferStride() const;
 
-	inline D3D12_GPU_VIRTUAL_ADDRESS GetBrickBufferAddress() const { return m_BrickBuffer.GetAddress(); }
-	inline UINT GetBrickBufferStride() const { return m_BrickBuffer.GetElementStride(); }
+	D3D12_GPU_VIRTUAL_ADDRESS GetBrickBufferAddress() const;
+	UINT GetBrickBufferStride() const;
 
 	// Get Resource Views
-	inline D3D12_GPU_DESCRIPTOR_HANDLE GetBrickPoolSRV() const { return m_ResourceViews.GetGPUHandle(0); };
-	inline D3D12_GPU_DESCRIPTOR_HANDLE GetBrickPoolUAV() const { return m_ResourceViews.GetGPUHandle(1); }
-	inline D3D12_GPU_DESCRIPTOR_HANDLE GetAABBBufferUAV() const { return m_ResourceViews.GetGPUHandle(2); }
-	inline D3D12_GPU_DESCRIPTOR_HANDLE GetBrickBufferUAV() const { return m_ResourceViews.GetGPUHandle(3); }
+	D3D12_GPU_DESCRIPTOR_HANDLE GetBrickPoolSRV() const;
+	D3D12_GPU_DESCRIPTOR_HANDLE GetBrickPoolUAV() const;
+	D3D12_GPU_DESCRIPTOR_HANDLE GetAABBBufferUAV() const;
+	D3D12_GPU_DESCRIPTOR_HANDLE GetBrickBufferUAV() const;
 
+	// Acceleration structure properties
 	inline D3D12_RAYTRACING_GEOMETRY_FLAGS GetGeometryFlags() const { return m_GeometryFlags; }
+
+	// Shader record properties
+	inline UINT GetShaderRecordOffset() const { return m_ShaderRecordOffset; }
+	inline void SetShaderRecordOffset(UINT shaderRecordOffset)
+	{
+		if (m_ShaderRecordOffset != -1) { LOG_WARN("Shader record offset has already been set."); }
+		m_ShaderRecordOffset = shaderRecordOffset;
+	}
+
+	inline bool AreLocalArgumentsDirty() const { return m_AreLocalArgumentsDirty; }
+	inline void ClearLocalArgumentsDirty() { }
 
 	// Memory usage
 	UINT64 GetBrickPoolSizeBytes() const;
@@ -51,16 +63,20 @@ public:
 	UINT64 GetBrickBufferSizeBytes() const;
 
 private:
-	ComPtr<ID3D12Resource> m_BrickPool;
-	
-	// Geometry
-	StructuredBuffer<D3D12_RAYTRACING_AABB> m_AABBBuffer;
-	StructuredBuffer<BrickPointer> m_BrickBuffer;
+	struct FrameResources
+	{
+		ComPtr<ID3D12Resource> m_BrickPool;
+		
+		// Geometry
+		StructuredBuffer<D3D12_RAYTRACING_AABB> m_AABBBuffer;
+		StructuredBuffer<BrickPointer> m_BrickBuffer;
 
-	DescriptorAllocation m_ResourceViews;	// index 0 = brick pool SRV
-											// index 1 = brick pool UAV
-											// index 2 = aabb buffer uav
-											// index 3 = brick buffer uav
+		DescriptorAllocation m_ResourceViews;	// index 0 = brick pool SRV
+												// index 1 = brick pool UAV
+												// index 2 = aabb buffer uav
+												// index 3 = brick buffer uav
+	};
+	std::vector<FrameResources> m_Resources;
 
 	float m_BrickSize = 0.0f;
 	UINT m_BrickCapacity = 0; // The maximum possible number of bricks
@@ -70,4 +86,9 @@ private:
 
 	// For raytracing acceleration structure
 	D3D12_RAYTRACING_GEOMETRY_FLAGS m_GeometryFlags;
+
+	// For raytracing shader table
+	// If local root arguments are dirty then update the shader table record
+	UINT m_ShaderRecordOffset = -1;
+	bool m_AreLocalArgumentsDirty = true;
 };

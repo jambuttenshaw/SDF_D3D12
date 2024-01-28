@@ -51,6 +51,12 @@ void Raytracer::DoRaytracing() const
 {
 	ASSERT(m_Scene, "No scene to raytrace!");
 
+	// Update shader tables
+	UpdateHitGroupShaderTable();
+	m_HitGroupShaderTable->CopyStagingToGPU();
+	m_MissShaderTable->CopyStagingToGPU();
+	m_RayGenShaderTable->CopyStagingToGPU();
+
 	const auto commandList = g_D3DGraphicsContext->GetCommandList();
 	const auto dxrCommandList = g_D3DGraphicsContext->GetDXRCommandList();
 
@@ -70,17 +76,14 @@ void Raytracer::DoRaytracing() const
 	dxrCommandList->SetPipelineState1(m_DXRStateObject.Get());
 
 	D3D12_DISPATCH_RAYS_DESC dispatchDesc = {};
-	m_HitGroupShaderTable->CopyStagingToGPU();
 	dispatchDesc.HitGroupTable.StartAddress = m_HitGroupShaderTable->GetAddress();
 	dispatchDesc.HitGroupTable.SizeInBytes = m_HitGroupShaderTable->GetSize();
 	dispatchDesc.HitGroupTable.StrideInBytes = m_HitGroupShaderTable->GetStride();
 
-	m_MissShaderTable->CopyStagingToGPU();
 	dispatchDesc.MissShaderTable.StartAddress = m_MissShaderTable->GetAddress();
 	dispatchDesc.MissShaderTable.SizeInBytes = m_MissShaderTable->GetSize();
 	dispatchDesc.MissShaderTable.StrideInBytes = m_MissShaderTable->GetStride();
 
-	m_RayGenShaderTable->CopyStagingToGPU();
 	dispatchDesc.RayGenerationShaderRecord.StartAddress = m_RayGenShaderTable->GetAddress();
 	dispatchDesc.RayGenerationShaderRecord.SizeInBytes = m_RayGenShaderTable->GetStride(); // size of one element
 
@@ -321,6 +324,8 @@ void Raytracer::BuildShaderTables()
 
 			for (auto& geometryInstance : bottomLevelASGeometry.GeometryInstances)
 			{
+				geometryInstance->SetShaderRecordOffset(m_HitGroupShaderTable->GetNumRecords());
+
 				LocalRootSignatureParams::RootArguments rootArgs;
 				rootArgs.brickProperties.BrickHalfSize = 0.5f * geometryInstance->GetBrickSize();
 				rootArgs.brickPoolSRV = geometryInstance->GetBrickPoolSRV();
@@ -332,9 +337,48 @@ void Raytracer::BuildShaderTables()
 					&rootArgs,
 					sizeof(rootArgs)
 					});
+
+				geometryInstance->ClearLocalArgumentsDirty();
 			}
 		}
 	}
 
 	LOG_INFO("Shader tables construction complete.");
+}
+
+void Raytracer::UpdateHitGroupShaderTable() const
+{
+	void* hitGroupShaderIdentifier;
+	UINT shaderIDSize;
+	{
+		ComPtr<ID3D12StateObjectProperties> stateObjectProperties;
+		THROW_IF_FAIL(m_DXRStateObject.As(&stateObjectProperties));
+
+		hitGroupShaderIdentifier = stateObjectProperties->GetShaderIdentifier(c_HitGroupName);
+		shaderIDSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
+	}
+
+	// Update the entry for each geometry instance
+	for (auto& bottomLevelASGeometry : m_Scene->GetAllGeometries())
+	{
+		for (auto& geometryInstance : bottomLevelASGeometry.GeometryInstances)
+		{
+			if (geometryInstance->AreLocalArgumentsDirty())
+			{
+				LocalRootSignatureParams::RootArguments rootArgs;
+				rootArgs.brickProperties.BrickHalfSize = 0.5f * geometryInstance->GetBrickSize();
+				rootArgs.brickPoolSRV = geometryInstance->GetBrickPoolSRV();
+				rootArgs.brickBuffer = geometryInstance->GetBrickBufferAddress();
+
+				m_HitGroupShaderTable->UpdateRecord(geometryInstance->GetShaderRecordOffset(), ShaderRecord{
+					hitGroupShaderIdentifier,
+					shaderIDSize,
+					&rootArgs,
+					sizeof(rootArgs)
+					});
+
+				geometryInstance->ClearLocalArgumentsDirty();
+			}
+		}
+	}
 }

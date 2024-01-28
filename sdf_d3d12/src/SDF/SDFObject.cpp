@@ -5,7 +5,8 @@
 #include "Renderer/Hlsl/ComputeHlslCompat.h"
 
 SDFObject::SDFObject(float brickSize, UINT brickCapacity, D3D12_RAYTRACING_GEOMETRY_FLAGS geometryFlags)
-	: m_GeometryFlags(geometryFlags)
+	: m_Resources(D3DGraphicsContext::GetBackBufferCount())
+	, m_GeometryFlags(geometryFlags)
 {
 	ASSERT(brickSize > 0.0f, "Invalid brick size!");
 	ASSERT(brickCapacity > 0, "Invalid brick capacity!");
@@ -16,38 +17,43 @@ SDFObject::SDFObject(float brickSize, UINT brickCapacity, D3D12_RAYTRACING_GEOME
 	const auto device = g_D3DGraphicsContext->GetDevice();
 	const auto descriptorHeap = g_D3DGraphicsContext->GetSRVHeap();
 
-	// Allocate Geometry buffers
+	for (auto& resources : m_Resources)
 	{
-		m_AABBBuffer.Allocate(device, GetBrickBufferCapacity(), D3D12_RESOURCE_STATE_COMMON, L"AABB Buffer");
-		m_BrickBuffer.Allocate(device, GetBrickBufferCapacity(), D3D12_RESOURCE_STATE_COMMON, L"AABB Primitive Data Buffer");
-	}
-
-	// Create resource views
-	{
-		m_ResourceViews = descriptorHeap->Allocate(4);
-		ASSERT(m_ResourceViews.IsValid(), "Descriptor allocation failed!");
-
+		// Allocate Geometry buffers
 		{
-			const auto uavDesc = m_AABBBuffer.CreateUAVDesc();
-			device->CreateUnorderedAccessView(m_AABBBuffer.GetResource(), nullptr, &uavDesc, m_ResourceViews.GetCPUHandle(2));
+			resources.m_AABBBuffer.Allocate(device, GetBrickBufferCapacity(), D3D12_RESOURCE_STATE_COMMON, L"AABB Buffer");
+			resources.m_BrickBuffer.Allocate(device, GetBrickBufferCapacity(), D3D12_RESOURCE_STATE_COMMON, L"AABB Primitive Data Buffer");
 		}
+
+		// Create resource views
 		{
-			const auto uavDesc = m_BrickBuffer.CreateUAVDesc();
-			device->CreateUnorderedAccessView(m_BrickBuffer.GetResource(), nullptr, &uavDesc, m_ResourceViews.GetCPUHandle(3));
+			resources.m_ResourceViews = descriptorHeap->Allocate(4);
+			ASSERT(resources.m_ResourceViews.IsValid(), "Descriptor allocation failed!");
+
+			{
+				const auto uavDesc = resources.m_AABBBuffer.CreateUAVDesc();
+				device->CreateUnorderedAccessView(resources.m_AABBBuffer.GetResource(), nullptr, &uavDesc, resources.m_ResourceViews.GetCPUHandle(2));
+			}
+			{
+				const auto uavDesc = resources.m_BrickBuffer.CreateUAVDesc();
+				device->CreateUnorderedAccessView(resources.m_BrickBuffer.GetResource(), nullptr, &uavDesc, resources.m_ResourceViews.GetCPUHandle(3));
+			}
 		}
 	}
 }
 
 SDFObject::~SDFObject()
 {
-	m_ResourceViews.Free();
+	for (auto& resources : m_Resources)
+		resources.m_ResourceViews.Free();
 }
 
 void SDFObject::AllocateOptimalBrickPool(UINT brickCount)
 {
 	ASSERT(brickCount > 0, "SDF Object does not have any bricks!");
+	const auto current = g_D3DGraphicsContext->GetCurrentBackBuffer();
 
-	if (m_BrickPool)
+	if (m_Resources.at(current).m_BrickPool)
 	{
 		// Brick pool has already been allocated
 		// A larger brick pool might be required
@@ -91,24 +97,81 @@ void SDFObject::AllocateOptimalBrickPool(UINT brickCount)
 			&desc,
 			D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
 			nullptr,
-			IID_PPV_ARGS(&m_BrickPool)
+			IID_PPV_ARGS(&m_Resources.at(current).m_BrickPool)
 		));
-		m_BrickPool->SetName(L"SDF Brick Pool");
+		m_Resources.at(current).m_BrickPool->SetName(L"SDF Brick Pool");
 	}
 
 	// Create resource views for brick pool
 	{
-		device->CreateShaderResourceView(m_BrickPool.Get(), nullptr, m_ResourceViews.GetCPUHandle(0));
-		device->CreateUnorderedAccessView(m_BrickPool.Get(), nullptr, nullptr, m_ResourceViews.GetCPUHandle(1));
+		device->CreateShaderResourceView(m_Resources.at(current).m_BrickPool.Get(), nullptr, m_Resources.at(current).m_ResourceViews.GetCPUHandle(0));
+		device->CreateUnorderedAccessView(m_Resources.at(current).m_BrickPool.Get(), nullptr, nullptr, m_Resources.at(current).m_ResourceViews.GetCPUHandle(1));
 	}
+
+	// Local arguments for shading have changed
+	// The shader table will need updated
+	m_AreLocalArgumentsDirty = true;
 }
+
+
+ID3D12Resource* SDFObject::GetBrickPool() const
+{
+	const auto current = g_D3DGraphicsContext->GetCurrentBackBuffer();
+	return m_Resources.at(current).m_BrickPool.Get();
+}
+
+D3D12_GPU_VIRTUAL_ADDRESS SDFObject::GetAABBBufferAddress() const
+{
+	const auto current = g_D3DGraphicsContext->GetCurrentBackBuffer();
+	return m_Resources.at(current).m_AABBBuffer.GetAddress();
+}
+UINT SDFObject::GetAABBBufferStride() const
+{
+	const auto current = g_D3DGraphicsContext->GetCurrentBackBuffer();
+	return m_Resources.at(current).m_AABBBuffer.GetElementStride();
+}
+
+D3D12_GPU_VIRTUAL_ADDRESS SDFObject::GetBrickBufferAddress() const
+{
+	const auto current = g_D3DGraphicsContext->GetCurrentBackBuffer();
+	return m_Resources.at(current).m_BrickBuffer.GetAddress();
+}
+UINT SDFObject::GetBrickBufferStride() const
+{
+	const auto current = g_D3DGraphicsContext->GetCurrentBackBuffer();
+	return m_Resources.at(current).m_BrickBuffer.GetElementStride();
+}
+
+D3D12_GPU_DESCRIPTOR_HANDLE SDFObject::GetBrickPoolSRV() const
+{
+	const auto current = g_D3DGraphicsContext->GetCurrentBackBuffer();
+	return m_Resources.at(current).m_ResourceViews.GetGPUHandle(0);
+};
+D3D12_GPU_DESCRIPTOR_HANDLE SDFObject::GetBrickPoolUAV() const
+{
+	const auto current = g_D3DGraphicsContext->GetCurrentBackBuffer();
+	return m_Resources.at(current).m_ResourceViews.GetGPUHandle(1);
+}
+D3D12_GPU_DESCRIPTOR_HANDLE SDFObject::GetAABBBufferUAV() const
+{
+	const auto current = g_D3DGraphicsContext->GetCurrentBackBuffer();
+	return m_Resources.at(current).m_ResourceViews.GetGPUHandle(2);
+}
+D3D12_GPU_DESCRIPTOR_HANDLE SDFObject::GetBrickBufferUAV() const
+{
+	const auto current = g_D3DGraphicsContext->GetCurrentBackBuffer();
+	return m_Resources.at(current).m_ResourceViews.GetGPUHandle(3);
+}
+
 
 UINT64 SDFObject::GetBrickPoolSizeBytes() const
 {
-	if (!m_BrickPool)
+	const auto current = g_D3DGraphicsContext->GetCurrentBackBuffer();
+
+	if (!m_Resources.at(current).m_BrickPool)
 		return 0;
 
-	const auto desc = m_BrickPool->GetDesc();
+	const auto desc = m_Resources.at(current).m_BrickPool->GetDesc();
 	const auto elements = desc.Width * desc.Height * desc.DepthOrArraySize;
 	constexpr auto elementSize = sizeof(BYTE); // R8_SNORM one byte per element
 	return elements * elementSize;
@@ -116,10 +179,12 @@ UINT64 SDFObject::GetBrickPoolSizeBytes() const
 
 UINT64 SDFObject::GetAABBBufferSizeBytes() const
 {
-	return m_AABBBuffer.GetElementCount() * m_AABBBuffer.GetElementStride();
+	const auto current = g_D3DGraphicsContext->GetCurrentBackBuffer();
+	return m_Resources.at(current).m_AABBBuffer.GetElementCount() * m_Resources.at(current).m_AABBBuffer.GetElementStride();
 }
 
 UINT64 SDFObject::GetBrickBufferSizeBytes() const
 {
-	return m_BrickBuffer.GetElementCount() * m_BrickBuffer.GetElementStride();
+	const auto current = g_D3DGraphicsContext->GetCurrentBackBuffer();
+	return m_Resources.at(current).m_BrickBuffer.GetElementCount() * m_Resources.at(current).m_BrickBuffer.GetElementStride();
 }

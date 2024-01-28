@@ -129,9 +129,17 @@ void D3DDebugTools::D3DMessageHandler(D3D12_MESSAGE_CATEGORY Category, D3D12_MES
 		{
 			LogAutoBreadcrumbs(DredAutoBreadcrumbsOutput.pHeadAutoBreadcrumbNode);
 		}
+		else
+		{
+			LOG_INFO("No auto-breadcrumbs data was retrieved from DRED.");
+		}
 		if (DredPageFaultOutput.PageFaultVA)
 		{
 			LogPageFault(&DredPageFaultOutput);
+		}
+		else
+		{
+			LOG_INFO("No page fault data was retrieved from DRED");
 		}
 	}
 
@@ -213,6 +221,6 @@ void D3DDebugTools::LogPageFault(D3D12_DRED_PAGE_FAULT_OUTPUT* pageFault)
 	}
 	else
 	{
-		LOG_TRACE("No recently freed objects matching VA.");
+		LOG_INFO("No recently freed objects matching VA.");
 	}
 }

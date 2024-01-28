@@ -34,7 +34,10 @@ private:
 
 	// Build a shader table for a specific scene
 	void BuildShaderTables();
-
+	// Updates the entries in the hit group shader table
+	// This is used when local root arguments change
+	void UpdateHitGroupShaderTable() const;
+	 
 private:
 	ComPtr<ID3D12StateObject> m_DXRStateObject;
 
