@@ -81,7 +81,7 @@ D3DGraphicsContext::~D3DGraphicsContext()
 {
 	// Ensure the GPU is no longer references resources that are about
 	// to be cleaned up by the destructor
-	m_DirectQueue->WaitForIdleCPUBlocking();
+	WaitForGPUIdle();
 
 	// Free allocations
 	m_RTVs.Free();
@@ -235,12 +235,10 @@ D3D12_GPU_VIRTUAL_ADDRESS D3DGraphicsContext::GetPassCBAddress() const
 	return m_CurrentFrameResources->GetPassCBAddress();
 }
 
-
 void D3DGraphicsContext::DeferRelease(const ComPtr<IUnknown>& resource) const
 {
 	m_CurrentFrameResources->DeferRelease(resource);
 }
-
 
 
 
@@ -252,7 +250,7 @@ void D3DGraphicsContext::Resize(UINT width, UINT height)
 	m_ClientHeight = height;
 
 	// Wait for any work currently being performed by the GPU to finish
-	m_DirectQueue->WaitForIdleCPUBlocking();
+	WaitForGPUIdle();
 
 	THROW_IF_FAIL(m_CommandList->Reset(m_DirectCommandAllocator.Get(), nullptr));
 
@@ -289,6 +287,13 @@ void D3DGraphicsContext::Resize(UINT width, UINT height)
 	// Wait for GPU to finish its work before continuing
 	m_DirectQueue->WaitForIdleCPUBlocking();
 }
+
+void D3DGraphicsContext::WaitForGPUIdle() const
+{
+	m_DirectQueue->WaitForIdleCPUBlocking();
+	m_ComputeQueue->WaitForIdleCPUBlocking();
+}
+
 
 
 void D3DGraphicsContext::CreateAdapter()
@@ -370,10 +375,16 @@ void D3DGraphicsContext::CreateDevice()
 	// Set up the info queue for the device
 	// Debug layer must be enabled for this: so only perform this in debug
 	// Note that means that m_InfoQueue should always be checked for existence before use
-	THROW_IF_FAIL(m_Device->QueryInterface(IID_PPV_ARGS(&m_InfoQueue)));
-
-	// Set up message callback
-	THROW_IF_FAIL(m_InfoQueue->RegisterMessageCallback(D3DDebugTools::D3DMessageHandler, D3D12_MESSAGE_CALLBACK_FLAG_NONE, nullptr, &m_MessageCallbackCookie));
+	if (SUCCEEDED(m_Device->QueryInterface(IID_PPV_ARGS(&m_InfoQueue))))
+	{
+		// Set up message callback
+		THROW_IF_FAIL(m_InfoQueue->RegisterMessageCallback(D3DDebugTools::D3DMessageHandler, D3D12_MESSAGE_CALLBACK_FLAG_NONE, nullptr, &m_MessageCallbackCookie));
+		LOG_INFO("D3D Info Queue message callback created.");
+	}
+	else
+	{
+		LOG_WARN("D3D Info Queue interface not available! D3D messages will not be received.");
+	}
 #endif
 }
 

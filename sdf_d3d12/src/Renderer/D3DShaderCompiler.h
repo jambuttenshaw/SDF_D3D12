@@ -20,6 +20,13 @@ public:
 		return Get().CompileFromFileImpl(file, entryPoint, target, defines, ppBlob);
 	}
 
+
+	// e.g.: SetShaderModel(L"6", L"5"); for shader model 6.5
+	static void SetShaderModel(const wchar_t* major, const wchar_t* minor)
+	{
+		Get().SetShaderModelImpl(major, minor);
+	}
+
 private:
 	inline static D3DShaderCompiler& Get()
 	{
@@ -37,8 +44,12 @@ private:
 		ComPtr<IDxcBlob>* ppBlob
 	) const;
 
+	void SetShaderModelImpl(const wchar_t* major, const wchar_t* minor);
+
 private:
 	ComPtr<IDxcUtils> m_Utils;
 	ComPtr<IDxcCompiler3> m_Compiler;
 	ComPtr<IDxcIncludeHandler> m_IncludeHandler;
+
+	std::wstring m_ShaderModelExtension = L"_6_5"; // e.g. "_6_5"
 };

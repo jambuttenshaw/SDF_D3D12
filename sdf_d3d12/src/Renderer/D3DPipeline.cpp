@@ -62,8 +62,8 @@ D3DGraphicsPipeline::D3DGraphicsPipeline()
 		ComPtr<IDxcBlob> pixelShader;
 
 		// Compile shaders
-		THROW_IF_FAIL(D3DShaderCompiler::CompileFromFile(L"assets/shaders/graphics/finalpass.hlsl", L"VSMain", L"vs_6_6", nullptr, &vertexShader));
-		THROW_IF_FAIL(D3DShaderCompiler::CompileFromFile(L"assets/shaders/graphics/finalpass.hlsl", L"PSMain", L"ps_6_6", nullptr, &pixelShader));
+		THROW_IF_FAIL(D3DShaderCompiler::CompileFromFile(L"assets/shaders/graphics/finalpass.hlsl", L"VSMain", L"vs", nullptr, &vertexShader));
+		THROW_IF_FAIL(D3DShaderCompiler::CompileFromFile(L"assets/shaders/graphics/finalpass.hlsl", L"PSMain", L"ps", nullptr, &pixelShader));
 
 		// Describe and create the graphics pipeline state object (PSO)
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
@@ -133,7 +133,7 @@ D3DComputePipeline::D3DComputePipeline(D3DComputePipelineDesc* desc)
 	// Create the compute pipeline state
 	{
 		ComPtr<IDxcBlob> computeShader;
-		THROW_IF_FAIL(D3DShaderCompiler::CompileFromFile(desc->Shader, desc->EntryPoint, L"cs_6_6", desc->Defines, &computeShader));
+		THROW_IF_FAIL(D3DShaderCompiler::CompileFromFile(desc->Shader, desc->EntryPoint, L"cs", desc->Defines, &computeShader));
 
 		D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc = {};
 		psoDesc.pRootSignature = m_RootSignature.Get();

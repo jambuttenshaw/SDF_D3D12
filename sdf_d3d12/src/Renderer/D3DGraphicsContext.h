@@ -51,6 +51,9 @@ public:
 
 	void Resize(UINT width, UINT height);
 
+	// Wait for all queues to become idle
+	void WaitForGPUIdle() const;
+
 public:
 	// Getters
 

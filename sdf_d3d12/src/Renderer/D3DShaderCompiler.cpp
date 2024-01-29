@@ -13,6 +13,10 @@ D3DShaderCompiler::D3DShaderCompiler()
 
 HRESULT D3DShaderCompiler::CompileFromFileImpl(const wchar_t* file, const wchar_t* entryPoint, const wchar_t* target, D3D_SHADER_MACRO* defines, ComPtr<IDxcBlob>* ppBlob) const
 {
+	// format target
+	std::wstring targetStr = target;
+	targetStr += m_ShaderModelExtension;
+
 	LPCWSTR pszArgs[] =
 	{
 		file,						// Optional shader source file name for error reporting
@@ -23,7 +27,7 @@ HRESULT D3DShaderCompiler::CompileFromFileImpl(const wchar_t* file, const wchar_
 #endif
 		L"-Fd", L".\\",				// Auto generate PDB name
 		L"-E", entryPoint,          // Entry point.
-		L"-T", target,				// Target.
+		L"-T", targetStr.c_str(),	// Target.
 		L"-Qstrip_reflect",         // Strip reflection into a separate blob. 
 	};
 
@@ -84,3 +88,12 @@ HRESULT D3DShaderCompiler::CompileFromFileImpl(const wchar_t* file, const wchar_
 
 	return result;
 }
+
+
+void D3DShaderCompiler::SetShaderModelImpl(const wchar_t* major, const wchar_t* minor)
+{
+	const std::wstring majorStr(major);
+	const std::wstring minorStr(minor);
+	m_ShaderModelExtension = L"_" + majorStr + L"_" + minorStr;
+}
+
