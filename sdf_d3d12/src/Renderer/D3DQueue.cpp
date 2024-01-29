@@ -13,6 +13,7 @@ D3DQueue::D3DQueue(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type)
 		desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
 		desc.NodeMask = 0;
 		THROW_IF_FAIL(device->CreateCommandQueue(&desc, IID_PPV_ARGS(&m_CommandQueue)));
+		D3D_NAME(m_CommandQueue);
 	}
 
 	// Assign initial fence values
@@ -23,6 +24,7 @@ D3DQueue::D3DQueue(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type)
 	{
 		THROW_IF_FAIL(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence)));
 		THROW_IF_FAIL(m_Fence->Signal(m_LastCompletedFenceValue));
+		D3D_NAME(m_Fence);
 	}
 
 	// Create fence event
@@ -40,11 +42,7 @@ D3DQueue::~D3DQueue()
 UINT64 D3DQueue::ExecuteCommandLists(UINT count, ID3D12CommandList** ppCommandLists)
 {
 	m_CommandQueue->ExecuteCommandLists(count, ppCommandLists);
-
-	std::lock_guard lock(m_FenceMutex);
-	m_CommandQueue->Signal(m_Fence.Get(), m_NextFenceValue);
-
-	return m_NextFenceValue++;
+	return Signal();
 }
 
 void D3DQueue::InsertWait(UINT64 fenceValue) const
@@ -79,6 +77,13 @@ void D3DQueue::WaitForFenceCPUBlocking(UINT64 fenceValue)
 	}
 }
 
+void D3DQueue::WaitForIdleCPUBlocking()
+{
+	// Add an additional signal so that when the signaled value is reached we know that all work prior to this call has been completed
+	WaitForFenceCPUBlocking(Signal());
+}
+
+
 bool D3DQueue::IsFenceComplete(UINT64 fenceValue)
 {
 	if (fenceValue > m_LastCompletedFenceValue)
@@ -91,6 +96,19 @@ bool D3DQueue::IsFenceComplete(UINT64 fenceValue)
 
 UINT64 D3DQueue::PollCurrentFenceValue()
 {
-	m_LastCompletedFenceValue = max(m_LastCompletedFenceValue, m_Fence->GetCompletedValue());
+	const auto fenceValue = m_Fence->GetCompletedValue();
+	if (fenceValue > m_LastCompletedFenceValue)
+	{
+		m_LastCompletedFenceValue = fenceValue;
+	}
+
 	return m_LastCompletedFenceValue;
+}
+
+UINT64 D3DQueue::Signal()
+{
+	std::lock_guard lock(m_FenceMutex);
+	m_CommandQueue->Signal(m_Fence.Get(), m_NextFenceValue);
+
+	return m_NextFenceValue++;
 }

@@ -45,26 +45,10 @@ SDFFactory::SDFFactory()
 {
 	const auto device = g_D3DGraphicsContext->GetDevice();
 
-	// Create command queue, allocator, and list
-	D3D12_COMMAND_QUEUE_DESC queueDesc = {};
-	queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-	queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-	THROW_IF_FAIL(device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_CommandQueue)));
-	m_CommandQueue->SetName(L"SDFFactory Command Queue");
-
-	THROW_IF_FAIL(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_CommandAllocator)));
+	THROW_IF_FAIL(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COMPUTE, IID_PPV_ARGS(&m_CommandAllocator)));
 	m_CommandAllocator->SetName(L"SDFFactory Command Allocator");
-	THROW_IF_FAIL(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_CommandAllocator.Get(), nullptr, IID_PPV_ARGS(&m_CommandList)));
+	THROW_IF_FAIL(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COMPUTE, m_CommandAllocator.Get(), nullptr, IID_PPV_ARGS(&m_CommandList)));
 	m_CommandList->SetName(L"SDFFactory Command List");
-
-	THROW_IF_FAIL(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence)));
-	m_FenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-	if (!m_FenceEvent)
-	{
-		LOG_FATAL("Failed to create fence event.");
-	}
-	m_FenceValue = 1;
-
 
 	// Create compute pipelines
 	InitializePipelines();
@@ -87,8 +71,6 @@ SDFFactory::SDFFactory()
 SDFFactory::~SDFFactory()
 {
 	m_CounterResourceUAV.Free();
-
-	CloseHandle(m_FenceEvent);
 }
 
 
@@ -278,19 +260,13 @@ void SDFFactory::InitializePipelines()
 }
 
 
-void SDFFactory::Flush()
+void SDFFactory::Flush() const
 {
+	const auto computeQueue = g_D3DGraphicsContext->GetComputeCommandQueue();
+
 	THROW_IF_FAIL(m_CommandList->Close());
 	ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
-	m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+	const auto fenceValue = computeQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
-	const uint64_t fence = m_FenceValue++;
-	m_CommandQueue->Signal(m_Fence.Get(), fence);
-	if (m_Fence->GetCompletedValue() < fence)								// block until async compute has completed using a fence
-	{
-		LOG_TRACE("SDF Factory: Waiting on GPU...");
-
-		m_Fence->SetEventOnCompletion(fence, m_FenceEvent);
-		WaitForSingleObject(m_FenceEvent, INFINITE);
-	}
+	computeQueue->WaitForFenceCPUBlocking(fenceValue);
 }

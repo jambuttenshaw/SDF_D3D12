@@ -32,7 +32,7 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
  
 	// Create m_Device resources
 	CreateDevice();
-	CreateCommandQueue();
+	CreateCommandQueues();
 	CreateSwapChain();
 	CreateDescriptorHeaps();
 	CreateCommandAllocator();
@@ -45,8 +45,6 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
 
 	CreateViewport();
 	CreateScissorRect();
-
-	CreateFence();
 
 	// Setup for raytracing
 	{
@@ -65,10 +63,13 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
 	// The main loop expects the command list to be closed anyway
 	THROW_IF_FAIL(m_CommandList->Close());
 	ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
-	m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+	const auto fenceValue = m_DirectQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
+	m_CurrentFrameResources->SetFence(fenceValue);
 
 	// Wait for any GPU work executed on startup to finish before continuing
-	WaitForGPU();
+	m_DirectQueue->WaitForIdleCPUBlocking();
+
 	// Temporary resources that were created during initialization
 	// can now safely be released that the GPU has finished its work
 	ProcessAllDeferrals();
@@ -80,7 +81,7 @@ D3DGraphicsContext::~D3DGraphicsContext()
 {
 	// Ensure the GPU is no longer references resources that are about
 	// to be cleaned up by the destructor
-	WaitForGPU();
+	m_DirectQueue->WaitForIdleCPUBlocking();
 
 	// Free allocations
 	m_RTVs.Free();
@@ -93,8 +94,6 @@ D3DGraphicsContext::~D3DGraphicsContext()
 
 	// Free resources that themselves might free more resources
 	ProcessAllDeferrals();
-
-	CloseHandle(m_FenceEvent);
 
 	if (m_InfoQueue)
 	{
@@ -177,7 +176,9 @@ void D3DGraphicsContext::EndDraw() const
 
 	// Execute the command list
 	ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
-	m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+	const auto fenceValue = m_DirectQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
+	m_CurrentFrameResources->SetFence(fenceValue);
 }
 
 void D3DGraphicsContext::CopyRaytracingOutput(D3D12_GPU_DESCRIPTOR_HANDLE rtOutputHandle) const
@@ -251,7 +252,7 @@ void D3DGraphicsContext::Resize(UINT width, UINT height)
 	m_ClientHeight = height;
 
 	// Wait for any work currently being performed by the GPU to finish
-	WaitForGPU();
+	m_DirectQueue->WaitForIdleCPUBlocking();
 
 	THROW_IF_FAIL(m_CommandList->Reset(m_DirectCommandAllocator.Get(), nullptr));
 
@@ -276,7 +277,9 @@ void D3DGraphicsContext::Resize(UINT width, UINT height)
 	// Send required work to re-init buffers
 	THROW_IF_FAIL(m_CommandList->Close());
 	ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
-	m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+	const auto fenceValue = m_DirectQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
+	m_CurrentFrameResources->SetFence(fenceValue);
 
 	// Recreate other objects while GPU is doing work
 	CreateViewport();
@@ -284,33 +287,7 @@ void D3DGraphicsContext::Resize(UINT width, UINT height)
 	CreateProjectionMatrix();
 
 	// Wait for GPU to finish its work before continuing
-	WaitForGPU();
-}
-
-
-void D3DGraphicsContext::Flush() const
-{
-	THROW_IF_FAIL(m_CommandList->Close());
-	ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
-	m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
-
-	WaitForGPU();
-}
-
-void D3DGraphicsContext::WaitForGPU() const
-{
-	LOG_TRACE("Graphics Context: Waiting for GPU...");
-
-	// Signal and increment the fence
-	THROW_IF_FAIL(m_CommandQueue->Signal(m_Fence.Get(), m_CurrentFrameResources->GetFenceValue()));
-
-	if (m_Fence->GetCompletedValue() < m_CurrentFrameResources->GetFenceValue())
-	{
-		THROW_IF_FAIL(m_Fence->SetEventOnCompletion(m_CurrentFrameResources->GetFenceValue(), m_FenceEvent));
-		WaitForSingleObject(m_FenceEvent, INFINITE);
-	}
-
-	m_CurrentFrameResources->IncrementFence();
+	m_DirectQueue->WaitForIdleCPUBlocking();
 }
 
 
@@ -400,14 +377,10 @@ void D3DGraphicsContext::CreateDevice()
 #endif
 }
 
-void D3DGraphicsContext::CreateCommandQueue()
+void D3DGraphicsContext::CreateCommandQueues()
 {
-	D3D12_COMMAND_QUEUE_DESC queueDesc = {};
-	queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-	queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-
-	THROW_IF_FAIL(m_Device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_CommandQueue)));
-	D3D_NAME(m_CommandQueue);
+	m_DirectQueue = std::make_unique<D3DQueue>(m_Device.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT);
+	m_ComputeQueue = std::make_unique<D3DQueue>(m_Device.Get(), D3D12_COMMAND_LIST_TYPE_COMPUTE);
 }
 
 void D3DGraphicsContext::CreateSwapChain()
@@ -424,7 +397,7 @@ void D3DGraphicsContext::CreateSwapChain()
 
 	ComPtr<IDXGISwapChain1> swapChain;
 	THROW_IF_FAIL(m_Factory->CreateSwapChainForHwnd(
-		m_CommandQueue.Get(),        // Swap chain needs the queue so that it can force a flush on it.
+		m_DirectQueue->GetCommandQueue(),			// Swap chain needs the queue so that it can force a flush on it.
 		Win32Application::GetHwnd(),
 		&swapChainDesc,
 		nullptr,
@@ -545,21 +518,6 @@ void D3DGraphicsContext::CreateScissorRect()
 	m_ScissorRect = CD3DX12_RECT(0, 0, static_cast<LONG>(m_ClientWidth), static_cast<LONG>(m_ClientHeight));
 }
 
-void D3DGraphicsContext::CreateFence()
-{
-	THROW_IF_FAIL(m_Device->CreateFence(0,
-		D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence)));
-	D3D_NAME(m_Fence);
-	m_CurrentFrameResources->IncrementFence();
-
-	// Create an event handle to use for frame synchronization
-	m_FenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-	if (m_FenceEvent == nullptr)
-	{
-		THROW_IF_FAIL(HRESULT_FROM_WIN32(GetLastError()));
-	}
-}
-
 bool D3DGraphicsContext::CheckRaytracingSupport() const
 {
 	ComPtr<ID3D12Device> testDevice;
@@ -587,22 +545,12 @@ void D3DGraphicsContext::CreateProjectionMatrix()
 
 void D3DGraphicsContext::MoveToNextFrame()
 {
-	const UINT64 currentFenceValue = m_CurrentFrameResources->GetFenceValue();
-	THROW_IF_FAIL(m_CommandQueue->Signal(m_Fence.Get(), currentFenceValue));
-
-	// Update the frame index
+	// Change the frame resources
 	m_FrameIndex = m_SwapChain->GetCurrentBackBufferIndex();
 	m_CurrentFrameResources = m_FrameResources[m_FrameIndex].get();
 
-	// if the next frame is not ready to be rendered yet, wait until it is ready
-	if (m_Fence->GetCompletedValue() < m_CurrentFrameResources->GetFenceValue())
-	{
-		THROW_IF_FAIL(m_Fence->SetEventOnCompletion(m_CurrentFrameResources->GetFenceValue(), m_FenceEvent));
-		WaitForSingleObjectEx(m_FenceEvent, INFINITE, FALSE);
-	}
-
-	// Set the fence value for the next frame
-	m_CurrentFrameResources->SetFence(currentFenceValue + 1);
+	// If they are still being processed by the GPU, then wait until they are ready
+	m_DirectQueue->WaitForFenceCPUBlocking(m_CurrentFrameResources->GetFenceValue());
 }
 
 void D3DGraphicsContext::ProcessDeferrals(UINT frameIndex) const

@@ -5,7 +5,7 @@
 #include "Renderer/Hlsl/ComputeHlslCompat.h"
 
 SDFObject::SDFObject(float brickSize, UINT brickCapacity, D3D12_RAYTRACING_GEOMETRY_FLAGS geometryFlags)
-	: m_Resources(D3DGraphicsContext::GetBackBufferCount())
+	: m_Resources(1)
 	, m_GeometryFlags(geometryFlags)
 {
 	ASSERT(brickSize > 0.0f, "Invalid brick size!");
@@ -51,7 +51,7 @@ SDFObject::~SDFObject()
 void SDFObject::AllocateOptimalBrickPool(UINT brickCount)
 {
 	ASSERT(brickCount > 0, "SDF Object does not have any bricks!");
-	const auto current = g_D3DGraphicsContext->GetCurrentBackBuffer();
+	const auto current = 0;
 
 	if (m_Resources.at(current).m_BrickPool)
 	{
@@ -116,57 +116,57 @@ void SDFObject::AllocateOptimalBrickPool(UINT brickCount)
 
 ID3D12Resource* SDFObject::GetBrickPool() const
 {
-	const auto current = g_D3DGraphicsContext->GetCurrentBackBuffer();
+	const auto current = 0;
 	return m_Resources.at(current).m_BrickPool.Get();
 }
 
 D3D12_GPU_VIRTUAL_ADDRESS SDFObject::GetAABBBufferAddress() const
 {
-	const auto current = g_D3DGraphicsContext->GetCurrentBackBuffer();
+	const auto current = 0;
 	return m_Resources.at(current).m_AABBBuffer.GetAddress();
 }
 UINT SDFObject::GetAABBBufferStride() const
 {
-	const auto current = g_D3DGraphicsContext->GetCurrentBackBuffer();
+	const auto current = 0;
 	return m_Resources.at(current).m_AABBBuffer.GetElementStride();
 }
 
 D3D12_GPU_VIRTUAL_ADDRESS SDFObject::GetBrickBufferAddress() const
 {
-	const auto current = g_D3DGraphicsContext->GetCurrentBackBuffer();
+	const auto current = 0;
 	return m_Resources.at(current).m_BrickBuffer.GetAddress();
 }
 UINT SDFObject::GetBrickBufferStride() const
 {
-	const auto current = g_D3DGraphicsContext->GetCurrentBackBuffer();
+	const auto current = 0;
 	return m_Resources.at(current).m_BrickBuffer.GetElementStride();
 }
 
 D3D12_GPU_DESCRIPTOR_HANDLE SDFObject::GetBrickPoolSRV() const
 {
-	const auto current = g_D3DGraphicsContext->GetCurrentBackBuffer();
+	const auto current = 0;
 	return m_Resources.at(current).m_ResourceViews.GetGPUHandle(0);
 };
 D3D12_GPU_DESCRIPTOR_HANDLE SDFObject::GetBrickPoolUAV() const
 {
-	const auto current = g_D3DGraphicsContext->GetCurrentBackBuffer();
+	const auto current = 0;
 	return m_Resources.at(current).m_ResourceViews.GetGPUHandle(1);
 }
 D3D12_GPU_DESCRIPTOR_HANDLE SDFObject::GetAABBBufferUAV() const
 {
-	const auto current = g_D3DGraphicsContext->GetCurrentBackBuffer();
+	const auto current = 0;
 	return m_Resources.at(current).m_ResourceViews.GetGPUHandle(2);
 }
 D3D12_GPU_DESCRIPTOR_HANDLE SDFObject::GetBrickBufferUAV() const
 {
-	const auto current = g_D3DGraphicsContext->GetCurrentBackBuffer();
+	const auto current = 0;
 	return m_Resources.at(current).m_ResourceViews.GetGPUHandle(3);
 }
 
 
 UINT64 SDFObject::GetBrickPoolSizeBytes() const
 {
-	const auto current = g_D3DGraphicsContext->GetCurrentBackBuffer();
+	const auto current = 0;
 
 	if (!m_Resources.at(current).m_BrickPool)
 		return 0;
@@ -179,12 +179,12 @@ UINT64 SDFObject::GetBrickPoolSizeBytes() const
 
 UINT64 SDFObject::GetAABBBufferSizeBytes() const
 {
-	const auto current = g_D3DGraphicsContext->GetCurrentBackBuffer();
+	const auto current = 0;
 	return m_Resources.at(current).m_AABBBuffer.GetElementCount() * m_Resources.at(current).m_AABBBuffer.GetElementStride();
 }
 
 UINT64 SDFObject::GetBrickBufferSizeBytes() const
 {
-	const auto current = g_D3DGraphicsContext->GetCurrentBackBuffer();
+	const auto current = 0;
 	return m_Resources.at(current).m_BrickBuffer.GetElementCount() * m_Resources.at(current).m_BrickBuffer.GetElementStride();
 }

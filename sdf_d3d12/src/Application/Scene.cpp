@@ -205,8 +205,12 @@ void Scene::OnUpdate(float deltaTime)
 			m_AccelerationStructure->SetInstanceTransform(index, rotation * translation);
 		}
 	}
-	
 	{
+		const auto directQueue = g_D3DGraphicsContext->GetDirectCommandQueue();
+		const auto computeQueue = g_D3DGraphicsContext->GetComputeCommandQueue();
+
+		computeQueue->InsertWaitForQueue(directQueue);
+
 		static float t = 0;
 		t += 0.1f * deltaTime;
 
@@ -221,8 +225,9 @@ void Scene::OnUpdate(float deltaTime)
 		m_EditList.AddEdit(SDFEdit::CreateSphere(transform, 0.1f));
 
 		m_SDFFactory->BakeSDFSynchronous(m_Object.get(), m_EditList);
+
+		directQueue->InsertWaitForQueue(computeQueue);
 	}
-	
 
 	ImGui::Begin("Scene");
 	{

@@ -22,7 +22,7 @@ public:
 
 	// CPU wait
 	void WaitForFenceCPUBlocking(UINT64 fenceValue);
-	inline void WaitForIdleCPUBlocking() { WaitForFenceCPUBlocking(m_NextFenceValue - 1); }
+	void WaitForIdleCPUBlocking();
 
 	// Polling
 	bool IsFenceComplete(UINT64 fenceValue);
@@ -34,6 +34,8 @@ public:
 	inline ID3D12CommandQueue* GetCommandQueue() const { return m_CommandQueue.Get(); }
 	inline ID3D12Fence* GetFence() const { return m_Fence.Get(); }
 
+private:
+	UINT64 Signal();
 
 private:
 	// D3D12 resources

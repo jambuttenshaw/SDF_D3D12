@@ -3,6 +3,7 @@
 #include "Memory/MemoryAllocator.h"
 
 #include "D3DPipeline.h"
+#include "D3DQueue.h"
 #include "Hlsl/RaytracingHlslCompat.h"
 
 
@@ -50,9 +51,6 @@ public:
 
 	void Resize(UINT width, UINT height);
 
-	void Flush() const;
-	void WaitForGPU() const;
-
 public:
 	// Getters
 
@@ -78,6 +76,9 @@ public:
 	inline ID3D12Device* GetDevice() const { return m_Device.Get(); }
 	inline ID3D12GraphicsCommandList* GetCommandList() const { return m_CommandList.Get(); }
 
+	// Queues
+	inline D3DQueue* GetDirectCommandQueue() const { return m_DirectQueue.get(); }
+	inline D3DQueue* GetComputeCommandQueue() const { return m_ComputeQueue.get(); }
 
 	// DXR objects
 	inline ID3D12Device5* GetDXRDevice() const { return m_DXRDevice.Get(); }
@@ -87,7 +88,7 @@ private:
 	// Startup
 	void CreateAdapter();
 	void CreateDevice();
-	void CreateCommandQueue();
+	void CreateCommandQueues();
 	void CreateSwapChain();
 	void CreateDescriptorHeaps();
 	void CreateCommandAllocator();
@@ -98,8 +99,6 @@ private:
 
 	void CreateViewport();
 	void CreateScissorRect();
-
-	void CreateFence();
 
 	// Raytracing
 	bool CheckRaytracingSupport() const;
@@ -147,12 +146,15 @@ private:
 	ComPtr<ID3D12Resource> m_DepthStencilBuffer;
 	DescriptorAllocation m_DSV;
 
-	ComPtr<ID3D12CommandAllocator> m_DirectCommandAllocator;	// Used for non-frame-specific allocations (startup, resize swap chain, etc)
+	// Command queues
+	std::unique_ptr<D3DQueue> m_DirectQueue;
+	std::unique_ptr<D3DQueue> m_ComputeQueue;
 
-	ComPtr<ID3D12CommandQueue> m_CommandQueue;
+	ComPtr<ID3D12CommandAllocator> m_DirectCommandAllocator;	// Used for non-frame-specific allocations (startup, resize swap chain, etc)
 	ComPtr<ID3D12GraphicsCommandList> m_CommandList;
 
 	// Frame resources
+	UINT m_FrameIndex = 0;
 	std::vector<std::unique_ptr<D3DFrameResources>> m_FrameResources;
 	D3DFrameResources* m_CurrentFrameResources = nullptr;
 
@@ -164,11 +166,6 @@ private:
 	std::unique_ptr<DescriptorHeap> m_DSVHeap;
 	std::unique_ptr<DescriptorHeap> m_SRVHeap;				// SRV, UAV, and CBV heap (named SRVHeap for brevity)
 	std::unique_ptr<DescriptorHeap> m_SamplerHeap;
-
-	// Synchronization objects
-	UINT m_FrameIndex = 0;
-	HANDLE m_FenceEvent = nullptr;
-	ComPtr<ID3D12Fence> m_Fence;
 
 	CD3DX12_VIEWPORT m_Viewport{ };
 	CD3DX12_RECT m_ScissorRect{ };

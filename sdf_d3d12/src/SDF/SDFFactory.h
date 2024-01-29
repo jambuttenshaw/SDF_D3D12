@@ -27,21 +27,14 @@ public:
 private:
 	void InitializePipelines();
 
-	void Flush();
+	void Flush() const;
 
 private:
 	// API objects
 
-	// The SDF factory runs its own command queue, allocator, and list
-	ComPtr<ID3D12CommandQueue> m_CommandQueue;
+	// The SDF factory builds its own command list
 	ComPtr<ID3D12CommandAllocator> m_CommandAllocator;
 	ComPtr<ID3D12GraphicsCommandList> m_CommandList;
-
-	// For signalling when SDF baking completed
-	ComPtr<ID3D12Fence> m_Fence;
-	UINT64 m_FenceValue = 0;
-	HANDLE m_FenceEvent = nullptr;
-
 
 	// Pipelines to build SDF objects
 	std::unique_ptr<D3DComputePipeline> m_BrickBuilderPipeline;

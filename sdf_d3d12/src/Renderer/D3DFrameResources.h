@@ -36,6 +36,8 @@ public:
 
 private:
 	ComPtr<ID3D12CommandAllocator> m_CommandAllocator;
+	// Update the fence value for the frame resources whenever work is submitted in a frame
+	// - then when you wait on the fence value for those frame resources, all work that was submitted in that frame will be complete
 	UINT64 m_FenceValue = 0;
 
 	// Constant buffers
