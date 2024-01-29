@@ -9,6 +9,8 @@
 #include "Framework/GameTimer.h"
 #include "Framework/Camera.h"
 
+#include "pix3.h"
+
 
 D3DGraphicsContext* g_D3DGraphicsContext = nullptr;
 
@@ -134,6 +136,8 @@ void D3DGraphicsContext::StartDraw() const
 	// Command lists can (and must) be reset after ExecuteCommandList() is called and before it is repopulated
 	THROW_IF_FAIL(m_CommandList->Reset(m_CurrentFrameResources->GetCommandAllocator(), nullptr));
 
+	PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_DEFAULT, "Begin Frame");
+
 	// Indicate the back buffer will be used as a render target
 	const auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_RenderTargets[m_FrameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	m_CommandList->ResourceBarrier(1, &barrier);
@@ -152,6 +156,8 @@ void D3DGraphicsContext::EndDraw() const
 	const auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_RenderTargets[m_FrameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 	m_CommandList->ResourceBarrier(1, &barrier);
 
+	PIXEndEvent(m_CommandList.Get());
+
 	THROW_IF_FAIL(m_CommandList->Close());
 
 	// Execute the command list
@@ -163,6 +169,8 @@ void D3DGraphicsContext::EndDraw() const
 
 void D3DGraphicsContext::CopyRaytracingOutput(ID3D12Resource* raytracingOutput) const
 {
+	PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_DEFAULT, "Copy Raytracing Output");
+
 	const auto renderTarget = m_RenderTargets[m_FrameIndex].Get();
 
 	D3D12_RESOURCE_BARRIER preCopyBarriers[2];
@@ -177,6 +185,8 @@ void D3DGraphicsContext::CopyRaytracingOutput(ID3D12Resource* raytracingOutput) 
 	postCopyBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(raytracingOutput, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
 	m_CommandList->ResourceBarrier(ARRAYSIZE(postCopyBarriers), postCopyBarriers);
+
+	PIXEndEvent(m_CommandList.Get());
 }
 
 

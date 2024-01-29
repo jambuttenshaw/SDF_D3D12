@@ -3,6 +3,8 @@
 
 #include "SDF/SDFObject.h"
 
+#include "pix3.h"
+
 
 void AccelerationStructure::AllocateResource()
 {
@@ -69,6 +71,9 @@ void BottomLevelAccelerationStructure::Build()
 	ASSERT(m_PrebuildInfo.ResultDataMaxSizeInBytes <= m_AccelerationStructure.GetResource()->GetDesc().Width, "Acceleration structure buffer is too small.");
 	ASSERT(m_PrebuildInfo.ScratchDataSizeInBytes <= m_ScratchResource.GetResource()->GetDesc().Width, "Scratch buffer is too small.");
 
+	const auto commandList = g_D3DGraphicsContext->GetDXRCommandList();
+	PIXBeginEvent(commandList, PIX_COLOR_DEFAULT, "Build BLAS");
+
 	const auto current = g_D3DGraphicsContext->GetCurrentBackBuffer();
 	m_CachedGeometryDescs[current] = m_GeometryDescs;
 
@@ -90,7 +95,8 @@ void BottomLevelAccelerationStructure::Build()
 		bottomLevelBuildDesc.DestAccelerationStructureData = m_AccelerationStructure.GetAddress();
 	}
 
-	g_D3DGraphicsContext->GetDXRCommandList()->BuildRaytracingAccelerationStructure(&bottomLevelBuildDesc, 0, nullptr);
+	commandList->BuildRaytracingAccelerationStructure(&bottomLevelBuildDesc, 0, nullptr);
+	PIXEndEvent(commandList);
 
 	m_IsDirty = false;
 	m_IsBuilt = true;
@@ -205,6 +211,10 @@ void TopLevelAccelerationStructure::Build(UINT numInstanceDescs, D3D12_GPU_VIRTU
 	ASSERT(m_PrebuildInfo.ResultDataMaxSizeInBytes <= m_AccelerationStructure.GetResource()->GetDesc().Width, "Scratch buffer is too small.");
 	ASSERT(m_PrebuildInfo.ScratchDataSizeInBytes <= m_ScratchResource.GetResource()->GetDesc().Width, "Scratch buffer is too small.");
 
+	const auto commandList = g_D3DGraphicsContext->GetDXRCommandList();
+	PIXBeginEvent(commandList, PIX_COLOR_DEFAULT, "Build TLAS");
+
+
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC topLevelBuildDesc = {};
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& topLevelInputs = topLevelBuildDesc.Inputs;
 	{
@@ -223,7 +233,8 @@ void TopLevelAccelerationStructure::Build(UINT numInstanceDescs, D3D12_GPU_VIRTU
 		topLevelBuildDesc.DestAccelerationStructureData = m_AccelerationStructure.GetAddress();
 	}
 
-	g_D3DGraphicsContext->GetDXRCommandList()->BuildRaytracingAccelerationStructure(&topLevelBuildDesc, 0, nullptr);
+	commandList->BuildRaytracingAccelerationStructure(&topLevelBuildDesc, 0, nullptr);
+	PIXEndEvent(commandList);
 
 	m_IsDirty = false;
 	m_IsBuilt = true;
@@ -326,6 +337,8 @@ void RaytracingAccelerationStructureManager::Build(bool forceBuild)
 	const auto commandList = g_D3DGraphicsContext->GetCommandList();
 	const auto frame = g_D3DGraphicsContext->GetCurrentBackBuffer();
 
+	PIXBeginEvent(commandList, PIX_COLOR_DEFAULT, "Build Acceleration Structure");
+
 	// Copy staging buffer to GPU
 	m_BottomLevelInstanceDescs.at(frame).CopyElements(0, m_NumBottomLevelInstances, m_BottomLevelInstanceDescsStaging.data());
 
@@ -358,6 +371,8 @@ void RaytracingAccelerationStructureManager::Build(bool forceBuild)
 		const auto barrier = CD3DX12_RESOURCE_BARRIER::UAV(m_TopLevelAS.GetResource());
 		commandList->ResourceBarrier(1, &barrier);
 	}
+
+	PIXEndEvent(commandList);
 }
 
 void RaytracingAccelerationStructureManager::SetInstanceTransform(UINT instanceIndex, const XMMATRIX& transform)

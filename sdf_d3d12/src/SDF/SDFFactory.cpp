@@ -10,6 +10,8 @@
 #include "SDFObject.h"
 #include "SDFEditList.h"
 
+#include "pix3.h"
+
 
 // Pipeline signatures
 namespace AABBBuilderComputeRootSignature
@@ -74,10 +76,11 @@ SDFFactory::~SDFFactory()
 }
 
 
-void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editList)
+void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editList) const
 {
 	LOG_TRACE("-----SDF Factory Synchronous Bake Begin--------");
-
+	PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_DEFAULT, "SDF Bake");
+		
 	const auto device = g_D3DGraphicsContext->GetDevice();
 
 	// Step 1: Setup constant buffer data and counter temporary resources
@@ -119,6 +122,8 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 
 	// Step 2: Build command list to execute AABB builder compute shader
 	{
+		PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_DEFAULT, "Brick Builder");
+
 		ID3D12DescriptorHeap* ppDescriptorHeaps[] = { g_D3DGraphicsContext->GetSRVHeap()->GetHeap() };
 		m_CommandList->SetDescriptorHeaps(_countof(ppDescriptorHeaps), ppDescriptorHeaps);
 
@@ -147,11 +152,11 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 
 		// Copy counter value to a readback resource
 		m_CounterResource.ReadValue(m_CommandList.Get(), counterReadback.GetResource());
-
 	}
 
 	// Step 3: Execute command list and wait until completion
 	{
+		PIXEndEvent(m_CommandList.Get());
 		Flush();
 
 		THROW_IF_FAIL(m_CommandAllocator->Reset());
@@ -170,6 +175,8 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 
 	// Step 5: Build command list to execute SDF baker compute shader
 	{
+		PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_DEFAULT, "Brick Evaluator");
+
 		ID3D12DescriptorHeap* ppDescriptorHeaps[] = { g_D3DGraphicsContext->GetSRVHeap()->GetHeap() };
 		m_CommandList->SetDescriptorHeaps(_countof(ppDescriptorHeaps), ppDescriptorHeaps);
 
@@ -200,6 +207,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 
 	// Step 6: Execute command list and wait until completion
 	{
+		PIXEndEvent(m_CommandList.Get());
 		Flush();
 	}
 
@@ -208,7 +216,7 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		THROW_IF_FAIL(m_CommandAllocator->Reset());
 		THROW_IF_FAIL(m_CommandList->Reset(m_CommandAllocator.Get(), nullptr));
 	}
-
+	PIXEndEvent(m_CommandList.Get());
 	LOG_TRACE("-----SDF Factory Synchronous Bake Complete-----");
 }
 

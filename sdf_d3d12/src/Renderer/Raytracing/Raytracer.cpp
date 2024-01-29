@@ -8,6 +8,8 @@
 #include "Renderer/D3DShaderCompiler.h"
 #include "Renderer/ShaderTable.h"
 
+#include "pix3.h"
+
 
 const wchar_t* Raytracer::c_HitGroupName = L"MyHitGroup";
 const wchar_t* Raytracer::c_RaygenShaderName = L"MyRaygenShader";
@@ -60,6 +62,8 @@ void Raytracer::DoRaytracing() const
 	const auto commandList = g_D3DGraphicsContext->GetCommandList();
 	const auto dxrCommandList = g_D3DGraphicsContext->GetDXRCommandList();
 
+	PIXBeginEvent(commandList, PIX_COLOR_DEFAULT, "Do Raytracing");
+
 	// Perform raytracing commands 
 	commandList->SetComputeRootSignature(m_RaytracingGlobalRootSignature.Get());
 
@@ -87,6 +91,7 @@ void Raytracer::DoRaytracing() const
 	dispatchDesc.Depth = 1;
 
 	dxrCommandList->DispatchRays(&dispatchDesc);
+	PIXEndEvent(commandList);
 }
 
 

@@ -23,7 +23,7 @@ public:
 	DISALLOW_COPY(SDFFactory)
 	DEFAULT_MOVE(SDFFactory)
 
-	void BakeSDFSynchronous(SDFObject* object, const SDFEditList& editList);
+	void BakeSDFSynchronous(SDFObject* object, const SDFEditList& editList) const;
 
 private:
 	void InitializePipelines();
