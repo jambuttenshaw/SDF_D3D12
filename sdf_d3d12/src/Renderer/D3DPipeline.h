@@ -17,22 +17,6 @@ struct D3DComputePipelineDesc
 	D3D_SHADER_MACRO* Defines = nullptr;
 };
 
-
-
-class D3DGraphicsPipeline
-{
-public:
-	D3DGraphicsPipeline();
-
-	void Bind(ID3D12GraphicsCommandList* commandList) const;
-
-protected:
-	ComPtr<ID3D12RootSignature> m_RootSignature;
-	ComPtr<ID3D12PipelineState> m_PipelineState;
-};
-
-
-
 class D3DComputePipeline
 {
 public:

@@ -5,7 +5,6 @@
 #include "Windows/Win32Application.h"
 
 #include "D3DFrameResources.h"
-#include "Application/Scene.h"
 
 #include "Framework/GameTimer.h"
 #include "Framework/Camera.h"
@@ -19,7 +18,6 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
 	, m_ClientWidth(width)
 	, m_ClientHeight(height)
 	, m_BackBufferFormat(DXGI_FORMAT_R8G8B8A8_UNORM)
-	, m_DepthStencilFormat(DXGI_FORMAT_D24_UNORM_S8_UINT)
 {
 	ASSERT(!g_D3DGraphicsContext, "Cannot initialize a second graphics context!");
 	g_D3DGraphicsContext = this;
@@ -39,12 +37,7 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
 	CreateCommandList();
 
 	CreateRTVs();
-	CreateDepthStencilBuffer();
-
 	CreateFrameResources();
-
-	CreateViewport();
-	CreateScissorRect();
 
 	// Setup for raytracing
 	{
@@ -56,8 +49,6 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
 	ASSERT(m_ImGuiResources.IsValid(), "Failed to alloc");
 
 	CreateProjectionMatrix();
-
-	m_GraphicsPipeline = std::make_unique<D3DGraphicsPipeline>();
 
 	// Close the command list and execute it to begin the initial GPU setup
 	// The main loop expects the command list to be closed anyway
@@ -85,7 +76,6 @@ D3DGraphicsContext::~D3DGraphicsContext()
 
 	// Free allocations
 	m_RTVs.Free();
-	m_DSV.Free();
 	m_ImGuiResources.Free();
 
 	// Free frame resources
@@ -149,16 +139,7 @@ void D3DGraphicsContext::StartDraw() const
 	m_CommandList->ResourceBarrier(1, &barrier);
 
 	const D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_RTVs.GetCPUHandle(m_FrameIndex);
-	const D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = m_DSV.GetCPUHandle();
-	m_CommandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
-
-	// Clear render target
-	constexpr float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
-	m_CommandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
-	m_CommandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
-
-	m_CommandList->RSSetViewports(1, &m_Viewport);
-	m_CommandList->RSSetScissorRects(1, &m_ScissorRect);
+	m_CommandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
 
 	// Setup descriptor heaps
 	ID3D12DescriptorHeap* ppHeaps[] = { m_SRVHeap->GetHeap(), m_SamplerHeap->GetHeap() };
@@ -167,7 +148,6 @@ void D3DGraphicsContext::StartDraw() const
 
 void D3DGraphicsContext::EndDraw() const
 {
-
 	// Indicate that the back buffer will now be used to present
 	const auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_RenderTargets[m_FrameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 	m_CommandList->ResourceBarrier(1, &barrier);
@@ -181,19 +161,22 @@ void D3DGraphicsContext::EndDraw() const
 	m_CurrentFrameResources->SetFence(fenceValue);
 }
 
-void D3DGraphicsContext::CopyRaytracingOutput(D3D12_GPU_DESCRIPTOR_HANDLE rtOutputHandle) const
+void D3DGraphicsContext::CopyRaytracingOutput(ID3D12Resource* raytracingOutput) const
 {
-	// Perform graphics commands
+	const auto renderTarget = m_RenderTargets[m_FrameIndex].Get();
 
-	// Set pipeline state
-	m_GraphicsPipeline->Bind(m_CommandList.Get());
+	D3D12_RESOURCE_BARRIER preCopyBarriers[2];
+	preCopyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(renderTarget, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST);
+	preCopyBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(raytracingOutput, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
+	m_CommandList->ResourceBarrier(ARRAYSIZE(preCopyBarriers), preCopyBarriers);
 
-	// Set resource views
-	m_CommandList->SetGraphicsRootDescriptorTable(0, rtOutputHandle);
+	m_CommandList->CopyResource(renderTarget, raytracingOutput);
 
-	// Render a full-screen quad
-	m_CommandList->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-	m_CommandList->DrawInstanced(4, 1, 0, 0);
+	D3D12_RESOURCE_BARRIER postCopyBarriers[2];
+	postCopyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(renderTarget, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	postCopyBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(raytracingOutput, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+
+	m_CommandList->ResourceBarrier(ARRAYSIZE(postCopyBarriers), postCopyBarriers);
 }
 
 
@@ -257,10 +240,7 @@ void D3DGraphicsContext::Resize(UINT width, UINT height)
 	// Release the previous resources that will be recreated
 	for (UINT n = 0; n < s_FrameCount; ++n)
 		m_RenderTargets[n].Reset();
-	m_DepthStencilBuffer.Reset();
-
 	m_RTVs.Free();
-	m_DSV.Free();
 
 	// Process all deferred frees
 	ProcessAllDeferrals();
@@ -270,7 +250,6 @@ void D3DGraphicsContext::Resize(UINT width, UINT height)
 	m_FrameIndex = 0;
 
 	CreateRTVs();
-	CreateDepthStencilBuffer();
 
 	// Send required work to re-init buffers
 	THROW_IF_FAIL(m_CommandList->Close());
@@ -280,8 +259,6 @@ void D3DGraphicsContext::Resize(UINT width, UINT height)
 	m_CurrentFrameResources->SetFence(fenceValue);
 
 	// Recreate other objects while GPU is doing work
-	CreateViewport();
-	CreateScissorRect();
 	CreateProjectionMatrix();
 
 	// Wait for GPU to finish its work before continuing
@@ -426,7 +403,6 @@ void D3DGraphicsContext::CreateSwapChain()
 void D3DGraphicsContext::CreateDescriptorHeaps()
 {
 	m_RTVHeap = std::make_unique<DescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, s_FrameCount, true);
-	m_DSVHeap = std::make_unique<DescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, true);
 
 	// SRV/CBV/UAV heap
 	constexpr UINT CBVCount = s_FrameCount + 1;	// frame count + sdf factory
@@ -468,46 +444,6 @@ void D3DGraphicsContext::CreateRTVs()
 	}
 }
 
-void D3DGraphicsContext::CreateDepthStencilBuffer()
-{
-	D3D12_RESOURCE_DESC desc;
-	desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	desc.Alignment = 0;
-	desc.Width = m_ClientWidth;
-	desc.Height = m_ClientHeight;
-	desc.DepthOrArraySize = 1;
-	desc.MipLevels = 1;
-	desc.Format = m_DepthStencilFormat;
-	desc.SampleDesc.Count = 1;
-	desc.SampleDesc.Quality = 0;
-	desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-	desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-
-	D3D12_CLEAR_VALUE clear;
-	clear.Format = m_DepthStencilFormat;
-	clear.DepthStencil.Depth = 1.0f;
-	clear.DepthStencil.Stencil = 0;
-
-	const CD3DX12_HEAP_PROPERTIES heap(D3D12_HEAP_TYPE_DEFAULT);
-
-	THROW_IF_FAIL(m_Device->CreateCommittedResource(
-		&heap,
-		D3D12_HEAP_FLAG_NONE,
-		&desc,
-		D3D12_RESOURCE_STATE_COMMON,
-		&clear,
-		IID_PPV_ARGS(&m_DepthStencilBuffer)));
-	D3D_NAME(m_DepthStencilBuffer);
-
-	// Resource should be transitioned to be used as a depth stencil buffer
-	const auto transition = CD3DX12_RESOURCE_BARRIER::Transition(m_DepthStencilBuffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-	m_CommandList->ResourceBarrier(1, &transition);
-
-	// Create DSV
-	m_DSV = m_DSVHeap->Allocate(1);
-	m_Device->CreateDepthStencilView(m_DepthStencilBuffer.Get(), nullptr, m_DSV.GetCPUHandle());
-}
-
 void D3DGraphicsContext::CreateFrameResources()
 {
 	m_FrameResources.clear();
@@ -517,16 +453,6 @@ void D3DGraphicsContext::CreateFrameResources()
 		frameResources = std::make_unique<D3DFrameResources>();
 	}
 	m_CurrentFrameResources = m_FrameResources[m_FrameIndex].get();
-}
-
-void D3DGraphicsContext::CreateViewport()
-{
-	m_Viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_ClientWidth), static_cast<float>(m_ClientHeight));
-}
-
-void D3DGraphicsContext::CreateScissorRect()
-{
-	m_ScissorRect = CD3DX12_RECT(0, 0, static_cast<LONG>(m_ClientWidth), static_cast<LONG>(m_ClientHeight));
 }
 
 bool D3DGraphicsContext::CheckRaytracingSupport() const
@@ -570,7 +496,6 @@ void D3DGraphicsContext::ProcessDeferrals(UINT frameIndex) const
 		m_FrameResources[frameIndex]->ProcessDeferrals();
 
 	m_RTVHeap->ProcessDeferredFree(frameIndex);
-	m_DSVHeap->ProcessDeferredFree(frameIndex);
 	m_SRVHeap->ProcessDeferredFree(frameIndex);
 }
 

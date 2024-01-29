@@ -21,7 +21,7 @@ public:
 	void Resize();
 
 	// Getters
-	inline D3D12_GPU_DESCRIPTOR_HANDLE GetRaytracingOutputSRV() const { return m_RaytracingOutputDescriptor.GetGPUHandle(1); }
+	inline ID3D12Resource* GetRaytracingOutput() const { return m_RaytracingOutput.Get(); }
 
 private:
 	// Init

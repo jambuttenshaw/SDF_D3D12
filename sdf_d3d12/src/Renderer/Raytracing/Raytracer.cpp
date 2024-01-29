@@ -60,16 +60,11 @@ void Raytracer::DoRaytracing() const
 	const auto commandList = g_D3DGraphicsContext->GetCommandList();
 	const auto dxrCommandList = g_D3DGraphicsContext->GetDXRCommandList();
 
-	// Scene texture must be in unordered access state
-	auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_RaytracingOutput.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-	commandList->ResourceBarrier(1, &barrier);
-
-
 	// Perform raytracing commands 
 	commandList->SetComputeRootSignature(m_RaytracingGlobalRootSignature.Get());
 
 	// Bind the heaps, acceleration structure and dispatch rays.    
-	commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, m_RaytracingOutputDescriptor.GetGPUHandle(0));
+	commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, m_RaytracingOutputDescriptor.GetGPUHandle());
 	commandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::AccelerationStructureSlot, m_Scene->GetRaytracingAccelerationStructure()->GetTopLevelAccelerationStructureAddress());
 	commandList->SetComputeRootConstantBufferView(GlobalRootSignatureParams::PassBufferSlot, g_D3DGraphicsContext->GetPassCBAddress());
 
@@ -92,10 +87,6 @@ void Raytracer::DoRaytracing() const
 	dispatchDesc.Depth = 1;
 
 	dxrCommandList->DispatchRays(&dispatchDesc);
-
-	// Scene texture will now be used to render to the back buffer
-	barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_RaytracingOutput.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	commandList->ResourceBarrier(1, &barrier);
 }
 
 
@@ -246,14 +237,17 @@ void Raytracer::CreateRaytracingOutputResource()
 		1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 
 	THROW_IF_FAIL(device->CreateCommittedResource(
-		&defaultHeapProperties, D3D12_HEAP_FLAG_NONE, &uavDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, nullptr, IID_PPV_ARGS(&m_RaytracingOutput)));
+		&defaultHeapProperties,
+		D3D12_HEAP_FLAG_NONE, 
+		&uavDesc,
+		D3D12_RESOURCE_STATE_UNORDERED_ACCESS, 
+		nullptr, 
+		IID_PPV_ARGS(&m_RaytracingOutput)));
 	m_RaytracingOutput->SetName(L"Raytracing output");
 
-	m_RaytracingOutputDescriptor = g_D3DGraphicsContext->GetSRVHeap()->Allocate(2);
+	m_RaytracingOutputDescriptor = g_D3DGraphicsContext->GetSRVHeap()->Allocate(1);
 
-	device->CreateUnorderedAccessView(m_RaytracingOutput.Get(), nullptr, nullptr, m_RaytracingOutputDescriptor.GetCPUHandle(0));
-	// Create SRV
-	device->CreateShaderResourceView(m_RaytracingOutput.Get(), nullptr, m_RaytracingOutputDescriptor.GetCPUHandle(1));
+	device->CreateUnorderedAccessView(m_RaytracingOutput.Get(), nullptr, nullptr, m_RaytracingOutputDescriptor.GetCPUHandle());
 }
 
 

@@ -41,7 +41,7 @@ public:
 	void StartDraw() const;
 	void EndDraw() const;
 
-	void CopyRaytracingOutput(D3D12_GPU_DESCRIPTOR_HANDLE rtOutputHandle) const;
+	void CopyRaytracingOutput(ID3D12Resource* raytracingOutput) const;
 
 	// Updating constant buffers
 	void UpdatePassCB(GameTimer* timer, Camera* camera, UINT flags);
@@ -61,7 +61,6 @@ public:
 
 	inline static constexpr UINT GetBackBufferCount() { return s_FrameCount; }
 	inline DXGI_FORMAT GetBackBufferFormat() const { return m_BackBufferFormat; }
-	inline DXGI_FORMAT GetDepthStencilFormat() const { return m_DepthStencilFormat; }
 	inline UINT GetCurrentBackBuffer() const { return m_FrameIndex; }
 
 	inline UINT GetClientWidth() const { return m_ClientWidth; }
@@ -97,11 +96,7 @@ private:
 	void CreateCommandAllocator();
 	void CreateCommandList();
 	void CreateRTVs();
-	void CreateDepthStencilBuffer();
 	void CreateFrameResources();
-
-	void CreateViewport();
-	void CreateScissorRect();
 
 	// Raytracing
 	bool CheckRaytracingSupport() const;
@@ -130,7 +125,6 @@ private:
 
 	// Formats
 	DXGI_FORMAT m_BackBufferFormat;
-	DXGI_FORMAT m_DepthStencilFormat;
 
 	// Pipeline objects
 	ComPtr<IDXGIAdapter1> m_Adapter;
@@ -145,9 +139,6 @@ private:
 	ComPtr<IDXGISwapChain3> m_SwapChain;
 	ComPtr<ID3D12Resource> m_RenderTargets[s_FrameCount];
 	DescriptorAllocation m_RTVs;
-
-	ComPtr<ID3D12Resource> m_DepthStencilBuffer;
-	DescriptorAllocation m_DSV;
 
 	// Command queues
 	std::unique_ptr<D3DQueue> m_DirectQueue;
@@ -166,22 +157,13 @@ private:
 
 	// Descriptor heaps
 	std::unique_ptr<DescriptorHeap> m_RTVHeap;
-	std::unique_ptr<DescriptorHeap> m_DSVHeap;
 	std::unique_ptr<DescriptorHeap> m_SRVHeap;				// SRV, UAV, and CBV heap (named SRVHeap for brevity)
 	std::unique_ptr<DescriptorHeap> m_SamplerHeap;
-
-	CD3DX12_VIEWPORT m_Viewport{ };
-	CD3DX12_RECT m_ScissorRect{ };
-
 
 	// DirectX Raytracing (DXR) objects
 	ComPtr<ID3D12Device5> m_DXRDevice;
 	ComPtr<ID3D12GraphicsCommandList4> m_DXRCommandList;
 	
-
-	// Pipeline assets
-	std::unique_ptr<D3DGraphicsPipeline> m_GraphicsPipeline;	// A raster pass is used to copy the raytracing output to the back buffer
-
 	// ImGui Resources
 	DescriptorAllocation m_ImGuiResources;
 };

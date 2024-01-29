@@ -123,7 +123,7 @@ void D3DApplication::OnRender()
 
 	// Perform raytracing
 	m_Raytracer->DoRaytracing();
-	m_GraphicsContext->CopyRaytracingOutput(m_Raytracer->GetRaytracingOutputSRV());
+	m_GraphicsContext->CopyRaytracingOutput(m_Raytracer->GetRaytracingOutput());
 
 	// ImGui Render
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_GraphicsContext->GetCommandList());
