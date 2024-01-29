@@ -95,10 +95,21 @@ Scene::Scene()
 		}
 		*/
 		{
-			// Create torus object edit list
+			const auto directQueue = g_D3DGraphicsContext->GetDirectCommandQueue();
+			const auto computeQueue = g_D3DGraphicsContext->GetComputeCommandQueue();
+
+			m_EditList.Reset();
 			m_EditList.AddEdit(SDFEdit::CreateTorus({}, 0.75f, 0.2f));
-			m_EditList.AddEdit(SDFEdit::CreateOctahedron({}, 0.3f));
+
+			Transform transform;
+			m_EditList.AddEdit(SDFEdit::CreateOctahedron(transform, 0.3f));
+
+			transform.SetTranslation({ 0.6f, 0.0f, 0.0f });
+			m_EditList.AddEdit(SDFEdit::CreateSphere(transform, 0.1f));
+
+			computeQueue->InsertWaitForQueue(directQueue);
 			m_SDFFactory->BakeSDFSynchronous(m_Object.get(), m_EditList);
+			directQueue->InsertWaitForQueue(computeQueue);
 		}
 	}
 
@@ -205,11 +216,12 @@ void Scene::OnUpdate(float deltaTime)
 			m_AccelerationStructure->SetInstanceTransform(index, rotation * translation);
 		}
 	}
+
+	static bool firstFrame = true;
+	if (!firstFrame)
 	{
 		const auto directQueue = g_D3DGraphicsContext->GetDirectCommandQueue();
 		const auto computeQueue = g_D3DGraphicsContext->GetComputeCommandQueue();
-
-		computeQueue->InsertWaitForQueue(directQueue);
 
 		static float t = 0;
 		t += 0.1f * deltaTime;
@@ -219,14 +231,18 @@ void Scene::OnUpdate(float deltaTime)
 
 		Transform transform;
 		transform.SetYaw(t);
-		m_EditList.AddEdit(SDFEdit::CreateOctahedron({transform}, 0.3f));
+		m_EditList.AddEdit(SDFEdit::CreateOctahedron(transform, 0.3f));
 
 		transform.SetTranslation({ 0.6f * sinf(t), 0.0f, 0.0f });
 		m_EditList.AddEdit(SDFEdit::CreateSphere(transform, 0.1f));
 
+		computeQueue->InsertWaitForQueue(directQueue);
 		m_SDFFactory->BakeSDFSynchronous(m_Object.get(), m_EditList);
-
 		directQueue->InsertWaitForQueue(computeQueue);
+	}
+	else
+	{
+		firstFrame = false;
 	}
 
 	ImGui::Begin("Scene");

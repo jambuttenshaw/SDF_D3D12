@@ -36,7 +36,7 @@ public:
 
 private:
 	UINT64 Signal();
-
+	
 private:
 	// D3D12 resources
 	ComPtr<ID3D12CommandQueue> m_CommandQueue;
