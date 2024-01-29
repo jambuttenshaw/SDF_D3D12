@@ -390,8 +390,8 @@ void D3DGraphicsContext::CreateDevice()
 
 void D3DGraphicsContext::CreateCommandQueues()
 {
-	m_DirectQueue = std::make_unique<D3DQueue>(m_Device.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT);
-	m_ComputeQueue = std::make_unique<D3DQueue>(m_Device.Get(), D3D12_COMMAND_LIST_TYPE_COMPUTE);
+	m_DirectQueue = std::make_unique<D3DQueue>(m_Device.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT, L"Direct Queue");
+	m_ComputeQueue = std::make_unique<D3DQueue>(m_Device.Get(), D3D12_COMMAND_LIST_TYPE_COMPUTE, L"Compute Queue");
 }
 
 void D3DGraphicsContext::CreateSwapChain()

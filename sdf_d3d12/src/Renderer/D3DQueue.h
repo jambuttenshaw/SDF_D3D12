@@ -6,7 +6,7 @@ using Microsoft::WRL::ComPtr;
 class D3DQueue
 {
 public:
-	D3DQueue(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type);
+	D3DQueue(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type, const wchar_t* name = nullptr);
 	~D3DQueue();
 
 	DISALLOW_COPY(D3DQueue)

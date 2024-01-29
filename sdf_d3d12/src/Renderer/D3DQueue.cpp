@@ -2,7 +2,7 @@
 #include "D3DQueue.h"
 
 
-D3DQueue::D3DQueue(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type)
+D3DQueue::D3DQueue(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type, const wchar_t* name)
 	: m_QueueType(type)
 {
 	// Create queue
@@ -13,7 +13,14 @@ D3DQueue::D3DQueue(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type)
 		desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
 		desc.NodeMask = 0;
 		THROW_IF_FAIL(device->CreateCommandQueue(&desc, IID_PPV_ARGS(&m_CommandQueue)));
-		D3D_NAME(m_CommandQueue);
+		if (name)
+		{
+			m_CommandQueue->SetName(name);
+		}
+		else
+		{
+			D3D_NAME(m_CommandQueue);
+		}
 	}
 
 	// Assign initial fence values
