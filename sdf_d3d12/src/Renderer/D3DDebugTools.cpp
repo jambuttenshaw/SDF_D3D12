@@ -158,9 +158,13 @@ void D3DDebugTools::LogAutoBreadcrumbs(const D3D12_AUTO_BREADCRUMB_NODE1* breadc
 		if (breadcrumb->BreadcrumbCount && breadcrumb->BreadcrumbCount > lastBreadcrumb)
 		{
 			if (breadcrumb->pCommandQueueDebugNameW)
+			{
 				LOG_INFO(L"Command Queue: {}", breadcrumb->pCommandQueueDebugNameW);
+			}
 			if (breadcrumb->pCommandListDebugNameW)
+			{
 				LOG_INFO(L"Command List: {}", breadcrumb->pCommandListDebugNameW);
+			}
 
 			if (breadcrumb->pCommandHistory)
 			{

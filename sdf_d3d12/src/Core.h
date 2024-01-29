@@ -14,7 +14,7 @@
 #else
 
 #define THROW_IF_FAIL(x) (void)(x);
-#define ASSERT(x, msg) (x)
+#define ASSERT(x, msg)
 
 #define NOT_IMPLEMENTED
 
