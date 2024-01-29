@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core.h"
 #include "Renderer/Buffer/UploadBuffer.h"
 #include "Renderer/D3DGraphicsContext.h"
 #include "Renderer/Buffer/DefaultBuffer.h"

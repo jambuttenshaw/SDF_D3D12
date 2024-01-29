@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core.h"
 #include "Renderer/Memory/MemoryAllocator.h"
 #include "Renderer/Hlsl/RaytracingHlslCompat.h"
 #include "Renderer/Buffer/StructuredBuffer.h"

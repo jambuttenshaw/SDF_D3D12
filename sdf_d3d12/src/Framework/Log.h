@@ -3,7 +3,6 @@
 #define SPDLOG_WCHAR_TO_UTF8_SUPPORT
 
 #include <spdlog/spdlog.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
 
 class Log
 {

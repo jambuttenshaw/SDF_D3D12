@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "InputManager.h"
 
+#include "Core.h"
 #include "Application/BaseApplication.h"
 #include "Windows/Win32Application.h"
 

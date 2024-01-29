@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "D3DDebugTools.h"
 
+#include "Core.h"
 #include "D3DGraphicsContext.h"
 
 

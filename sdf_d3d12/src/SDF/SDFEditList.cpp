@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "SDFEditList.h"
 
+#include "Core.h"
 #include "Renderer/D3DGraphicsContext.h"
 
 

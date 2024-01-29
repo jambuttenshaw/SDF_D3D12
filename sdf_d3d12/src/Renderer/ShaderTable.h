@@ -1,6 +1,6 @@
 #pragma once
-#include "Buffer/UploadBuffer.h"
 
+#include "Core.h"
 
 using Microsoft::WRL::ComPtr;
 

@@ -2,6 +2,7 @@
 
 using Microsoft::WRL::ComPtr;
 
+#include "Core.h"
 #include "Memory/MemoryAllocator.h"
 #include "Buffer/UploadBuffer.h"
 

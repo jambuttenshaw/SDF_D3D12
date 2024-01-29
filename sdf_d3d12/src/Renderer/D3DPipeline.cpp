@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "D3DPipeline.h"
 
+#include "Core.h"
 #include "D3DGraphicsContext.h"
 #include "D3DShaderCompiler.h"
 

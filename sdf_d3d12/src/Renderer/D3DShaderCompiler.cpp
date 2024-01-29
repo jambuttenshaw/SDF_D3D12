@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "D3DShaderCompiler.h"
 
+#include "Core.h"
 
 D3DShaderCompiler::D3DShaderCompiler()
 {

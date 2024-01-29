@@ -1,4 +1,5 @@
 #pragma once
+
 #include "DefaultBuffer.h"
 
 using Microsoft::WRL::ComPtr;

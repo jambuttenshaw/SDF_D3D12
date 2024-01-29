@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stdexcept>
-
 #include "Framework/Log.h"
 #include "Framework/Exception.h"
 

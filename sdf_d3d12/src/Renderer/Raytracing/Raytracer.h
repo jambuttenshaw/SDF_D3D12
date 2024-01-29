@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core.h"
 #include "Renderer/Memory/MemoryAllocator.h"
 
 using Microsoft::WRL::ComPtr;

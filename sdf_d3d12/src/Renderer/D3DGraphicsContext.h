@@ -1,8 +1,8 @@
 #pragma once
 
+#include "Core.h"
 #include "Memory/MemoryAllocator.h"
 
-#include "D3DPipeline.h"
 #include "D3DQueue.h"
 #include "Hlsl/RaytracingHlslCompat.h"
 
