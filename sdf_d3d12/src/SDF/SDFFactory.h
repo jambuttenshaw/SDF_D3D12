@@ -23,12 +23,10 @@ public:
 	DISALLOW_COPY(SDFFactory)
 	DEFAULT_MOVE(SDFFactory)
 
-	void BakeSDFSynchronous(SDFObject* object, const SDFEditList& editList) const;
+	void BakeSDFSynchronous(SDFObject* object, const SDFEditList& editList);
 
 private:
 	void InitializePipelines();
-
-	void Flush() const;
 
 private:
 	// API objects
@@ -43,4 +41,7 @@ private:
 
 	CounterResource m_CounterResource;
 	DescriptorAllocation m_CounterResourceUAV;
+
+	// Synchronization
+	UINT64 m_PreviousBakeFence = 0;		// The fence value that will signal when the previous bake has completed
 };

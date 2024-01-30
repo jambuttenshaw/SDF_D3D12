@@ -52,6 +52,8 @@ SDFFactory::SDFFactory()
 	THROW_IF_FAIL(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COMPUTE, m_CommandAllocator.Get(), nullptr, IID_PPV_ARGS(&m_CommandList)));
 	m_CommandList->SetName(L"SDFFactory Command List");
 
+	THROW_IF_FAIL(m_CommandList->Close());
+
 	// Create compute pipelines
 	InitializePipelines();
 
@@ -76,12 +78,24 @@ SDFFactory::~SDFFactory()
 }
 
 
-void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editList) const
+void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editList)
 {
 	LOG_TRACE("-----SDF Factory Synchronous Bake Begin--------");
-	PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_DEFAULT, "SDF Bake");
-		
+
 	const auto device = g_D3DGraphicsContext->GetDevice();
+	const auto directQueue = g_D3DGraphicsContext->GetDirectCommandQueue();
+	const auto computeQueue = g_D3DGraphicsContext->GetComputeCommandQueue();
+
+	// Make sure the last bake to have occurred has completed
+	computeQueue->WaitForFenceCPUBlocking(m_PreviousBakeFence);
+
+	THROW_IF_FAIL(m_CommandAllocator->Reset());
+	THROW_IF_FAIL(m_CommandList->Reset(m_CommandAllocator.Get(), nullptr));
+
+	PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_DEFAULT, "SDF Bake");
+
+	// First, make the compute queue wait until the render queue has finished its work
+	computeQueue->InsertWaitForQueue(directQueue);
 
 	// Step 1: Setup constant buffer data and counter temporary resources
 	SDFBuilderConstantBuffer buildParamsBuffer;
@@ -157,7 +171,13 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 	// Step 3: Execute command list and wait until completion
 	{
 		PIXEndEvent(m_CommandList.Get());
-		Flush();
+
+		THROW_IF_FAIL(m_CommandList->Close());
+		ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
+		const auto fenceValue = computeQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
+		// CPU wait until this work has been complete before continuing
+		computeQueue->WaitForFenceCPUBlocking(fenceValue);
 
 		THROW_IF_FAIL(m_CommandAllocator->Reset());
 		THROW_IF_FAIL(m_CommandList->Reset(m_CommandAllocator.Get(), nullptr));
@@ -205,18 +225,20 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		m_CommandList->ResourceBarrier(1, &barrier);
 	}
 
+	// End all events before closing the command list
+	PIXEndEvent(m_CommandList.Get());
+	PIXEndEvent(m_CommandList.Get());
+
 	// Step 6: Execute command list and wait until completion
 	{
-		PIXEndEvent(m_CommandList.Get());
-		Flush();
+		THROW_IF_FAIL(m_CommandList->Close());
+		ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
+		m_PreviousBakeFence = computeQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
+		// The GPU render queue should wait until this work has completed
+		directQueue->InsertWaitForQueue(computeQueue);
 	}
 
-	// Step 7: Clean up
-	{
-		THROW_IF_FAIL(m_CommandAllocator->Reset());
-		THROW_IF_FAIL(m_CommandList->Reset(m_CommandAllocator.Get(), nullptr));
-	}
-	PIXEndEvent(m_CommandList.Get());
 	LOG_TRACE("-----SDF Factory Synchronous Bake Complete-----");
 }
 
@@ -265,16 +287,4 @@ void SDFFactory::InitializePipelines()
 
 		m_BrickEvaluatorPipeline = std::make_unique<D3DComputePipeline>(&desc);
 	}
-}
-
-
-void SDFFactory::Flush() const
-{
-	const auto computeQueue = g_D3DGraphicsContext->GetComputeCommandQueue();
-
-	THROW_IF_FAIL(m_CommandList->Close());
-	ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
-	const auto fenceValue = computeQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
-
-	computeQueue->WaitForFenceCPUBlocking(fenceValue);
 }

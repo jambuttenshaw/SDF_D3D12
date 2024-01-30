@@ -31,7 +31,7 @@ Scene::Scene()
 		// Create an SDF object
 		//m_TorusObject = std::make_unique<SDFObject>(0.05f, 65536);
 		//m_SphereObject = std::make_unique<SDFObject>(0.05f, 65536);
-		m_Object = std::make_unique<SDFObject>(0.125f, 65536);
+		m_Object = std::make_unique<SDFObject>(0.0625f, 65536);
 
 
 		/*
@@ -97,9 +97,6 @@ Scene::Scene()
 		}
 		*/
 		{
-			const auto directQueue = g_D3DGraphicsContext->GetDirectCommandQueue();
-			const auto computeQueue = g_D3DGraphicsContext->GetComputeCommandQueue();
-
 			m_EditList.Reset();
 			m_EditList.AddEdit(SDFEdit::CreateTorus({}, 0.75f, 0.2f));
 
@@ -109,9 +106,7 @@ Scene::Scene()
 			transform.SetTranslation({ 0.6f, 0.0f, 0.0f });
 			m_EditList.AddEdit(SDFEdit::CreateSphere(transform, 0.1f));
 
-			computeQueue->InsertWaitForQueue(directQueue);
 			m_SDFFactory->BakeSDFSynchronous(m_Object.get(), m_EditList);
-			directQueue->InsertWaitForQueue(computeQueue);
 		}
 	}
 
@@ -236,9 +231,6 @@ void Scene::OnUpdate(float deltaTime)
 
 	if (m_Rebuild)
 	{
-		const auto directQueue = g_D3DGraphicsContext->GetDirectCommandQueue();
-		const auto computeQueue = g_D3DGraphicsContext->GetComputeCommandQueue();
-
 		static float t = 0;
 		t += deltaTime;
 
@@ -259,9 +251,7 @@ void Scene::OnUpdate(float deltaTime)
 		transform.SetTranslation({ 0.0f, 0.0f, 0.7f * cosf(t) });
 		m_EditList.AddEdit(SDFEdit::CreateSphere(transform, 0.1f));
 
-		computeQueue->InsertWaitForQueue(directQueue);
 		m_SDFFactory->BakeSDFSynchronous(m_Object.get(), m_EditList);
-		directQueue->InsertWaitForQueue(computeQueue);
 	}
 
 	ImGui::Begin("Scene");
