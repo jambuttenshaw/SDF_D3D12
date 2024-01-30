@@ -25,8 +25,8 @@ HRESULT D3DShaderCompiler::CompileFromFileImpl(const wchar_t* file, const wchar_
 #ifdef _DEBUG
 		L"-Zi",
 		L"-Od",
+		L"-Qembed_debug",			// Embed debug PDB in shader bytecode
 #endif
-		L"-Fd", L".\\",				// Auto generate PDB name
 		L"-E", entryPoint,          // Entry point.
 		L"-T", targetStr.c_str(),	// Target.
 		L"-Qstrip_reflect",         // Strip reflection into a separate blob. 
