@@ -19,6 +19,7 @@ bool SDFEdit::DrawGui()
 		"Plane",
 		"Torus",
 		"Octahedron"
+		"BoxFrame"
 	};
 	static const char* opNames[] =
 	{
@@ -60,6 +61,10 @@ bool SDFEdit::DrawGui()
 	case SDFShape::Octahedron:
 		changed |= ImGui::DragFloat("Scale", &ShapeProperties.Octahedron.Scale, 0.01f);
 		break;
+	case SDFShape::BoxFrame:
+		changed |= ImGui::DragFloat3("Extents", &ShapeProperties.BoxFrame.Extents.x, 0.01f);
+		changed |= ImGui::DragFloat("Thickness", &ShapeProperties.BoxFrame.Thickness, 0.01f);
+		break;
 	}
 
 	int selectedOp = static_cast<int>(Operation);
@@ -96,6 +101,10 @@ void SDFEdit::SetShapePropertiesToDefault()
 		break;
 	case SDFShape::Octahedron:
 		ShapeProperties.Octahedron.Scale = 1.0f;
+		break;
+	case SDFShape::BoxFrame:
+		ShapeProperties.BoxFrame.Extents = { 1.0f, 1.0f, 1.0f };
+		ShapeProperties.BoxFrame.Thickness= 0.1f;
 		break;
 	}
 }
@@ -141,6 +150,15 @@ SDFEdit SDFEdit::CreateOctahedron(const Transform& transform, float scale, SDFOp
 	SDFEdit prim = CreateGeneric(transform, op, blend, color);
 	prim.Shape = SDFShape::Octahedron;
 	prim.ShapeProperties.Octahedron.Scale = scale;
+	return prim;
+}
+
+SDFEdit SDFEdit::CreateBoxFrame(const Transform& transform, const XMFLOAT3& extents, float thickness, SDFOperation op, float blend, const XMFLOAT4& color)
+{
+	SDFEdit prim = CreateGeneric(transform, op, blend, color);
+	prim.Shape = SDFShape::BoxFrame;
+	prim.ShapeProperties.BoxFrame.Extents = extents;
+	prim.ShapeProperties.BoxFrame.Thickness = thickness;
 	return prim;
 }
 

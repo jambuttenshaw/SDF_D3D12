@@ -78,7 +78,7 @@ SDFFactory::~SDFFactory()
 }
 
 
-void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editList)
+void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editList, bool waitUntilComplete)
 {
 	LOG_TRACE("-----SDF Factory Synchronous Bake Begin--------");
 
@@ -238,6 +238,12 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 		// The GPU render queue should wait until this work has completed
 		directQueue->InsertWaitForQueue(computeQueue);
 	}
+
+	if (waitUntilComplete)
+	{
+		computeQueue->WaitForFenceCPUBlocking(m_PreviousBakeFence);
+	}
+
 
 	LOG_TRACE("-----SDF Factory Synchronous Bake Complete-----");
 }

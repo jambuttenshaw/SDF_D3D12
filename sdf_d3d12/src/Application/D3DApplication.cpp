@@ -144,6 +144,8 @@ void D3DApplication::OnRender()
 
 void D3DApplication::OnDestroy()
 {
+	m_GraphicsContext->WaitForGPUIdle();
+
 	m_Scene.reset();
 	m_Raytracer.reset();
 

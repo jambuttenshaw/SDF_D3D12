@@ -21,16 +21,15 @@ std::string wstring_to_utf8(const std::wstring& str)
 
 
 Scene::Scene()
-	: m_EditList(16)
 {
 	// Build SDF Object
 	{
 		// Create SDF factory 
 		m_SDFFactory = std::make_unique<SDFFactory>();
 
-		// Create an SDF object
-		//m_TorusObject = std::make_unique<SDFObject>(0.05f, 65536);
-		//m_SphereObject = std::make_unique<SDFObject>(0.05f, 65536);
+		// Create SDF objects
+		m_TorusObject = std::make_unique<SDFObject>(0.0625f, 65536);
+		m_SphereObject = std::make_unique<SDFObject>(0.0625f, 65536);
 		m_Object = std::make_unique<SDFObject>(0.0625f, 65536);
 
 
@@ -51,7 +50,6 @@ Scene::Scene()
 		}
 		*/
 
-		/*
 		{
 			SDFEditList torusEditList(4);
 			// Create torus object edit list
@@ -69,7 +67,7 @@ Scene::Scene()
 
 			torusEditList.AddEdit(SDFEdit::CreateOctahedron({}, 0.7f));
 			
-			m_SDFFactory->BakeSDFSynchronous(m_TorusObject.get(), torusEditList);
+			m_SDFFactory->BakeSDFSynchronous(m_TorusObject.get(), torusEditList, true);
 		}
 		{
 			// Create sphere object by adding and then subtracting a bunch of spheres
@@ -93,41 +91,42 @@ Scene::Scene()
 			}
 
 			// Bake the primitives into the SDF object
-			m_SDFFactory->BakeSDFSynchronous(m_SphereObject.get(), sphereEditList);
+			m_SDFFactory->BakeSDFSynchronous(m_SphereObject.get(), sphereEditList, true);
 		}
-		*/
 		{
-			m_EditList.Reset();
-			m_EditList.AddEdit(SDFEdit::CreateTorus({}, 0.75f, 0.2f));
+			for (UINT i = 0; i < m_SphereCount; i++)
+			{
+				m_SphereData.push_back({});
+				SphereData& sphereData = m_SphereData.at(i);
+				sphereData.scale = {
+					Random::Float(-0.75f, 0.75f),
+					Random::Float(-0.75f, 0.75f),
+					Random::Float(-0.75f, 0.75f)
+				};
+				sphereData.speed = {
+					Random::Float(0.5f, 2.0f),
+					Random::Float(0.5f, 2.0f),
+					Random::Float(0.5f, 2.0f)
+				};
+			}
 
-			Transform transform;
-			m_EditList.AddEdit(SDFEdit::CreateOctahedron(transform, 0.3f));
-
-			transform.SetTranslation({ 0.6f, 0.0f, 0.0f });
-			m_EditList.AddEdit(SDFEdit::CreateSphere(transform, 0.1f));
-
-			m_SDFFactory->BakeSDFSynchronous(m_Object.get(), m_EditList);
+			BuildEditList(0.0f);
 		}
 	}
 
-	/*
 	{
 		// Construct scene geometry
 		m_SceneGeometry.push_back({ L"Torus" });
 		m_SceneGeometry.push_back({ L"Spheres" });
+		m_SceneGeometry.push_back({ L"Dynamic" });
 
 		auto& torusGeometry = m_SceneGeometry.at(0);
 		auto& spheresGeometry = m_SceneGeometry.at(1);
+		auto& dynamicGeometry = m_SceneGeometry.at(2);
 
 		torusGeometry.GeometryInstances.push_back(m_TorusObject.get());
 		spheresGeometry.GeometryInstances.push_back(m_SphereObject.get());
-	}
-	*/
-	{
-		// Construct scene geometry
-		m_SceneGeometry.push_back({ L"Sphere" });
-		auto& sphereGeometry = m_SceneGeometry.at(0);
-		sphereGeometry.GeometryInstances.push_back(m_Object.get());
+		dynamicGeometry.GeometryInstances.push_back(m_Object.get());
 	}
 
 	{
@@ -141,8 +140,6 @@ Scene::Scene()
 		}
 
 		// Create instances of BLAS
-
-		const std::wstring sphereGeometry = L"Sphere";
 		for (UINT z = 0; z < s_InstanceGridDims; z++)
 		{
 			for (UINT y = 0; y < s_InstanceGridDims; y++)
@@ -176,7 +173,8 @@ Scene::Scene()
 						z * s_InstanceSpacing + m_InstanceTranslation[index].z 
 					);
 
-					m_AccelerationStructure->AddBottomLevelASInstance(sphereGeometry, rotation * translation, 1);
+					const auto& geoName = m_SceneGeometry.at(index % m_SceneGeometry.size()).Name;
+					m_AccelerationStructure->AddBottomLevelASInstance(geoName, rotation * translation, 1);
 				}
 			}
 		}
@@ -189,21 +187,6 @@ Scene::Scene()
 
 void Scene::OnUpdate(float deltaTime)
 {
-	/*
-	static int i = 0;
-	{
-		std::wstring name = L"captures/capture";
-		name += std::to_wstring(i);
-		name += L".wpix";
-		const HRESULT result = PIXGpuCaptureNextFrames(name.c_str(), 1);
-		if (FAILED(result))
-		{
-			LOG_ERROR(L"Capture failed: {}", _com_error(result).ErrorMessage());
-		}
-	}
-	i++;
-	 */
-
 	// Manipulate objects in the scene
 	if (m_RotateInstances)
 	{
@@ -231,27 +214,7 @@ void Scene::OnUpdate(float deltaTime)
 
 	if (m_Rebuild)
 	{
-		static float t = 0;
-		t += deltaTime;
-
-		m_EditList.Reset();
-
-		float r = 0.5f + 0.5f * sinf(t); // [0,1]
-		r = 0.05f + (r * 0.2f);
-
-		m_EditList.AddEdit(SDFEdit::CreateTorus({}, 0.75f, r));
-
-		Transform transform;
-		transform.SetYaw(t);
-		m_EditList.AddEdit(SDFEdit::CreateOctahedron(transform, 0.3f));
-
-		transform.SetTranslation({ 0.7f * sinf(t), 0.0f, 0.0f });
-		m_EditList.AddEdit(SDFEdit::CreateSphere(transform, 0.1f));
-
-		transform.SetTranslation({ 0.0f, 0.0f, 0.7f * cosf(t) });
-		m_EditList.AddEdit(SDFEdit::CreateSphere(transform, 0.1f));
-
-		m_SDFFactory->BakeSDFSynchronous(m_Object.get(), m_EditList);
+		BuildEditList(deltaTime);
 	}
 
 	ImGui::Begin("Scene");
@@ -265,8 +228,8 @@ void Scene::OnUpdate(float deltaTime)
 		ImGui::Text("Instance Count: %d", s_InstanceCount);
 		ImGui::Separator();
 
-		//DisplaySDFObjectDebugInfo("Torus Object", m_TorusObject.get());
-		//DisplaySDFObjectDebugInfo("Sphere Object", m_SphereObject.get());
+		DisplaySDFObjectDebugInfo("Torus Object", m_TorusObject.get());
+		DisplaySDFObjectDebugInfo("Sphere Object", m_SphereObject.get());
 		DisplaySDFObjectDebugInfo("Sphere Object", m_Object.get());
 
 		DisplayAccelerationStructureDebugInfo();
@@ -291,11 +254,38 @@ void Scene::OnRender()
 	UpdateAccelerationStructure();
 }
 
+void Scene::BuildEditList(float deltaTime)
+{
+	static float t = 1;
+	t += deltaTime;
+
+	SDFEditList editList(m_SphereCount + 2);
+
+	editList.Reset();
+	editList.AddEdit(SDFEdit::CreateSphere({}, 0.1f));
+	for (UINT i = 0; i < m_SphereCount; i++)
+	{
+		Transform transform;
+		transform.SetTranslation(
+			{
+				m_SphereData.at(i).scale.x * cosf(m_SphereData.at(i).speed.x * t),
+				m_SphereData.at(i).scale.y * cosf(m_SphereData.at(i).speed.y * t),
+				m_SphereData.at(i).scale.z * cosf(m_SphereData.at(i).speed.z * t)
+			});
+		editList.AddEdit(SDFEdit::CreateSphere(transform, 0.075f, SDFOperation::SmoothUnion, 0.4f));
+	}
+
+	editList.AddEdit(SDFEdit::CreateBoxFrame({}, { 1.0f, 1.0f, 1.0f }, 0.05f));
+
+	m_SDFFactory->BakeSDFSynchronous(m_Object.get(), editList, true);
+}
+
 
 void Scene::UpdateAccelerationStructure()
 {
 	// Update geometry
-	m_AccelerationStructure->UpdateBottomLevelASGeometry(m_SceneGeometry.at(0));
+	for (const auto& geo : m_SceneGeometry)
+		m_AccelerationStructure->UpdateBottomLevelASGeometry(geo);
 
 	// Rebuild
 	m_AccelerationStructure->Build();

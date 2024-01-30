@@ -7,6 +7,7 @@
 #define SHAPE_PLANE 2u
 #define SHAPE_TORUS 3u
 #define SHAPE_OCTAHEDRON 4u
+#define SHAPE_BOX_FRAME 5u
 
 
 //
@@ -54,6 +55,15 @@ float sdOctahedron(float3 p, float s)
 	return length(float3(q.x, q.y - s + k, q.z - k));
 }
 
+float sdBoxFrame(float3 p, float3 b, float e)
+{
+	p = abs(p) - b;
+	float3 q = abs(p + e) - e;
+	return min(min(
+      length(max(float3(p.x, q.y, q.z), 0.0)) + min(max(p.x, max(q.y, q.z)), 0.0),
+      length(max(float3(q.x, p.y, q.z), 0.0)) + min(max(q.x, max(p.y, q.z)), 0.0)),
+      length(max(float3(q.x, q.y, p.z), 0.0)) + min(max(q.x, max(q.y, p.z)), 0.0));
+}
 
 
 float sdPrimitive(float3 p, uint prim, float4 param)
@@ -70,6 +80,8 @@ float sdPrimitive(float3 p, uint prim, float4 param)
 			return sdTorus(p, param.xy);
 		case SHAPE_OCTAHEDRON:
 			return sdOctahedron(p, param.x);
+		case SHAPE_BOX_FRAME:
+			return sdBoxFrame(p, param.xyz, param.w);
 		default:
 			return 0.0f;
 	}

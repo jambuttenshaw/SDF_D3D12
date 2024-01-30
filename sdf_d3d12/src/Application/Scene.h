@@ -5,7 +5,6 @@
 
 #include "SDF/SDFFactory.h"
 #include "SDF/SDFObject.h"
-#include "SDF/SDFEditList.h"
 
 
 class Scene
@@ -21,6 +20,8 @@ public:
 	inline RaytracingAccelerationStructureManager* GetRaytracingAccelerationStructure() const { return m_AccelerationStructure.get(); }
 
 private:
+	void BuildEditList(float deltaTime);
+
 	void UpdateAccelerationStructure();
 
 	void DisplaySDFObjectDebugInfo(const char* name, const SDFObject* object) const;
@@ -35,13 +36,13 @@ private:
 	// SDF Objects
 	std::unique_ptr<SDFFactory> m_SDFFactory;
 
-	//std::unique_ptr<SDFObject> m_TorusObject;
-	//std::unique_ptr<SDFObject> m_SphereObject;
+	std::unique_ptr<SDFObject> m_TorusObject;
+	std::unique_ptr<SDFObject> m_SphereObject;
+
 	std::unique_ptr<SDFObject> m_Object;
-	SDFEditList m_EditList;
 
 	// Demo Scene
-	inline static constexpr UINT s_InstanceGridDims = 1;
+	inline static constexpr UINT s_InstanceGridDims = 3;
 	inline static constexpr UINT s_InstanceCount = s_InstanceGridDims * s_InstanceGridDims * s_InstanceGridDims;
 	inline static constexpr float s_InstanceSpacing = 8.0f;
 
@@ -53,4 +54,12 @@ private:
 	// GUI controls
 	bool m_RotateInstances = true;
 	bool m_Rebuild = true;
+
+	struct SphereData
+	{
+		XMFLOAT3 scale;
+		XMFLOAT3 speed;
+	};
+	const UINT m_SphereCount = 30;
+	std::vector<SphereData> m_SphereData;
 };

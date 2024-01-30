@@ -9,31 +9,31 @@ SDFEditList::SDFEditList(UINT maxEdits)
 	: m_EditsBuffers(D3DGraphicsContext::GetBackBufferCount())
 	, m_MaxEdits(maxEdits)
 {
-	m_EditsStaging.reserve(maxEdits);
+	m_EditsStaging.resize(m_MaxEdits);
 	for (auto& buffer : m_EditsBuffers)
 		buffer.Allocate(g_D3DGraphicsContext->GetDevice(), m_MaxEdits, 0, L"Edit Buffer");
 }
 
 void SDFEditList::Reset()
 {
-	m_EditsStaging.clear();
+	m_EditCount = 0;
 }
 
 bool SDFEditList::AddEdit(const SDFEdit& edit)
 {
-	if (m_EditsStaging.size() >= m_MaxEdits)
+	if (m_EditCount >= m_MaxEdits)
 	{
 		LOG_WARN("Cannot add edit: Edit buffer full!")
 		return false;
 	}
 
-	m_EditsStaging.emplace_back(BuildEditData(edit));
+	m_EditsStaging.at(m_EditCount++) = BuildEditData(edit);
 	return true;
 }
 
 void SDFEditList::CopyStagingToGPU() const
 {
-	m_EditsBuffers[g_D3DGraphicsContext->GetCurrentBackBuffer()].CopyElements(0, static_cast<UINT>(m_EditsStaging.size()), m_EditsStaging.data());
+	m_EditsBuffers[g_D3DGraphicsContext->GetCurrentBackBuffer()].CopyElements(0, m_EditCount, m_EditsStaging.data());
 }
 
 D3D12_GPU_VIRTUAL_ADDRESS SDFEditList::GetEditBufferAddress() const

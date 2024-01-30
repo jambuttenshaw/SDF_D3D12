@@ -20,7 +20,7 @@ public:
 	void CopyStagingToGPU() const;
 
 	// Getters
-	inline UINT GetEditCount() const { return static_cast<UINT>(m_EditsStaging.size()); }
+	inline UINT GetEditCount() const { return m_EditCount; }
 	inline UINT GetMaxEdits() const { return m_MaxEdits; }
 
 	D3D12_GPU_VIRTUAL_ADDRESS GetEditBufferAddress() const;
@@ -37,4 +37,5 @@ private:
 
 	// Buffer capacity
 	UINT m_MaxEdits = 0;
+	UINT m_EditCount = 0;
 };

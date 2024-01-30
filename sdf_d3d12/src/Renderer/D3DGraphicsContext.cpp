@@ -420,11 +420,8 @@ void D3DGraphicsContext::CreateDescriptorHeaps()
 	m_RTVHeap = std::make_unique<DescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, s_FrameCount, true);
 
 	// SRV/CBV/UAV heap
-	constexpr UINT CBVCount = s_FrameCount + 1;	// frame count + sdf factory
-	constexpr UINT SRVCount = 4;				// ImGui frame resource + SRV for scene texture + application resources
-	constexpr UINT UAVCount = 2;				// UAV for scene texture + application resources
-	constexpr UINT Buffer = 12;					// Extras for a rainy day
-	m_SRVHeap = std::make_unique<DescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, CBVCount + SRVCount + UAVCount + Buffer, false);
+	constexpr UINT Count = 64;
+	m_SRVHeap = std::make_unique<DescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, Count, false);
 
 	m_SamplerHeap = std::make_unique<DescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 1, false);
 }

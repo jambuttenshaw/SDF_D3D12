@@ -247,7 +247,7 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 {
 	if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_HEATMAP)
 	{
-		payload.color = float4(RGBFromHSV(float3(attr.heatmap / 64.0f, 1.0f, 1.0f)), 1.0f);
+		payload.color = float4(RGBFromHSV(float3(0.25f - (attr.heatmap) / 64.0f, 1.0f, 1.0f)), 1.0f);
 	}
 	else if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_ITERATION_GUARD_TERMINATIONS)
 	{

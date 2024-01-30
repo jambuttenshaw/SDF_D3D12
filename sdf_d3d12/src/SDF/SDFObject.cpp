@@ -60,8 +60,7 @@ void SDFObject::AllocateOptimalBrickPool(UINT brickCount, ResourceGroup res)
 		// A larger brick pool might be required
 		if (brickCount > GetBrickPoolCapacity())
 		{
-			// TODO: In this case a new brick pool should be allocated and the previous one released
-			LOG_ERROR("Brick pool is too small - reallocation required!");
+			LOG_INFO("Brick pool is too small - reallocation required!");
 		}
 		else
 		{
