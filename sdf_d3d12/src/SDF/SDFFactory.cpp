@@ -243,6 +243,14 @@ void SDFFactory::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editLi
 }
 
 
+void SDFFactory::BakeSDFAsync(SDFObject* object, const SDFEditList& editList)
+{
+
+}
+
+
+
+
 void SDFFactory::InitializePipelines()
 {
 	{
@@ -287,4 +295,11 @@ void SDFFactory::InitializePipelines()
 
 		m_BrickEvaluatorPipeline = std::make_unique<D3DComputePipeline>(&desc);
 	}
+}
+
+
+
+void SDFFactory::FactoryAsyncProc()
+{
+	
 }

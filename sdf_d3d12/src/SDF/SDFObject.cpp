@@ -5,7 +5,7 @@
 #include "Renderer/Hlsl/ComputeHlslCompat.h"
 
 SDFObject::SDFObject(float brickSize, UINT brickCapacity, D3D12_RAYTRACING_GEOMETRY_FLAGS geometryFlags)
-	: m_Resources(1)
+	: m_Resources(2)
 	, m_GeometryFlags(geometryFlags)
 {
 	ASSERT(brickSize > 0.0f, "Invalid brick size!");
@@ -21,22 +21,22 @@ SDFObject::SDFObject(float brickSize, UINT brickCapacity, D3D12_RAYTRACING_GEOME
 	{
 		// Allocate Geometry buffers
 		{
-			resources.m_AABBBuffer.Allocate(device, GetBrickBufferCapacity(), D3D12_RESOURCE_STATE_COMMON, L"AABB Buffer");
-			resources.m_BrickBuffer.Allocate(device, GetBrickBufferCapacity(), D3D12_RESOURCE_STATE_COMMON, L"AABB Primitive Data Buffer");
+			resources.AABBBuffer.Allocate(device, GetBrickBufferCapacity(), D3D12_RESOURCE_STATE_COMMON, L"AABB Buffer");
+			resources.BrickBuffer.Allocate(device, GetBrickBufferCapacity(), D3D12_RESOURCE_STATE_COMMON, L"AABB Primitive Data Buffer");
 		}
 
 		// Create resource views
 		{
-			resources.m_ResourceViews = descriptorHeap->Allocate(4);
-			ASSERT(resources.m_ResourceViews.IsValid(), "Descriptor allocation failed!");
+			resources.ResourceViews = descriptorHeap->Allocate(4);
+			ASSERT(resources.ResourceViews.IsValid(), "Descriptor allocation failed!");
 
 			{
-				const auto uavDesc = resources.m_AABBBuffer.CreateUAVDesc();
-				device->CreateUnorderedAccessView(resources.m_AABBBuffer.GetResource(), nullptr, &uavDesc, resources.m_ResourceViews.GetCPUHandle(2));
+				const auto uavDesc = resources.AABBBuffer.CreateUAVDesc();
+				device->CreateUnorderedAccessView(resources.AABBBuffer.GetResource(), nullptr, &uavDesc, resources.ResourceViews.GetCPUHandle(2));
 			}
 			{
-				const auto uavDesc = resources.m_BrickBuffer.CreateUAVDesc();
-				device->CreateUnorderedAccessView(resources.m_BrickBuffer.GetResource(), nullptr, &uavDesc, resources.m_ResourceViews.GetCPUHandle(3));
+				const auto uavDesc = resources.BrickBuffer.CreateUAVDesc();
+				device->CreateUnorderedAccessView(resources.BrickBuffer.GetResource(), nullptr, &uavDesc, resources.ResourceViews.GetCPUHandle(3));
 			}
 		}
 	}
@@ -45,15 +45,16 @@ SDFObject::SDFObject(float brickSize, UINT brickCapacity, D3D12_RAYTRACING_GEOME
 SDFObject::~SDFObject()
 {
 	for (auto& resources : m_Resources)
-		resources.m_ResourceViews.Free();
+		resources.ResourceViews.Free();
 }
 
-void SDFObject::AllocateOptimalBrickPool(UINT brickCount)
+void SDFObject::AllocateOptimalBrickPool(UINT brickCount, ResourceGroup res)
 {
 	ASSERT(brickCount > 0, "SDF Object does not have any bricks!");
-	const auto current = 0;
 
-	if (m_Resources.at(current).m_BrickPool)
+	auto& resources = GetResources(res);
+
+	if (resources.BrickPool)
 	{
 		// Brick pool has already been allocated
 		// A larger brick pool might be required
@@ -66,17 +67,17 @@ void SDFObject::AllocateOptimalBrickPool(UINT brickCount)
 		{
 			// Existing brick pool is large enough, no allocation required
 			// Just update brick count
-			m_BrickCount = brickCount;
+			resources.BrickCount = brickCount;
 			return;
 		}
 	}
 
-	m_BrickCount = brickCount;
+	resources.BrickCount = brickCount;
 
 	// Calculate dimensions for the brick pool such that it contains at least m_BrickCount entries
 	// but is also a useful shape
-	UINT nextCube = static_cast<UINT>(std::floor(std::cbrtf(static_cast<float>(m_BrickCount)))) + 1;
-	m_BrickPoolDimensions = { nextCube, nextCube, nextCube };
+	UINT nextCube = static_cast<UINT>(std::floor(std::cbrtf(static_cast<float>(resources.BrickCount)))) + 1;
+	resources.BrickPoolDimensions = { nextCube, nextCube, nextCube };
 
 	const auto device = g_D3DGraphicsContext->GetDevice();
 
@@ -85,9 +86,9 @@ void SDFObject::AllocateOptimalBrickPool(UINT brickCount)
 		const auto heap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 		const CD3DX12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex3D(
 			DXGI_FORMAT_R8_SNORM,
-			static_cast<UINT64>(m_BrickPoolDimensions.x) * SDF_BRICK_SIZE_VOXELS_ADJACENCY,
-			m_BrickPoolDimensions.y * SDF_BRICK_SIZE_VOXELS_ADJACENCY,
-			static_cast<UINT16>(m_BrickPoolDimensions.z * SDF_BRICK_SIZE_VOXELS_ADJACENCY),
+			static_cast<UINT64>(resources.BrickPoolDimensions.x) * SDF_BRICK_SIZE_VOXELS_ADJACENCY,
+			resources.BrickPoolDimensions.y * SDF_BRICK_SIZE_VOXELS_ADJACENCY,
+			static_cast<UINT16>(resources.BrickPoolDimensions.z * SDF_BRICK_SIZE_VOXELS_ADJACENCY),
 			1,
 			D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 
@@ -97,94 +98,105 @@ void SDFObject::AllocateOptimalBrickPool(UINT brickCount)
 			&desc,
 			D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
 			nullptr,
-			IID_PPV_ARGS(&m_Resources.at(current).m_BrickPool)
+			IID_PPV_ARGS(&resources.BrickPool)
 		));
-		m_Resources.at(current).m_BrickPool->SetName(L"SDF Brick Pool");
+		resources.BrickPool->SetName(L"SDF Brick Pool");
 	}
 
 	// Create resource views for brick pool
 	{
-		device->CreateShaderResourceView(m_Resources.at(current).m_BrickPool.Get(), nullptr, m_Resources.at(current).m_ResourceViews.GetCPUHandle(0));
-		device->CreateUnorderedAccessView(m_Resources.at(current).m_BrickPool.Get(), nullptr, nullptr, m_Resources.at(current).m_ResourceViews.GetCPUHandle(1));
+		device->CreateShaderResourceView(
+			resources.BrickPool.Get(),
+			nullptr, 
+			resources.ResourceViews.GetCPUHandle(0));
+		device->CreateUnorderedAccessView(
+			resources.BrickPool.Get(),
+			nullptr,
+			nullptr,
+			resources.ResourceViews.GetCPUHandle(1));
 	}
 
 	// Local arguments for shading have changed
 	// The shader table will need updated
-	m_AreLocalArgumentsDirty = true;
+	m_IsLocalArgsDirty = true;
 }
 
 
-ID3D12Resource* SDFObject::GetBrickPool() const
+ID3D12Resource* SDFObject::GetBrickPool(ResourceGroup res) const
 {
-	const auto current = 0;
-	return m_Resources.at(current).m_BrickPool.Get();
+	return GetResources(res).BrickPool.Get();
 }
 
-D3D12_GPU_VIRTUAL_ADDRESS SDFObject::GetAABBBufferAddress() const
+UINT SDFObject::GetBrickCount(ResourceGroup res) const
 {
-	const auto current = 0;
-	return m_Resources.at(current).m_AABBBuffer.GetAddress();
+	return GetResources(res).BrickCount;
 }
-UINT SDFObject::GetAABBBufferStride() const
+const XMUINT3& SDFObject::GetBrickPoolDimensions(ResourceGroup res) const
 {
-	const auto current = 0;
-	return m_Resources.at(current).m_AABBBuffer.GetElementStride();
+	return GetResources(res).BrickPoolDimensions;
 }
-
-D3D12_GPU_VIRTUAL_ADDRESS SDFObject::GetBrickBufferAddress() const
+UINT SDFObject::GetBrickPoolCapacity(ResourceGroup res) const
 {
-	const auto current = 0;
-	return m_Resources.at(current).m_BrickBuffer.GetAddress();
-}
-UINT SDFObject::GetBrickBufferStride() const
-{
-	const auto current = 0;
-	return m_Resources.at(current).m_BrickBuffer.GetElementStride();
+	const auto& dims = GetResources(res).BrickPoolDimensions;
+	return dims.x * dims.y * dims.z;
 }
 
-D3D12_GPU_DESCRIPTOR_HANDLE SDFObject::GetBrickPoolSRV() const
+D3D12_GPU_VIRTUAL_ADDRESS SDFObject::GetAABBBufferAddress(ResourceGroup res) const
 {
-	const auto current = 0;
-	return m_Resources.at(current).m_ResourceViews.GetGPUHandle(0);
+	return GetResources(res).AABBBuffer.GetAddress();
+}
+UINT SDFObject::GetAABBBufferStride(ResourceGroup res) const
+{
+	return GetResources(res).AABBBuffer.GetElementStride();
+}
+
+D3D12_GPU_VIRTUAL_ADDRESS SDFObject::GetBrickBufferAddress(ResourceGroup res) const
+{
+	return GetResources(res).BrickBuffer.GetAddress();
+}
+UINT SDFObject::GetBrickBufferStride(ResourceGroup res) const
+{
+	return GetResources(res).BrickBuffer.GetElementStride();
+}
+
+D3D12_GPU_DESCRIPTOR_HANDLE SDFObject::GetBrickPoolSRV(ResourceGroup res) const
+{
+	return GetResources(res).ResourceViews.GetGPUHandle(0);
 };
-D3D12_GPU_DESCRIPTOR_HANDLE SDFObject::GetBrickPoolUAV() const
+D3D12_GPU_DESCRIPTOR_HANDLE SDFObject::GetBrickPoolUAV(ResourceGroup res) const
 {
-	const auto current = 0;
-	return m_Resources.at(current).m_ResourceViews.GetGPUHandle(1);
+	return GetResources(res).ResourceViews.GetGPUHandle(1);
 }
-D3D12_GPU_DESCRIPTOR_HANDLE SDFObject::GetAABBBufferUAV() const
+D3D12_GPU_DESCRIPTOR_HANDLE SDFObject::GetAABBBufferUAV(ResourceGroup res) const
 {
-	const auto current = 0;
-	return m_Resources.at(current).m_ResourceViews.GetGPUHandle(2);
+	return GetResources(res).ResourceViews.GetGPUHandle(2);
 }
-D3D12_GPU_DESCRIPTOR_HANDLE SDFObject::GetBrickBufferUAV() const
+D3D12_GPU_DESCRIPTOR_HANDLE SDFObject::GetBrickBufferUAV(ResourceGroup res) const
 {
-	const auto current = 0;
-	return m_Resources.at(current).m_ResourceViews.GetGPUHandle(3);
+	return GetResources(res).ResourceViews.GetGPUHandle(3);
 }
 
 
-UINT64 SDFObject::GetBrickPoolSizeBytes() const
+UINT64 SDFObject::GetBrickPoolSizeBytes(ResourceGroup res) const
 {
-	const auto current = 0;
-
-	if (!m_Resources.at(current).m_BrickPool)
+	auto& brickPool = GetResources(res).BrickPool;
+	if (!brickPool)
 		return 0;
 
-	const auto desc = m_Resources.at(current).m_BrickPool->GetDesc();
+	const auto desc = brickPool->GetDesc();
 	const auto elements = desc.Width * desc.Height * desc.DepthOrArraySize;
 	constexpr auto elementSize = sizeof(BYTE); // R8_SNORM one byte per element
 	return elements * elementSize;
 }
 
-UINT64 SDFObject::GetAABBBufferSizeBytes() const
+UINT64 SDFObject::GetAABBBufferSizeBytes(ResourceGroup res) const
 {
-	const auto current = 0;
-	return m_Resources.at(current).m_AABBBuffer.GetElementCount() * m_Resources.at(current).m_AABBBuffer.GetElementStride();
+	auto& aabbBuffer = GetResources(res).AABBBuffer;
+	return aabbBuffer.GetElementCount() * aabbBuffer.GetElementStride();
 }
 
-UINT64 SDFObject::GetBrickBufferSizeBytes() const
+UINT64 SDFObject::GetBrickBufferSizeBytes(ResourceGroup res) const
 {
-	const auto current = 0;
-	return m_Resources.at(current).m_BrickBuffer.GetElementCount() * m_Resources.at(current).m_BrickBuffer.GetElementStride();
+	auto& brickBuffer = GetResources(res).BrickBuffer;
+	return brickBuffer.GetElementCount() * brickBuffer.GetElementStride();
 }

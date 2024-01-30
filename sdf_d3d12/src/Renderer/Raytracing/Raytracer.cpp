@@ -337,7 +337,7 @@ void Raytracer::BuildShaderTables()
 					sizeof(rootArgs)
 					});
 
-				geometryInstance->ClearLocalArgumentsDirty();
+				geometryInstance->ResetLocalArgsDirty();
 			}
 		}
 	}
@@ -362,7 +362,7 @@ void Raytracer::UpdateHitGroupShaderTable() const
 	{
 		for (auto& geometryInstance : bottomLevelASGeometry.GeometryInstances)
 		{
-			if (geometryInstance->AreLocalArgumentsDirty())
+			if (geometryInstance->IsLocalArgsDirty())
 			{
 				LocalRootSignatureParams::RootArguments rootArgs;
 				rootArgs.brickProperties.BrickHalfSize = 0.5f * geometryInstance->GetBrickSize();
@@ -376,7 +376,7 @@ void Raytracer::UpdateHitGroupShaderTable() const
 					sizeof(rootArgs)
 					});
 
-				geometryInstance->ClearLocalArgumentsDirty();
+				geometryInstance->ResetLocalArgsDirty();
 			}
 		}
 	}

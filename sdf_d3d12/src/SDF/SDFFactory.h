@@ -25,8 +25,12 @@ public:
 
 	void BakeSDFSynchronous(SDFObject* object, const SDFEditList& editList);
 
+	void BakeSDFAsync(SDFObject* object, const SDFEditList& editList);
+
 private:
 	void InitializePipelines();
+
+	void FactoryAsyncProc();
 
 private:
 	// API objects
@@ -42,6 +46,6 @@ private:
 	CounterResource m_CounterResource;
 	DescriptorAllocation m_CounterResourceUAV;
 
-	// Synchronization
+	// Synchronized Bake
 	UINT64 m_PreviousBakeFence = 0;		// The fence value that will signal when the previous bake has completed
 };
