@@ -22,7 +22,7 @@ public:
 	{
 		// Create buffer
 		const CD3DX12_HEAP_PROPERTIES defaultHeap(D3D12_HEAP_TYPE_DEFAULT);
-		const auto bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize, resourceFlags);
+		const auto bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize, resourceFlags, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
 		THROW_IF_FAIL(device->CreateCommittedResource(
 			&defaultHeap,
 			D3D12_HEAP_FLAG_NONE,

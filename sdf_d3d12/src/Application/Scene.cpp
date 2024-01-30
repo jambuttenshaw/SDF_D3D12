@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Scene.h"
 
+#include <pix3.h>
+
 #include "SDF/SDFEditList.h"
 #include "imgui.h"
 
@@ -29,7 +31,7 @@ Scene::Scene()
 		// Create an SDF object
 		//m_TorusObject = std::make_unique<SDFObject>(0.05f, 65536);
 		//m_SphereObject = std::make_unique<SDFObject>(0.05f, 65536);
-		m_Object = std::make_unique<SDFObject>(0.05f, 65536);
+		m_Object = std::make_unique<SDFObject>(0.125f, 65536);
 
 
 		/*
@@ -192,6 +194,21 @@ Scene::Scene()
 
 void Scene::OnUpdate(float deltaTime)
 {
+	/*
+	static int i = 0;
+	{
+		std::wstring name = L"captures/capture";
+		name += std::to_wstring(i);
+		name += L".wpix";
+		const HRESULT result = PIXGpuCaptureNextFrames(name.c_str(), 1);
+		if (FAILED(result))
+		{
+			LOG_ERROR(L"Capture failed: {}", _com_error(result).ErrorMessage());
+		}
+	}
+	i++;
+	 */
+
 	// Manipulate objects in the scene
 	if (m_RotateInstances)
 	{
@@ -217,32 +234,34 @@ void Scene::OnUpdate(float deltaTime)
 		}
 	}
 
-	static bool firstFrame = true;
-	if (!firstFrame)
+	if (m_Rebuild)
 	{
 		const auto directQueue = g_D3DGraphicsContext->GetDirectCommandQueue();
 		const auto computeQueue = g_D3DGraphicsContext->GetComputeCommandQueue();
 
 		static float t = 0;
-		t += 0.1f * deltaTime;
+		t += deltaTime;
 
 		m_EditList.Reset();
-		m_EditList.AddEdit(SDFEdit::CreateTorus({}, 0.75f, 0.2f));
+
+		float r = 0.5f + 0.5f * sinf(t); // [0,1]
+		r = 0.05f + (r * 0.2f);
+
+		m_EditList.AddEdit(SDFEdit::CreateTorus({}, 0.75f, r));
 
 		Transform transform;
 		transform.SetYaw(t);
 		m_EditList.AddEdit(SDFEdit::CreateOctahedron(transform, 0.3f));
 
-		transform.SetTranslation({ 0.6f * sinf(t), 0.0f, 0.0f });
+		transform.SetTranslation({ 0.7f * sinf(t), 0.0f, 0.0f });
+		m_EditList.AddEdit(SDFEdit::CreateSphere(transform, 0.1f));
+
+		transform.SetTranslation({ 0.0f, 0.0f, 0.7f * cosf(t) });
 		m_EditList.AddEdit(SDFEdit::CreateSphere(transform, 0.1f));
 
 		computeQueue->InsertWaitForQueue(directQueue);
 		m_SDFFactory->BakeSDFSynchronous(m_Object.get(), m_EditList);
 		directQueue->InsertWaitForQueue(computeQueue);
-	}
-	else
-	{
-		firstFrame = false;
 	}
 
 	ImGui::Begin("Scene");
@@ -271,6 +290,7 @@ void Scene::OnUpdate(float deltaTime)
 		ImGui::Separator();
 
 		ImGui::Checkbox("Rotate Instances", &m_RotateInstances);
+		ImGui::Checkbox("Rebuild", &m_Rebuild);
 	}
 	ImGui::End();
 

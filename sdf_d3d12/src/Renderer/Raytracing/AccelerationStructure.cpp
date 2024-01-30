@@ -8,7 +8,6 @@
 
 void AccelerationStructure::AllocateResource()
 {
-	LOG_INFO("Acceleration Structure: Allocating resource ({} Bytes)", m_PrebuildInfo.ResultDataMaxSizeInBytes);
 	const std::wstring name = m_Name + L"BLAS";
 
 	constexpr D3D12_RESOURCE_STATES initialResourceState = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
@@ -24,7 +23,6 @@ void AccelerationStructure::AllocateResource()
 
 void AccelerationStructure::AllocateScratchResource()
 {
-	LOG_INFO("Acceleration Structure: Allocating scratch ({} Bytes)", m_PrebuildInfo.ScratchDataSizeInBytes);
 	const std::wstring name = m_Name + L"BLAS Scratch";
 
 	m_ScratchResource.Allocate(
@@ -95,6 +93,12 @@ void BottomLevelAccelerationStructure::Build()
 		bottomLevelBuildDesc.DestAccelerationStructureData = m_AccelerationStructure.GetAddress();
 	}
 
+
+	if (!m_IsBuilt)
+	{
+		const auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_ScratchResource.GetResource(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+		commandList->ResourceBarrier(1, &barrier);
+	}
 	commandList->BuildRaytracingAccelerationStructure(&bottomLevelBuildDesc, 0, nullptr);
 	PIXEndEvent(commandList);
 
@@ -104,10 +108,10 @@ void BottomLevelAccelerationStructure::Build()
 
 void BottomLevelAccelerationStructure::UpdateGeometry(const BottomLevelAccelerationStructureGeometry& geometry)
 {
-	if (!m_AllowUpdate)
+	UINT64 prevAABBs = 0;
+	for (const auto& desc : m_GeometryDescs)
 	{
-		LOG_WARN("Cannot update geometry for BLAS that does not allow update.");
-		return;
+		prevAABBs += desc.AABBs.AABBCount;
 	}
 
 	// Rebuild geometry descriptions
@@ -121,7 +125,7 @@ void BottomLevelAccelerationStructure::UpdateGeometry(const BottomLevelAccelerat
 	const UINT64 accelerationStructureWidth = m_AccelerationStructure.GetResource()->GetDesc().Width;
 	if (m_PrebuildInfo.ResultDataMaxSizeInBytes > accelerationStructureWidth)
 	{
-		LOG_INFO("BLAS: Acceleration structure resize required. ({} bytes to {} bytes)", accelerationStructureWidth, m_PrebuildInfo.ResultDataMaxSizeInBytes);
+		LOG_TRACE("BLAS: Acceleration structure resize required. ({} bytes to {} bytes)", accelerationStructureWidth, m_PrebuildInfo.ResultDataMaxSizeInBytes);
 
 		// Schedule current acceleration structure resource for release
 		ComPtr<IUnknown> accelerationStructure;
@@ -135,7 +139,7 @@ void BottomLevelAccelerationStructure::UpdateGeometry(const BottomLevelAccelerat
 	const UINT64 scratchWidth = m_ScratchResource.GetResource()->GetDesc().Width;
 	if (m_PrebuildInfo.ScratchDataSizeInBytes > scratchWidth)
 	{
-		LOG_INFO("BLAS: Scratch resize required. ({} bytes to {} bytes)", scratchWidth, m_PrebuildInfo.ScratchDataSizeInBytes);
+		LOG_TRACE("BLAS: Scratch resize required. ({} bytes to {} bytes)", scratchWidth, m_PrebuildInfo.ScratchDataSizeInBytes);
 
 		// Schedule current scratch resource for release
 		ComPtr<IUnknown> scratch;
@@ -146,8 +150,17 @@ void BottomLevelAccelerationStructure::UpdateGeometry(const BottomLevelAccelerat
 		AllocateScratchResource();
 	}
 
-	// Acceleration structure will require a rebuild
+	// Acceleration structure will require at least an update
 	m_IsDirty = true;
+	{
+		UINT64 newAABBs = 0;
+		for (const auto& instance : geometry.GeometryInstances)
+		{
+			newAABBs += instance->GetBrickCount();
+		}
+		// Rebuild if number of AABBs has changed
+		m_IsBuilt &= prevAABBs == newAABBs;
+	}
 }
 
 void BottomLevelAccelerationStructure::BuildGeometryDescs(const BottomLevelAccelerationStructureGeometry& geometry)

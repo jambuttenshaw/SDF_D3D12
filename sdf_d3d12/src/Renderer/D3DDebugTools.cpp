@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "D3DDebugTools.h"
 
+#include <pix3.h>
+
 #include "Core.h"
 #include "D3DGraphicsContext.h"
 

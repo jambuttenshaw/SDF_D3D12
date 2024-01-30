@@ -24,7 +24,12 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
 	ASSERT(!g_D3DGraphicsContext, "Cannot initialize a second graphics context!");
 	g_D3DGraphicsContext = this;
 
-	LOG_INFO("Creating D3D12 Graphics Context")
+	LOG_INFO("Creating D3D12 Graphics Context");
+
+	// Init PIX
+#ifdef ENABLE_PIX_CAPTURE
+	PIXLoadLatestWinPixGpuCapturerLibrary();
+#endif
 
 	// Initialize D3D components
 	CreateAdapter();
@@ -103,10 +108,10 @@ void D3DGraphicsContext::Present()
 		{
 		case DXGI_ERROR_DEVICE_RESET:
 		case DXGI_ERROR_DEVICE_REMOVED:
-			LOG_FATAL("Present Failed: Device Removed!");
+			LOG_FATAL("Present Failed: Device Removed!"); throw;
 			break;
 		default:
-			LOG_FATAL("Present Failed: Unknown Error!");
+			LOG_FATAL("Present Failed: Unknown Error!"); throw;
 			break;
 		}
 	}

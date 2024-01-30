@@ -21,13 +21,13 @@ private:
 
 #ifdef _DEBUG
 
-#define LOG_FATAL(...)	{ ::Log::GetAppLogger()->critical(__VA_ARGS__); throw std::exception(); }
+#define LOG_FATAL(...)	::Log::GetAppLogger()->critical(__VA_ARGS__);
 #define LOG_ERROR(...)	::Log::GetAppLogger()->error(__VA_ARGS__);
 #define LOG_WARN(...)	::Log::GetAppLogger()->warn(__VA_ARGS__);
 #define LOG_INFO(...)	::Log::GetAppLogger()->info(__VA_ARGS__);
 #define LOG_TRACE(...)	::Log::GetAppLogger()->trace(__VA_ARGS__);
 
-#define D3D_LOG_FATAL(...)	{ ::Log::GetD3DLogger()->critical(__VA_ARGS__); throw std::exception(); }
+#define D3D_LOG_FATAL(...)	::Log::GetD3DLogger()->critical(__VA_ARGS__);
 #define D3D_LOG_ERROR(...)	::Log::GetD3DLogger()->error(__VA_ARGS__);
 #define D3D_LOG_WARN(...)	::Log::GetD3DLogger()->warn(__VA_ARGS__);
 #define D3D_LOG_INFO(...)	::Log::GetD3DLogger()->info(__VA_ARGS__);

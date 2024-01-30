@@ -28,7 +28,7 @@ public:
 		DefaultBuffer::Allocate(
 			device, 
 			bufferSize, 
-			initialResourceState, 
+			initialResourceState,
 			readWrite ? D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS : D3D12_RESOURCE_FLAG_NONE, 
 			resourceName);
 	}
