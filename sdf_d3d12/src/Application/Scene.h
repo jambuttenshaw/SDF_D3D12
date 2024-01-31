@@ -66,5 +66,5 @@ private:
 	UINT m_SphereCount = 60;
 	std::vector<SphereData> m_SphereData;
 
-	float m_SphereBlend = 0.2f;
+	float m_SphereBlend = 0.3f;
 };

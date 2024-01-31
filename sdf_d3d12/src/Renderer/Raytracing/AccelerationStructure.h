@@ -34,7 +34,7 @@ public:
 	inline bool IsDirty() const { return m_IsDirty; }
 	inline bool IsBuilt() const { return m_IsBuilt; }
 
-	inline UINT64 GetResourceSize() const { return m_AccelerationStructure.GetResource()->GetDesc().Width; }
+	inline UINT64 GetResourcesSize() const { return m_AccelerationStructure.GetResource()->GetDesc().Width + m_ScratchResource.GetResource()->GetDesc().Width; }
 
 protected:
 	void AllocateResource();

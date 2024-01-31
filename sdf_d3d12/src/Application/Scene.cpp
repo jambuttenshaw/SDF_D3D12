@@ -239,13 +239,6 @@ bool Scene::ImGuiSceneInfo()
 		ImGui::Separator();
 
 		ImGui::Text("Instance Count: %d", s_InstanceCount);
-		ImGui::Separator();
-
-		DisplaySDFObjectDebugInfo("Torus Object", m_TorusObject.get());
-		DisplaySDFObjectDebugInfo("Sphere Object", m_SphereObject.get());
-		DisplaySDFObjectDebugInfo("Sphere Object", m_Object.get());
-
-		DisplayAccelerationStructureDebugInfo();
 
 		ImGui::Separator();
 
@@ -259,6 +252,15 @@ bool Scene::ImGuiSceneInfo()
 		ImGui::Checkbox("Rebuild", &m_Rebuild);
 		ImGui::Separator();
 		ImGui::SliderFloat("Blend", &m_SphereBlend, 0.0f, 0.5f);
+
+		ImGui::Separator();
+
+		DisplaySDFObjectDebugInfo("Torus Object", m_TorusObject.get());
+		DisplaySDFObjectDebugInfo("Sphere Object", m_SphereObject.get());
+		DisplaySDFObjectDebugInfo("Sphere Object", m_Object.get());
+
+		DisplayAccelerationStructureDebugInfo();
+
 
 		ImGui::End();
 	}
@@ -312,19 +314,14 @@ void Scene::DisplaySDFObjectDebugInfo(const char* name, const SDFObject* object)
 
 	ImGui::Text("Brick Count: %d", object->GetBrickCount());
 
-	const float aabbCull = 100.0f * (1.0f - static_cast<float>(object->GetBrickCount()) / static_cast<float>(object->GetBrickBufferCapacity()));
-	ImGui::Text("Brick Cull: %.1f", aabbCull);
-
 	const auto brickPoolSize = object->GetBrickPoolDimensions();
 	ImGui::Text("Brick Pool Size (bricks): %d, %d, %d", brickPoolSize.x, brickPoolSize.y, brickPoolSize.z);
-	ImGui::Text("Brick Pool Capacity: %d", object->GetBrickPoolCapacity());
 	ImGui::Text("Brick Pool Size (KB): %d", object->GetBrickPoolSizeBytes() / 1024);
 
 	const float poolUsage = 100.0f * (static_cast<float>(object->GetBrickCount()) / static_cast<float>(object->GetBrickPoolCapacity()));
 	ImGui::Text("Brick Pool Usage: %.1f", poolUsage);
 
-	ImGui::Text("AABB Buffer Size (KB): %d", object->GetAABBBufferSizeBytes() / 1024);
-	ImGui::Text("Brick Buffer Size (KB): %d", object->GetBrickBufferSizeBytes() / 1024);
+	ImGui::Text("Total Size (KB): %d", object->GetTotalMemoryUsageBytes() / 1024);
 
 	ImGui::Separator();
 }
@@ -337,21 +334,14 @@ void Scene::DisplayAccelerationStructureDebugInfo() const
 
 	ImGui::Separator();
 	{
-		ImGui::Text("Top Level");
-
 		const auto& tlas = m_AccelerationStructure->GetTopLevelAccelerationStructure();
-		ImGui::Text("Size: %d KB", tlas.GetResourceSize() / 1024);
+		ImGui::Text("Top Level Size: %d KB", tlas.GetResourcesSize() / 1024);
 	}
-
 
 	for (const auto& blasGeometry : m_SceneGeometry)
 	{
-		ImGui::Separator();
-
 		auto name = wstring_to_utf8(blasGeometry.Name);
-		ImGui::Text("Bottom Level - %s", name.c_str());
-
 		const auto& blas = m_AccelerationStructure->GetBottomLevelAccelerationStructure(blasGeometry.Name);
-		ImGui::Text("Size: %d KB", blas.GetResourceSize() / 1024);
+		ImGui::Text("Bottom Level (%s) Size: %d KB", name.c_str(), blas.GetResourcesSize() / 1024);
 	}
 }

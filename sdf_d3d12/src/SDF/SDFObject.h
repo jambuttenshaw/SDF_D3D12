@@ -15,8 +15,9 @@ class SDFObject
 public:
 	enum ResourceGroup
 	{
-		RESOURCES_READ,
-		RESOURCES_WRITE
+		RESOURCES_READ = 0,
+		RESOURCES_WRITE,
+		RESOURCES_COUNT
 	};
 
 public:
@@ -69,6 +70,8 @@ public:
 	UINT64 GetBrickPoolSizeBytes(ResourceGroup res = RESOURCES_READ) const;
 	UINT64 GetAABBBufferSizeBytes(ResourceGroup res = RESOURCES_READ) const;
 	UINT64 GetBrickBufferSizeBytes(ResourceGroup res = RESOURCES_READ) const;
+
+	UINT64 GetTotalMemoryUsageBytes() const;
 
 
 	// Flips which set are being rendered from, and which are being written to

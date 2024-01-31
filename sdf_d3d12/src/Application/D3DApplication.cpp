@@ -50,12 +50,15 @@ void D3DApplication::OnUpdate()
 		{
 			ImGui::MenuItem("Application Info", nullptr, &m_ShowApplicationInfo);
 			ImGui::MenuItem("Scene Info", nullptr, &m_ShowSceneInfo);
+			ImGui::Separator();
+			ImGui::MenuItem("ImGui Demo", nullptr, &m_ShowImGuiDemo);
 
 			ImGui::EndMenu();
 		}
 		ImGui::EndMainMenuBar();
 	}
-
+	if (m_ShowImGuiDemo)
+		ImGui::ShowDemoWindow(&m_ShowImGuiDemo);
 	if (m_ShowApplicationInfo)
 		m_ShowApplicationInfo = ImGuiApplicationInfo();
 	if (m_ShowSceneInfo)
@@ -173,12 +176,6 @@ bool D3DApplication::ImGuiApplicationInfo()
 	bool open = true;
 	if (ImGui::Begin("Application", &open))
 	{
-		ImGui::Separator();
-
-		ImGui::Checkbox("Show Demo", &m_ShowDemo);
-		if (m_ShowDemo)
-			ImGui::ShowDemoWindow(&m_ShowDemo);
-
 		ImGui::Separator();
 		{
 			ImGui::LabelText("FPS", "%.1f", m_Timer.GetFPS());

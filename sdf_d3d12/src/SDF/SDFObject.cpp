@@ -199,3 +199,18 @@ UINT64 SDFObject::GetBrickBufferSizeBytes(ResourceGroup res) const
 	auto& brickBuffer = GetResources(res).BrickBuffer;
 	return brickBuffer.GetElementCount() * brickBuffer.GetElementStride();
 }
+
+
+UINT64 SDFObject::GetTotalMemoryUsageBytes() const
+{
+	UINT64 totalSize = 0;
+	for (UINT i = 0; i < RESOURCES_COUNT; i++)
+	{
+		const auto res = static_cast<ResourceGroup>(i);
+		totalSize += GetBrickPoolSizeBytes(res);
+		totalSize += GetAABBBufferSizeBytes(res);
+		totalSize += GetBrickBufferSizeBytes(res);
+	}
+
+	return totalSize;
+}
