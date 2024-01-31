@@ -3,7 +3,7 @@
 
 #include "Renderer/Raytracing/AccelerationStructure.h"
 
-#include "SDF/SDFFactory.h"
+#include "SDF/Factory/SDFFactorySync.h"
 #include "SDF/SDFObject.h"
 
 
@@ -37,7 +37,7 @@ private:
 	std::unique_ptr<RaytracingAccelerationStructureManager> m_AccelerationStructure;
 
 	// SDF Objects
-	std::unique_ptr<SDFFactory> m_SDFFactory;
+	std::unique_ptr<SDFFactorySync> m_SDFFactory;
 
 	std::unique_ptr<SDFObject> m_TorusObject;
 	std::unique_ptr<SDFObject> m_SphereObject;

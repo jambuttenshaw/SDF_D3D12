@@ -25,7 +25,7 @@ Scene::Scene()
 	// Build SDF Object
 	{
 		// Create SDF factory 
-		m_SDFFactory = std::make_unique<SDFFactory>();
+		m_SDFFactory = std::make_unique<SDFFactorySync>();
 
 		// Create SDF objects
 		m_Object = std::make_unique<SDFObject>(0.0625f, 65536);

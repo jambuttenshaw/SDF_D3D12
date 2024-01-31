@@ -11,28 +11,51 @@ using Microsoft::WRL::ComPtr;
 class SDFObject;
 class SDFEditList;
 
+
+// Root signatures
+namespace AABBBuilderComputeRootSignature
+{
+	enum Value
+	{
+		BuildParameterSlot = 0,
+		EditListSlot,
+		CounterResourceSlot,
+		AABBBufferSlot,
+		BrickBufferSlot,
+		Count
+	};
+}
+
+namespace BrickBuildComputeRootSignature
+{
+	enum Value
+	{
+		BuildParameterSlot = 0,
+		EditListSlot,
+		BrickBufferSlot,
+		BrickPoolSlot,
+		Count
+	};
+}
+
+
 /**
  * An object that will dispatch the CS to render some primitive data into a volume texture
  */
 class SDFFactory
 {
-public:
+protected:
 	SDFFactory();
-	~SDFFactory();
+public:
+	virtual ~SDFFactory();
 
 	DISALLOW_COPY(SDFFactory)
 	DEFAULT_MOVE(SDFFactory)
 
-	void BakeSDFSynchronous(SDFObject* object, const SDFEditList& editList, bool waitUntilComplete);
-
-	void BakeSDFAsync(SDFObject* object, const SDFEditList& editList);
-
 private:
 	void InitializePipelines();
 
-	void FactoryAsyncProc();
-
-private:
+protected:
 	// API objects
 
 	// The SDF factory builds its own command list
@@ -45,7 +68,4 @@ private:
 
 	CounterResource m_CounterResource;
 	DescriptorAllocation m_CounterResourceUAV;
-
-	// Synchronized Bake
-	UINT64 m_PreviousBakeFence = 0;		// The fence value that will signal when the previous bake has completed
 };
