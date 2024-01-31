@@ -190,6 +190,10 @@ bool D3DApplication::ImGuiApplicationInfo()
 		ImGui::Separator();
 		{
 			ImGui::LabelText("FPS", "%.1f", m_Timer.GetFPS());
+
+			bool vsync = m_GraphicsContext->GetVSyncEnabled();
+			if (ImGui::Checkbox("VSync", &vsync))
+				m_GraphicsContext->SetVSyncEnabled(vsync);
 		}
 		ImGui::Separator();
 		{

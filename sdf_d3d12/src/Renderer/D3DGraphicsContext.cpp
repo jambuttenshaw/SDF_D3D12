@@ -101,8 +101,10 @@ D3DGraphicsContext::~D3DGraphicsContext()
 
 void D3DGraphicsContext::Present()
 {
-	const auto flags = m_WindowedMode ? DXGI_PRESENT_ALLOW_TEARING : 0;
-	const HRESULT result = m_SwapChain->Present(0, flags);
+	const auto flags = m_WindowedMode && !m_VSyncEnabled ? DXGI_PRESENT_ALLOW_TEARING : 0;
+	const auto interval = m_VSyncEnabled ? 1 : 0;
+
+	const HRESULT result = m_SwapChain->Present(interval, flags);
 	if (FAILED(result))
 	{
 		switch(result)

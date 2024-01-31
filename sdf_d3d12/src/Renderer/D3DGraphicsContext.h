@@ -54,6 +54,10 @@ public:
 	// Wait for all queues to become idle
 	void WaitForGPUIdle() const;
 
+	// Vsync
+	inline bool GetVSyncEnabled() const { return m_VSyncEnabled; }
+	inline void SetVSyncEnabled(bool enabled) { m_VSyncEnabled = enabled; }
+
 public:
 	// Getters
 
@@ -123,6 +127,7 @@ private:
 
 	bool m_WindowedMode = true;
 	bool m_TearingSupport = false;
+	bool m_VSyncEnabled = true;
 
 	// Projection properties
 	float m_FOV = 0.25f * XM_PI;

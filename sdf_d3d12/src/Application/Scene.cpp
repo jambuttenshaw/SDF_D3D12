@@ -28,9 +28,9 @@ Scene::Scene()
 		m_SDFFactory = std::make_unique<SDFFactory>();
 
 		// Create SDF objects
+		m_Object = std::make_unique<SDFObject>(0.0625f, 65536);
 		m_TorusObject = std::make_unique<SDFObject>(0.0625f, 65536);
 		m_SphereObject = std::make_unique<SDFObject>(0.0625f, 65536);
-		m_Object = std::make_unique<SDFObject>(0.0625f, 65536);
 
 
 		/*
@@ -116,17 +116,17 @@ Scene::Scene()
 
 	{
 		// Construct scene geometry
+		m_SceneGeometry.push_back({ L"Dynamic" });
 		m_SceneGeometry.push_back({ L"Torus" });
 		m_SceneGeometry.push_back({ L"Spheres" });
-		m_SceneGeometry.push_back({ L"Dynamic" });
 
-		auto& torusGeometry = m_SceneGeometry.at(0);
-		auto& spheresGeometry = m_SceneGeometry.at(1);
-		auto& dynamicGeometry = m_SceneGeometry.at(2);
+		auto& dynamicGeometry = m_SceneGeometry.at(0);
+		auto& torusGeometry = m_SceneGeometry.at(1);
+		auto& spheresGeometry = m_SceneGeometry.at(2);
 
+		dynamicGeometry.GeometryInstances.push_back(m_Object.get());
 		torusGeometry.GeometryInstances.push_back(m_TorusObject.get());
 		spheresGeometry.GeometryInstances.push_back(m_SphereObject.get());
-		dynamicGeometry.GeometryInstances.push_back(m_Object.get());
 	}
 
 	{
