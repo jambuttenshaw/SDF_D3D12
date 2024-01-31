@@ -56,6 +56,12 @@ private:
 	void InitializePipelines();
 
 protected:
+
+	// Builds and submits the SDF bake operations to the GPU. This can block the CPU while GPU operations are happening,
+	// but it will not make the GPU wait on other GPU operations from other queues
+	void PerformSDFBake_CPUBlocking(SDFObject* object, const SDFEditList& editList);
+
+protected:
 	// API objects
 
 	// The SDF factory builds its own command list
@@ -68,4 +74,7 @@ protected:
 
 	CounterResource m_CounterResource;
 	DescriptorAllocation m_CounterResourceUAV;
+
+	// The fence value that will signal when the previous bake has completed
+	UINT64 m_PreviousBakeFence = 0;		
 };

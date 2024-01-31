@@ -33,5 +33,7 @@
 #include <map>
 #include <set>
 #include <array>
+#include <queue>
+
 #include <wrl.h>
 #include <shellapi.h>

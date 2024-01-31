@@ -5,8 +5,7 @@
 #include "Renderer/Hlsl/ComputeHlslCompat.h"
 
 SDFObject::SDFObject(float brickSize, UINT brickCapacity, D3D12_RAYTRACING_GEOMETRY_FLAGS geometryFlags)
-	: m_Resources(2)
-	, m_GeometryFlags(geometryFlags)
+	: m_GeometryFlags(geometryFlags)
 {
 	ASSERT(brickSize > 0.0f, "Invalid brick size!");
 	ASSERT(brickCapacity > 0, "Invalid brick capacity!");

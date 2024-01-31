@@ -4,6 +4,7 @@
 #include "Renderer/Raytracing/AccelerationStructure.h"
 
 #include "SDF/Factory/SDFFactorySync.h"
+#include "SDF/Factory/SDFFactoryAsync.h"
 #include "SDF/SDFObject.h"
 
 
@@ -25,6 +26,7 @@ public:
 private:
 	void BuildEditList(float deltaTime);
 
+	void CheckSDFGeometryUpdates(SDFObject* object);
 	void UpdateAccelerationStructure();
 
 	void DisplaySDFObjectDebugInfo(const char* name, const SDFObject* object) const;
@@ -38,6 +40,7 @@ private:
 
 	// SDF Objects
 	std::unique_ptr<SDFFactorySync> m_SDFFactory;
+	std::unique_ptr<SDFFactoryAsync> m_SDFFactoryAsync;
 
 	std::unique_ptr<SDFObject> m_TorusObject;
 	std::unique_ptr<SDFObject> m_SphereObject;

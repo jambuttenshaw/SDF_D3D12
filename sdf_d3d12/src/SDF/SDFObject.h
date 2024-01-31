@@ -19,6 +19,13 @@ public:
 		RESOURCES_WRITE,
 		RESOURCES_COUNT
 	};
+	enum ResourceState
+	{
+		READY_COMPUTE,
+		COMPUTING,
+		COMPUTED,
+		RENDERING
+	};
 
 public:
 	SDFObject(float brickSize, UINT brickCapacity, D3D12_RAYTRACING_GEOMETRY_FLAGS geometryFlags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE);
@@ -74,21 +81,39 @@ public:
 	UINT64 GetTotalMemoryUsageBytes() const;
 
 
+	// ASync construction
+
 	// Flips which set are being rendered from, and which are being written to
 	void FlipResources()
 	{
-		m_ReadResources = 1 - m_ReadResources;
+		m_ReadIndex = 1 - m_ReadIndex;
 		m_IsLocalArgsDirty = true;
 	}
+	inline ResourceState GetResourcesState(ResourceGroup res)
+	{
+		return m_ResourcesStates.at(res == RESOURCES_READ ? ReadIndex() : WriteIndex());
+	}
+	inline void SetResourceState(ResourceGroup res, ResourceState state)
+	{
+		m_ResourcesStates.at(res == RESOURCES_READ ? ReadIndex() : WriteIndex()) = state;
+	}
+	inline bool CheckResourceState(ResourceGroup res, ResourceState state)
+	{
+		const bool match = GetResourcesState(res) == state;
+		ASSERT(match, "Unexpected resource state!");
+		return match;
+	}
 
+	inline size_t ReadIndex() const { return m_ReadIndex; }
+	inline size_t WriteIndex() const { return 1 - m_ReadIndex; }
 private:
 	Resources& GetResources(ResourceGroup res)
 	{
-		return m_Resources.at(res == RESOURCES_READ ? m_ReadResources : 1 - m_ReadResources);
+		return m_Resources.at(res == RESOURCES_READ ? ReadIndex() : WriteIndex());
 	}
 	const Resources& GetResources(ResourceGroup res) const
 	{
-		return m_Resources.at(res == RESOURCES_READ ? m_ReadResources : 1 - m_ReadResources);
+		return m_Resources.at(res == RESOURCES_READ ? ReadIndex() : WriteIndex());
 	}
 
 private:
@@ -110,10 +135,11 @@ private:
 		UINT BrickCount = 0; // The number of bricks that actually make up this object
 		XMUINT3 BrickPoolDimensions = { 0, 0, 0 }; // The dimensions of the brick pool in number of bricks
 	};
-	std::vector<Resources> m_Resources;
+	std::array<Resources, 2> m_Resources;
 	// Which index is to be read from
-	// implies that 1 - m_ReadResources is the index to write to
-	size_t m_ReadResources = 0;
+	// implies that 1 - m_ReadIndex is the index to write to
+	std::atomic<size_t> m_ReadIndex = 0;
+	std::array<std::atomic<ResourceState>, 2> m_ResourcesStates = { READY_COMPUTE, READY_COMPUTE };
 
 	float m_BrickSize = 0.0f;
 	UINT m_BrickCapacity = 0; // The maximum possible number of bricks

@@ -1,8 +1,6 @@
 #include "pch.h"
 #include "Scene.h"
 
-#include <pix3.h>
-
 #include "SDF/SDFEditList.h"
 #include "imgui.h"
 
@@ -26,6 +24,7 @@ Scene::Scene()
 	{
 		// Create SDF factory 
 		m_SDFFactory = std::make_unique<SDFFactorySync>();
+		m_SDFFactoryAsync = std::make_unique<SDFFactoryAsync>();
 
 		// Create SDF objects
 		m_Object = std::make_unique<SDFObject>(0.0625f, 65536);
@@ -67,7 +66,7 @@ Scene::Scene()
 
 			torusEditList.AddEdit(SDFEdit::CreateOctahedron({}, 0.7f));
 			
-			m_SDFFactory->BakeSDFSynchronous(m_TorusObject.get(), torusEditList, true);
+			//m_SDFFactory->BakeSDFSynchronous(m_TorusObject.get(), torusEditList, true);
 		}
 		{
 			// Create sphere object by adding and then subtracting a bunch of spheres
@@ -91,7 +90,7 @@ Scene::Scene()
 			}
 
 			// Bake the primitives into the SDF object
-			m_SDFFactory->BakeSDFSynchronous(m_SphereObject.get(), sphereEditList, true);
+			//m_SDFFactory->BakeSDFSynchronous(m_SphereObject.get(), sphereEditList, true);
 		}
 		{
 			for (UINT i = 0; i < m_SphereCount; i++)
@@ -117,16 +116,16 @@ Scene::Scene()
 	{
 		// Construct scene geometry
 		m_SceneGeometry.push_back({ L"Dynamic" });
-		m_SceneGeometry.push_back({ L"Torus" });
-		m_SceneGeometry.push_back({ L"Spheres" });
+		//m_SceneGeometry.push_back({ L"Torus" });
+		//m_SceneGeometry.push_back({ L"Spheres" });
 
 		auto& dynamicGeometry = m_SceneGeometry.at(0);
-		auto& torusGeometry = m_SceneGeometry.at(1);
-		auto& spheresGeometry = m_SceneGeometry.at(2);
+		//auto& torusGeometry = m_SceneGeometry.at(1);
+		//auto& spheresGeometry = m_SceneGeometry.at(2);
 
 		dynamicGeometry.GeometryInstances.push_back(m_Object.get());
-		torusGeometry.GeometryInstances.push_back(m_TorusObject.get());
-		spheresGeometry.GeometryInstances.push_back(m_SphereObject.get());
+		//torusGeometry.GeometryInstances.push_back(m_TorusObject.get());
+		//spheresGeometry.GeometryInstances.push_back(m_SphereObject.get());
 	}
 
 	{
@@ -223,6 +222,11 @@ void Scene::OnUpdate(float deltaTime)
 
 void Scene::OnRender()
 {
+	// Check if the geometry should have its resources flipped
+	//CheckSDFGeometryUpdates(m_TorusObject.get());
+	//CheckSDFGeometryUpdates(m_SphereObject.get());
+	CheckSDFGeometryUpdates(m_Object.get());
+
 	UpdateAccelerationStructure();
 }
 
@@ -293,6 +297,25 @@ void Scene::BuildEditList(float deltaTime)
 
 	m_SDFFactory->BakeSDFSynchronous(m_Object.get(), editList, true);
 }
+
+
+void Scene::CheckSDFGeometryUpdates(SDFObject* object)
+{
+	// Check if the new object resources have been computed
+	if (object->GetResourcesState(SDFObject::RESOURCES_WRITE) == SDFObject::COMPUTED)
+	{
+		// if WRITE resources have been COMPUTED
+
+		// set READ resources to SWITCHING
+		ASSERT(object->GetResourcesState(SDFObject::RESOURCES_WRITE) == SDFObject::RENDERING || object->GetResourcesState(SDFObject::RESOURCES_WRITE) == SDFObject::COMPUTED, "Invalid flip!");
+		object->SetResourceState(SDFObject::RESOURCES_READ, SDFObject::READY_COMPUTE);
+		// flip READ and WRITE resources
+		object->FlipResources();
+	}
+
+	object->SetResourceState(SDFObject::RESOURCES_READ, SDFObject::RENDERING);
+}
+
 
 
 void Scene::UpdateAccelerationStructure()
