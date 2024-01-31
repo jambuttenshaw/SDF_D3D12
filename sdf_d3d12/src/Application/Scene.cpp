@@ -99,9 +99,9 @@ Scene::Scene()
 				m_SphereData.push_back({});
 				SphereData& sphereData = m_SphereData.at(i);
 				sphereData.scale = {
-					Random::Float(-0.75f, 0.75f),
-					Random::Float(-0.75f, 0.75f),
-					Random::Float(-0.75f, 0.75f)
+					Random::Float(-0.7f, 0.7f),
+					Random::Float(-0.7f, 0.7f),
+					Random::Float(-0.7f, 0.7f)
 				};
 				sphereData.speed = {
 					Random::Float(0.5f, 2.0f),
@@ -217,7 +217,20 @@ void Scene::OnUpdate(float deltaTime)
 		BuildEditList(deltaTime);
 	}
 
-	ImGui::Begin("Scene");
+	
+
+}
+
+void Scene::OnRender()
+{
+	UpdateAccelerationStructure();
+}
+
+
+bool Scene::ImGuiSceneInfo()
+{
+	bool open = true;
+	if (ImGui::Begin("Scene", &open))
 	{
 		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
 		ImGui::Text("Scene");
@@ -244,15 +257,15 @@ void Scene::OnUpdate(float deltaTime)
 
 		ImGui::Checkbox("Rotate Instances", &m_RotateInstances);
 		ImGui::Checkbox("Rebuild", &m_Rebuild);
+		ImGui::Separator();
+		ImGui::SliderFloat("Blend", &m_SphereBlend, 0.0f, 0.5f);
+
+		ImGui::End();
 	}
-	ImGui::End();
 
+	return open;
 }
 
-void Scene::OnRender()
-{
-	UpdateAccelerationStructure();
-}
 
 void Scene::BuildEditList(float deltaTime)
 {
@@ -262,7 +275,8 @@ void Scene::BuildEditList(float deltaTime)
 	SDFEditList editList(m_SphereCount + 2);
 
 	editList.Reset();
-	editList.AddEdit(SDFEdit::CreateSphere({}, 0.1f));
+	editList.AddEdit(SDFEdit::CreateBoxFrame({}, { 1.0f, 1.0f, 1.0f }, 0.05f));
+
 	for (UINT i = 0; i < m_SphereCount; i++)
 	{
 		Transform transform;
@@ -272,10 +286,8 @@ void Scene::BuildEditList(float deltaTime)
 				m_SphereData.at(i).scale.y * cosf(m_SphereData.at(i).speed.y * t),
 				m_SphereData.at(i).scale.z * cosf(m_SphereData.at(i).speed.z * t)
 			});
-		editList.AddEdit(SDFEdit::CreateSphere(transform, 0.075f, SDFOperation::SmoothUnion, 0.4f));
+		editList.AddEdit(SDFEdit::CreateSphere(transform, 0.05f, SDFOperation::SmoothUnion, m_SphereBlend));
 	}
-
-	editList.AddEdit(SDFEdit::CreateBoxFrame({}, { 1.0f, 1.0f, 1.0f }, 0.05f));
 
 	m_SDFFactory->BakeSDFSynchronous(m_Object.get(), editList, true);
 }

@@ -19,6 +19,9 @@ public:
 	inline const std::vector<BottomLevelAccelerationStructureGeometry>& GetAllGeometries() const { return m_SceneGeometry; }
 	inline RaytracingAccelerationStructureManager* GetRaytracingAccelerationStructure() const { return m_AccelerationStructure.get(); }
 
+	// Draw ImGui Windows
+	bool ImGuiSceneInfo();
+
 private:
 	void BuildEditList(float deltaTime);
 
@@ -60,6 +63,8 @@ private:
 		XMFLOAT3 scale;
 		XMFLOAT3 speed;
 	};
-	const UINT m_SphereCount = 30;
+	UINT m_SphereCount = 60;
 	std::vector<SphereData> m_SphereData;
+
+	float m_SphereBlend = 0.2f;
 };

@@ -43,68 +43,23 @@ void D3DApplication::OnUpdate()
 	m_Scene->OnUpdate(m_Timer.GetDeltaTime());
 
 	// Build properties GUI
-	ImGui::Begin("Application");
-	ImGui::Separator();
+
+	if (ImGui::BeginMainMenuBar())
 	{
-		ImGui::LabelText("FPS", "%.1f", m_Timer.GetFPS());
-	}
-	ImGui::Separator();
-	{
-		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
-		ImGui::Text("Camera");
-		ImGui::PopStyleColor();
-
-		ImGui::Separator();
-
-		auto camPos = m_Camera.GetPosition();
-		auto camYaw = m_Camera.GetYaw();
-		auto camPitch = m_Camera.GetPitch();
-
-		if (ImGui::DragFloat3("Position:", &camPos.x, 0.01f))
-			m_Camera.SetPosition(camPos);
-		if (ImGui::SliderAngle("Yaw:", &camYaw, -180.0f, 180.0f))
-			m_Camera.SetYaw(camYaw);
-		if (ImGui::SliderAngle("Pitch:", &camPitch, -89.0f, 89.0f))
-			m_Camera.SetPitch(camPitch);
-
-		ImGui::Separator();
-
-		m_CameraController.Gui();
-	}
-	ImGui::Separator();
-
-	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
-	ImGui::Text("Renderer");
-	ImGui::PopStyleColor();
-
-	ImGui::Separator();
-	{
-		auto RenderFlagOption = [&](const char* name, UINT value)
-			{
-				bool flag = m_RenderFlags & value;
-				if (ImGui::Checkbox(name, &flag))
-				{
-					if (flag)
-						m_RenderFlags |= value;
-					else
-						m_RenderFlags &= ~value;
-				}};
-		ImGui::Text("Display Options");
-		RenderFlagOption("Bounding Box", RENDER_FLAG_DISPLAY_BOUNDING_BOX);
-		if (m_RenderFlags & RENDER_FLAG_DISPLAY_BOUNDING_BOX)
+		if (ImGui::BeginMenu("Window"))
 		{
-			RenderFlagOption("Brick Index", RENDER_FLAG_DISPLAY_BRICK_INDEX);
-			RenderFlagOption("Pool UVW", RENDER_FLAG_DISPLAY_POOL_UVW);
+			ImGui::MenuItem("Application Info", nullptr, &m_ShowApplicationInfo);
+			ImGui::MenuItem("Scene Info", nullptr, &m_ShowSceneInfo);
+
+			ImGui::EndMenu();
 		}
-		else
-		{
-			RenderFlagOption("Heatmap", RENDER_FLAG_DISPLAY_HEATMAP);
-			RenderFlagOption("Normals", RENDER_FLAG_DISPLAY_NORMALS);
-			RenderFlagOption("Iteration Guard Terminations", RENDER_FLAG_DISPLAY_ITERATION_GUARD_TERMINATIONS);
-		}
+		ImGui::EndMainMenuBar();
 	}
 
-	ImGui::End();
+	if (m_ShowApplicationInfo)
+		m_ShowApplicationInfo = ImGuiApplicationInfo();
+	if (m_ShowSceneInfo)
+		m_ShowSceneInfo = m_Scene->ImGuiSceneInfo();
 
 	EndUpdate();
 }
@@ -211,6 +166,84 @@ void D3DApplication::EndUpdate()
 	ImGui::Render();
 	m_InputManager->EndFrame();
 }
+
+
+bool D3DApplication::ImGuiApplicationInfo()
+{
+	bool open = true;
+	if (ImGui::Begin("Application", &open))
+	{
+		ImGui::Separator();
+
+		ImGui::Checkbox("Show Demo", &m_ShowDemo);
+		if (m_ShowDemo)
+			ImGui::ShowDemoWindow(&m_ShowDemo);
+
+		ImGui::Separator();
+		{
+			ImGui::LabelText("FPS", "%.1f", m_Timer.GetFPS());
+		}
+		ImGui::Separator();
+		{
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
+			ImGui::Text("Camera");
+			ImGui::PopStyleColor();
+
+			ImGui::Separator();
+
+			auto camPos = m_Camera.GetPosition();
+			auto camYaw = m_Camera.GetYaw();
+			auto camPitch = m_Camera.GetPitch();
+
+			if (ImGui::DragFloat3("Position:", &camPos.x, 0.01f))
+				m_Camera.SetPosition(camPos);
+			if (ImGui::SliderAngle("Yaw:", &camYaw, -180.0f, 180.0f))
+				m_Camera.SetYaw(camYaw);
+			if (ImGui::SliderAngle("Pitch:", &camPitch, -89.0f, 89.0f))
+				m_Camera.SetPitch(camPitch);
+
+			ImGui::Separator();
+
+			m_CameraController.Gui();
+		}
+		ImGui::Separator();
+
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
+		ImGui::Text("Renderer");
+		ImGui::PopStyleColor();
+
+		ImGui::Separator();
+		{
+			auto RenderFlagOption = [&](const char* name, UINT value)
+				{
+					bool flag = m_RenderFlags & value;
+					if (ImGui::Checkbox(name, &flag))
+					{
+						if (flag)
+							m_RenderFlags |= value;
+						else
+							m_RenderFlags &= ~value;
+					}};
+			ImGui::Text("Display Options");
+			RenderFlagOption("Bounding Box", RENDER_FLAG_DISPLAY_BOUNDING_BOX);
+			if (m_RenderFlags & RENDER_FLAG_DISPLAY_BOUNDING_BOX)
+			{
+				RenderFlagOption("Brick Index", RENDER_FLAG_DISPLAY_BRICK_INDEX);
+				RenderFlagOption("Pool UVW", RENDER_FLAG_DISPLAY_POOL_UVW);
+			}
+			else
+			{
+				RenderFlagOption("Heatmap", RENDER_FLAG_DISPLAY_HEATMAP);
+				RenderFlagOption("Normals", RENDER_FLAG_DISPLAY_NORMALS);
+				RenderFlagOption("Iteration Guard Terminations", RENDER_FLAG_DISPLAY_ITERATION_GUARD_TERMINATIONS);
+			}
+		}
+
+		ImGui::End();
+	}
+	return open;
+}
+
 
 
 void D3DApplication::OnResized()

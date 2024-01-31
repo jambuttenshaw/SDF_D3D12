@@ -36,6 +36,9 @@ private:
 	void BeginUpdate();
 	void EndUpdate();
 
+	// ImGui Windows
+	bool ImGuiApplicationInfo();
+
 private:
 	std::unique_ptr<D3DGraphicsContext> m_GraphicsContext;
 
@@ -48,4 +51,9 @@ private:
 
 	// Flags to pass to the renderer
 	UINT m_RenderFlags = RENDER_FLAG_DISPLAY_NORMALS;
+
+	// GUI
+	bool m_ShowDemo = false;
+	bool m_ShowApplicationInfo = true;
+	bool m_ShowSceneInfo = true;
 };
