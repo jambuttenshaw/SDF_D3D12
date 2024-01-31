@@ -152,6 +152,11 @@ void D3DApplication::BeginUpdate()
 	const float deltaTime = m_Timer.Tick();
 	m_InputManager->Update(deltaTime);
 
+	if (m_InputManager->IsKeyPressed(KEY_SPACE))
+	{
+		Win32Application::ToggleFullscreenWindow();
+	}
+
 	// Update camera
 	m_CameraController.Update(deltaTime);
 

@@ -3,7 +3,7 @@
 #include <comdef.h>
 
 
-struct DXException
+struct DXException : public std::exception
 {
 	HRESULT ErrorCode = S_OK;
 

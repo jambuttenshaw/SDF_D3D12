@@ -117,6 +117,9 @@ private:
 	UINT m_ClientWidth;
 	UINT m_ClientHeight;
 
+	bool m_WindowedMode = true;
+	bool m_AllowTearing = true;
+
 	// Projection properties
 	float m_FOV = 0.25f * XM_PI;
 	float m_NearPlane = 0.1f;

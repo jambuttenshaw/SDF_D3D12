@@ -101,7 +101,8 @@ D3DGraphicsContext::~D3DGraphicsContext()
 
 void D3DGraphicsContext::Present()
 {
-	const HRESULT result = m_SwapChain->Present(1, 0);
+	const auto flags = m_WindowedMode ? DXGI_PRESENT_ALLOW_TEARING : 0;
+	const HRESULT result = m_SwapChain->Present(0, flags);
 	if (FAILED(result))
 	{
 		switch(result)
@@ -260,10 +261,14 @@ void D3DGraphicsContext::Resize(UINT width, UINT height)
 	// Process all deferred frees
 	ProcessAllDeferrals();
 
-	THROW_IF_FAIL(m_SwapChain->ResizeBuffers(s_FrameCount, m_ClientWidth, m_ClientHeight, m_BackBufferFormat, 0));
+	const auto flags = m_AllowTearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
+	THROW_IF_FAIL(m_SwapChain->ResizeBuffers(s_FrameCount, m_ClientWidth, m_ClientHeight, m_BackBufferFormat, flags));
+
+	BOOL fullscreenState;
+	THROW_IF_FAIL(m_SwapChain->GetFullscreenState(&fullscreenState, nullptr));
+	m_WindowedMode = !fullscreenState;
 
 	m_FrameIndex = 0;
-
 	CreateRTVs();
 
 	// Send required work to re-init buffers
@@ -397,6 +402,7 @@ void D3DGraphicsContext::CreateSwapChain()
 	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 	swapChainDesc.SampleDesc.Count = 1;
+	swapChainDesc.Flags = m_AllowTearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
 
 	ComPtr<IDXGISwapChain1> swapChain;
 	THROW_IF_FAIL(m_Factory->CreateSwapChainForHwnd(

@@ -12,14 +12,18 @@
 #include "pch.h"
 #include "Win32Application.h"
 
+#include "Core.h"
 #include "imgui.h"
 #include "Application/BaseApplication.h"
+
+HWND Win32Application::m_hwnd = nullptr;
+bool Win32Application::m_fullscreenMode = false;
+RECT Win32Application::m_windowRect;
+using Microsoft::WRL::ComPtr;
 
 // Forward declare message handler from imgui_impl_win32.cpp
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-
-HWND Win32Application::m_hwnd = nullptr;
 
 int Win32Application::Run(BaseApplication* pApp)
 {
@@ -48,7 +52,7 @@ int Win32Application::Run(BaseApplication* pApp)
     m_hwnd = CreateWindow(
         windowClass.lpszClassName,
         pApp->GetTitle(),
-        WS_OVERLAPPEDWINDOW,
+        m_windowStyle,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
         windowRect.right - windowRect.left,
@@ -87,6 +91,84 @@ void Win32Application::MoveCursorToPos(INT x, INT y)
     POINT p{ x, y };
     ClientToScreen(m_hwnd, &p);
     SetCursorPos(p.x, p.y);
+}
+
+
+void Win32Application::ToggleFullscreenWindow(IDXGISwapChain* pSwapChain)
+{
+    if (m_fullscreenMode)
+    {
+        // Restore the window's attributes and size.
+        SetWindowLong(m_hwnd, GWL_STYLE, m_windowStyle);
+
+        SetWindowPos(
+            m_hwnd,
+            HWND_NOTOPMOST,
+            m_windowRect.left,
+            m_windowRect.top,
+            m_windowRect.right - m_windowRect.left,
+            m_windowRect.bottom - m_windowRect.top,
+            SWP_FRAMECHANGED | SWP_NOACTIVATE);
+
+        ShowWindow(m_hwnd, SW_NORMAL);
+    }
+    else
+    {
+        // Save the old window rect so we can restore it when exiting fullscreen mode.
+        GetWindowRect(m_hwnd, &m_windowRect);
+
+        // Make the window borderless so that the client area can fill the screen.
+        SetWindowLong(m_hwnd, GWL_STYLE, m_windowStyle & ~(WS_CAPTION | WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_SYSMENU | WS_THICKFRAME));
+
+        RECT fullscreenWindowRect;
+        try
+        {
+            if (pSwapChain)
+            {
+                // Get the settings of the display on which the app's window is currently displayed
+                ComPtr<IDXGIOutput> pOutput;
+                THROW_IF_FAIL(pSwapChain->GetContainingOutput(&pOutput));
+                DXGI_OUTPUT_DESC Desc;
+                THROW_IF_FAIL(pOutput->GetDesc(&Desc));
+                fullscreenWindowRect = Desc.DesktopCoordinates;
+            }
+            else
+            {
+                // Fallback to EnumDisplaySettings implementation
+                throw DXException(S_FALSE);
+            }
+        }
+        catch (DXException& e)
+        {
+            UNREFERENCED_PARAMETER(e);
+
+            // Get the settings of the primary display
+            DEVMODE devMode = {};
+            devMode.dmSize = sizeof(DEVMODE);
+            EnumDisplaySettings(nullptr, ENUM_CURRENT_SETTINGS, &devMode);
+
+            fullscreenWindowRect = {
+                devMode.dmPosition.x,
+                devMode.dmPosition.y,
+                devMode.dmPosition.x + static_cast<LONG>(devMode.dmPelsWidth),
+                devMode.dmPosition.y + static_cast<LONG>(devMode.dmPelsHeight)
+            };
+        }
+
+        SetWindowPos(
+            m_hwnd,
+            HWND_TOPMOST,
+            fullscreenWindowRect.left,
+            fullscreenWindowRect.top,
+            fullscreenWindowRect.right,
+            fullscreenWindowRect.bottom,
+            SWP_FRAMECHANGED | SWP_NOACTIVATE);
+
+
+        ShowWindow(m_hwnd, SW_MAXIMIZE);
+    }
+
+    m_fullscreenMode = !m_fullscreenMode;
 }
 
 

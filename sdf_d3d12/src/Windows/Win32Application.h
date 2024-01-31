@@ -23,9 +23,14 @@ public:
     static void ShowCursor(bool show) { ::ShowCursor(show); }
     static void MoveCursorToPos(INT x, INT y);
 
+    static void ToggleFullscreenWindow(IDXGISwapChain* swapChain = nullptr);
+
 protected:
     static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 private:
     static HWND m_hwnd;
+    static bool m_fullscreenMode;
+    static const UINT m_windowStyle = WS_OVERLAPPEDWINDOW;
+    static RECT m_windowRect;
 };
