@@ -42,27 +42,30 @@ void D3DApplication::OnUpdate()
 
 	m_Scene->OnUpdate(m_Timer.GetDeltaTime());
 
-	// Build properties GUI
-
-	if (ImGui::BeginMainMenuBar())
+	if (m_ShowMainMenuBar)
 	{
-		if (ImGui::BeginMenu("Window"))
+		if (ImGui::BeginMainMenuBar())
 		{
-			ImGui::MenuItem("Application Info", nullptr, &m_ShowApplicationInfo);
-			ImGui::MenuItem("Scene Info", nullptr, &m_ShowSceneInfo);
-			ImGui::Separator();
-			ImGui::MenuItem("ImGui Demo", nullptr, &m_ShowImGuiDemo);
-
-			ImGui::EndMenu();
+			if (ImGui::BeginMenu("Window"))
+			{
+				ImGui::MenuItem("Application Info", nullptr, &m_ShowApplicationInfo);
+				ImGui::MenuItem("Scene Info", nullptr, &m_ShowSceneInfo);
+				ImGui::Separator();
+				ImGui::MenuItem("ImGui Demo", nullptr, &m_ShowImGuiDemo);
+				ImGui::Separator();
+				ImGui::MenuItem("Show Menu", nullptr, &m_ShowMainMenuBar);
+	
+				ImGui::EndMenu();
+			}
+			ImGui::EndMainMenuBar();
 		}
-		ImGui::EndMainMenuBar();
+		if (m_ShowImGuiDemo)
+			ImGui::ShowDemoWindow(&m_ShowImGuiDemo);
+		if (m_ShowApplicationInfo)
+			m_ShowApplicationInfo = ImGuiApplicationInfo();
+		if (m_ShowSceneInfo)
+			m_ShowSceneInfo = m_Scene->ImGuiSceneInfo();
 	}
-	if (m_ShowImGuiDemo)
-		ImGui::ShowDemoWindow(&m_ShowImGuiDemo);
-	if (m_ShowApplicationInfo)
-		m_ShowApplicationInfo = ImGuiApplicationInfo();
-	if (m_ShowSceneInfo)
-		m_ShowSceneInfo = m_Scene->ImGuiSceneInfo();
 
 	EndUpdate();
 }
@@ -157,10 +160,8 @@ void D3DApplication::BeginUpdate()
 	const float deltaTime = m_Timer.Tick();
 	m_InputManager->Update(deltaTime);
 
-	if (m_InputManager->IsKeyPressed(KEY_SPACE))
-	{
-		Win32Application::ToggleFullscreenWindow();
-	}
+	if (m_InputManager->IsKeyPressed(KEY_F11))
+		m_ShowMainMenuBar = true;
 
 	// Update camera
 	m_CameraController.Update(deltaTime);

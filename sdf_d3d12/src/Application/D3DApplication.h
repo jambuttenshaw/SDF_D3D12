@@ -56,6 +56,7 @@ private:
 	UINT m_RenderFlags = RENDER_FLAG_DISPLAY_NORMALS;
 
 	// GUI
+	bool m_ShowMainMenuBar = true;
 	bool m_ShowImGuiDemo = false;
 	bool m_ShowApplicationInfo = true;
 	bool m_ShowSceneInfo = true;
