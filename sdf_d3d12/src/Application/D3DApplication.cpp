@@ -121,11 +121,15 @@ void D3DApplication::InitImGui() const
 {
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
+
 	ImGuiIO& io = ImGui::GetIO();
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+
+	const auto font = io.Fonts->AddFontFromFileTTF("assets/fonts/Cousine-Regular.ttf", 22);
+	io.FontDefault = font;
 
 	ImGui::StyleColorsDark();
 
@@ -135,6 +139,7 @@ void D3DApplication::InitImGui() const
 		style.WindowRounding = 0.0f;
 		style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 	}
+	style.ScaleAllSizes(1.5f);
 
 	// Setup platform and renderer back-ends
 	ImGui_ImplWin32_Init(Win32Application::GetHwnd());
@@ -252,4 +257,16 @@ void D3DApplication::OnResized()
 {
 	m_GraphicsContext->Resize(m_Width, m_Height);
 	m_Raytracer->Resize();
+}
+
+
+bool D3DApplication::GetTearingSupport() const
+{
+	return g_D3DGraphicsContext && g_D3DGraphicsContext->GetTearingSupport();
+}
+IDXGISwapChain* D3DApplication::GetSwapChain() const
+{
+	if (g_D3DGraphicsContext)
+		return g_D3DGraphicsContext->GetSwapChain();
+	return nullptr;
 }

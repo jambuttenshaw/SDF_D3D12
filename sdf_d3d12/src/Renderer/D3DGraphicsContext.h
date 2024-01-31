@@ -74,6 +74,10 @@ public:
 	inline D3D12_CPU_DESCRIPTOR_HANDLE GetImGuiCPUDescriptor() const { return m_ImGuiResources.GetCPUHandle(); }
 	inline D3D12_GPU_DESCRIPTOR_HANDLE GetImGuiGPUDescriptor() const { return m_ImGuiResources.GetGPUHandle(); }
 
+	// DXGI objects
+	inline bool GetTearingSupport() const { return m_TearingSupport; }
+	inline IDXGISwapChain* GetSwapChain() const { return m_SwapChain.Get(); }
+
 	// D3D objects
 	inline ID3D12Device* GetDevice() const { return m_Device.Get(); }
 	inline ID3D12GraphicsCommandList* GetCommandList() const { return m_CommandList.Get(); }
@@ -118,7 +122,7 @@ private:
 	UINT m_ClientHeight;
 
 	bool m_WindowedMode = true;
-	bool m_AllowTearing = true;
+	bool m_TearingSupport = false;
 
 	// Projection properties
 	float m_FOV = 0.25f * XM_PI;

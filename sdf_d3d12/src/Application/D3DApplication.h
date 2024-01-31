@@ -29,6 +29,9 @@ public:
 	virtual void OnDestroy() override;
 
 	virtual void OnResized() override;
+
+	virtual bool GetTearingSupport() const override;
+	virtual IDXGISwapChain* GetSwapChain() const override;
 private:
 
 	void InitImGui() const;

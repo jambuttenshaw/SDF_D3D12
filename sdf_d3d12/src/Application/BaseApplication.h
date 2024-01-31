@@ -35,6 +35,10 @@ public:
 
 	inline bool IsMouseHidden() const		{ return m_InputManager->IsMouseHidden(); }
 
+	// For fullscreen support
+	virtual bool GetTearingSupport() const = 0;
+	virtual IDXGISwapChain* GetSwapChain() const = 0;
+
 	virtual void ParseCommandLineArgs(WCHAR* argv[], int argc) {}
 
 protected:

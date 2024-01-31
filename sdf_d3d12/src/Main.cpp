@@ -15,6 +15,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
 	Log::Init();
 
-	D3DApplication app(1280, 720, L"D3D12 Application");
+	D3DApplication app(1600, 900, L"D3D12 Application");
 	return Win32Application::Run(&app);
 }

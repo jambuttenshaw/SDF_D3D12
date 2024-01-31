@@ -261,7 +261,7 @@ void D3DGraphicsContext::Resize(UINT width, UINT height)
 	// Process all deferred frees
 	ProcessAllDeferrals();
 
-	const auto flags = m_AllowTearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
+	const auto flags = m_TearingSupport ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
 	THROW_IF_FAIL(m_SwapChain->ResizeBuffers(s_FrameCount, m_ClientWidth, m_ClientHeight, m_BackBufferFormat, flags));
 
 	BOOL fullscreenState;
@@ -323,6 +323,12 @@ void D3DGraphicsContext::CreateAdapter()
 #endif
 
 	THROW_IF_FAIL(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&m_Factory)));
+
+	{
+		BOOL allowTearing = FALSE;
+		const HRESULT hr = m_Factory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, sizeof(allowTearing));
+		m_TearingSupport = SUCCEEDED(hr) && allowTearing;
+	}
 
 	for (UINT adapterIndex = 0;
 		SUCCEEDED(m_Factory->EnumAdapterByGpuPreference(
@@ -402,7 +408,7 @@ void D3DGraphicsContext::CreateSwapChain()
 	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 	swapChainDesc.SampleDesc.Count = 1;
-	swapChainDesc.Flags = m_AllowTearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
+	swapChainDesc.Flags = m_TearingSupport ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
 
 	ComPtr<IDXGISwapChain1> swapChain;
 	THROW_IF_FAIL(m_Factory->CreateSwapChainForHwnd(
