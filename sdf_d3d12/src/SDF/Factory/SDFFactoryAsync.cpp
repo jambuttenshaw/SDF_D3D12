@@ -88,7 +88,7 @@ void SDFFactoryAsync::AsyncFactoryThreadProc()
 		{
 			// We have an object to process
 			PIXBeginEvent(PIX_COLOR_INDEX(53), L"Wait for resources");
-			while (true)
+			while (!m_TerminateThread)
 			{
 				// Make sure the resources are available to write
 				const auto resourceState = object->GetResourcesState(SDFObject::RESOURCES_WRITE);
@@ -106,6 +106,9 @@ void SDFFactoryAsync::AsyncFactoryThreadProc()
 					break;
 				}
 			}
+			// Just in case application exists while we were waiting for resources to be ready
+			if (m_TerminateThread)
+				break;
 			PIXEndEvent();
 			PIXBeginEvent(PIX_COLOR_INDEX(24), L"Async Bake");
 

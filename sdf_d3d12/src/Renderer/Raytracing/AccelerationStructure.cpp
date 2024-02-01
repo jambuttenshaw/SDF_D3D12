@@ -52,7 +52,7 @@ void BottomLevelAccelerationStructure::Initialize(D3D12_RAYTRACING_ACCELERATION_
 		m_BuildFlags |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE;
 	}
 
-	m_CachedGeometryDescs.resize(D3DGraphicsContext::GetBackBufferCount());
+	m_CachedGeometryDesc.resize(D3DGraphicsContext::GetBackBufferCount());
 
 	BuildGeometryDescs(geometry);
 	ComputePrebuildInfo();
@@ -73,7 +73,7 @@ void BottomLevelAccelerationStructure::Build()
 	PIXBeginEvent(commandList, PIX_COLOR_INDEX(64), "Build BLAS");
 
 	const auto current = g_D3DGraphicsContext->GetCurrentBackBuffer();
-	m_CachedGeometryDescs[current] = m_GeometryDescs;
+	m_CachedGeometryDesc[current] = m_GeometryDesc;
 
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottomLevelBuildDesc = {};
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& bottomLevelInputs = bottomLevelBuildDesc.Inputs;
@@ -86,8 +86,8 @@ void BottomLevelAccelerationStructure::Build()
 			bottomLevelInputs.Flags |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE;
 			bottomLevelBuildDesc.SourceAccelerationStructureData = m_AccelerationStructure.GetAddress();
 		}
-		bottomLevelInputs.NumDescs = static_cast<UINT>(m_CachedGeometryDescs[current].size());
-		bottomLevelInputs.pGeometryDescs = m_CachedGeometryDescs[current].data();
+		bottomLevelInputs.NumDescs = 1;
+		bottomLevelInputs.pGeometryDescs = &m_CachedGeometryDesc[current];
 
 		bottomLevelBuildDesc.ScratchAccelerationStructureData = m_ScratchResource.GetAddress();
 		bottomLevelBuildDesc.DestAccelerationStructureData = m_AccelerationStructure.GetAddress();
@@ -108,14 +108,9 @@ void BottomLevelAccelerationStructure::Build()
 
 void BottomLevelAccelerationStructure::UpdateGeometry(const BottomLevelAccelerationStructureGeometry& geometry)
 {
-	UINT64 prevAABBs = 0;
-	for (const auto& desc : m_GeometryDescs)
-	{
-		prevAABBs += desc.AABBs.AABBCount;
-	}
+	const UINT64 prevAABBs = m_GeometryDesc.AABBs.AABBCount;
 
 	// Rebuild geometry descriptions
-	m_GeometryDescs.clear();
 	BuildGeometryDescs(geometry);
 
 	// Prebuild info will need recomputed
@@ -153,33 +148,18 @@ void BottomLevelAccelerationStructure::UpdateGeometry(const BottomLevelAccelerat
 	// Acceleration structure will require at least an update
 	m_IsDirty = true;
 	{
-		UINT64 newAABBs = 0;
-		for (const auto& instance : geometry.GeometryInstances)
-		{
-			newAABBs += instance->GetBrickCount(SDFObject::RESOURCES_READ);
-		}
 		// Rebuild if number of AABBs has changed
-		m_IsBuilt &= prevAABBs == newAABBs;
+		m_IsBuilt &= prevAABBs == geometry.Geometry->GetBrickCount(SDFObject::RESOURCES_READ);
 	}
 }
 
 void BottomLevelAccelerationStructure::BuildGeometryDescs(const BottomLevelAccelerationStructureGeometry& geometry)
 {
-	D3D12_RAYTRACING_GEOMETRY_DESC geometryDescTemplate = {};
-	geometryDescTemplate.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS;
-
-	m_GeometryDescs.reserve(geometry.GeometryInstances.size());
-
-	for (const auto& geometryInstance : geometry.GeometryInstances)
-	{
-		m_GeometryDescs.push_back(geometryDescTemplate);
-		auto& desc = m_GeometryDescs.back();
-
-		desc.Flags = geometryInstance->GetGeometryFlags();
-		desc.AABBs.AABBCount = geometryInstance->GetBrickCount(SDFObject::RESOURCES_READ);
-		desc.AABBs.AABBs.StartAddress = geometryInstance->GetAABBBufferAddress(SDFObject::RESOURCES_READ);
-		desc.AABBs.AABBs.StrideInBytes = geometryInstance->GetAABBBufferStride(SDFObject::RESOURCES_READ);
-	}
+	m_GeometryDesc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS;
+	m_GeometryDesc.Flags = geometry.Geometry->GetGeometryFlags();
+	m_GeometryDesc.AABBs.AABBCount = geometry.Geometry->GetBrickCount(SDFObject::RESOURCES_READ);
+	m_GeometryDesc.AABBs.AABBs.StartAddress = geometry.Geometry->GetAABBBufferAddress(SDFObject::RESOURCES_READ);
+	m_GeometryDesc.AABBs.AABBs.StrideInBytes = geometry.Geometry->GetAABBBufferStride(SDFObject::RESOURCES_READ);
 }
 
 void BottomLevelAccelerationStructure::ComputePrebuildInfo()
@@ -188,8 +168,8 @@ void BottomLevelAccelerationStructure::ComputePrebuildInfo()
 	bottomLevelInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
 	bottomLevelInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
 	bottomLevelInputs.Flags = m_BuildFlags;
-	bottomLevelInputs.NumDescs = static_cast<UINT>(m_GeometryDescs.size());
-	bottomLevelInputs.pGeometryDescs = m_GeometryDescs.data();
+	bottomLevelInputs.NumDescs = 1;
+	bottomLevelInputs.pGeometryDescs = &m_GeometryDesc;
 
 	g_D3DGraphicsContext->GetDXRDevice()->GetRaytracingAccelerationStructurePrebuildInfo(&bottomLevelInputs, &m_PrebuildInfo);
 	ASSERT(m_PrebuildInfo.ResultDataMaxSizeInBytes > 0, "Failed to get acceleration structure prebuild info.");

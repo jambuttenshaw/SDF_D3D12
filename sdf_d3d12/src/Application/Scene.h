@@ -30,10 +30,10 @@ public:
 private:
 	void BuildEditList(float deltaTime, bool async);
 
-	void CheckSDFGeometryUpdates(SDFObject* object);
+	void CheckSDFGeometryUpdates();
 	void UpdateAccelerationStructure();
 
-	void DisplaySDFObjectDebugInfo(const char* name, const SDFObject* object) const;
+	void DisplaySDFObjectDebugInfo(const wchar_t* name, const SDFObject* object) const;
 	void DisplayAccelerationStructureDebugInfo() const;
 
 private:
@@ -50,7 +50,7 @@ private:
 	std::unique_ptr<SDFObject> m_Object;
 
 	// Demo Scene
-	inline static constexpr UINT s_InstanceGridDims = 1;
+	inline static constexpr UINT s_InstanceGridDims = 3;
 	inline static constexpr UINT s_InstanceCount = s_InstanceGridDims * s_InstanceGridDims * s_InstanceGridDims;
 	inline static constexpr float s_InstanceSpacing = 8.0f;
 

@@ -177,7 +177,6 @@
     <ClCompile Include="src\Renderer\Raytracing\AccelerationStructure.cpp" />
     <ClCompile Include="src\Renderer\Raytracing\Raytracer.cpp" />
     <ClCompile Include="src\SDF\Factory\SDFFactoryAsync.cpp" />
-    <ClCompile Include="src\SDF\Factory\SDFFactorySync.cpp" />
     <ClCompile Include="src\SDF\SDFEditList.cpp" />
     <ClCompile Include="src\SDF\Factory\SDFFactory.cpp" />
     <ClCompile Include="src\SDF\SDFObject.cpp" />
@@ -248,7 +247,6 @@
     <ClInclude Include="src\Renderer\Memory\MemoryAllocator.h" />
     <ClInclude Include="src\Renderer\Raytracing\AccelerationStructure.h" />
     <ClInclude Include="src\SDF\Factory\SDFFactoryAsync.h" />
-    <ClInclude Include="src\SDF\Factory\SDFFactorySync.h" />
     <ClInclude Include="src\SDF\SDFEditList.h" />
     <ClInclude Include="src\SDF\Factory\SDFFactory.h" />
     <ClInclude Include="src\SDF\SDFObject.h" />

@@ -1,10 +1,10 @@
 #pragma once
 
 
-#include "SDFFactorySync.h"
+#include "SDFFactory.h"
 
 
-class SDFFactoryAsync : public SDFFactorySync
+class SDFFactoryAsync : public SDFFactory
 {
 public:
 	SDFFactoryAsync();

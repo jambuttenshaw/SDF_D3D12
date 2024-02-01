@@ -67,7 +67,7 @@ struct BottomLevelAccelerationStructureGeometry
 	DEFAULT_MOVE(BottomLevelAccelerationStructureGeometry)
 
 	std::wstring Name;
-	std::vector<SDFObject*> GeometryInstances;
+	SDFObject* Geometry;
 };
 
 
@@ -93,9 +93,8 @@ private:
 	void ComputePrebuildInfo();
 
 private:
-	std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> m_GeometryDescs;
-
-	std::vector<std::vector<D3D12_RAYTRACING_GEOMETRY_DESC>> m_CachedGeometryDescs;
+	D3D12_RAYTRACING_GEOMETRY_DESC m_GeometryDesc;
+	std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> m_CachedGeometryDesc;
 
 	UINT m_InstanceContributionToHitGroupIndex = 0;
 };

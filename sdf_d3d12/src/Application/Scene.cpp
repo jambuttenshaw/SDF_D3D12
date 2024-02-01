@@ -67,7 +67,7 @@ Scene::Scene()
 
 			torusEditList.AddEdit(SDFEdit::CreateOctahedron({}, 0.7f));
 			
-			//m_SDFFactory->BakeSDFSync(m_TorusObject.get(), torusEditList, true);
+			m_SDFFactoryAsync->BakeSDFSync(m_TorusObject.get(), std::move(torusEditList));
 		}
 		{
 			// Create sphere object by adding and then subtracting a bunch of spheres
@@ -91,7 +91,7 @@ Scene::Scene()
 			}
 
 			// Bake the primitives into the SDF object
-			//m_SDFFactory->BakeSDFSync(m_SphereObject.get(), sphereEditList, true);
+			m_SDFFactoryAsync->BakeSDFSync(m_SphereObject.get(), std::move(sphereEditList));
 		}
 		{
 			for (UINT i = 0; i < m_SphereCount; i++)
@@ -116,17 +116,9 @@ Scene::Scene()
 
 	{
 		// Construct scene geometry
-		m_SceneGeometry.push_back({ L"Dynamic" });
-		//m_SceneGeometry.push_back({ L"Torus" });
-		//m_SceneGeometry.push_back({ L"Spheres" });
-
-		auto& dynamicGeometry = m_SceneGeometry.at(0);
-		//auto& torusGeometry = m_SceneGeometry.at(1);
-		//auto& spheresGeometry = m_SceneGeometry.at(2);
-
-		dynamicGeometry.GeometryInstances.push_back(m_Object.get());
-		//torusGeometry.GeometryInstances.push_back(m_TorusObject.get());
-		//spheresGeometry.GeometryInstances.push_back(m_SphereObject.get());
+		m_SceneGeometry.push_back({ L"Dynamic", m_Object.get()});
+		m_SceneGeometry.push_back({ L"Torus", m_TorusObject.get() });
+		m_SceneGeometry.push_back({ L"Spheres", m_SphereObject.get() });
 	}
 
 	{
@@ -183,7 +175,7 @@ Scene::Scene()
 		m_AccelerationStructure->InitializeTopLevelAS(buildFlags, true, true, L"Top Level Acceleration Structure");
 	}
 
-	CheckSDFGeometryUpdates(m_Object.get());
+	CheckSDFGeometryUpdates();
 }
 
 Scene::~Scene()
@@ -235,9 +227,7 @@ void Scene::PreRender()
 	PIXBeginEvent(PIX_COLOR_INDEX(6), L"Scene Render");
 
 	// Check if the geometry should have its resources flipped
-	//CheckSDFGeometryUpdates(m_TorusObject.get());
-	//CheckSDFGeometryUpdates(m_SphereObject.get());
-	CheckSDFGeometryUpdates(m_Object.get());
+	CheckSDFGeometryUpdates();
 
 	UpdateAccelerationStructure();
 
@@ -246,7 +236,10 @@ void Scene::PreRender()
 
 void Scene::PostRender()
 {
-	m_Object->SetResourceState(SDFObject::RESOURCES_READ, SDFObject::RENDERED);
+	// Rendering has completed
+	// It's important that this is set so that a flip can be triggered next frame, if an async factory has been working on the write resources
+	for (auto&[name, geometry] : m_SceneGeometry)
+		geometry->SetResourceState(SDFObject::RESOURCES_READ, SDFObject::RENDERED);
 }
 
 
@@ -288,10 +281,8 @@ bool Scene::ImGuiSceneInfo()
 
 		ImGui::Separator();
 
-		//DisplaySDFObjectDebugInfo("Torus Object", m_TorusObject.get());
-		//DisplaySDFObjectDebugInfo("Sphere Object", m_SphereObject.get());
-		DisplaySDFObjectDebugInfo("Dynamic Object", m_Object.get());
-
+		for (auto&[name, geometry] : m_SceneGeometry)
+			DisplaySDFObjectDebugInfo(name.c_str(), geometry);
 		DisplayAccelerationStructureDebugInfo();
 
 
@@ -312,7 +303,7 @@ void Scene::BuildEditList(float deltaTime, bool async)
 	SDFEditList editList(m_SphereCount + 1);
 
 	editList.Reset();
-	editList.AddEdit(SDFEdit::CreateBoxFrame({}, { 1.0f, 1.0f, 1.0f }, 0.05f));
+	editList.AddEdit(SDFEdit::CreateBoxFrame({}, { 1.0f, 1.0f, 1.0f }, 0.025f));
 
 	for (UINT i = 0; i < m_SphereCount; i++)
 	{
@@ -339,26 +330,30 @@ void Scene::BuildEditList(float deltaTime, bool async)
 }
 
 
-void Scene::CheckSDFGeometryUpdates(SDFObject* object)
+void Scene::CheckSDFGeometryUpdates()
 {
-	// Check if the new object resources have been computed
-	if (object->GetResourcesState(SDFObject::RESOURCES_WRITE) == SDFObject::COMPUTED)
+	for (auto&[name, object] : m_SceneGeometry)
 	{
-		// if WRITE resources have been COMPUTED
+		// Check if the new object resources have been computed
+		if (object->GetResourcesState(SDFObject::RESOURCES_WRITE) == SDFObject::COMPUTED)
+		{
+			// if WRITE resources have been COMPUTED
 
-		// set READ resources to SWITCHING
-		object->SetResourceState(SDFObject::RESOURCES_READ, SDFObject::SWITCHING);
+			// set READ resources to SWITCHING
+			object->SetResourceState(SDFObject::RESOURCES_READ, SDFObject::SWITCHING);
 
-		// flip READ and WRITE resources
-		PIXSetMarker(PIX_COLOR_INDEX(23), L"Flip resources");
-		object->FlipResources();
+			// flip READ and WRITE resources
+			PIXSetMarker(PIX_COLOR_INDEX(23), L"Flip resources");
+			object->FlipResources();
+		}
+		else if (object->GetResourcesState(SDFObject::RESOURCES_WRITE) == SDFObject::SWITCHING)
+		{
+			object->SetResourceState(SDFObject::RESOURCES_WRITE, SDFObject::READY_COMPUTE);
+		}
+
+		// This object is about to be rendered - set the state appropriately
+		object->SetResourceState(SDFObject::RESOURCES_READ, SDFObject::RENDERING);
 	}
-	else if (object->GetResourcesState(SDFObject::RESOURCES_WRITE) == SDFObject::SWITCHING)
-	{
-		object->SetResourceState(SDFObject::RESOURCES_WRITE, SDFObject::READY_COMPUTE);
-	}
-
-	object->SetResourceState(SDFObject::RESOURCES_READ, SDFObject::RENDERING);
 }
 
 
@@ -374,10 +369,10 @@ void Scene::UpdateAccelerationStructure()
 }
 
 
-void Scene::DisplaySDFObjectDebugInfo(const char* name, const SDFObject* object) const
+void Scene::DisplaySDFObjectDebugInfo(const wchar_t* name, const SDFObject* object) const
 {
 	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
-	ImGui::Text(name);
+	ImGui::Text(wstring_to_utf8(name).c_str());
 	ImGui::PopStyleColor();
 
 	ImGui::Text("Brick Count: %d", object->GetBrickCount(SDFObject::RESOURCES_READ));
