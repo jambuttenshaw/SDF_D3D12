@@ -1,10 +1,10 @@
 #pragma once
 
 
-#include "SDFFactory.h"
+#include "SDFFactorySync.h"
 
 
-class SDFFactoryAsync : SDFFactory
+class SDFFactoryAsync : public SDFFactory
 {
 public:
 	SDFFactoryAsync();
@@ -17,6 +17,7 @@ public:
 
 private:
 	void AsyncFactoryThreadProc();
+	void PerformSDFBake(SDFObject* object, const SDFEditList& editList, ID3D12GraphicsCommandList* commandList, ID3D12CommandAllocator* allocator);
 
 protected:
 	std::unique_ptr<std::thread> m_FactoryThread;
@@ -30,5 +31,7 @@ protected:
 	// Queue of bakes to perform
 	std::queue<BuildQueueItem> m_BuildQueue;
 	std::mutex m_QueueMutex;
+
+	std::atomic<bool> m_Complete = false;
 
 };

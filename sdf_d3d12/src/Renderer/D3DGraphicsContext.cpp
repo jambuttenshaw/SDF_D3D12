@@ -113,10 +113,10 @@ void D3DGraphicsContext::Present()
 		{
 		case DXGI_ERROR_DEVICE_RESET:
 		case DXGI_ERROR_DEVICE_REMOVED:
-			LOG_FATAL("Present Failed: Device Removed!"); throw;
+			LOG_FATAL("Present Failed: Device Removed!");
 			break;
 		default:
-			LOG_FATAL("Present Failed: Unknown Error!"); throw;
+			LOG_FATAL("Present Failed: Unknown Error!");
 			break;
 		}
 	}

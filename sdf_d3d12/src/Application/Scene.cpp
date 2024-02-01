@@ -26,7 +26,7 @@ Scene::Scene()
 	{
 		// Create SDF factory 
 		m_SDFFactory = std::make_unique<SDFFactorySync>();
-		//m_SDFFactoryAsync = std::make_unique<SDFFactoryAsync>();
+		m_SDFFactoryAsync = std::make_unique<SDFFactoryAsync>();
 
 		// Create SDF objects
 		m_Object = std::make_unique<SDFObject>(0.25f, 65536);
@@ -111,7 +111,7 @@ Scene::Scene()
 				};
 			}
 
-			BuildEditList(0.0f);
+			BuildEditList(0.0f, false);
 		}
 	}
 
@@ -219,7 +219,7 @@ void Scene::OnUpdate(float deltaTime)
 
 	if (m_Rebuild)
 	{
-		BuildEditList(deltaTime);
+		BuildEditList(deltaTime, true);
 	}
 
 	PIXEndEvent();
@@ -294,7 +294,7 @@ bool Scene::ImGuiSceneInfo()
 }
 
 
-void Scene::BuildEditList(float deltaTime)
+void Scene::BuildEditList(float deltaTime, bool async)
 {
 	PIXBeginEvent(PIX_COLOR_INDEX(10), L"Build Edit List");
 
@@ -318,7 +318,14 @@ void Scene::BuildEditList(float deltaTime)
 		editList.AddEdit(SDFEdit::CreateSphere(transform, 0.05f, SDFOperation::SmoothUnion, m_SphereBlend));
 	}
 
-	m_SDFFactory->BakeSDFSynchronous(m_Object.get(), editList, true);
+	if (async)
+	{
+		m_SDFFactoryAsync->BakeSDFAsync(m_Object.get(), std::move(editList));
+	}
+	else
+	{
+		m_SDFFactory->BakeSDFSynchronous(m_Object.get(), editList);
+	}
 
 	PIXEndEvent();
 }
