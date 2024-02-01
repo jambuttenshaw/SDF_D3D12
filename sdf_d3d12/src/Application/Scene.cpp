@@ -7,7 +7,6 @@
 #include "Framework/Math.h"
 
 #include "pix3.h"
-#include "Renderer/D3DDebugTools.h"
 
 
 // For debug output
@@ -26,11 +25,10 @@ Scene::Scene()
 	// Build SDF Object
 	{
 		// Create SDF factory 
-		m_SDFFactory = std::make_unique<SDFFactorySync>();
 		m_SDFFactoryAsync = std::make_unique<SDFFactoryAsync>();
 
 		// Create SDF objects
-		m_Object = std::make_unique<SDFObject>(0.25f, 65536);
+		m_Object = std::make_unique<SDFObject>(0.0625f, 65536);
 		m_TorusObject = std::make_unique<SDFObject>(0.0625f, 65536);
 		m_SphereObject = std::make_unique<SDFObject>(0.0625f, 65536);
 
@@ -48,7 +46,7 @@ Scene::Scene()
 			Transform torusTransform(0.0f, 0.25f, 0.0f);
 			torusTransform.SetPitch(XMConvertToRadians(90.0f));
 			editList.AddEdit(SDFEdit::CreateTorus(torusTransform, 0.25f, 0.05f, SDFOperation::SmoothUnion, 0.3f));
-			m_SDFFactory->BakeSDFSynchronous(m_TorusObject.get(), editList);
+			m_SDFFactory->BakeSDFSync(m_TorusObject.get(), editList);
 		}
 		*/
 
@@ -69,7 +67,7 @@ Scene::Scene()
 
 			torusEditList.AddEdit(SDFEdit::CreateOctahedron({}, 0.7f));
 			
-			//m_SDFFactory->BakeSDFSynchronous(m_TorusObject.get(), torusEditList, true);
+			//m_SDFFactory->BakeSDFSync(m_TorusObject.get(), torusEditList, true);
 		}
 		{
 			// Create sphere object by adding and then subtracting a bunch of spheres
@@ -93,7 +91,7 @@ Scene::Scene()
 			}
 
 			// Bake the primitives into the SDF object
-			//m_SDFFactory->BakeSDFSynchronous(m_SphereObject.get(), sphereEditList, true);
+			//m_SDFFactory->BakeSDFSync(m_SphereObject.get(), sphereEditList, true);
 		}
 		{
 			for (UINT i = 0; i < m_SphereCount; i++)
@@ -188,6 +186,12 @@ Scene::Scene()
 	CheckSDFGeometryUpdates(m_Object.get());
 }
 
+Scene::~Scene()
+{
+	// SDFFactory should be deleted first
+	m_SDFFactoryAsync.reset();
+}
+
 
 void Scene::OnUpdate(float deltaTime)
 {
@@ -220,7 +224,7 @@ void Scene::OnUpdate(float deltaTime)
 
 	if (m_Rebuild)
 	{
-		BuildEditList(deltaTime, true);
+		BuildEditList(deltaTime, m_AsyncConstruction);
 	}
 
 	PIXEndEvent();
@@ -270,18 +274,13 @@ bool Scene::ImGuiSceneInfo()
 		ImGui::Checkbox("Rotate Instances", &m_RotateInstances);
 		ImGui::Separator();
 
-		static bool checkbox = false;
-		if (ImGui::Button("Rebuild Once"))
 		{
-			m_Rebuild = true;
-			D3DDebugTools::PIXGPUCaptureFrame(4);
+			static bool checkbox = false;
+			m_Rebuild = ImGui::Button("Rebuild Once");
+			ImGui::Checkbox("Rebuild", &checkbox);
+			m_Rebuild |= checkbox;
 		}
-		else
-		{
-			m_Rebuild = false;
-		}
-		ImGui::Checkbox("Rebuild", &checkbox);
-		m_Rebuild |= checkbox;
+		ImGui::Checkbox("Async Construction", &m_AsyncConstruction);
 
 		ImGui::Separator();
 
@@ -333,7 +332,7 @@ void Scene::BuildEditList(float deltaTime, bool async)
 	}
 	else
 	{
-		m_SDFFactory->BakeSDFSynchronous(m_Object.get(), editList);
+		m_SDFFactoryAsync->BakeSDFSync(m_Object.get(), std::move(editList));
 	}
 
 	PIXEndEvent();
@@ -390,7 +389,11 @@ void Scene::DisplaySDFObjectDebugInfo(const char* name, const SDFObject* object)
 	const float poolUsage = 100.0f * (static_cast<float>(object->GetBrickCount(SDFObject::RESOURCES_READ)) / static_cast<float>(object->GetBrickPoolCapacity(SDFObject::RESOURCES_READ)));
 	ImGui::Text("Brick Pool Usage: %.1f", poolUsage);
 
-	ImGui::Text("Total Size (KB): %d", object->GetTotalMemoryUsageBytes() / 1024);
+	const auto sizeKB = object->GetTotalMemoryUsageBytes() / 1024;
+	if (sizeKB > 10'000)
+		ImGui::Text("Total Size (MB): %d", sizeKB / 1024);
+	else
+		ImGui::Text("Total Size (KB): %d", sizeKB);
 
 	ImGui::Separator();
 }

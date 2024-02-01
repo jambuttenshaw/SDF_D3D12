@@ -11,6 +11,10 @@ class Scene
 {
 public:
 	Scene();
+	~Scene();
+
+	DISALLOW_COPY(Scene)
+	DISALLOW_MOVE(Scene)
 
 	void OnUpdate(float deltaTime);
 	void PreRender();
@@ -39,12 +43,10 @@ private:
 	std::unique_ptr<RaytracingAccelerationStructureManager> m_AccelerationStructure;
 
 	// SDF Objects
-	std::unique_ptr<SDFFactorySync> m_SDFFactory;
 	std::unique_ptr<SDFFactoryAsync> m_SDFFactoryAsync;
 
 	std::unique_ptr<SDFObject> m_TorusObject;
 	std::unique_ptr<SDFObject> m_SphereObject;
-
 	std::unique_ptr<SDFObject> m_Object;
 
 	// Demo Scene
@@ -60,6 +62,7 @@ private:
 	// GUI controls
 	bool m_RotateInstances = false;
 	bool m_Rebuild = false;
+	bool m_AsyncConstruction = false;
 
 	struct SphereData
 	{

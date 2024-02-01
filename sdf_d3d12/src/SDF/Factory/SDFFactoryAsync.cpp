@@ -6,7 +6,6 @@
 #include "SDF/SDFObject.h"
 
 #include "pix3.h"
-#include "Renderer/Buffer/ReadbackBuffer.h"
 
 
 SDFFactoryAsync::SDFFactoryAsync()
@@ -130,7 +129,7 @@ void SDFFactoryAsync::AsyncFactoryThreadProc()
 
 			// Clear resources
 			object = nullptr;
-			editList = nullptr;
+			editList.reset();
 
 			PIXEndEvent();
 		}

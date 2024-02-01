@@ -4,7 +4,7 @@
 #include "SDFFactorySync.h"
 
 
-class SDFFactoryAsync : public SDFFactory
+class SDFFactoryAsync : public SDFFactorySync
 {
 public:
 	SDFFactoryAsync();

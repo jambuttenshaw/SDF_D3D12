@@ -12,5 +12,5 @@ public:
 	DISALLOW_COPY(SDFFactorySync)
 	DEFAULT_MOVE(SDFFactorySync)
 
-	void BakeSDFSynchronous(SDFObject* object, const SDFEditList& editList);
+	void BakeSDFSync(SDFObject* object, SDFEditList&& editList);
 };

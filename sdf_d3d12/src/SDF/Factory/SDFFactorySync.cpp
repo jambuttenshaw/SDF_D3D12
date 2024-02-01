@@ -10,14 +10,20 @@
 #include "pix3.h"
 
 
-void SDFFactorySync::BakeSDFSynchronous(SDFObject* object, const SDFEditList& editList)
+void SDFFactorySync::BakeSDFSync(SDFObject* object, SDFEditList&& editList)
 {
+	// Check object is not being constructed anywhere else
+	// It's okay if the resource is in the switching state - we're going to wait on the render queue anyway
+	const auto state = object->GetResourcesState(SDFObject::RESOURCES_WRITE);
+	if (!(state == SDFObject::READY_COMPUTE || state == SDFObject::SWITCHING))
+	{
+		LOG_INFO("Object in use by async bake - sync bake cannot be performed.");
+		return;
+	}
+
 	LOG_TRACE("-----SDF Factory Synchronous Bake Begin--------");
 	PIXBeginEvent(PIX_COLOR_INDEX(12), L"SDF Bake Synchronous");
 
-	const auto state = object->GetResourcesState(SDFObject::RESOURCES_WRITE);
-	// It's okay if the resource is in the switching state - we're going to wait on the render queue anyway
-	ASSERT(state == SDFObject::READY_COMPUTE || state == SDFObject::SWITCHING, "Invalid resource state");
 	object->SetResourceState(SDFObject::RESOURCES_WRITE, SDFObject::COMPUTING);
 
 	const auto directQueue = g_D3DGraphicsContext->GetDirectCommandQueue();

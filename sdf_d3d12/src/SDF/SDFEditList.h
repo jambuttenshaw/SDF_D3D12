@@ -25,8 +25,6 @@ public:
 
 	D3D12_GPU_VIRTUAL_ADDRESS GetEditBufferAddress() const;
 
-	void PrintEditList() const;
-
 private:
 	SDFEditData BuildEditData(const SDFEdit& edit);
 
@@ -35,7 +33,7 @@ private:
 	std::vector<SDFEditData> m_EditsStaging;
 
 	// A structured buffer to contain the edits in GPU memory
-	std::vector<UploadBuffer<SDFEditData>> m_EditsBuffers;
+	UploadBuffer<SDFEditData> m_EditsBuffer;
 
 	// Buffer capacity
 	UINT m_MaxEdits = 0;
