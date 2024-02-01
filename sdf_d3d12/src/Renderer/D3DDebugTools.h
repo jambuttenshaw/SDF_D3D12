@@ -7,8 +7,11 @@ public:
 	// D3D12 Message handler
 	static void D3DMessageHandler(D3D12_MESSAGE_CATEGORY Category, D3D12_MESSAGE_SEVERITY Severity, D3D12_MESSAGE_ID ID, LPCSTR pDescription, void* pContext);
 
+	static void PIXGPUCaptureFrame(UINT frameCount);
 
 private:
 	static void LogAutoBreadcrumbs(const D3D12_AUTO_BREADCRUMB_NODE1* breadcrumb);
 	static void LogPageFault(D3D12_DRED_PAGE_FAULT_OUTPUT* pageFault);
+
+	static UINT s_CapturesTaken;
 };

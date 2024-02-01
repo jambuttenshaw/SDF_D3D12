@@ -27,9 +27,7 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
 	LOG_INFO("Creating D3D12 Graphics Context");
 
 	// Init PIX
-#ifdef ENABLE_PIX_CAPTURE
 	PIXLoadLatestWinPixGpuCapturerLibrary();
-#endif
 
 	// Initialize D3D components
 	CreateAdapter();

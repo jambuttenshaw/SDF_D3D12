@@ -25,6 +25,8 @@ public:
 
 	D3D12_GPU_VIRTUAL_ADDRESS GetEditBufferAddress() const;
 
+	void PrintEditList() const;
+
 private:
 	SDFEditData BuildEditData(const SDFEdit& edit);
 

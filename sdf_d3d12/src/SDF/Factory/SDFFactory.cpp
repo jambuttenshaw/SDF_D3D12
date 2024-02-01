@@ -266,3 +266,29 @@ void SDFFactory::PerformSDFBake_CPUBlocking(SDFObject* object, const SDFEditList
 		m_PreviousBakeFence = computeQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 	}
 }
+
+
+void SDFFactory::LogBuildParameters(const SDFBuilderConstantBuffer& buildParams)
+{
+	XMFLOAT3 tempFloat3;
+
+	LOG_INFO("----- Build Params -----");
+
+	XMStoreFloat3(&tempFloat3, buildParams.EvalSpace_MinBoundary);
+	LOG_INFO("Min Boundary: {} {} {}", tempFloat3.x, tempFloat3.y, tempFloat3.z);
+
+	XMStoreFloat3(&tempFloat3, buildParams.EvalSpace_MaxBoundary);
+	LOG_INFO("Max Boundary: {} {} {}", tempFloat3.x, tempFloat3.y, tempFloat3.z);
+
+	LOG_INFO("Bricks Per Axis: {} {} {}", buildParams.EvalSpace_BricksPerAxis.x, buildParams.EvalSpace_BricksPerAxis.y, buildParams.EvalSpace_BricksPerAxis.z);
+
+	LOG_INFO("Brick Size: {}", buildParams.EvalSpace_BrickSize);
+
+	LOG_INFO("Brick Pool Capacity: {} {} {}", buildParams.BrickPool_BrickCapacityPerAxis.x, buildParams.BrickPool_BrickCapacityPerAxis.y, buildParams.BrickPool_BrickCapacityPerAxis.z);
+
+	LOG_INFO("Voxels Per Unit: {}", buildParams.EvalSpace_VoxelsPerUnit);
+
+	LOG_INFO("Edit Count: {}", buildParams.SDFEditCount);
+
+	LOG_INFO("------------------------");
+}

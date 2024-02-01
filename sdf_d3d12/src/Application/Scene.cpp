@@ -7,6 +7,7 @@
 #include "Framework/Math.h"
 
 #include "pix3.h"
+#include "Renderer/D3DDebugTools.h"
 
 
 // For debug output
@@ -270,7 +271,15 @@ bool Scene::ImGuiSceneInfo()
 		ImGui::Separator();
 
 		static bool checkbox = false;
-		m_Rebuild = ImGui::Button("Rebuild Once");
+		if (ImGui::Button("Rebuild Once"))
+		{
+			m_Rebuild = true;
+			D3DDebugTools::PIXGPUCaptureFrame(4);
+		}
+		else
+		{
+			m_Rebuild = false;
+		}
 		ImGui::Checkbox("Rebuild", &checkbox);
 		m_Rebuild |= checkbox;
 

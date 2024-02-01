@@ -61,6 +61,8 @@ protected:
 	// but it will not make the GPU wait on other GPU operations from other queues
 	void PerformSDFBake_CPUBlocking(SDFObject* object, const SDFEditList& editList);
 
+	static void LogBuildParameters(const struct SDFBuilderConstantBuffer& buildParams);
+
 protected:
 	// API objects
 

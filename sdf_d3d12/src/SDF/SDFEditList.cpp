@@ -42,6 +42,16 @@ D3D12_GPU_VIRTUAL_ADDRESS SDFEditList::GetEditBufferAddress() const
 }
 
 
+void SDFEditList::PrintEditList() const
+{
+	for (auto& edit : m_EditsStaging)
+	{
+		LOG_INFO("Shape: {} Scale: {}", edit.Shape, edit.Scale);
+	}
+}
+
+
+
 SDFEditData SDFEditList::BuildEditData(const SDFEdit& edit)
 {
 	SDFEditData primitiveData;

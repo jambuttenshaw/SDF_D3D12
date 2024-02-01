@@ -7,6 +7,8 @@
 #include "D3DGraphicsContext.h"
 
 
+UINT D3DDebugTools::s_CapturesTaken = 0;
+
 const char* BreadCrumbOpToStr(D3D12_AUTO_BREADCRUMB_OP op)
 {
 	switch (op)
@@ -147,6 +149,15 @@ void D3DDebugTools::D3DMessageHandler(D3D12_MESSAGE_CATEGORY Category, D3D12_MES
 	}
 
 }
+
+
+void D3DDebugTools::PIXGPUCaptureFrame(UINT frameCount)
+{
+	const std::wstring captureName = L"captures/capture" + std::to_wstring(s_CapturesTaken++) + L".wpix";
+	PIXGpuCaptureNextFrames(captureName.c_str(), frameCount);
+	LOG_INFO(L"Capture saved as: {}", captureName.c_str());
+}
+
 
 
 void D3DDebugTools::LogAutoBreadcrumbs(const D3D12_AUTO_BREADCRUMB_NODE1* breadcrumb)
