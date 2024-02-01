@@ -34,6 +34,7 @@
 #include <set>
 #include <array>
 #include <queue>
+#include <deque>
 
 #include <wrl.h>
 #include <shellapi.h>

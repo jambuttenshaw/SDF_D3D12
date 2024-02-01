@@ -266,4 +266,3 @@ void SDFFactory::PerformSDFBake_CPUBlocking(SDFObject* object, const SDFEditList
 		m_PreviousBakeFence = computeQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 	}
 }
-

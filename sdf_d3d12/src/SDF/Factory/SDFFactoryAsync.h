@@ -17,7 +17,6 @@ public:
 
 private:
 	void AsyncFactoryThreadProc();
-	void PerformSDFBake(SDFObject* object, const SDFEditList& editList, ID3D12GraphicsCommandList* commandList, ID3D12CommandAllocator* allocator);
 
 protected:
 	std::unique_ptr<std::thread> m_FactoryThread;
@@ -29,7 +28,7 @@ protected:
 		std::unique_ptr<SDFEditList> EditList;
 	};
 	// Queue of bakes to perform
-	std::queue<BuildQueueItem> m_BuildQueue;
+	std::deque<BuildQueueItem> m_BuildQueue;
 	std::mutex m_QueueMutex;
 
 	std::atomic<bool> m_Complete = false;
