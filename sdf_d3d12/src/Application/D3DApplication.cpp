@@ -6,6 +6,8 @@
 #include "backends/imgui_impl_win32.h"
 #include "backends/imgui_impl_dx12.h"
 
+#include "pix3.h"
+
 
 D3DApplication::D3DApplication(UINT width, UINT height, const std::wstring& name)
 	: BaseApplication(width, height, name)
@@ -38,6 +40,7 @@ void D3DApplication::OnInit()
 
 void D3DApplication::OnUpdate()
 {
+	PIXBeginEvent(PIX_COLOR_INDEX(0), L"App Update");
 	BeginUpdate();
 
 	m_Scene->OnUpdate(m_Timer.GetDeltaTime());
@@ -68,10 +71,13 @@ void D3DApplication::OnUpdate()
 	}
 
 	EndUpdate();
+	PIXEndEvent();
 }
 
 void D3DApplication::OnRender()
 {
+	PIXBeginEvent(PIX_COLOR_INDEX(1), L"App Render");
+
 	// Update constant buffer
 	m_GraphicsContext->UpdatePassCB(&m_Timer, &m_Camera, m_RenderFlags);
 
@@ -80,7 +86,7 @@ void D3DApplication::OnRender()
 
 	// Tell the scene that render is happening
 	// This will update acceleration structures and other things to render the scene
-	m_Scene->OnRender();
+	m_Scene->PreRender();
 
 	// Perform raytracing
 	m_Raytracer->DoRaytracing();
@@ -101,6 +107,7 @@ void D3DApplication::OnRender()
 	}
 
 	m_GraphicsContext->Present();
+	PIXEndEvent();
 }
 
 void D3DApplication::OnDestroy()

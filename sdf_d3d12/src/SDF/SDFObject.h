@@ -37,31 +37,31 @@ public:
 	DEFAULT_MOVE(SDFObject)
 
 	// Brick Pool
-	void AllocateOptimalBrickPool(UINT brickCount, ResourceGroup res = RESOURCES_READ);
-	ID3D12Resource* GetBrickPool(ResourceGroup res = RESOURCES_READ) const;
+	void AllocateOptimalBrickPool(UINT brickCount, ResourceGroup res);
+	ID3D12Resource* GetBrickPool(ResourceGroup res) const;
 
 	inline float GetBrickSize() const { return m_BrickSize; }
 
 	inline UINT GetBrickBufferCapacity() const { return m_BrickCapacity; }
 
-	UINT GetBrickCount(ResourceGroup res = RESOURCES_READ) const;
-	const XMUINT3& GetBrickPoolDimensions(ResourceGroup res = RESOURCES_READ) const;
-	UINT GetBrickPoolCapacity(ResourceGroup res = RESOURCES_READ) const;
+	UINT GetBrickCount(ResourceGroup res) const;
+	const XMUINT3& GetBrickPoolDimensions(ResourceGroup res) const;
+	UINT GetBrickPoolCapacity(ResourceGroup res) const;
 
 	// Geometry buffer
-	ID3D12Resource* GetAABBBuffer(ResourceGroup res = RESOURCES_READ) const;
-	D3D12_GPU_VIRTUAL_ADDRESS GetAABBBufferAddress(ResourceGroup res = RESOURCES_READ) const;
-	UINT GetAABBBufferStride(ResourceGroup res = RESOURCES_READ) const;
+	ID3D12Resource* GetAABBBuffer(ResourceGroup res) const;
+	D3D12_GPU_VIRTUAL_ADDRESS GetAABBBufferAddress(ResourceGroup res) const;
+	UINT GetAABBBufferStride(ResourceGroup res) const;
 
-	ID3D12Resource* GetBrickBuffer(ResourceGroup res = RESOURCES_READ) const;
-	D3D12_GPU_VIRTUAL_ADDRESS GetBrickBufferAddress(ResourceGroup res = RESOURCES_READ) const;
-	UINT GetBrickBufferStride(ResourceGroup res = RESOURCES_READ) const;
+	ID3D12Resource* GetBrickBuffer(ResourceGroup res) const;
+	D3D12_GPU_VIRTUAL_ADDRESS GetBrickBufferAddress(ResourceGroup res) const;
+	UINT GetBrickBufferStride(ResourceGroup res) const;
 
 	// Get Resource Views
-	D3D12_GPU_DESCRIPTOR_HANDLE GetBrickPoolSRV(ResourceGroup res = RESOURCES_READ) const;
-	D3D12_GPU_DESCRIPTOR_HANDLE GetBrickPoolUAV(ResourceGroup res = RESOURCES_READ) const;
-	D3D12_GPU_DESCRIPTOR_HANDLE GetAABBBufferUAV(ResourceGroup res = RESOURCES_READ) const;
-	D3D12_GPU_DESCRIPTOR_HANDLE GetBrickBufferUAV(ResourceGroup res = RESOURCES_READ) const;
+	D3D12_GPU_DESCRIPTOR_HANDLE GetBrickPoolSRV(ResourceGroup res) const;
+	D3D12_GPU_DESCRIPTOR_HANDLE GetBrickPoolUAV(ResourceGroup res) const;
+	D3D12_GPU_DESCRIPTOR_HANDLE GetAABBBufferUAV(ResourceGroup res) const;
+	D3D12_GPU_DESCRIPTOR_HANDLE GetBrickBufferUAV(ResourceGroup res) const;
 
 	// Acceleration structure properties
 	inline D3D12_RAYTRACING_GEOMETRY_FLAGS GetGeometryFlags() const { return m_GeometryFlags; }
@@ -78,9 +78,9 @@ public:
 	inline void ResetLocalArgsDirty() { m_IsLocalArgsDirty = false; }
 
 	// Memory usage
-	UINT64 GetBrickPoolSizeBytes(ResourceGroup res = RESOURCES_READ) const;
-	UINT64 GetAABBBufferSizeBytes(ResourceGroup res = RESOURCES_READ) const;
-	UINT64 GetBrickBufferSizeBytes(ResourceGroup res = RESOURCES_READ) const;
+	UINT64 GetBrickPoolSizeBytes(ResourceGroup res) const;
+	UINT64 GetAABBBufferSizeBytes(ResourceGroup res) const;
+	UINT64 GetBrickBufferSizeBytes(ResourceGroup res) const;
 
 	UINT64 GetTotalMemoryUsageBytes() const;
 

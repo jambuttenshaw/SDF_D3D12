@@ -52,6 +52,7 @@ void Raytracer::Setup(const Scene& scene)
 void Raytracer::DoRaytracing() const
 {
 	ASSERT(m_Scene, "No scene to raytrace!");
+	PIXBeginEvent(PIX_COLOR_INDEX(7), L"Do Raytracing");
 
 	// Update shader tables
 	UpdateHitGroupShaderTable();
@@ -62,7 +63,7 @@ void Raytracer::DoRaytracing() const
 	const auto commandList = g_D3DGraphicsContext->GetCommandList();
 	const auto dxrCommandList = g_D3DGraphicsContext->GetDXRCommandList();
 
-	PIXBeginEvent(commandList, PIX_COLOR_DEFAULT, "Do Raytracing");
+	PIXBeginEvent(commandList, PIX_COLOR_INDEX(7), "Do Raytracing");
 
 	// Perform raytracing commands 
 	commandList->SetComputeRootSignature(m_RaytracingGlobalRootSignature.Get());
@@ -92,6 +93,7 @@ void Raytracer::DoRaytracing() const
 
 	dxrCommandList->DispatchRays(&dispatchDesc);
 	PIXEndEvent(commandList);
+	PIXEndEvent();
 }
 
 
@@ -327,8 +329,8 @@ void Raytracer::BuildShaderTables()
 
 				LocalRootSignatureParams::RootArguments rootArgs;
 				rootArgs.brickProperties.BrickHalfSize = 0.5f * geometryInstance->GetBrickSize();
-				rootArgs.brickPoolSRV = geometryInstance->GetBrickPoolSRV();
-				rootArgs.brickBuffer = geometryInstance->GetBrickBufferAddress();
+				rootArgs.brickPoolSRV = geometryInstance->GetBrickPoolSRV(SDFObject::RESOURCES_READ);
+				rootArgs.brickBuffer = geometryInstance->GetBrickBufferAddress(SDFObject::RESOURCES_READ);
 
 				m_HitGroupShaderTable->AddRecord(ShaderRecord{
 					hitGroupShaderIdentifier,
@@ -366,8 +368,8 @@ void Raytracer::UpdateHitGroupShaderTable() const
 			{
 				LocalRootSignatureParams::RootArguments rootArgs;
 				rootArgs.brickProperties.BrickHalfSize = 0.5f * geometryInstance->GetBrickSize();
-				rootArgs.brickPoolSRV = geometryInstance->GetBrickPoolSRV();
-				rootArgs.brickBuffer = geometryInstance->GetBrickBufferAddress();
+				rootArgs.brickPoolSRV = geometryInstance->GetBrickPoolSRV(SDFObject::RESOURCES_READ);
+				rootArgs.brickBuffer = geometryInstance->GetBrickBufferAddress(SDFObject::RESOURCES_READ);
 
 				m_HitGroupShaderTable->UpdateRecord(geometryInstance->GetShaderRecordOffset(), ShaderRecord{
 					hitGroupShaderIdentifier,

@@ -6,6 +6,8 @@
 
 #include "Framework/Math.h"
 
+#include "pix3.h"
+
 
 // For debug output
 // convert wstring to UTF-8 string
@@ -188,6 +190,8 @@ Scene::Scene()
 
 void Scene::OnUpdate(float deltaTime)
 {
+	PIXBeginEvent(PIX_COLOR_INDEX(9), L"Scene Update");
+
 	// Manipulate objects in the scene
 	if (m_RotateInstances)
 	{
@@ -216,18 +220,28 @@ void Scene::OnUpdate(float deltaTime)
 	if (m_Rebuild)
 	{
 		BuildEditList(deltaTime);
-		m_Rebuild = false;
 	}
+
+	PIXEndEvent();
 }
 
-void Scene::OnRender()
+void Scene::PreRender()
 {
+	PIXBeginEvent(PIX_COLOR_INDEX(6), L"Scene Render");
+
 	// Check if the geometry should have its resources flipped
 	//CheckSDFGeometryUpdates(m_TorusObject.get());
 	//CheckSDFGeometryUpdates(m_SphereObject.get());
 	CheckSDFGeometryUpdates(m_Object.get());
 
 	UpdateAccelerationStructure();
+
+	PIXEndEvent();
+}
+
+void Scene::PostRender()
+{
+	m_Object->SetResourceState(SDFObject::RESOURCES_READ, SDFObject::RENDERED);
 }
 
 
@@ -253,17 +267,22 @@ bool Scene::ImGuiSceneInfo()
 		ImGui::Separator();
 
 		ImGui::Checkbox("Rotate Instances", &m_RotateInstances);
-		//ImGui::Checkbox("Rebuild", &m_Rebuild);
 		ImGui::Separator();
-		ImGui::SliderFloat("Blend", &m_SphereBlend, 0.0f, 0.5f);
-		ImGui::Separator();
+
+		static bool checkbox = false;
 		m_Rebuild = ImGui::Button("Rebuild Once");
+		ImGui::Checkbox("Rebuild", &checkbox);
+		m_Rebuild |= checkbox;
 
 		ImGui::Separator();
 
-		DisplaySDFObjectDebugInfo("Torus Object", m_TorusObject.get());
-		DisplaySDFObjectDebugInfo("Sphere Object", m_SphereObject.get());
-		DisplaySDFObjectDebugInfo("Sphere Object", m_Object.get());
+		ImGui::SliderFloat("Blend", &m_SphereBlend, 0.0f, 0.5f);
+
+		ImGui::Separator();
+
+		//DisplaySDFObjectDebugInfo("Torus Object", m_TorusObject.get());
+		//DisplaySDFObjectDebugInfo("Sphere Object", m_SphereObject.get());
+		DisplaySDFObjectDebugInfo("Dynamic Object", m_Object.get());
 
 		DisplayAccelerationStructureDebugInfo();
 
@@ -277,6 +296,8 @@ bool Scene::ImGuiSceneInfo()
 
 void Scene::BuildEditList(float deltaTime)
 {
+	PIXBeginEvent(PIX_COLOR_INDEX(10), L"Build Edit List");
+
 	static float t = 1;
 	t += deltaTime;
 
@@ -298,6 +319,8 @@ void Scene::BuildEditList(float deltaTime)
 	}
 
 	m_SDFFactory->BakeSDFSynchronous(m_Object.get(), editList, true);
+
+	PIXEndEvent();
 }
 
 
@@ -309,9 +332,9 @@ void Scene::CheckSDFGeometryUpdates(SDFObject* object)
 		// if WRITE resources have been COMPUTED
 
 		// set READ resources to SWITCHING
-		//ASSERT(object->GetResourcesState(SDFObject::RESOURCES_READ) == SDFObject::RENDERING || object->GetResourcesState(SDFObject::RESOURCES_READ) == SDFObject::COMPUTED, "Invalid flip!");
 		object->SetResourceState(SDFObject::RESOURCES_READ, SDFObject::READY_COMPUTE);
 		// flip READ and WRITE resources
+		PIXSetMarker(PIX_COLOR_INDEX(23), L"Flip resources");
 		object->FlipResources();
 	}
 
@@ -337,13 +360,13 @@ void Scene::DisplaySDFObjectDebugInfo(const char* name, const SDFObject* object)
 	ImGui::Text(name);
 	ImGui::PopStyleColor();
 
-	ImGui::Text("Brick Count: %d", object->GetBrickCount());
+	ImGui::Text("Brick Count: %d", object->GetBrickCount(SDFObject::RESOURCES_READ));
 
-	const auto brickPoolSize = object->GetBrickPoolDimensions();
+	const auto brickPoolSize = object->GetBrickPoolDimensions(SDFObject::RESOURCES_READ);
 	ImGui::Text("Brick Pool Size (bricks): %d, %d, %d", brickPoolSize.x, brickPoolSize.y, brickPoolSize.z);
-	ImGui::Text("Brick Pool Size (KB): %d", object->GetBrickPoolSizeBytes() / 1024);
+	ImGui::Text("Brick Pool Size (KB): %d", object->GetBrickPoolSizeBytes(SDFObject::RESOURCES_READ) / 1024);
 
-	const float poolUsage = 100.0f * (static_cast<float>(object->GetBrickCount()) / static_cast<float>(object->GetBrickPoolCapacity()));
+	const float poolUsage = 100.0f * (static_cast<float>(object->GetBrickCount(SDFObject::RESOURCES_READ)) / static_cast<float>(object->GetBrickPoolCapacity(SDFObject::RESOURCES_READ)));
 	ImGui::Text("Brick Pool Usage: %.1f", poolUsage);
 
 	ImGui::Text("Total Size (KB): %d", object->GetTotalMemoryUsageBytes() / 1024);

@@ -14,7 +14,8 @@ public:
 	Scene();
 
 	void OnUpdate(float deltaTime);
-	void OnRender();
+	void PreRender();
+	void PostRender();
 
 	// Getters
 	inline const std::vector<BottomLevelAccelerationStructureGeometry>& GetAllGeometries() const { return m_SceneGeometry; }

@@ -70,7 +70,7 @@ void BottomLevelAccelerationStructure::Build()
 	ASSERT(m_PrebuildInfo.ScratchDataSizeInBytes <= m_ScratchResource.GetResource()->GetDesc().Width, "Scratch buffer is too small.");
 
 	const auto commandList = g_D3DGraphicsContext->GetDXRCommandList();
-	PIXBeginEvent(commandList, PIX_COLOR_DEFAULT, "Build BLAS");
+	PIXBeginEvent(commandList, PIX_COLOR_INDEX(64), "Build BLAS");
 
 	const auto current = g_D3DGraphicsContext->GetCurrentBackBuffer();
 	m_CachedGeometryDescs[current] = m_GeometryDescs;
@@ -156,7 +156,7 @@ void BottomLevelAccelerationStructure::UpdateGeometry(const BottomLevelAccelerat
 		UINT64 newAABBs = 0;
 		for (const auto& instance : geometry.GeometryInstances)
 		{
-			newAABBs += instance->GetBrickCount();
+			newAABBs += instance->GetBrickCount(SDFObject::RESOURCES_READ);
 		}
 		// Rebuild if number of AABBs has changed
 		m_IsBuilt &= prevAABBs == newAABBs;
@@ -176,9 +176,9 @@ void BottomLevelAccelerationStructure::BuildGeometryDescs(const BottomLevelAccel
 		auto& desc = m_GeometryDescs.back();
 
 		desc.Flags = geometryInstance->GetGeometryFlags();
-		desc.AABBs.AABBCount = geometryInstance->GetBrickCount();
-		desc.AABBs.AABBs.StartAddress = geometryInstance->GetAABBBufferAddress();
-		desc.AABBs.AABBs.StrideInBytes = geometryInstance->GetAABBBufferStride();
+		desc.AABBs.AABBCount = geometryInstance->GetBrickCount(SDFObject::RESOURCES_READ);
+		desc.AABBs.AABBs.StartAddress = geometryInstance->GetAABBBufferAddress(SDFObject::RESOURCES_READ);
+		desc.AABBs.AABBs.StrideInBytes = geometryInstance->GetAABBBufferStride(SDFObject::RESOURCES_READ);
 	}
 }
 
@@ -225,7 +225,7 @@ void TopLevelAccelerationStructure::Build(UINT numInstanceDescs, D3D12_GPU_VIRTU
 	ASSERT(m_PrebuildInfo.ScratchDataSizeInBytes <= m_ScratchResource.GetResource()->GetDesc().Width, "Scratch buffer is too small.");
 
 	const auto commandList = g_D3DGraphicsContext->GetDXRCommandList();
-	PIXBeginEvent(commandList, PIX_COLOR_DEFAULT, "Build TLAS");
+	PIXBeginEvent(commandList, PIX_COLOR_INDEX(63), "Build TLAS");
 
 
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC topLevelBuildDesc = {};
@@ -350,7 +350,7 @@ void RaytracingAccelerationStructureManager::Build(bool forceBuild)
 	const auto commandList = g_D3DGraphicsContext->GetCommandList();
 	const auto frame = g_D3DGraphicsContext->GetCurrentBackBuffer();
 
-	PIXBeginEvent(commandList, PIX_COLOR_DEFAULT, "Build Acceleration Structure");
+	PIXBeginEvent(commandList, PIX_COLOR_INDEX(62), "Build Acceleration Structure");
 
 	// Copy staging buffer to GPU
 	m_BottomLevelInstanceDescs.at(frame).CopyElements(0, m_NumBottomLevelInstances, m_BottomLevelInstanceDescsStaging.data());

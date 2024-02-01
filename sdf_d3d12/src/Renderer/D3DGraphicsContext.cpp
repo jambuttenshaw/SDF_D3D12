@@ -101,6 +101,8 @@ D3DGraphicsContext::~D3DGraphicsContext()
 
 void D3DGraphicsContext::Present()
 {
+	PIXBeginEvent(PIX_COLOR_INDEX(4), L"Present");
+
 	const auto flags = m_WindowedMode && !m_VSyncEnabled ? DXGI_PRESENT_ALLOW_TEARING : 0;
 	const auto interval = m_VSyncEnabled ? 1 : 0;
 
@@ -121,6 +123,8 @@ void D3DGraphicsContext::Present()
 
 	MoveToNextFrame();
 	ProcessDeferrals(m_FrameIndex);
+
+	PIXEndEvent();
 }
 
 bool D3DGraphicsContext::CheckDeviceRemovedStatus() const
@@ -137,6 +141,8 @@ bool D3DGraphicsContext::CheckDeviceRemovedStatus() const
 
 void D3DGraphicsContext::StartDraw() const
 {
+	PIXBeginEvent(PIX_COLOR_INDEX(2), L"Start Draw");
+
 	// Command list allocators can only be reset when the associated
 	// command lists have finished execution on the GPU
 	m_CurrentFrameResources->ResetAllocator();
@@ -144,7 +150,7 @@ void D3DGraphicsContext::StartDraw() const
 	// Command lists can (and must) be reset after ExecuteCommandList() is called and before it is repopulated
 	THROW_IF_FAIL(m_CommandList->Reset(m_CurrentFrameResources->GetCommandAllocator(), nullptr));
 
-	PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_DEFAULT, "Begin Frame");
+	PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(2), "Begin Frame");
 
 	// Indicate the back buffer will be used as a render target
 	const auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_RenderTargets[m_FrameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -156,10 +162,14 @@ void D3DGraphicsContext::StartDraw() const
 	// Setup descriptor heaps
 	ID3D12DescriptorHeap* ppHeaps[] = { m_SRVHeap->GetHeap(), m_SamplerHeap->GetHeap() };
 	m_CommandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
+
+	PIXEndEvent();
 }
 
 void D3DGraphicsContext::EndDraw() const
 {
+	PIXBeginEvent(PIX_COLOR_INDEX(3), L"End Draw");
+
 	// Indicate that the back buffer will now be used to present
 	const auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_RenderTargets[m_FrameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 	m_CommandList->ResourceBarrier(1, &barrier);
@@ -173,11 +183,13 @@ void D3DGraphicsContext::EndDraw() const
 	const auto fenceValue = m_DirectQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
 	m_CurrentFrameResources->SetFence(fenceValue);
+
+	PIXEndEvent();
 }
 
 void D3DGraphicsContext::CopyRaytracingOutput(ID3D12Resource* raytracingOutput) const
 {
-	PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_DEFAULT, "Copy Raytracing Output");
+	PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(71), "Copy Raytracing Output");
 
 	const auto renderTarget = m_RenderTargets[m_FrameIndex].Get();
 
@@ -508,12 +520,16 @@ void D3DGraphicsContext::CreateProjectionMatrix()
 
 void D3DGraphicsContext::MoveToNextFrame()
 {
+	PIXBeginEvent(PIX_COLOR_INDEX(5), L"Move to next frame");
+
 	// Change the frame resources
 	m_FrameIndex = m_SwapChain->GetCurrentBackBufferIndex();
 	m_CurrentFrameResources = m_FrameResources[m_FrameIndex].get();
 
 	// If they are still being processed by the GPU, then wait until they are ready
 	m_DirectQueue->WaitForFenceCPUBlocking(m_CurrentFrameResources->GetFenceValue());
+
+	PIXEndEvent();
 }
 
 void D3DGraphicsContext::ProcessDeferrals(UINT frameIndex) const

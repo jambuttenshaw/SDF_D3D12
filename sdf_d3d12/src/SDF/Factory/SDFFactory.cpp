@@ -101,13 +101,14 @@ void SDFFactory::PerformSDFBake_CPUBlocking(SDFObject* object, const SDFEditList
 	THROW_IF_FAIL(m_CommandAllocator->Reset());
 	THROW_IF_FAIL(m_CommandList->Reset(m_CommandAllocator.Get(), nullptr));
 
-	PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_DEFAULT, "SDF Bake");
+	PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(15), "SDF Bake");
 
 	// Step 1: Setup constant buffer data and counter temporary resources
 	SDFBuilderConstantBuffer buildParamsBuffer;
 	UploadBuffer<UINT32> counterUpload;
 	ReadbackBuffer<UINT32> counterReadback;
 	{
+		PIXBeginEvent(PIX_COLOR_INDEX(15), L"Bake setup");
 		// Copy edit list
 		editList.CopyStagingToGPU();
 
@@ -138,11 +139,12 @@ void SDFFactory::PerformSDFBake_CPUBlocking(SDFObject* object, const SDFEditList
 		counterReadback.Allocate(device, 1, 0, L"Counter Readback");
 		// Copy 0 into the counter
 		counterUpload.CopyElement(0, 0);
+		PIXEndEvent();
 	}
 
 	// Step 2: Build command list to execute AABB builder compute shader
 	{
-		PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_DEFAULT, "Brick Builder");
+		PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(8), "Brick Builder");
 
 		ID3D12DescriptorHeap* ppDescriptorHeaps[] = { g_D3DGraphicsContext->GetSRVHeap()->GetHeap() };
 		m_CommandList->SetDescriptorHeaps(_countof(ppDescriptorHeaps), ppDescriptorHeaps);
@@ -181,18 +183,19 @@ void SDFFactory::PerformSDFBake_CPUBlocking(SDFObject* object, const SDFEditList
 
 		// Copy counter value to a readback resource
 		m_CounterResource.ReadValue(m_CommandList.Get(), counterReadback.GetResource());
+		PIXEndEvent(m_CommandList.Get());
 	}
 
 	// Step 3: Execute command list and wait until completion
 	{
-		PIXEndEvent(m_CommandList.Get());
-
 		THROW_IF_FAIL(m_CommandList->Close());
 		ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
 		const auto fenceValue = computeQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
 		// CPU wait until this work has been complete before continuing
+		PIXBeginEvent(PIX_COLOR_INDEX(17), L"Wait for first dispatch");
 		computeQueue->WaitForFenceCPUBlocking(fenceValue);
+		PIXEndEvent();
 
 		THROW_IF_FAIL(m_CommandAllocator->Reset());
 		THROW_IF_FAIL(m_CommandList->Reset(m_CommandAllocator.Get(), nullptr));
@@ -200,17 +203,20 @@ void SDFFactory::PerformSDFBake_CPUBlocking(SDFObject* object, const SDFEditList
 
 	// Step 4: Read counter value
 	{
+		PIXBeginEvent(PIX_COLOR_INDEX(18), L"Allocate pool");
+
 		// It is only save to read the counter value after the GPU has finished its work
 		const UINT brickCount = counterReadback.ReadElement(0);
 		object->AllocateOptimalBrickPool(brickCount, SDFObject::RESOURCES_WRITE);
 
 		// Update build data required for the next stage
 		buildParamsBuffer.BrickPool_BrickCapacityPerAxis = object->GetBrickPoolDimensions(SDFObject::RESOURCES_WRITE);
+		PIXEndEvent();
 	}
 
 	// Step 5: Build command list to execute SDF baker compute shader
 	{
-		PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_DEFAULT, "Brick Evaluator");
+		PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(22), "Brick Evaluator");
 
 		ID3D12DescriptorHeap* ppDescriptorHeaps[] = { g_D3DGraphicsContext->GetSRVHeap()->GetHeap() };
 		m_CommandList->SetDescriptorHeaps(_countof(ppDescriptorHeaps), ppDescriptorHeaps);
@@ -247,10 +253,10 @@ void SDFFactory::PerformSDFBake_CPUBlocking(SDFObject* object, const SDFEditList
 			auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(object->GetBrickPool(SDFObject::RESOURCES_WRITE), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 			m_CommandList->ResourceBarrier(1, &barrier);
 		}
+		PIXEndEvent(m_CommandList.Get());
 	}
 
 	// End all events before closing the command list
-	PIXEndEvent(m_CommandList.Get());
 	PIXEndEvent(m_CommandList.Get());
 
 	// Step 6: Execute command list and wait until completion
