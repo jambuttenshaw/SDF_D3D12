@@ -24,7 +24,9 @@ public:
 		READY_COMPUTE,
 		COMPUTING,
 		COMPUTED,
-		RENDERING
+		SWITCHING,
+		RENDERING,
+		RENDERED
 	};
 
 public:
@@ -47,9 +49,11 @@ public:
 	UINT GetBrickPoolCapacity(ResourceGroup res = RESOURCES_READ) const;
 
 	// Geometry buffer
+	ID3D12Resource* GetAABBBuffer(ResourceGroup res = RESOURCES_READ) const;
 	D3D12_GPU_VIRTUAL_ADDRESS GetAABBBufferAddress(ResourceGroup res = RESOURCES_READ) const;
 	UINT GetAABBBufferStride(ResourceGroup res = RESOURCES_READ) const;
 
+	ID3D12Resource* GetBrickBuffer(ResourceGroup res = RESOURCES_READ) const;
 	D3D12_GPU_VIRTUAL_ADDRESS GetBrickBufferAddress(ResourceGroup res = RESOURCES_READ) const;
 	UINT GetBrickBufferStride(ResourceGroup res = RESOURCES_READ) const;
 

@@ -150,6 +150,15 @@ void SDFFactory::PerformSDFBake_CPUBlocking(SDFObject* object, const SDFEditList
 		// Copy the initial counter value into the counter
 		m_CounterResource.SetValue(m_CommandList.Get(), counterUpload.GetResource());
 
+		{
+			D3D12_RESOURCE_BARRIER barriers[] =
+			{
+				CD3DX12_RESOURCE_BARRIER::Transition(object->GetAABBBuffer(SDFObject::RESOURCES_WRITE), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
+				CD3DX12_RESOURCE_BARRIER::Transition(object->GetBrickBuffer(SDFObject::RESOURCES_WRITE), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
+			};
+			m_CommandList->ResourceBarrier(ARRAYSIZE(barriers), barriers);
+		}
+
 		// Setup pipeline
 		m_BrickBuilderPipeline->Bind(m_CommandList.Get());
 
@@ -207,8 +216,15 @@ void SDFFactory::PerformSDFBake_CPUBlocking(SDFObject* object, const SDFEditList
 		m_CommandList->SetDescriptorHeaps(_countof(ppDescriptorHeaps), ppDescriptorHeaps);
 
 		// Scene texture must be in unordered access state
-		auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(object->GetBrickPool(SDFObject::RESOURCES_WRITE), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-		m_CommandList->ResourceBarrier(1, &barrier);
+		{
+			D3D12_RESOURCE_BARRIER barriers[] =
+			{
+				CD3DX12_RESOURCE_BARRIER::Transition(object->GetBrickPool(SDFObject::RESOURCES_WRITE), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
+				CD3DX12_RESOURCE_BARRIER::Transition(object->GetAABBBuffer(SDFObject::RESOURCES_WRITE), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE),
+				CD3DX12_RESOURCE_BARRIER::Transition(object->GetBrickBuffer(SDFObject::RESOURCES_WRITE), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE)
+			};
+			m_CommandList->ResourceBarrier(ARRAYSIZE(barriers), barriers);
+		}
 
 		// Set pipeline state
 		m_BrickEvaluatorPipeline->Bind(m_CommandList.Get());
@@ -227,8 +243,10 @@ void SDFFactory::PerformSDFBake_CPUBlocking(SDFObject* object, const SDFEditList
 		m_CommandList->Dispatch(threadGroupX, 1, 1);
 
 		// Brick pool resource will now be read from in the subsequent stages
-		barrier = CD3DX12_RESOURCE_BARRIER::Transition(object->GetBrickPool(SDFObject::RESOURCES_WRITE), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-		m_CommandList->ResourceBarrier(1, &barrier);
+		{
+			auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(object->GetBrickPool(SDFObject::RESOURCES_WRITE), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+			m_CommandList->ResourceBarrier(1, &barrier);
+		}
 	}
 
 	// End all events before closing the command list

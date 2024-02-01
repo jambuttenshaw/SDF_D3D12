@@ -24,10 +24,10 @@ Scene::Scene()
 	{
 		// Create SDF factory 
 		m_SDFFactory = std::make_unique<SDFFactorySync>();
-		m_SDFFactoryAsync = std::make_unique<SDFFactoryAsync>();
+		//m_SDFFactoryAsync = std::make_unique<SDFFactoryAsync>();
 
 		// Create SDF objects
-		m_Object = std::make_unique<SDFObject>(0.0625f, 65536);
+		m_Object = std::make_unique<SDFObject>(0.25f, 65536);
 		m_TorusObject = std::make_unique<SDFObject>(0.0625f, 65536);
 		m_SphereObject = std::make_unique<SDFObject>(0.0625f, 65536);
 
@@ -181,6 +181,8 @@ Scene::Scene()
 		// Init top level AS
 		m_AccelerationStructure->InitializeTopLevelAS(buildFlags, true, true, L"Top Level Acceleration Structure");
 	}
+
+	CheckSDFGeometryUpdates(m_Object.get());
 }
 
 
@@ -214,10 +216,8 @@ void Scene::OnUpdate(float deltaTime)
 	if (m_Rebuild)
 	{
 		BuildEditList(deltaTime);
+		m_Rebuild = false;
 	}
-
-	
-
 }
 
 void Scene::OnRender()
@@ -253,9 +253,11 @@ bool Scene::ImGuiSceneInfo()
 		ImGui::Separator();
 
 		ImGui::Checkbox("Rotate Instances", &m_RotateInstances);
-		ImGui::Checkbox("Rebuild", &m_Rebuild);
+		//ImGui::Checkbox("Rebuild", &m_Rebuild);
 		ImGui::Separator();
 		ImGui::SliderFloat("Blend", &m_SphereBlend, 0.0f, 0.5f);
+		ImGui::Separator();
+		m_Rebuild = ImGui::Button("Rebuild Once");
 
 		ImGui::Separator();
 
@@ -278,7 +280,7 @@ void Scene::BuildEditList(float deltaTime)
 	static float t = 1;
 	t += deltaTime;
 
-	SDFEditList editList(m_SphereCount + 2);
+	SDFEditList editList(m_SphereCount + 1);
 
 	editList.Reset();
 	editList.AddEdit(SDFEdit::CreateBoxFrame({}, { 1.0f, 1.0f, 1.0f }, 0.05f));
@@ -307,7 +309,7 @@ void Scene::CheckSDFGeometryUpdates(SDFObject* object)
 		// if WRITE resources have been COMPUTED
 
 		// set READ resources to SWITCHING
-		ASSERT(object->GetResourcesState(SDFObject::RESOURCES_WRITE) == SDFObject::RENDERING || object->GetResourcesState(SDFObject::RESOURCES_WRITE) == SDFObject::COMPUTED, "Invalid flip!");
+		//ASSERT(object->GetResourcesState(SDFObject::RESOURCES_READ) == SDFObject::RENDERING || object->GetResourcesState(SDFObject::RESOURCES_READ) == SDFObject::COMPUTED, "Invalid flip!");
 		object->SetResourceState(SDFObject::RESOURCES_READ, SDFObject::READY_COMPUTE);
 		// flip READ and WRITE resources
 		object->FlipResources();

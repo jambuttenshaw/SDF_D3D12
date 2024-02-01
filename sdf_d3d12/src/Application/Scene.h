@@ -40,7 +40,7 @@ private:
 
 	// SDF Objects
 	std::unique_ptr<SDFFactorySync> m_SDFFactory;
-	std::unique_ptr<SDFFactoryAsync> m_SDFFactoryAsync;
+	//std::unique_ptr<SDFFactoryAsync> m_SDFFactoryAsync;
 
 	std::unique_ptr<SDFObject> m_TorusObject;
 	std::unique_ptr<SDFObject> m_SphereObject;
@@ -58,8 +58,8 @@ private:
 	XMFLOAT3 m_InstanceTranslation[s_InstanceCount];
 
 	// GUI controls
-	bool m_RotateInstances = true;
-	bool m_Rebuild = true;
+	bool m_RotateInstances = false;
+	bool m_Rebuild = false;
 
 	struct SphereData
 	{

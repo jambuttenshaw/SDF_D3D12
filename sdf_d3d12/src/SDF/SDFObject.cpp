@@ -139,6 +139,11 @@ UINT SDFObject::GetBrickPoolCapacity(ResourceGroup res) const
 	return dims.x * dims.y * dims.z;
 }
 
+ID3D12Resource* SDFObject::GetAABBBuffer(ResourceGroup res) const
+{
+	return GetResources(res).AABBBuffer.GetResource();
+}
+
 D3D12_GPU_VIRTUAL_ADDRESS SDFObject::GetAABBBufferAddress(ResourceGroup res) const
 {
 	return GetResources(res).AABBBuffer.GetAddress();
@@ -146,6 +151,11 @@ D3D12_GPU_VIRTUAL_ADDRESS SDFObject::GetAABBBufferAddress(ResourceGroup res) con
 UINT SDFObject::GetAABBBufferStride(ResourceGroup res) const
 {
 	return GetResources(res).AABBBuffer.GetElementStride();
+}
+
+ID3D12Resource* SDFObject::GetBrickBuffer(ResourceGroup res) const
+{
+	return GetResources(res).BrickBuffer.GetResource();
 }
 
 D3D12_GPU_VIRTUAL_ADDRESS SDFObject::GetBrickBufferAddress(ResourceGroup res) const
