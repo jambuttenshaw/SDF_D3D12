@@ -50,8 +50,6 @@ void SDFFactoryAsync::BakeSDFAsync(SDFObject* object, SDFEditList&& editList)
 				object,
 				std::make_unique<SDFEditList>(std::move(editList))
 			});
-
-			m_Complete = false;
 		}
 	}
 }
@@ -110,6 +108,7 @@ void SDFFactoryAsync::AsyncFactoryThreadProc()
 			if (m_TerminateThread)
 				break;
 			PIXEndEvent();
+
 			PIXBeginEvent(PIX_COLOR_INDEX(24), L"Async Bake");
 
 			object->SetResourceState(SDFObject::RESOURCES_WRITE, SDFObject::COMPUTING);
@@ -128,7 +127,6 @@ void SDFFactoryAsync::AsyncFactoryThreadProc()
 			LOG_TRACE("Compute thread: work complete");
 
 			object->SetResourceState(SDFObject::RESOURCES_WRITE, SDFObject::COMPUTED);
-			m_Complete = true;
 
 			// Clear resources
 			object = nullptr;

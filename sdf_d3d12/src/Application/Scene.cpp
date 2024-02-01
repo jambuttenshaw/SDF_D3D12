@@ -28,9 +28,10 @@ Scene::Scene()
 		m_SDFFactoryAsync = std::make_unique<SDFFactoryAsync>();
 
 		// Create SDF objects
-		m_Object = std::make_unique<SDFObject>(0.0625f, 65536);
+		m_DynamicObject = std::make_unique<SDFObject>(0.0625f, 65536);
 		m_TorusObject = std::make_unique<SDFObject>(0.0625f, 65536);
 		m_SphereObject = std::make_unique<SDFObject>(0.0625f, 65536);
+		m_CubeObject = std::make_unique<SDFObject>(0.0625f, 65536);
 
 
 		/*
@@ -112,13 +113,30 @@ Scene::Scene()
 
 			BuildEditList(0.0f, false);
 		}
+		{
+			for (UINT i = 0; i < m_OctahedronCount; i++)
+			{
+				m_OctahedronData.push_back({});
+				OctahedronData& data = m_OctahedronData.back();
+				data.offset = {
+					Random::Float(-0.9f, 0.9f),
+					0,
+					Random::Float(-0.9f, 0.9f)
+				};
+				data.range = Random::Float(0.3f, 0.8f);
+				data.speed = Random::Float(0.5f, 2.0f);
+				data.scale = Random::Float(0.01f, 0.1f);
+			}
+			BuildEditList2(0.0f, false);
+		}
 	}
 
 	{
 		// Construct scene geometry
-		m_SceneGeometry.push_back({ L"Dynamic", m_Object.get()});
+		m_SceneGeometry.push_back({ L"Dynamic", m_DynamicObject.get()});
 		m_SceneGeometry.push_back({ L"Torus", m_TorusObject.get() });
 		m_SceneGeometry.push_back({ L"Spheres", m_SphereObject.get() });
+		m_SceneGeometry.push_back({ L"Cube", m_CubeObject.get() });
 	}
 
 	{
@@ -217,6 +235,7 @@ void Scene::OnUpdate(float deltaTime)
 	if (m_Rebuild)
 	{
 		BuildEditList(deltaTime, m_AsyncConstruction);
+		BuildEditList2(deltaTime, m_AsyncConstruction);
 	}
 
 	PIXEndEvent();
@@ -297,7 +316,7 @@ void Scene::BuildEditList(float deltaTime, bool async)
 {
 	PIXBeginEvent(PIX_COLOR_INDEX(10), L"Build Edit List");
 
-	static float t = 1;
+	static float t = 1.0f;
 	t += deltaTime;
 
 	SDFEditList editList(m_SphereCount + 1);
@@ -319,15 +338,53 @@ void Scene::BuildEditList(float deltaTime, bool async)
 
 	if (async)
 	{
-		m_SDFFactoryAsync->BakeSDFAsync(m_Object.get(), std::move(editList));
+		m_SDFFactoryAsync->BakeSDFAsync(m_DynamicObject.get(), std::move(editList));
 	}
 	else
 	{
-		m_SDFFactoryAsync->BakeSDFSync(m_Object.get(), std::move(editList));
+		m_SDFFactoryAsync->BakeSDFSync(m_DynamicObject.get(), std::move(editList));
 	}
 
 	PIXEndEvent();
 }
+
+void Scene::BuildEditList2(float deltaTime, bool async)
+{
+	PIXBeginEvent(PIX_COLOR_INDEX(31), L"Build Edit List 2");
+
+	static float t = 0.0f;
+	t += deltaTime;
+
+	SDFEditList editList(m_OctahedronCount + 1);
+
+	editList.Reset();
+	editList.AddEdit(SDFEdit::CreateBox({}, { 1.0f, 0.05f, 1.0f }));
+
+	for (UINT i = 0; i < m_OctahedronCount; i++)
+	{
+		Transform transform;
+		const OctahedronData& data = m_OctahedronData.at(i);
+		transform.SetTranslation({
+			data.offset.x,
+			data.offset.y + data.range * sinf(t * data.speed),
+			data.offset.z,
+		});
+		
+		editList.AddEdit(SDFEdit::CreateOctahedron(transform, data.scale, SDFOperation::SmoothUnion, m_OctahedronBlend));
+	}
+
+	if (async)
+	{
+		m_SDFFactoryAsync->BakeSDFAsync(m_CubeObject.get(), std::move(editList));
+	}
+	else
+	{
+		m_SDFFactoryAsync->BakeSDFSync(m_CubeObject.get(), std::move(editList));
+	}
+
+	PIXEndEvent();
+}
+
 
 
 void Scene::CheckSDFGeometryUpdates()

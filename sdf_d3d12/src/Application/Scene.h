@@ -29,6 +29,7 @@ public:
 
 private:
 	void BuildEditList(float deltaTime, bool async);
+	void BuildEditList2(float deltaTime, bool async);
 
 	void CheckSDFGeometryUpdates();
 	void UpdateAccelerationStructure();
@@ -47,10 +48,11 @@ private:
 
 	std::unique_ptr<SDFObject> m_TorusObject;
 	std::unique_ptr<SDFObject> m_SphereObject;
-	std::unique_ptr<SDFObject> m_Object;
+	std::unique_ptr<SDFObject> m_DynamicObject;
+	std::unique_ptr<SDFObject> m_CubeObject;
 
 	// Demo Scene
-	inline static constexpr UINT s_InstanceGridDims = 3;
+	inline static constexpr UINT s_InstanceGridDims = 4;
 	inline static constexpr UINT s_InstanceCount = s_InstanceGridDims * s_InstanceGridDims * s_InstanceGridDims;
 	inline static constexpr float s_InstanceSpacing = 8.0f;
 
@@ -71,6 +73,16 @@ private:
 	};
 	UINT m_SphereCount = 60;
 	std::vector<SphereData> m_SphereData;
-
 	float m_SphereBlend = 0.3f;
+
+	struct OctahedronData
+	{
+		XMFLOAT3 offset;
+		float range;
+		float speed;
+		float scale;
+	};
+	UINT m_OctahedronCount = 40;
+	std::vector<OctahedronData> m_OctahedronData;
+	float m_OctahedronBlend = 0.3f;
 };

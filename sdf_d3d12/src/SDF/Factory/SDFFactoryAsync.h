@@ -30,7 +30,4 @@ protected:
 	// Queue of bakes to perform
 	std::deque<BuildQueueItem> m_BuildQueue;
 	std::mutex m_QueueMutex;
-
-	std::atomic<bool> m_Complete = false;
-
 };
