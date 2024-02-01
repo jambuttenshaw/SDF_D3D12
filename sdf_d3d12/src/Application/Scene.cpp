@@ -332,10 +332,15 @@ void Scene::CheckSDFGeometryUpdates(SDFObject* object)
 		// if WRITE resources have been COMPUTED
 
 		// set READ resources to SWITCHING
-		object->SetResourceState(SDFObject::RESOURCES_READ, SDFObject::READY_COMPUTE);
+		object->SetResourceState(SDFObject::RESOURCES_READ, SDFObject::SWITCHING);
+
 		// flip READ and WRITE resources
 		PIXSetMarker(PIX_COLOR_INDEX(23), L"Flip resources");
 		object->FlipResources();
+	}
+	else if (object->GetResourcesState(SDFObject::RESOURCES_WRITE) == SDFObject::SWITCHING)
+	{
+		object->SetResourceState(SDFObject::RESOURCES_WRITE, SDFObject::READY_COMPUTE);
 	}
 
 	object->SetResourceState(SDFObject::RESOURCES_READ, SDFObject::RENDERING);

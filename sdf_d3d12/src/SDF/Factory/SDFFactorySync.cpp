@@ -15,6 +15,10 @@ void SDFFactorySync::BakeSDFSynchronous(SDFObject* object, const SDFEditList& ed
 	LOG_TRACE("-----SDF Factory Synchronous Bake Begin--------");
 	PIXBeginEvent(PIX_COLOR_INDEX(12), L"SDF Bake Synchronous");
 
+	const auto state = object->GetResourcesState(SDFObject::RESOURCES_WRITE);
+	// It's okay if the resource is in the switching state - we're going to wait on the render queue anyway
+	ASSERT(state == SDFObject::READY_COMPUTE || state == SDFObject::SWITCHING, "Invalid resource state");
+
 	const auto directQueue = g_D3DGraphicsContext->GetDirectCommandQueue();
 	const auto computeQueue = g_D3DGraphicsContext->GetComputeCommandQueue();
 
