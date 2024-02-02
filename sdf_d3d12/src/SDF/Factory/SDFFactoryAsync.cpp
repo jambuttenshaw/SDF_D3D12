@@ -37,32 +37,23 @@ void SDFFactoryAsync::BakeSDFSync(SDFObject* object, SDFEditList&& editList)
 
 void SDFFactoryAsync::BakeSDFAsync(SDFObject* object, SDFEditList&& editList)
 {
-	if (object->GetResourcesState(SDFObject::RESOURCES_WRITE) == SDFObject::COMPUTING)
 	{
-		// If another modification on this object is queued, we can intercept it and change the arguments
 		std::lock_guard lockGuard(m_QueueMutex);
 
+		// If this item has already been queued, then instead of queueing it again we can just update the arguments
 		for (auto& item : m_BuildQueue)
 		{
 			if (item.Object == object)
 			{
 				item.EditList = std::make_unique<SDFEditList>(std::move(editList));
-				break;
+				return;
 			}
 		}
-		return;
-	}
 
-	{
-		std::lock_guard lockGuard(m_QueueMutex);
-
-		if (m_BuildQueue.empty())
-		{
-			m_BuildQueue.push_back({ 
-				object,
-				std::make_unique<SDFEditList>(std::move(editList))
-			});
-		}
+		m_BuildQueue.push_back({ 
+			object,
+			std::make_unique<SDFEditList>(std::move(editList))
+		});
 	}
 }
 
@@ -82,22 +73,23 @@ void SDFFactoryAsync::AsyncFactoryThreadProc()
 
 		// Check for work
 		{
-			PIXBeginEvent(PIX_COLOR_INDEX(52), L"Check for work");
 			std::lock_guard lockGuard(m_QueueMutex);
+			PIXBeginEvent(PIX_COLOR_INDEX(52), L"Check for work");
+
 			if (!m_BuildQueue.empty())
 			{
+				m_AsyncInUse = true;
+
 				object = m_BuildQueue.front().Object;
 				editList = std::move(m_BuildQueue.front().EditList);
 				m_BuildQueue.pop_front();
-				LOG_TRACE("Work acquired");
 			}
+
 			PIXEndEvent();
 		}
 
 		if (object)
 		{
-			m_AsyncInUse = true;
-
 			// We have an object to process
 			PIXBeginEvent(PIX_COLOR_INDEX(53), L"Wait for resources");
 			while (!m_TerminateThread)
@@ -107,14 +99,11 @@ void SDFFactoryAsync::AsyncFactoryThreadProc()
 				if (resourceState == SDFObject::SWITCHING)
 				{
 					// Wait until rendering queue is finished with the resources
-					LOG_TRACE("Waiting on render queue to finish with resources");
 					directQueue->WaitForFenceCPUBlocking(directQueue->GetNextFenceValue() - 1);
-					LOG_TRACE("Render queue finished - resources ready for compute");
 					break;
 				}
 				if (resourceState == SDFObject::READY_COMPUTE)
 				{
-					LOG_TRACE("Resources ready for compute");
 					break;
 				}
 			}
@@ -137,8 +126,6 @@ void SDFFactoryAsync::AsyncFactoryThreadProc()
 			PIXBeginEvent(PIX_COLOR_INDEX(13), L"Wait for bake completion");
 			computeQueue->WaitForFenceCPUBlocking(m_PreviousBakeFence);
 			PIXEndEvent();
-
-			LOG_TRACE("Compute thread: work complete");
 
 			object->SetResourceState(SDFObject::RESOURCES_WRITE, SDFObject::COMPUTED);
 
