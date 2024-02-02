@@ -17,7 +17,7 @@ public:
 	virtual void BakeSDFSync(SDFObject* object, SDFEditList&& editList) override;
 	void BakeSDFAsync(SDFObject* object, SDFEditList&& editList);
 
-	float GetAsyncFPS() const { return m_Timer.GetFPS(); };
+	float GetAsyncBuildsPerSecond() const { return m_Timer.GetFPS(); };
 
 private:
 	void AsyncFactoryThreadProc();

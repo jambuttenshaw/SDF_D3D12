@@ -68,11 +68,12 @@ void SDFFactoryAsync::AsyncFactoryThreadProc()
 
 	m_Timer.Reset();
 
+	UINT objectsInPipe = 0;
+	std::array<SDFObject*, GetMaxPipelinedBuilds()>						allObjects;
+	std::array<std::unique_ptr<SDFEditList>, GetMaxPipelinedBuilds()>	allEditLists;
+
 	while (!m_TerminateThread)
 	{
-		SDFObject* object = nullptr;
-		std::unique_ptr<SDFEditList> editList;
-
 		m_Timer.Tick();
 
 		// Check for work
@@ -80,35 +81,42 @@ void SDFFactoryAsync::AsyncFactoryThreadProc()
 			std::lock_guard lockGuard(m_QueueMutex);
 			PIXBeginEvent(PIX_COLOR_INDEX(52), L"Check for work");
 
-			if (!m_BuildQueue.empty())
+			while (!m_BuildQueue.empty() && objectsInPipe < GetMaxPipelinedBuilds())
 			{
-				m_AsyncInUse = true;
 
-				object = m_BuildQueue.front().Object;
-				editList = std::move(m_BuildQueue.front().EditList);
+				allObjects[objectsInPipe] = m_BuildQueue.front().Object;
+				allEditLists[objectsInPipe] = std::move(m_BuildQueue.front().EditList);
+
 				m_BuildQueue.pop_front();
+				objectsInPipe++;
 			}
 
 			PIXEndEvent();
 		}
 
-		if (object)
+		if (objectsInPipe > 0)
 		{
 			// We have an object to process
 			PIXBeginEvent(PIX_COLOR_INDEX(53), L"Wait for resources");
-			while (!m_TerminateThread)
+
+			// Make sure the resources for each object in the pipe are available to write
+			// When this fence value is reached, any resources being previously used by the GPU will now be available
+			const UINT64 fenceValue = directQueue->GetNextFenceValue() - 1;
+			for (UINT i = 0; i < objectsInPipe; i++)
 			{
-				// Make sure the resources are available to write
-				const auto resourceState = object->GetResourcesState(SDFObject::RESOURCES_WRITE);
-				if (resourceState == SDFObject::SWITCHING)
+				while (!m_TerminateThread)
 				{
-					// Wait until rendering queue is finished with the resources
-					directQueue->WaitForFenceCPUBlocking(directQueue->GetNextFenceValue() - 1);
-					break;
-				}
-				if (resourceState == SDFObject::READY_COMPUTE)
-				{
-					break;
+					const auto resourceState = allObjects.at(i)->GetResourcesState(SDFObject::RESOURCES_WRITE);
+					if (resourceState == SDFObject::SWITCHING)
+					{
+						// Wait until rendering queue is finished with the resources
+						directQueue->WaitForFenceCPUBlocking(fenceValue);
+						break;
+					}
+					if (resourceState == SDFObject::READY_COMPUTE)
+					{
+						break;
+					}
 				}
 			}
 			// Just in case application exists while we were waiting for resources to be ready
@@ -117,29 +125,42 @@ void SDFFactoryAsync::AsyncFactoryThreadProc()
 			PIXEndEvent();
 
 			PIXBeginEvent(PIX_COLOR_INDEX(24), L"Async Bake");
+			m_AsyncInUse = true;
 
-			object->SetResourceState(SDFObject::RESOURCES_WRITE, SDFObject::COMPUTING);
+			for (UINT i = 0; i < objectsInPipe; i++)
+			{
+				allObjects.at(i)->SetResourceState(SDFObject::RESOURCES_WRITE, SDFObject::COMPUTING);
+			}
 
 			PIXBeginEvent(PIX_COLOR_INDEX(14), L"Wait for previous bake");
 			computeQueue->WaitForFenceCPUBlocking(m_PreviousBakeFence);
 			PIXEndEvent();
 
-			PerformSDFBake_CPUBlocking(object, *editList.get());
+			std::array<SDFEditList*, GetMaxPipelinedBuilds()> ppEditLists;
+			for (UINT i = 0; i < objectsInPipe; i++)
+			{
+				ppEditLists[i] = allEditLists.at(i).get();
+			}
+			PerformPipelinedSDFBake_CPUBlocking(objectsInPipe, allObjects.data(), ppEditLists.data());
 
 			// The CPU can optionally wait until the operations have completed too
 			PIXBeginEvent(PIX_COLOR_INDEX(13), L"Wait for bake completion");
 			computeQueue->WaitForFenceCPUBlocking(m_PreviousBakeFence);
 			PIXEndEvent();
 
-			object->SetResourceState(SDFObject::RESOURCES_WRITE, SDFObject::COMPUTED);
+			for (UINT i = 0; i < objectsInPipe; i++)
+			{
+				allObjects.at(i)->SetResourceState(SDFObject::RESOURCES_WRITE, SDFObject::COMPUTED);
+			}
 
 			// Clear resources
-			object = nullptr;
-			editList.reset();
-
-			PIXEndEvent();
+			allObjects.fill(nullptr);
+			for (auto& editList : allEditLists)
+				editList.reset();
+			objectsInPipe = 0;
 
 			m_AsyncInUse = false;
+			PIXEndEvent();
 		}
 
 		// Yield to other threads

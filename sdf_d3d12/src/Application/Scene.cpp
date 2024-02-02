@@ -293,7 +293,7 @@ bool Scene::ImGuiSceneInfo()
 			m_Rebuild |= checkbox;
 		}
 		ImGui::Checkbox("Async Construction", &m_AsyncConstruction);
-		ImGui::Text("Async FPS: %.1f", m_AsyncConstruction ? m_SDFFactoryAsync->GetAsyncFPS() : 0.0f);
+		ImGui::Text("Async Builds/Sec: %.1f", m_AsyncConstruction ? m_SDFFactoryAsync->GetAsyncBuildsPerSecond() : 0.0f);
 
 		ImGui::Separator();
 

@@ -47,12 +47,13 @@ class SDFFactory
 protected:
 	SDFFactory();
 public:
-	virtual ~SDFFactory();
+	virtual ~SDFFactory() = default;
 
 	DISALLOW_COPY(SDFFactory)
 	DEFAULT_MOVE(SDFFactory)
 
 	// The default SDF Factory only supports sync building
+	// This will make both the GPU rendering queue and the CPU main thread wait until bake completion
 	virtual void BakeSDFSync(SDFObject* object, SDFEditList&& editList);
 
 private:
@@ -63,6 +64,9 @@ protected:
 	// Builds and submits the SDF bake operations to the GPU. This can block the CPU while GPU operations are happening,
 	// but it will not make the GPU wait on other GPU operations from other queues
 	void PerformSDFBake_CPUBlocking(SDFObject* object, const SDFEditList& editList);
+
+	inline static constexpr UINT GetMaxPipelinedBuilds() { return s_MaxPipelinedObjects; }
+	void PerformPipelinedSDFBake_CPUBlocking(UINT count, SDFObject** ppObjects, SDFEditList** editLists);
 
 	static void LogBuildParameters(const struct SDFBuilderConstantBuffer& buildParams);
 
@@ -77,8 +81,8 @@ protected:
 	std::unique_ptr<D3DComputePipeline> m_BrickBuilderPipeline;
 	std::unique_ptr<D3DComputePipeline> m_BrickEvaluatorPipeline;
 
+	inline static constexpr UINT s_MaxPipelinedObjects = 8;
 	CounterResource m_CounterResource;
-	DescriptorAllocation m_CounterResourceUAV;
 
 	// The fence value that will signal when the previous bake has completed
 	UINT64 m_PreviousBakeFence = 0;		

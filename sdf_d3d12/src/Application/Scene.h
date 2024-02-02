@@ -62,7 +62,7 @@ private:
 	XMFLOAT3 m_InstanceTranslation[s_InstanceCount];
 
 	// GUI controls
-	bool m_RotateInstances = false;
+	bool m_RotateInstances = true;
 	bool m_Rebuild = false;
 	bool m_AsyncConstruction = false;
 

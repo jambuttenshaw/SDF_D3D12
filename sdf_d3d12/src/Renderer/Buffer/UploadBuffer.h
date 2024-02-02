@@ -89,6 +89,10 @@ public:
 		ASSERT(start + count - 1 < m_ElementCount, "Out of bounds access");
 		memcpy(&m_MappedData[start * m_ElementStride], data, count * sizeof(T));
 	}
+	void SetElements(UINT start, UINT count, int value) const
+	{
+		memset(&m_MappedData[start * m_ElementStride], value, count * m_ElementStride);
+	}
 
 private:
 	ComPtr<ID3D12Resource> m_UploadBuffer;
