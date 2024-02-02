@@ -356,7 +356,7 @@ void Scene::BuildEditList2(float deltaTime, bool async)
 	static float t = 0.0f;
 	t += deltaTime;
 
-	SDFEditList editList(m_OctahedronCount + 1);
+	SDFEditList editList(m_OctahedronCount + 2);
 
 	editList.Reset();
 	editList.AddEdit(SDFEdit::CreateBox({}, { 0.75f, 0.05f, 0.75f }));
@@ -373,6 +373,9 @@ void Scene::BuildEditList2(float deltaTime, bool async)
 		
 		editList.AddEdit(SDFEdit::CreateOctahedron(transform, data.scale, SDFOperation::SmoothUnion, m_OctahedronBlend));
 	}
+
+	const float r = 0.3f + 0.2f * sinf(t);
+	editList.AddEdit(SDFEdit::CreateSphere({}, r, SDFOperation::SmoothSubtraction, m_OctahedronBlend));
 
 	if (async)
 	{
