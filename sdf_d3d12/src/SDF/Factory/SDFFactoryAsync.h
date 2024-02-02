@@ -13,6 +13,7 @@ public:
 	DISALLOW_COPY(SDFFactoryAsync)
 	DEFAULT_MOVE(SDFFactoryAsync)
 
+	virtual void BakeSDFSync(SDFObject* object, SDFEditList&& editList) override;
 	void BakeSDFAsync(SDFObject* object, SDFEditList&& editList);
 
 private:
@@ -21,6 +22,7 @@ private:
 protected:
 	std::unique_ptr<std::thread> m_FactoryThread;
 	std::atomic<bool> m_TerminateThread = false;
+	std::atomic<bool> m_AsyncInUse = false;
 
 	struct BuildQueueItem
 	{

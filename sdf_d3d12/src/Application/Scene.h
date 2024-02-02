@@ -49,7 +49,7 @@ private:
 	std::unique_ptr<SDFObject> m_TorusObject;
 	std::unique_ptr<SDFObject> m_SphereObject;
 	std::unique_ptr<SDFObject> m_DynamicObject;
-	std::unique_ptr<SDFObject> m_CubeObject;
+	std::unique_ptr<SDFObject> m_OctahedronObject;
 
 	// Demo Scene
 	inline static constexpr UINT s_InstanceGridDims = 4;

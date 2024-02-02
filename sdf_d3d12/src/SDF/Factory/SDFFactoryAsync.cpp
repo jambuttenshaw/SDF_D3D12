@@ -23,6 +23,18 @@ SDFFactoryAsync::~SDFFactoryAsync()
 	}
 }
 
+void SDFFactoryAsync::BakeSDFSync(SDFObject* object, SDFEditList&& editList)
+{
+	if (m_AsyncInUse)
+	{
+		LOG_TRACE("Async compute in use - cannot perform sync bake.");
+		return;
+	}
+
+	SDFFactory::BakeSDFSync(object, std::move(editList));
+}
+
+
 void SDFFactoryAsync::BakeSDFAsync(SDFObject* object, SDFEditList&& editList)
 {
 	if (object->GetResourcesState(SDFObject::RESOURCES_WRITE) == SDFObject::COMPUTING)
@@ -84,6 +96,8 @@ void SDFFactoryAsync::AsyncFactoryThreadProc()
 
 		if (object)
 		{
+			m_AsyncInUse = true;
+
 			// We have an object to process
 			PIXBeginEvent(PIX_COLOR_INDEX(53), L"Wait for resources");
 			while (!m_TerminateThread)
@@ -133,6 +147,8 @@ void SDFFactoryAsync::AsyncFactoryThreadProc()
 			editList.reset();
 
 			PIXEndEvent();
+
+			m_AsyncInUse = false;
 		}
 
 		// Yield to other threads

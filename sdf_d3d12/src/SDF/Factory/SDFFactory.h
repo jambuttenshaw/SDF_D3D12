@@ -53,7 +53,7 @@ public:
 	DEFAULT_MOVE(SDFFactory)
 
 	// The default SDF Factory only supports sync building
-	void BakeSDFSync(SDFObject* object, SDFEditList&& editList);
+	virtual void BakeSDFSync(SDFObject* object, SDFEditList&& editList);
 
 private:
 	void InitializePipelines();

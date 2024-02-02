@@ -31,7 +31,7 @@ Scene::Scene()
 		m_DynamicObject = std::make_unique<SDFObject>(0.0625f, 65536);
 		m_TorusObject = std::make_unique<SDFObject>(0.0625f, 65536);
 		m_SphereObject = std::make_unique<SDFObject>(0.0625f, 65536);
-		m_CubeObject = std::make_unique<SDFObject>(0.0625f, 65536);
+		m_OctahedronObject = std::make_unique<SDFObject>(0.0625f, 65536);
 
 
 		/*
@@ -119,9 +119,9 @@ Scene::Scene()
 				m_OctahedronData.push_back({});
 				OctahedronData& data = m_OctahedronData.back();
 				data.offset = {
-					Random::Float(-0.9f, 0.9f),
+					Random::Float(-0.7f, 0.7f),
 					0,
-					Random::Float(-0.9f, 0.9f)
+					Random::Float(-0.7f, 0.7f)
 				};
 				data.range = Random::Float(0.3f, 0.8f);
 				data.speed = Random::Float(0.5f, 2.0f);
@@ -136,7 +136,7 @@ Scene::Scene()
 		m_SceneGeometry.push_back({ L"Dynamic", m_DynamicObject.get()});
 		m_SceneGeometry.push_back({ L"Torus", m_TorusObject.get() });
 		m_SceneGeometry.push_back({ L"Spheres", m_SphereObject.get() });
-		m_SceneGeometry.push_back({ L"Cube", m_CubeObject.get() });
+		m_SceneGeometry.push_back({ L"Octahedron", m_OctahedronObject.get() });
 	}
 
 	{
@@ -296,7 +296,8 @@ bool Scene::ImGuiSceneInfo()
 
 		ImGui::Separator();
 
-		ImGui::SliderFloat("Blend", &m_SphereBlend, 0.0f, 0.5f);
+		ImGui::SliderFloat("Sphere Blend", &m_SphereBlend, 0.0f, 0.5f);
+		ImGui::SliderFloat("Oct Blend", &m_OctahedronBlend, 0.0f, 0.5f);
 
 		ImGui::Separator();
 
@@ -358,7 +359,7 @@ void Scene::BuildEditList2(float deltaTime, bool async)
 	SDFEditList editList(m_OctahedronCount + 1);
 
 	editList.Reset();
-	editList.AddEdit(SDFEdit::CreateBox({}, { 1.0f, 0.05f, 1.0f }));
+	editList.AddEdit(SDFEdit::CreateBox({}, { 0.75f, 0.05f, 0.75f }));
 
 	for (UINT i = 0; i < m_OctahedronCount; i++)
 	{
@@ -375,11 +376,11 @@ void Scene::BuildEditList2(float deltaTime, bool async)
 
 	if (async)
 	{
-		m_SDFFactoryAsync->BakeSDFAsync(m_CubeObject.get(), std::move(editList));
+		m_SDFFactoryAsync->BakeSDFAsync(m_OctahedronObject.get(), std::move(editList));
 	}
 	else
 	{
-		m_SDFFactoryAsync->BakeSDFSync(m_CubeObject.get(), std::move(editList));
+		m_SDFFactoryAsync->BakeSDFSync(m_OctahedronObject.get(), std::move(editList));
 	}
 
 	PIXEndEvent();

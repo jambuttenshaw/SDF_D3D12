@@ -55,7 +55,7 @@ void SDFFactory::BakeSDFSync(SDFObject* object, SDFEditList&& editList)
 	const auto state = object->GetResourcesState(SDFObject::RESOURCES_WRITE);
 	if (!(state == SDFObject::READY_COMPUTE || state == SDFObject::SWITCHING))
 	{
-		LOG_INFO("Object in use by async bake - sync bake cannot be performed.");
+		LOG_TRACE("Object in use by async bake - sync bake cannot be performed.");
 		return;
 	}
 
