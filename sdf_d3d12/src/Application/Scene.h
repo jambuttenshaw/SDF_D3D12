@@ -48,7 +48,7 @@ private:
 
 	std::unique_ptr<SDFObject> m_TorusObject;
 	std::unique_ptr<SDFObject> m_SphereObject;
-	std::unique_ptr<SDFObject> m_DynamicObject;
+	std::unique_ptr<SDFObject> m_BlobObject;
 	std::unique_ptr<SDFObject> m_OctahedronObject;
 
 	// Demo Scene
@@ -66,6 +66,8 @@ private:
 	bool m_Rebuild = false;
 	bool m_AsyncConstruction = false;
 
+	float m_TimeScale = 0.5f;
+
 	struct SphereData
 	{
 		XMFLOAT3 scale;
@@ -73,7 +75,7 @@ private:
 	};
 	UINT m_SphereCount = 60;
 	std::vector<SphereData> m_SphereData;
-	float m_SphereBlend = 0.3f;
+	float m_SphereBlend = 0.4f;
 
 	struct OctahedronData
 	{
@@ -81,8 +83,9 @@ private:
 		float range;
 		float speed;
 		float scale;
+		bool sphere;
 	};
-	UINT m_OctahedronCount = 40;
+	UINT m_OctahedronCount = 30;
 	std::vector<OctahedronData> m_OctahedronData;
 	float m_OctahedronBlend = 0.3f;
 };
