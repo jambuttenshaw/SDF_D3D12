@@ -2,6 +2,7 @@
 
 
 #include "SDFFactory.h"
+#include "Framework/GameTimer.h"
 
 
 class SDFFactoryAsync : public SDFFactory
@@ -16,10 +17,14 @@ public:
 	virtual void BakeSDFSync(SDFObject* object, SDFEditList&& editList) override;
 	void BakeSDFAsync(SDFObject* object, SDFEditList&& editList);
 
+	float GetAsyncFPS() const { return m_Timer.GetFPS(); };
+
 private:
 	void AsyncFactoryThreadProc();
 
 protected:
+	GameTimer m_Timer;
+
 	std::unique_ptr<std::thread> m_FactoryThread;
 	std::atomic<bool> m_TerminateThread = false;
 	std::atomic<bool> m_AsyncInUse = false;

@@ -66,10 +66,14 @@ void SDFFactoryAsync::AsyncFactoryThreadProc()
 	const auto computeQueue = g_D3DGraphicsContext->GetComputeCommandQueue();
 	const auto directQueue = g_D3DGraphicsContext->GetDirectCommandQueue();
 
+	m_Timer.Reset();
+
 	while (!m_TerminateThread)
 	{
 		SDFObject* object = nullptr;
 		std::unique_ptr<SDFEditList> editList;
+
+		m_Timer.Tick();
 
 		// Check for work
 		{
