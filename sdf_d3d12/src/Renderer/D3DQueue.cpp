@@ -70,22 +70,16 @@ void D3DQueue::InsertWaitForQueue(const D3DQueue* otherQueue) const
 
 void D3DQueue::WaitForFenceCPUBlocking(UINT64 fenceValue)
 {
-	if (IsFenceComplete(fenceValue))
-	{
-		return;
-	}
-
+	while (!IsFenceComplete(fenceValue))
 	{
 		std::lock_guard lockGuard(m_EventMutex);
-
-		do
+		if (!IsFenceComplete(fenceValue))
 		{
 			m_Fence->SetEventOnCompletion(fenceValue, m_FenceEventHandle);
 			WaitForSingleObjectEx(m_FenceEventHandle, INFINITE, false);
-		} while (!IsFenceComplete(fenceValue));
-
-		m_LastCompletedFenceValue = fenceValue;
+		}
 	}
+	m_LastCompletedFenceValue = fenceValue;
 }
 
 void D3DQueue::WaitForIdleCPUBlocking()
