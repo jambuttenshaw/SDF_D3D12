@@ -10,7 +10,7 @@
 #define BRICK_COUNTING_GROUP BRICK_COUNTING_THREADS * BRICK_COUNTING_THREADS * BRICK_COUNTING_THREADS
 
 
-ConstantBuffer<BuildParametersCB> g_BuildParameters : register(b0);
+ConstantBuffer<BrickBuildParametersConstantBuffer> g_BuildParameters : register(b0);
 
 // Ping-pong buffers for outputting the new bricks created from the sub-bricks
 ByteAddressBuffer g_InBrickCounter : register(t0);

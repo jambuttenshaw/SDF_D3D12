@@ -16,7 +16,7 @@
  *
  */
 
-ConstantBuffer<SDFBuilderConstantBuffer> g_BuildParameters : register(b0);
+ConstantBuffer<BrickEvaluationConstantBuffer> g_BuildParameters : register(b0);
 StructuredBuffer<SDFEditData> g_EditList : register(t0);
 
 RWByteAddressBuffer g_Counter : register(u0);

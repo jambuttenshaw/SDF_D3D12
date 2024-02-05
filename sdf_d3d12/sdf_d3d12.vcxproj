@@ -177,6 +177,7 @@
     <ClCompile Include="src\Renderer\Raytracing\AccelerationStructure.cpp" />
     <ClCompile Include="src\Renderer\Raytracing\Raytracer.cpp" />
     <ClCompile Include="src\SDF\Factory\SDFFactoryAsync.cpp" />
+    <ClCompile Include="src\SDF\Factory\SDFFactoryHierarchical.cpp" />
     <ClCompile Include="src\SDF\SDFEditList.cpp" />
     <ClCompile Include="src\SDF\Factory\SDFFactory.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
@@ -250,6 +251,7 @@
     <ClInclude Include="src\Renderer\Memory\MemoryAllocator.h" />
     <ClInclude Include="src\Renderer\Raytracing\AccelerationStructure.h" />
     <ClInclude Include="src\SDF\Factory\SDFFactoryAsync.h" />
+    <ClInclude Include="src\SDF\Factory\SDFFactoryHierarchical.h" />
     <ClInclude Include="src\SDF\SDFEditList.h" />
     <ClInclude Include="src\SDF\Factory\SDFFactory.h" />
     <ClInclude Include="src\SDF\SDFObject.h" />
@@ -265,6 +267,10 @@
     <ClInclude Include="vendor\imgui\imstb_truetype.h" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="assets\shaders\compute\aabb_builder.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
     <FxCompile Include="assets\shaders\compute\brick_builder.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>

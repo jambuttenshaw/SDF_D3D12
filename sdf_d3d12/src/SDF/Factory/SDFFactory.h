@@ -43,9 +43,8 @@ namespace BrickBuildComputeRootSignature
  */
 class SDFFactory
 {
-protected:
-	SDFFactory();
 public:
+	SDFFactory();
 	virtual ~SDFFactory() = default;
 
 	DISALLOW_COPY(SDFFactory)
@@ -67,7 +66,7 @@ protected:
 	inline static constexpr UINT GetMaxPipelinedBuilds() { return s_MaxPipelinedObjects; }
 	void PerformPipelinedSDFBake_CPUBlocking(UINT count, SDFObject** ppObjects, SDFEditList** editLists);
 
-	static void LogBuildParameters(const struct SDFBuilderConstantBuffer& buildParams);
+	static void LogBuildParameters(const struct BrickEvaluationConstantBuffer& buildParams);
 
 protected:
 	// API objects

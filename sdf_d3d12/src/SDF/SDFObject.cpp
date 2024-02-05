@@ -4,13 +4,16 @@
 #include "Renderer/D3DGraphicsContext.h"
 #include "Renderer/Hlsl/ComputeHlslCompat.h"
 
-SDFObject::SDFObject(float brickSize, UINT brickCapacity, D3D12_RAYTRACING_GEOMETRY_FLAGS geometryFlags)
+SDFObject::SDFObject(float minBrickSize, UINT brickCapacity, D3D12_RAYTRACING_GEOMETRY_FLAGS geometryFlags)
 	: m_GeometryFlags(geometryFlags)
 {
-	ASSERT(brickSize > 0.0f, "Invalid brick size!");
+	ASSERT(minBrickSize > 0.0f, "Invalid brick size!");
 	ASSERT(brickCapacity > 0, "Invalid brick capacity!");
 
-	m_BrickSize = brickSize;
+	ASSERT(false, "Resources should now be allocated when brick count is calculated");
+	// TODO: The brick buffer can be copied from the CS temporary buffer into this objects resources - that way the buffer is perfectly sized
+
+	m_MinBrickSize = minBrickSize;
 	m_BrickCapacity = brickCapacity;
 
 	const auto device = g_D3DGraphicsContext->GetDevice();

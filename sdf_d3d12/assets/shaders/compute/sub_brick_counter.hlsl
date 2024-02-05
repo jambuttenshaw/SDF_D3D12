@@ -13,7 +13,7 @@
 #define BRICK_COUNTING_GROUP BRICK_COUNTING_THREADS * BRICK_COUNTING_THREADS * BRICK_COUNTING_THREADS
 
 
-ConstantBuffer<BuildParametersCB> g_BuildParameters : register(b0);
+ConstantBuffer<BrickBuildParametersConstantBuffer> g_BuildParameters : register(b0);
 
 // In the sub-brick counter, no new bricks are created or consumed
 // The brick counter should therefore be read-only

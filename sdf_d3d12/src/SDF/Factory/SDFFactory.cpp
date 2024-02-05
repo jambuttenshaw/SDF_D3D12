@@ -83,7 +83,7 @@ void SDFFactory::InitializePipelines()
 		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 2);
 
 		CD3DX12_ROOT_PARAMETER1 rootParameters[AABBBuilderComputeRootSignature::Count];
-		rootParameters[AABBBuilderComputeRootSignature::BuildParameterSlot].InitAsConstants(SizeOfInUint32(SDFBuilderConstantBuffer), 0);
+		rootParameters[AABBBuilderComputeRootSignature::BuildParameterSlot].InitAsConstants(SizeOfInUint32(BrickEvaluationConstantBuffer), 0);
 		rootParameters[AABBBuilderComputeRootSignature::EditListSlot].InitAsShaderResourceView(0);
 		rootParameters[AABBBuilderComputeRootSignature::CounterResourceSlot].InitAsUnorderedAccessView(0);
 		rootParameters[AABBBuilderComputeRootSignature::AABBBufferSlot].InitAsDescriptorTable(1, &ranges[0]);
@@ -104,7 +104,7 @@ void SDFFactory::InitializePipelines()
 		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1);
 
 		CD3DX12_ROOT_PARAMETER1 rootParameters[BrickBuildComputeRootSignature::Count];
-		rootParameters[BrickBuildComputeRootSignature::BuildParameterSlot].InitAsConstants(SizeOfInUint32(SDFBuilderConstantBuffer), 0);
+		rootParameters[BrickBuildComputeRootSignature::BuildParameterSlot].InitAsConstants(SizeOfInUint32(BrickEvaluationConstantBuffer), 0);
 		rootParameters[BrickBuildComputeRootSignature::EditListSlot].InitAsShaderResourceView(0);
 		rootParameters[BrickBuildComputeRootSignature::BrickBufferSlot].InitAsShaderResourceView(1);
 		rootParameters[BrickBuildComputeRootSignature::BrickPoolSlot].InitAsDescriptorTable(1, &ranges[0]);
@@ -132,7 +132,7 @@ void SDFFactory::PerformSDFBake_CPUBlocking(SDFObject* object, const SDFEditList
 	PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(15), "SDF Bake");
 
 	// Step 1: Setup constant buffer data and counter temporary resources
-	SDFBuilderConstantBuffer buildParamsBuffer;
+	BrickEvaluationConstantBuffer buildParamsBuffer;
 	UploadBuffer<UINT32> counterUpload;
 	ReadbackBuffer<UINT32> counterReadback;
 	{
@@ -143,7 +143,7 @@ void SDFFactory::PerformSDFBake_CPUBlocking(SDFObject* object, const SDFEditList
 		// Populate build params
 		buildParamsBuffer.EvalSpace_MinBoundary = { -1.0f, -1.0f, -1.0f, 0.0f };
 		buildParamsBuffer.EvalSpace_MaxBoundary = { 1.0f,  1.0f,  1.0f, 0.0f };
-		buildParamsBuffer.EvalSpace_BrickSize = object->GetBrickSize();
+		buildParamsBuffer.EvalSpace_BrickSize = object->GetMinBrickSize();
 
 		const auto bricksPerAxis = (buildParamsBuffer.EvalSpace_MaxBoundary - buildParamsBuffer.EvalSpace_MinBoundary) / buildParamsBuffer.EvalSpace_BrickSize;
 		XMStoreUInt3(&buildParamsBuffer.EvalSpace_BricksPerAxis, bricksPerAxis);
@@ -310,7 +310,7 @@ void SDFFactory::PerformPipelinedSDFBake_CPUBlocking(UINT count, SDFObject** ppO
 	PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(15), "SDF Bake Pipelined");
 
 	// Step 1: Setup constant buffer data and counter temporary resources
-	std::vector<SDFBuilderConstantBuffer> buildParamsBuffers(count);
+	std::vector<BrickEvaluationConstantBuffer> buildParamsBuffers(count);
 	UploadBuffer<UINT32> counterUpload;
 	ReadbackBuffer<UINT32> counterReadback;
 	{
@@ -491,7 +491,7 @@ void SDFFactory::PerformPipelinedSDFBake_CPUBlocking(UINT count, SDFObject** ppO
 
 
 
-void SDFFactory::LogBuildParameters(const SDFBuilderConstantBuffer& buildParams)
+void SDFFactory::LogBuildParameters(const BrickEvaluationConstantBuffer& buildParams)
 {
 	XMFLOAT3 tempFloat3;
 

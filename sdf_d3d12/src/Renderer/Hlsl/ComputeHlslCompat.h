@@ -9,7 +9,10 @@ using namespace DirectX;
 
 #include "HlslDefines.h"
 
+// TODO: DEPRECATED
 #define AABB_BUILD_NUM_THREADS_PER_GROUP 8 // 8x8x8 threads per group to build AABBs
+
+#define AABB_BUILDING_THREADS 128
 
 
 struct SDFEditData
@@ -27,7 +30,7 @@ struct SDFEditData
 	XMFLOAT4 Color;
 };
 
-struct SDFBuilderConstantBuffer
+struct BrickEvaluationConstantBuffer
 {
 	// The region of space to run the brick builder over
 	XMVECTOR EvalSpace_MinBoundary;
@@ -45,6 +48,12 @@ struct SDFBuilderConstantBuffer
 	UINT SDFEditCount;
 };
 
+struct AABBBuilderConstantBuffer
+{
+	UINT BrickCount;
+	float BrickSize;
+};
+
 
 
 ////// NEW SDF FACTORY TYPES //////
@@ -58,10 +67,8 @@ struct Brick
 								// Will initially be 0 before the sub_brick_counter has executed
 };
 
-struct BuildParametersCB
+struct BrickBuildParametersConstantBuffer
 {
-	UINT DispatchIndex;
-
 	float BrickSize;
 	float SubBrickSize; // = BrickSize / 4
 
