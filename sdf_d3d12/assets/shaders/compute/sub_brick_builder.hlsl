@@ -13,11 +13,11 @@
 ConstantBuffer<BrickBuildParametersConstantBuffer> g_BuildParameters : register(b0);
 
 // Ping-pong buffers for outputting the new bricks created from the sub-bricks
-ByteAddressBuffer g_InBrickCounter : register(t0);
+RWByteAddressBuffer g_InBrickCounter : register(u0);
 StructuredBuffer<Brick> g_InBricks : register(t1);
 
-RWByteAddressBuffer g_OutBrickCounter : register(u0);
-RWStructuredBuffer<Brick> g_OutBricks : register(u1);
+RWByteAddressBuffer g_OutBrickCounter : register(u1);
+RWStructuredBuffer<Brick> g_OutBricks : register(u2);
 
 
 // Group-shared variables
@@ -59,7 +59,7 @@ void main(uint3 GroupID : SV_GroupID, uint GI : SV_GroupIndex, uint3 GTid : SV_G
 	if (GI == 0)
 	{
 		uint i = 0;
-		while (i++ < GI)
+		while (i++ < GroupID.x)
 		{
 			gs_PrefixSum += g_InBricks.Load(i).SubBrickCount;
 		}
@@ -68,7 +68,7 @@ void main(uint3 GroupID : SV_GroupID, uint GI : SV_GroupIndex, uint3 GTid : SV_G
 	GroupMemoryBarrierWithGroupSync();
 
 	// Check if this thread has a sub-brick to write
-	if (gs_Brick.SubBrickMask & (1 << GI))
+	if (gs_Brick.SubBrickMask & (1UL << GI))
 	{
 		// Create brick
 		Brick outBrick;

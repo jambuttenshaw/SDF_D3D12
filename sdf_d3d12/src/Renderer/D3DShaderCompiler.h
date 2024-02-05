@@ -51,5 +51,5 @@ private:
 	ComPtr<IDxcCompiler3> m_Compiler;
 	ComPtr<IDxcIncludeHandler> m_IncludeHandler;
 
-	std::wstring m_ShaderModelExtension = L"_6_5"; // e.g. "_6_5"
+	std::wstring m_ShaderModelExtension = L"_6_6"; // e.g. "_6_6"
 };

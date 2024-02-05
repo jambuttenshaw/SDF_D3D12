@@ -37,10 +37,11 @@ public:
 	DEFAULT_MOVE(SDFObject)
 
 	// Brick Pool
-	void AllocateOptimalBrickPool(UINT brickCount, ResourceGroup res);
+	void AllocateOptimalResources(UINT brickCount, float brickSize, ResourceGroup res);
 	ID3D12Resource* GetBrickPool(ResourceGroup res) const;
 
 	inline float GetMinBrickSize() const { return m_MinBrickSize; }
+	float GetBrickSize(ResourceGroup res) const;
 
 	inline UINT GetBrickBufferCapacity() const { return m_BrickCapacity; }
 
@@ -120,6 +121,12 @@ private:
 		return m_Resources.at(res == RESOURCES_READ ? ReadIndex() : WriteIndex());
 	}
 
+
+	void AllocateOptimalAABBBuffer(UINT brickCount, ResourceGroup res);
+	void AllocateOptimalBrickBuffer(UINT brickCount, ResourceGroup res);
+	void AllocateOptimalBrickPool(UINT brickCount, ResourceGroup res);
+
+
 private:
 	// A complete set of resources that make up this object
 	struct Resources
@@ -138,6 +145,7 @@ private:
 		// Brick count/pool related properties are only pertinent to a specific set
 		UINT BrickCount = 0; // The number of bricks that actually make up this object
 		XMUINT3 BrickPoolDimensions = { 0, 0, 0 }; // The dimensions of the brick pool in number of bricks
+		float BrickSize = 0.0f;
 	};
 	std::array<Resources, 2> m_Resources;
 	// Which index is to be read from

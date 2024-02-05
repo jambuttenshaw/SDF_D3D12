@@ -22,6 +22,8 @@ public:
 	DISALLOW_COPY(SDFFactoryHierarchical)
 	DEFAULT_MOVE(SDFFactoryHierarchical)
 
+	virtual void BakeSDFSync(SDFObject* object, SDFEditList&& editList);
+
 protected:
 
 	void InitializePipelines();

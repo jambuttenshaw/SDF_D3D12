@@ -25,14 +25,17 @@ Scene::Scene()
 	// Build SDF Object
 	{
 		// Create SDF factory 
-		m_SDFFactoryAsync = std::make_unique<SDFFactoryAsync>();
+		m_SDFFactoryHierarchical = std::make_unique<SDFFactoryHierarchical>();
 
 		// Create SDF objects
-		m_BlobObject = std::make_unique<SDFObject>(0.0625f, 65536);
-		m_TorusObject = std::make_unique<SDFObject>(0.0625f, 65536);
-		m_SphereObject = std::make_unique<SDFObject>(0.0625f, 65536);
-		m_OctahedronObject = std::make_unique<SDFObject>(0.0625f, 65536);
+		//m_BlobObject = std::make_unique<SDFObject>(0.0625f, 65536);
+		//m_TorusObject = std::make_unique<SDFObject>(0.0625f, 65536);
+		//m_SphereObject = std::make_unique<SDFObject>(0.0625f, 65536);
+		m_Object = std::make_unique<SDFObject>(0.125f, 1024);
 
+		SDFEditList editList(1);
+		editList.AddEdit(SDFEdit::CreateSphere({}, 0.5));
+		m_SDFFactoryHierarchical->BakeSDFSync(m_Object.get(), std::move(editList));
 
 		/*
 		{
@@ -68,7 +71,7 @@ Scene::Scene()
 
 			torusEditList.AddEdit(SDFEdit::CreateOctahedron({}, 0.7f));
 			
-			m_SDFFactoryAsync->BakeSDFSync(m_TorusObject.get(), std::move(torusEditList));
+			//m_SDFFactoryAsync->BakeSDFSync(m_TorusObject.get(), std::move(torusEditList));
 		}
 		{
 			// Create sphere object by adding and then subtracting a bunch of spheres
@@ -92,7 +95,7 @@ Scene::Scene()
 			}
 
 			// Bake the primitives into the SDF object
-			m_SDFFactoryAsync->BakeSDFSync(m_SphereObject.get(), std::move(sphereEditList));
+			//m_SDFFactoryAsync->BakeSDFSync(m_SphereObject.get(), std::move(sphereEditList));
 		}
 		{
 			for (UINT i = 0; i < m_SphereCount; i++)
@@ -111,7 +114,7 @@ Scene::Scene()
 				};
 			}
 
-			BuildEditList(0.0f, false);
+			//BuildEditList(0.0f, false);
 		}
 		{
 			for (UINT i = 0; i < m_OctahedronCount; i++)
@@ -128,16 +131,19 @@ Scene::Scene()
 				data.scale = Random::Float(0.05f, 0.1f);
 				data.sphere = Random::Float(0.0f, 1.0f) > 0.5f;
 			}
-			BuildEditList2(0.0f, false);
+			//BuildEditList2(0.0f, false);
 		}
 	}
 
 	{
 		// Construct scene geometry
-		m_SceneGeometry.push_back({ L"Blobs", m_BlobObject.get()});
-		m_SceneGeometry.push_back({ L"Octahedron", m_OctahedronObject.get() });
-		m_SceneGeometry.push_back({ L"Spheres", m_SphereObject.get() });
-		m_SceneGeometry.push_back({ L"Torus", m_TorusObject.get() });
+		//m_SceneGeometry.push_back({ L"Blobs", m_BlobObject.get()});
+		//m_SceneGeometry.push_back({ L"Octahedron", m_OctahedronObject.get() });
+		//m_SceneGeometry.push_back({ L"Spheres", m_SphereObject.get() });
+		//m_SceneGeometry.push_back({ L"Torus", m_TorusObject.get() });
+		m_SceneGeometry.push_back({ L"Object", m_Object.get() });
+
+		CheckSDFGeometryUpdates();
 	}
 
 	{
@@ -198,7 +204,7 @@ Scene::Scene()
 Scene::~Scene()
 {
 	// SDFFactory should be deleted first
-	m_SDFFactoryAsync.reset();
+	m_SDFFactoryHierarchical.reset();
 }
 
 
@@ -233,8 +239,8 @@ void Scene::OnUpdate(float deltaTime)
 
 	if (m_Rebuild)
 	{
-		BuildEditList(deltaTime, m_AsyncConstruction);
-		BuildEditList2(deltaTime, m_AsyncConstruction);
+		//BuildEditList(deltaTime, m_AsyncConstruction);
+		//BuildEditList2(deltaTime, m_AsyncConstruction);
 	}
 
 	PIXEndEvent();
@@ -292,7 +298,7 @@ bool Scene::ImGuiSceneInfo()
 			m_Rebuild |= checkbox;
 		}
 		ImGui::Checkbox("Async Construction", &m_AsyncConstruction);
-		ImGui::Text("Async Builds/Sec: %.1f", m_AsyncConstruction ? m_SDFFactoryAsync->GetAsyncBuildsPerSecond() : 0.0f);
+		//ImGui::Text("Async Builds/Sec: %.1f", m_AsyncConstruction ? m_SDFFactoryAsync->GetAsyncBuildsPerSecond() : 0.0f);
 
 		ImGui::Separator();
 
@@ -340,11 +346,11 @@ void Scene::BuildEditList(float deltaTime, bool async)
 
 	if (async)
 	{
-		m_SDFFactoryAsync->BakeSDFAsync(m_BlobObject.get(), std::move(editList));
+		//m_SDFFactoryAsync->BakeSDFAsync(m_BlobObject.get(), std::move(editList));
 	}
 	else
 	{
-		m_SDFFactoryAsync->BakeSDFSync(m_BlobObject.get(), std::move(editList));
+		//m_SDFFactoryAsync->BakeSDFSync(m_BlobObject.get(), std::move(editList));
 	}
 
 	PIXEndEvent();
@@ -382,11 +388,11 @@ void Scene::BuildEditList2(float deltaTime, bool async)
 
 	if (async)
 	{
-		m_SDFFactoryAsync->BakeSDFAsync(m_OctahedronObject.get(), std::move(editList));
+		//m_SDFFactoryAsync->BakeSDFAsync(m_OctahedronObject.get(), std::move(editList));
 	}
 	else
 	{
-		m_SDFFactoryAsync->BakeSDFSync(m_OctahedronObject.get(), std::move(editList));
+		//m_SDFFactoryAsync->BakeSDFSync(m_OctahedronObject.get(), std::move(editList));
 	}
 
 	PIXEndEvent();

@@ -17,10 +17,10 @@ ConstantBuffer<BrickBuildParametersConstantBuffer> g_BuildParameters : register(
 
 // In the sub-brick counter, no new bricks are created or consumed
 // The brick counter should therefore be read-only
-ByteAddressBuffer g_BrickCounter : register(t0);
+RWByteAddressBuffer g_BrickCounter : register(u0);
 StructuredBuffer<SDFEditData> g_EditList : register(t1);
 
-RWStructuredBuffer<Brick> g_Bricks : register(u0);
+RWStructuredBuffer<Brick> g_Bricks : register(u1);
 
 
 // Group-shared variables
@@ -94,7 +94,7 @@ void main(uint3 GroupID : SV_GroupID, uint GI : SV_GroupIndex, uint3 GTid : SV_G
 		// Increment the count
 		InterlockedAdd(gs_Brick.SubBrickCount, 1, _);
 		// Set the bit corresponding to this brick
-		InterlockedAnd(gs_Brick.SubBrickMask, 1 << GI, __);
+		InterlockedOr(gs_Brick.SubBrickMask, 1UL << GI, __);
 	}
 
 	GroupMemoryBarrierWithGroupSync();

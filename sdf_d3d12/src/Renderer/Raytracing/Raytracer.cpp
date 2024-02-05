@@ -328,7 +328,7 @@ void Raytracer::BuildShaderTables()
 			geometryInstance->SetShaderRecordOffset(m_HitGroupShaderTable->GetNumRecords());
 
 			LocalRootSignatureParams::RootArguments rootArgs;
-			rootArgs.brickProperties.BrickHalfSize = 0.5f * geometryInstance->GetBrickSize();
+			rootArgs.brickProperties.BrickHalfSize = 0.5f * geometryInstance->GetBrickSize(SDFObject::RESOURCES_READ);
 			rootArgs.brickPoolSRV = geometryInstance->GetBrickPoolSRV(SDFObject::RESOURCES_READ);
 			rootArgs.brickBuffer = geometryInstance->GetBrickBufferAddress(SDFObject::RESOURCES_READ);
 
@@ -365,7 +365,7 @@ void Raytracer::UpdateHitGroupShaderTable() const
 		if (geometryInstance->IsLocalArgsDirty())
 		{
 			LocalRootSignatureParams::RootArguments rootArgs;
-			rootArgs.brickProperties.BrickHalfSize = 0.5f * geometryInstance->GetBrickSize();
+			rootArgs.brickProperties.BrickHalfSize = 0.5f * geometryInstance->GetBrickSize(SDFObject::RESOURCES_READ);
 			rootArgs.brickPoolSRV = geometryInstance->GetBrickPoolSRV(SDFObject::RESOURCES_READ);
 			rootArgs.brickBuffer = geometryInstance->GetBrickBufferAddress(SDFObject::RESOURCES_READ);
 

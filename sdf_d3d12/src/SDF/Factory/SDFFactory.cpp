@@ -235,7 +235,7 @@ void SDFFactory::PerformSDFBake_CPUBlocking(SDFObject* object, const SDFEditList
 
 		// It is only save to read the counter value after the GPU has finished its work
 		const UINT brickCount = counterReadback.ReadElement(0);
-		object->AllocateOptimalBrickPool(brickCount, SDFObject::RESOURCES_WRITE);
+		object->AllocateOptimalResources(brickCount, object->GetMinBrickSize(), SDFObject::RESOURCES_WRITE);
 
 		// Update build data required for the next stage
 		buildParamsBuffer.BrickPool_BrickCapacityPerAxis = object->GetBrickPoolDimensions(SDFObject::RESOURCES_WRITE);
@@ -325,7 +325,7 @@ void SDFFactory::PerformPipelinedSDFBake_CPUBlocking(UINT count, SDFObject** ppO
 			// Populate build params
 			buildParamsBuffer.EvalSpace_MinBoundary = { -1.0f, -1.0f, -1.0f, 0.0f };
 			buildParamsBuffer.EvalSpace_MaxBoundary = { 1.0f,  1.0f,  1.0f, 0.0f };
-			buildParamsBuffer.EvalSpace_BrickSize = ppObjects[i]->GetBrickSize();
+			buildParamsBuffer.EvalSpace_BrickSize = ppObjects[i]->GetMinBrickSize();
 
 			const auto bricksPerAxis = (buildParamsBuffer.EvalSpace_MaxBoundary - buildParamsBuffer.EvalSpace_MinBoundary) / buildParamsBuffer.EvalSpace_BrickSize;
 			XMStoreUInt3(&buildParamsBuffer.EvalSpace_BricksPerAxis, bricksPerAxis);
@@ -423,7 +423,7 @@ void SDFFactory::PerformPipelinedSDFBake_CPUBlocking(UINT count, SDFObject** ppO
 		{
 			// It is only save to read the counter value after the GPU has finished its work
 			const UINT brickCount = counterReadback.ReadElement(i);
-			ppObjects[i]->AllocateOptimalBrickPool(brickCount, SDFObject::RESOURCES_WRITE);
+			ppObjects[i]->AllocateOptimalResources(brickCount, ppObjects[i]->GetMinBrickSize(), SDFObject::RESOURCES_WRITE);
 
 			// Update build data required for the next stage
 			buildParamsBuffers[i].BrickPool_BrickCapacityPerAxis = ppObjects[i]->GetBrickPoolDimensions(SDFObject::RESOURCES_WRITE);
