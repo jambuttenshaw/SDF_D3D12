@@ -45,4 +45,28 @@ struct SDFBuilderConstantBuffer
 	UINT SDFEditCount;
 };
 
+
+
+////// NEW SDF FACTORY TYPES //////
+
+struct Brick
+{
+	XMFLOAT3 TopLeft_EvalSpace;	// Top left of this brick in eval space
+	UINT SubBrickCount;			// The number of sub-bricks that this brick contains
+								// Will initially be 0 before the sub_brick_counter has executed
+	uint64_t SubBrickMask;		// A bit mask of sub-bricks
+								// Will initially be 0 before the sub_brick_counter has executed
+};
+
+struct BuildParametersCB
+{
+	UINT DispatchIndex;
+
+	float BrickSize;
+	float SubBrickSize; // = BrickSize / 4
+
+	UINT SDFEditCount;
+};
+
+
 #endif

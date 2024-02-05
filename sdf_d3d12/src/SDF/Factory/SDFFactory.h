@@ -3,7 +3,6 @@
 #include "Core.h"
 #include "Renderer/D3DPipeline.h"
 #include "Renderer/Buffer/CounterResource.h"
-#include "Renderer/Memory/MemoryAllocator.h"
 
 using Microsoft::WRL::ComPtr;
 

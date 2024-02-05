@@ -67,11 +67,10 @@ void main(uint3 DTid : SV_DispatchThreadID)
 
 	// Evaluate object at this point
 	const float distance = EvaluateEditList(brickCentre);
-	const float mappedDistance = FormatDistance(distance, g_BuildParameters.EvalSpace_VoxelsPerUnit);
 
 	// If distance is larger than the size of this voxel then this voxel cannot contain geometry
 	// Use abs(distance) to cull bounding boxes within the geometry
-	if (abs(mappedDistance) > 1.25f)
+	if (abs(distance) > g_BuildParameters.EvalSpace_BrickSize)
 		return;
 
 	// Use the counter to get the index in  the aabb buffer that this thread will operate on
