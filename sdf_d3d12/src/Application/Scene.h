@@ -52,7 +52,7 @@ private:
 	std::unique_ptr<SDFObject> m_OctahedronObject;
 
 	// Demo Scene
-	inline static constexpr UINT s_InstanceGridDims = 4;
+	inline static constexpr UINT s_InstanceGridDims = 16;
 	inline static constexpr UINT s_InstanceCount = s_InstanceGridDims * s_InstanceGridDims * s_InstanceGridDims;
 	inline static constexpr float s_InstanceSpacing = 8.0f;
 

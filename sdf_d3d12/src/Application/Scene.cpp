@@ -193,8 +193,6 @@ Scene::Scene()
 		// Init top level AS
 		m_AccelerationStructure->InitializeTopLevelAS(buildFlags, true, true, L"Top Level Acceleration Structure");
 	}
-
-	CheckSDFGeometryUpdates();
 }
 
 Scene::~Scene()
