@@ -30,7 +30,7 @@ Scene::Scene()
 
 		// Create SDF objects
 		//m_BlobObject = std::make_unique<SDFObject>(0.125f, 65536);
-		m_SphereObject = std::make_unique<SDFObject>(0.05f, 2750);
+		m_SphereObject = std::make_unique<SDFObject>(0.025f, 125'000);
 		//m_OctahedronObject = std::make_unique<SDFObject>(0.125f, 65536);
 
 		{

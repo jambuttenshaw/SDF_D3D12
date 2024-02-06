@@ -334,7 +334,7 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 		// Populate initial build params
 		buildParamsCB.SDFEditCount = editList.GetEditCount();
 		// The brick size will be different for each dispatch
-		buildParamsCB.BrickSize = 3.2f; // size of entire evaluation space
+		buildParamsCB.BrickSize = 6.4f; // size of entire evaluation space
 		buildParamsCB.SubBrickSize = buildParamsCB.BrickSize / 4.0f; // brick size will quarter with each dispatch
 
 
@@ -347,7 +347,7 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 
 		constexpr Brick initialBrick = {
 			0,
-			{ -1.6f, -1.6f, -1.6f }
+			{ -3.2f, -3.2f, -3.2f }
 		};
 		brickUpload.CopyElement(0, initialBrick);
 
@@ -438,8 +438,7 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 		m_CommandList->SetDescriptorHeaps(_countof(ppDescriptorHeaps), ppDescriptorHeaps);
 
 		// Multiple iterations will be made until the brick size is small enough
-		UINT iterations = 0;
-		while(buildParamsCB.SubBrickSize >= object->GetMinBrickSize() && iterations++ < 3)
+		while(buildParamsCB.SubBrickSize >= object->GetMinBrickSize())
 		{
 			PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(45), L"Brick Building Iteration");
 
