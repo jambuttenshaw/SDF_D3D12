@@ -31,9 +31,10 @@ Scene::Scene()
 		//m_BlobObject = std::make_unique<SDFObject>(0.0625f, 65536);
 		//m_TorusObject = std::make_unique<SDFObject>(0.0625f, 65536);
 		//m_SphereObject = std::make_unique<SDFObject>(0.0625f, 65536);
-		m_Object = std::make_unique<SDFObject>(0.125f, 1024);
+		m_Object = std::make_unique<SDFObject>(0.05f, 125'000);
 
-		SDFEditList editList(1);
+		SDFEditList editList(2);
+		editList.AddEdit(SDFEdit::CreateSphere({-3.0f, 0.0f, 0.0f}, 2.0));
 		editList.AddEdit(SDFEdit::CreateSphere({}, 0.5));
 		m_SDFFactoryHierarchical->BakeSDFSync(m_Object.get(), std::move(editList));
 

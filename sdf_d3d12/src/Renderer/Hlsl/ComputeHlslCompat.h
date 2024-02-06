@@ -65,11 +65,6 @@ struct Brick
 								// Will initially be 0 before the sub_brick_counter has executed
 	uint64_t SubBrickMask;		// A bit mask of sub-bricks
 								// Will initially be 0 before the sub_brick_counter has executed
-
-	// Temp debug variables
-	UINT PrefixSum;
-	UINT GroupID;
-	uint64_t Bitmask;		
 };
 
 struct BrickBuildParametersConstantBuffer

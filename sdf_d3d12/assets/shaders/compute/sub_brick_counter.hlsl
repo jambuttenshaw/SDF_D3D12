@@ -94,7 +94,7 @@ void main(uint3 GroupID : SV_GroupID, uint GI : SV_GroupIndex, uint3 GTid : SV_G
 		// Increment the count
 		InterlockedAdd(gs_Brick.SubBrickCount, 1, _);
 		// Set the bit corresponding to this brick
-		InterlockedOr(gs_Brick.SubBrickMask, 1UL << GI, __);
+		InterlockedOr(gs_Brick.SubBrickMask, uint64_t(1) << GI, __);
 	}
 
 	GroupMemoryBarrierWithGroupSync();

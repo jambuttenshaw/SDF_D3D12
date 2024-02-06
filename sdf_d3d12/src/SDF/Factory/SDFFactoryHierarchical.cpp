@@ -282,7 +282,7 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 		// Populate initial build params
 		buildParamsCB.SDFEditCount = editList.GetEditCount();
 		// The brick size will be different for each dispatch
-		buildParamsCB.BrickSize = 2.0f; // size of entire evaluation space
+		buildParamsCB.BrickSize = 12.8f; // size of entire evaluation space
 		buildParamsCB.SubBrickSize = buildParamsCB.BrickSize / 4.0f; // brick size will quarter with each dispatch
 
 
@@ -294,7 +294,7 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 		brickUpload.Allocate(device, 1, 0, L"Brick upload");
 
 		constexpr Brick initialBrick = {
-			{ -1, -1, -1 },
+			{ -6.4f, -6.4f, -6.4f },
 			0,
 			0
 		};
@@ -590,5 +590,7 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 		THROW_IF_FAIL(m_CommandList->Close());
 		ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
 		m_PreviousWorkFence = computeQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
+		computeQueue->WaitForFenceCPUBlocking(m_PreviousWorkFence);
 	}
 }
