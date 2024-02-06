@@ -8,7 +8,7 @@ using Microsoft::WRL::ComPtr;
 class CounterResource
 {
 public:
-	CounterResource(UINT numCounters) : m_NumCounters(numCounters) {}
+	CounterResource(UINT numCounters = 1) : m_NumCounters(numCounters) {}
 	~CounterResource() = default;
 
 	DISALLOW_COPY(CounterResource)

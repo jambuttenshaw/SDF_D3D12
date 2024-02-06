@@ -17,10 +17,10 @@ ConstantBuffer<BrickBuildParametersConstantBuffer> g_BuildParameters : register(
 
 // In the sub-brick counter, no new bricks are created or consumed
 // The brick counter should therefore be read-only
-RWByteAddressBuffer g_BrickCounter : register(u0);
+ByteAddressBuffer g_BrickCounter : register(t0);
 StructuredBuffer<SDFEditData> g_EditList : register(t1);
 
-RWStructuredBuffer<Brick> g_Bricks : register(u1);
+RWStructuredBuffer<Brick> g_Bricks : register(u0);
 
 
 // Group-shared variables
