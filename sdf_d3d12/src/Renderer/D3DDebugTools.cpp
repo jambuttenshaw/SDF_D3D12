@@ -154,8 +154,15 @@ void D3DDebugTools::D3DMessageHandler(D3D12_MESSAGE_CATEGORY Category, D3D12_MES
 void D3DDebugTools::PIXGPUCaptureFrame(UINT frameCount)
 {
 	const std::wstring captureName = L"captures/capture" + std::to_wstring(s_CapturesTaken++) + L".wpix";
-	PIXGpuCaptureNextFrames(captureName.c_str(), frameCount);
-	LOG_INFO(L"Capture saved as: {}", captureName.c_str());
+	const HRESULT result = PIXGpuCaptureNextFrames(captureName.c_str(), frameCount);
+	if (SUCCEEDED(result))
+	{
+		LOG_INFO(L"Capture saved as: {}", captureName.c_str());
+	}
+	else
+	{
+		LOG_ERROR("Capture failed.");
+	}
 }
 
 

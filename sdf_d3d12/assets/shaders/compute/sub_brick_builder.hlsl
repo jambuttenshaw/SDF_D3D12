@@ -1,5 +1,5 @@
-#ifndef SUBBRICKCOUNTER_HLSL
-#define SUBBRICKCOUNTER_HLSL
+#ifndef SUBBRICKBUILDER_HLSL
+#define SUBBRICKBUILDER_HLSL
 
 
 #define HLSL
@@ -15,6 +15,7 @@ ConstantBuffer<BrickBuildParametersConstantBuffer> g_BuildParameters : register(
 // Ping-pong buffers for outputting the new bricks created from the sub-bricks
 ByteAddressBuffer g_InBrickCounter : register(t0);
 StructuredBuffer<Brick> g_InBricks : register(t1);
+StructuredBuffer<uint> g_InPrefixSumTable : register(t2);
 
 RWByteAddressBuffer g_OutBrickCounter : register(u0);
 RWStructuredBuffer<Brick> g_OutBricks : register(u1);
@@ -38,22 +39,8 @@ void main(uint3 GroupID : SV_GroupID, uint GI : SV_GroupIndex, uint3 GTid : SV_G
 		gs_Brick = g_InBricks[GroupID.x];
 
 		// Init gsm
-		gs_PrefixSum = 0;
+		gs_PrefixSum = g_InPrefixSumTable[GroupID.x];
 		gs_GroupBrickCount = 0;
-	}
-
-	GroupMemoryBarrierWithGroupSync();
-
-	// Calculate the prefix sum table
-	// TODO: this is horrible doing it serially
-	// TODO: this will be done parallel soon
-	if (GI == 0)
-	{
-		uint i = 0;
-		while (i++ < GroupID.x)
-		{
-			gs_PrefixSum += g_InBricks[i - 1].SubBrickCount;
-		}
 	}
 
 	GroupMemoryBarrierWithGroupSync();
@@ -63,9 +50,9 @@ void main(uint3 GroupID : SV_GroupID, uint GI : SV_GroupIndex, uint3 GTid : SV_G
 	{
 		// Create brick
 		Brick outBrick;
-		outBrick.TopLeft_EvalSpace = gs_Brick.TopLeft_EvalSpace + g_BuildParameters.SubBrickSize * GTid;
-		outBrick.SubBrickCount = 0;
 		outBrick.SubBrickMask = 0;
+		outBrick.TopLeft_EvalSpace = gs_Brick.TopLeft_EvalSpace + g_BuildParameters.SubBrickSize * GTid;
+		outBrick.Count = 0;
 
 		// write it to global memory at the correct index
 		uint groupIndex;

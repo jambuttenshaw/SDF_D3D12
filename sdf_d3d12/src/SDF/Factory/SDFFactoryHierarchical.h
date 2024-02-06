@@ -49,7 +49,13 @@ protected:
 
 	// Pipelines
 	std::unique_ptr<D3DComputePipeline> m_BrickCounterPipeline;
+
+	std::unique_ptr<D3DComputePipeline> m_ScanBlocksPipeline;
+	std::unique_ptr<D3DComputePipeline> m_ScanBlockSumsPipeline;
+	std::unique_ptr<D3DComputePipeline> m_SumScansPipeline;
+
 	std::unique_ptr<D3DComputePipeline> m_BrickBuilderPipeline;
+
 	std::unique_ptr<D3DComputePipeline> m_AABBBuilderPipeline;
 	std::unique_ptr<D3DComputePipeline> m_BrickEvaluatorPipeline;
 

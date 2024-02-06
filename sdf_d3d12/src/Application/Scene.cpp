@@ -7,6 +7,7 @@
 #include "Framework/Math.h"
 
 #include "pix3.h"
+#include "Renderer/D3DDebugTools.h"
 
 
 // For debug output
@@ -28,11 +29,12 @@ Scene::Scene()
 		m_SDFFactoryHierarchical = std::make_unique<SDFFactoryHierarchical>();
 
 		// Create SDF objects
-		m_BlobObject = std::make_unique<SDFObject>(0.125f, 65536);
-		m_SphereObject = std::make_unique<SDFObject>(0.125f, 125'000 );
-		m_OctahedronObject = std::make_unique<SDFObject>(0.125f, 65536);
+		//m_BlobObject = std::make_unique<SDFObject>(0.125f, 65536);
+		m_SphereObject = std::make_unique<SDFObject>(0.05f, 2750);
+		//m_OctahedronObject = std::make_unique<SDFObject>(0.125f, 65536);
 
 		{
+			/*
 			// Create sphere object by adding and then subtracting a bunch of spheres
 			constexpr UINT spheres = 512;
 
@@ -54,6 +56,10 @@ Scene::Scene()
 			}
 
 			// Bake the primitives into the SDF object
+			*/
+			SDFEditList sphereEditList(1);
+			sphereEditList.AddEdit(SDFEdit::CreateSphere({}, 0.5f));
+
 			m_SDFFactoryHierarchical->BakeSDFSync(m_SphereObject.get(), std::move(sphereEditList));
 		}
 		{
@@ -96,8 +102,8 @@ Scene::Scene()
 
 	{
 		// Construct scene geometry
-		m_SceneGeometry.push_back({ L"Blobs", m_BlobObject.get()});
-		m_SceneGeometry.push_back({ L"Octahedron", m_OctahedronObject.get() });
+		//m_SceneGeometry.push_back({ L"Blobs", m_BlobObject.get()});
+		//m_SceneGeometry.push_back({ L"Octahedron", m_OctahedronObject.get() });
 		m_SceneGeometry.push_back({ L"Spheres", m_SphereObject.get() });
 
 		CheckSDFGeometryUpdates();
@@ -198,6 +204,11 @@ void Scene::OnUpdate(float deltaTime)
 	{
 		BuildEditList(deltaTime, m_AsyncConstruction);
 		BuildEditList2(deltaTime, m_AsyncConstruction);
+
+		SDFEditList sphereEditList(1);
+		sphereEditList.AddEdit(SDFEdit::CreateSphere({}, 0.5f));
+
+		m_SDFFactoryHierarchical->BakeSDFSync(m_SphereObject.get(), std::move(sphereEditList));
 	}
 
 	PIXEndEvent();
@@ -245,6 +256,11 @@ bool Scene::ImGuiSceneInfo()
 
 		ImGui::Separator();
 
+		if (ImGui::Button("PIX Capture"))
+		{
+			D3DDebugTools::PIXGPUCaptureFrame(1);
+		}
+
 		ImGui::Checkbox("Rotate Instances", &m_RotateInstances);
 		ImGui::Separator();
 
@@ -279,6 +295,7 @@ bool Scene::ImGuiSceneInfo()
 
 void Scene::BuildEditList(float deltaTime, bool async)
 {
+	return; 
 	PIXBeginEvent(PIX_COLOR_INDEX(10), L"Build Edit List");
 
 	static float t = 1.0f;
@@ -315,6 +332,7 @@ void Scene::BuildEditList(float deltaTime, bool async)
 
 void Scene::BuildEditList2(float deltaTime, bool async)
 {
+	return; 
 	PIXBeginEvent(PIX_COLOR_INDEX(31), L"Build Edit List 2");
 
 	static float t = 0.0f;

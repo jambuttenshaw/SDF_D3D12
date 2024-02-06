@@ -22,6 +22,10 @@ StructuredBuffer<SDFEditData> g_EditList : register(t1);
 
 RWStructuredBuffer<Brick> g_Bricks : register(u0);
 
+// For calculating prefix sums
+RWStructuredBuffer<uint> g_CountTable : register(u1);
+RWByteAddressBuffer g_PrefixSumBlocksCounter : register(u2);
+
 
 // Group-shared variables
 
@@ -29,7 +33,7 @@ RWStructuredBuffer<Brick> g_Bricks : register(u0);
 // then modified by potentially every thread in the group
 // before it is copied back to global memory
 groupshared Brick gs_Brick;
-
+groupshared uint gs_SubBrickCount;
 
 
 float EvaluateEditList(float3 p)
@@ -72,6 +76,7 @@ void main(uint3 GroupID : SV_GroupID, uint GI : SV_GroupIndex, uint3 GTid : SV_G
 	if (GI == 0)
 	{
 		gs_Brick = g_Bricks[GroupID.x];
+		gs_SubBrickCount = 0;
 	}
 
 	GroupMemoryBarrierWithGroupSync();
@@ -92,7 +97,8 @@ void main(uint3 GroupID : SV_GroupID, uint GI : SV_GroupIndex, uint3 GTid : SV_G
 		uint64_t __;
 
 		// Increment the count
-		InterlockedAdd(gs_Brick.SubBrickCount, 1, _);
+		InterlockedAdd(gs_SubBrickCount, 1, _);
+		InterlockedAdd(gs_Brick.Count, 1, _);
 		// Set the bit corresponding to this brick
 		InterlockedOr(gs_Brick.SubBrickMask, uint64_t(1) << GI, __);
 	}
@@ -102,6 +108,13 @@ void main(uint3 GroupID : SV_GroupID, uint GI : SV_GroupIndex, uint3 GTid : SV_G
 	if (GI == 0)
 	{
 		g_Bricks[GroupID.x] = gs_Brick;
+		g_CountTable[GroupID.x] = gs_SubBrickCount;
+
+		if (GroupID.x % 64 == 0)
+		{
+			uint _;
+			g_PrefixSumBlocksCounter.InterlockedAdd(0, 1, _);
+		}
 	}
 }
 
