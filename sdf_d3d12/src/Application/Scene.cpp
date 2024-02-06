@@ -28,55 +28,13 @@ Scene::Scene()
 		m_SDFFactoryHierarchical = std::make_unique<SDFFactoryHierarchical>();
 
 		// Create SDF objects
-		//m_BlobObject = std::make_unique<SDFObject>(0.0625f, 65536);
-		//m_TorusObject = std::make_unique<SDFObject>(0.0625f, 65536);
-		//m_SphereObject = std::make_unique<SDFObject>(0.0625f, 65536);
-		m_Object = std::make_unique<SDFObject>(0.05f, 125'000);
+		m_BlobObject = std::make_unique<SDFObject>(0.125f, 65536);
+		m_SphereObject = std::make_unique<SDFObject>(0.125f, 125'000 );
+		m_OctahedronObject = std::make_unique<SDFObject>(0.125f, 65536);
 
-		SDFEditList editList(2);
-		editList.AddEdit(SDFEdit::CreateSphere({-3.0f, 0.0f, 0.0f}, 2.0));
-		editList.AddEdit(SDFEdit::CreateSphere({}, 0.5));
-		m_SDFFactoryHierarchical->BakeSDFSync(m_Object.get(), std::move(editList));
-
-		/*
-		{
-			SDFEditList editList(4);
-			editList.AddEdit(SDFEdit::CreateBox(
-				{ 0.0f, -0.25f, 0.0f },
-				{ 0.4f, 0.4f, 0.4f }));
-			editList.AddEdit(SDFEdit::CreateOctahedron({ 0.0f, -0.25f, 0.0f }, 0.6f));
-			editList.AddEdit(SDFEdit::CreateSphere({ 0.0f, 0.25f, 0.0f }, 0.4f, SDFOperation::Subtraction));
-
-			// Add a torus on top
-			Transform torusTransform(0.0f, 0.25f, 0.0f);
-			torusTransform.SetPitch(XMConvertToRadians(90.0f));
-			editList.AddEdit(SDFEdit::CreateTorus(torusTransform, 0.25f, 0.05f, SDFOperation::SmoothUnion, 0.3f));
-			m_SDFFactory->BakeSDFSync(m_TorusObject.get(), editList);
-		}
-		*/
-
-		{
-			SDFEditList torusEditList(4);
-			// Create torus object edit list
-			torusEditList.AddEdit(SDFEdit::CreateTorus({}, 0.85f, 0.05f));
-
-			Transform torusTransform;
-			torusTransform.SetPitch(XMConvertToRadians(90.0f));
-
-			torusEditList.AddEdit(SDFEdit::CreateTorus(torusTransform, 0.85f, 0.05f, SDFOperation::SmoothUnion, 0.1f));
-
-			torusTransform.SetPitch(XMConvertToRadians(0.0f));
-			torusTransform.SetRoll(XMConvertToRadians(90.0f));
-
-			torusEditList.AddEdit(SDFEdit::CreateTorus(torusTransform, 0.85f, 0.05f, SDFOperation::SmoothUnion, 0.1f));
-
-			torusEditList.AddEdit(SDFEdit::CreateOctahedron({}, 0.7f));
-			
-			//m_SDFFactoryAsync->BakeSDFSync(m_TorusObject.get(), std::move(torusEditList));
-		}
 		{
 			// Create sphere object by adding and then subtracting a bunch of spheres
-			constexpr UINT spheres = 256;
+			constexpr UINT spheres = 512;
 
 			SDFEditList sphereEditList(spheres);
 
@@ -86,17 +44,17 @@ Scene::Scene()
 				if (i > 0)
 					op = i % 2 == 0 ? SDFOperation::SmoothSubtraction : SDFOperation::SmoothUnion;
 
-				const float radius = Random::Float(0.1f, 0.4f);
+				const float radius = Random::Float(0.1f, 0.7f);
 				sphereEditList.AddEdit(SDFEdit::CreateSphere(
 					{
-							Random::Float(-0.8f + radius, 0.8f - radius),
-							Random::Float(-0.8f + radius, 0.8f - radius),
-							Random::Float(-0.8f + radius, 0.8f - radius)
+							Random::Float(-1.2f, 1.2f),
+							Random::Float(-1.2f, 1.2f),
+							Random::Float(-1.2f, 1.2f)
 					}, radius, op, 0.3f));
 			}
 
 			// Bake the primitives into the SDF object
-			//m_SDFFactoryAsync->BakeSDFSync(m_SphereObject.get(), std::move(sphereEditList));
+			m_SDFFactoryHierarchical->BakeSDFSync(m_SphereObject.get(), std::move(sphereEditList));
 		}
 		{
 			for (UINT i = 0; i < m_SphereCount; i++)
@@ -115,7 +73,7 @@ Scene::Scene()
 				};
 			}
 
-			//BuildEditList(0.0f, false);
+			BuildEditList(0.0f, false);
 		}
 		{
 			for (UINT i = 0; i < m_OctahedronCount; i++)
@@ -132,17 +90,15 @@ Scene::Scene()
 				data.scale = Random::Float(0.05f, 0.1f);
 				data.sphere = Random::Float(0.0f, 1.0f) > 0.5f;
 			}
-			//BuildEditList2(0.0f, false);
+			BuildEditList2(0.0f, false);
 		}
 	}
 
 	{
 		// Construct scene geometry
-		//m_SceneGeometry.push_back({ L"Blobs", m_BlobObject.get()});
-		//m_SceneGeometry.push_back({ L"Octahedron", m_OctahedronObject.get() });
-		//m_SceneGeometry.push_back({ L"Spheres", m_SphereObject.get() });
-		//m_SceneGeometry.push_back({ L"Torus", m_TorusObject.get() });
-		m_SceneGeometry.push_back({ L"Object", m_Object.get() });
+		m_SceneGeometry.push_back({ L"Blobs", m_BlobObject.get()});
+		m_SceneGeometry.push_back({ L"Octahedron", m_OctahedronObject.get() });
+		m_SceneGeometry.push_back({ L"Spheres", m_SphereObject.get() });
 
 		CheckSDFGeometryUpdates();
 	}
@@ -240,8 +196,8 @@ void Scene::OnUpdate(float deltaTime)
 
 	if (m_Rebuild)
 	{
-		//BuildEditList(deltaTime, m_AsyncConstruction);
-		//BuildEditList2(deltaTime, m_AsyncConstruction);
+		BuildEditList(deltaTime, m_AsyncConstruction);
+		BuildEditList2(deltaTime, m_AsyncConstruction);
 	}
 
 	PIXEndEvent();
@@ -347,11 +303,11 @@ void Scene::BuildEditList(float deltaTime, bool async)
 
 	if (async)
 	{
-		//m_SDFFactoryAsync->BakeSDFAsync(m_BlobObject.get(), std::move(editList));
+		//m_SDFFactoryHierarchical->BakeSDFAsync(m_BlobObject.get(), std::move(editList));
 	}
 	else
 	{
-		//m_SDFFactoryAsync->BakeSDFSync(m_BlobObject.get(), std::move(editList));
+		m_SDFFactoryHierarchical->BakeSDFSync(m_BlobObject.get(), std::move(editList));
 	}
 
 	PIXEndEvent();
@@ -393,7 +349,7 @@ void Scene::BuildEditList2(float deltaTime, bool async)
 	}
 	else
 	{
-		//m_SDFFactoryAsync->BakeSDFSync(m_OctahedronObject.get(), std::move(editList));
+		m_SDFFactoryHierarchical->BakeSDFSync(m_OctahedronObject.get(), std::move(editList));
 	}
 
 	PIXEndEvent();

@@ -47,14 +47,12 @@ private:
 	// SDF Objects
 	std::unique_ptr<SDFFactoryHierarchical> m_SDFFactoryHierarchical;
 
-	//std::unique_ptr<SDFObject> m_TorusObject;
-	//std::unique_ptr<SDFObject> m_SphereObject;
-	//std::unique_ptr<SDFObject> m_BlobObject;
-	//std::unique_ptr<SDFObject> m_OctahedronObject;
-	std::unique_ptr<SDFObject> m_Object;
+	std::unique_ptr<SDFObject> m_SphereObject;
+	std::unique_ptr<SDFObject> m_BlobObject;
+	std::unique_ptr<SDFObject> m_OctahedronObject;
 
 	// Demo Scene
-	inline static constexpr UINT s_InstanceGridDims = 1;
+	inline static constexpr UINT s_InstanceGridDims = 3;
 	inline static constexpr UINT s_InstanceCount = s_InstanceGridDims * s_InstanceGridDims * s_InstanceGridDims;
 	inline static constexpr float s_InstanceSpacing = 8.0f;
 
