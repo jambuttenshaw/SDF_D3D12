@@ -29,7 +29,7 @@ Scene::Scene()
 		m_SDFFactoryHierarchicalAsync = std::make_unique<SDFFactoryHierarchicalAsync>();
 
 		// Create SDF objects
-		m_BlobObject = std::make_unique<SDFObject>(0.1f, 65536);
+		m_BlobObject = std::make_unique<SDFObject>(0.05f, 65536);
 		//m_SphereObject = std::make_unique<SDFObject>(0.05f, 125'000);
 		//m_OctahedronObject = std::make_unique<SDFObject>(0.125f, 65536);
 

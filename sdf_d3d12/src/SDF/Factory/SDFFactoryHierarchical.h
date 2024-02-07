@@ -43,6 +43,8 @@ protected:
 	};
 
 	ComPtr<ID3D12CommandSignature> m_CommandSignature;
+	// The number of commands in the buffer
+	inline static constexpr UINT s_NumCommands = 4;
 	UploadBuffer<IndirectCommand> m_CommandUploadBuffer;
 	DefaultBuffer m_CommandBuffer;
 
@@ -50,6 +52,7 @@ protected:
 	// Pipelines
 	std::unique_ptr<D3DComputePipeline> m_BrickCounterPipeline;
 
+	std::unique_ptr<D3DComputePipeline> m_ScanGroupCountCalculatorPipeline;
 	std::unique_ptr<D3DComputePipeline> m_ScanBlocksPipeline;
 	std::unique_ptr<D3DComputePipeline> m_ScanBlockSumsPipeline;
 	std::unique_ptr<D3DComputePipeline> m_SumScansPipeline;

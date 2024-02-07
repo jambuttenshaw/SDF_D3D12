@@ -25,7 +25,16 @@ namespace BrickCounterSignature
 		EditListSlot,
 		BricksSlot,
 		CountTableSlot,
-		PrefixSumGroupCounterSlot,
+		Count
+	};
+}
+
+namespace ScanThreadGroupCalculatorSignature
+{
+	enum Value
+	{
+		BrickCounterSlot = 0,
+		IndirectCommandArgumentSlot,
 		Count
 	};
 }
@@ -82,6 +91,39 @@ namespace BrickEvaluatorSignature
 }
 
 
+// All of the temporary resources used to build an SDF object
+struct SDFBuildResources
+{
+	// Constant buffers
+	BrickBuildParametersConstantBuffer BrickBuildParamsCB;
+	AABBBuilderConstantBuffer AABBBuildCB;
+	BrickEvaluationConstantBuffer BrickEvalCB;
+
+	// Ping-pong buffers to contain the bricks
+	// Which index is currently being read from
+	UINT CurrentReadBuffers = 0;
+
+	std::array<StructuredBuffer<Brick>, 2> BrickBuffers;
+	// An upload buffer for bricks is required to send the initial brick to the GPU
+	UploadBuffer<Brick> BrickUpload;
+
+	// Two counters are required for ping-pong buffers
+	std::array<CounterResource, 2> SubBrickCounters;
+	CounterResource BlockCounter; // How many block scan groups to dispatch
+
+	// Buffers for calculating prefix sums
+	DefaultBuffer SubBrickCountBuffer;
+	DefaultBuffer BlockPrefixSumsBuffer;
+	DefaultBuffer ScannedBlockPrefixSumsBuffer;
+	DefaultBuffer PrefixSumsBuffer;
+
+	// Counter Utility buffers to set and read values
+	UploadBuffer<UINT32> CounterUploadZero;	// Used to set a counter to 0
+	UploadBuffer<UINT32> CounterUploadOne;	// Used to set a counter to 1
+	ReadbackBuffer<UINT32> CounterReadback; // Used to read the value of a counter
+};
+
+
 
 SDFFactoryHierarchical::SDFFactoryHierarchical()
 {
@@ -115,21 +157,20 @@ SDFFactoryHierarchical::SDFFactoryHierarchical()
 	// Create command buffer
 	{
 		// The buffer will contain 2 commands
-		m_CommandBuffer.Allocate(device, 2 * sizeof(IndirectCommand), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_NONE, L"SDF Factory Command Buffer");
+		m_CommandBuffer.Allocate(device, s_NumCommands * sizeof(IndirectCommand), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, L"SDF Factory Command Buffer");
 
 		// Upload the commands into the command buffer
-		m_CommandUploadBuffer.Allocate(device, 2, 0, L"Command buffer upload");
+		m_CommandUploadBuffer.Allocate(device, s_NumCommands, 0, L"Command buffer upload");
 
 		// The default commands are to only dispatch 1 group
-		IndirectCommand commands[2];
-		commands[0].dispatchArgs.ThreadGroupCountX = 1;
-		commands[0].dispatchArgs.ThreadGroupCountY = 1;
-		commands[0].dispatchArgs.ThreadGroupCountZ = 1;
-
-		commands[1].dispatchArgs.ThreadGroupCountX = 1;
-		commands[1].dispatchArgs.ThreadGroupCountY = 1;
-		commands[1].dispatchArgs.ThreadGroupCountZ = 1;
-		m_CommandUploadBuffer.CopyElements(0, 2, commands);
+		IndirectCommand commands[s_NumCommands];
+		for (int i = 0; i < s_NumCommands; i++)
+		{
+			commands[i].dispatchArgs.ThreadGroupCountX = 1;
+			commands[i].dispatchArgs.ThreadGroupCountY = 1;
+			commands[i].dispatchArgs.ThreadGroupCountZ = 1;
+		}
+		m_CommandUploadBuffer.CopyElements(0, s_NumCommands, commands);
 
 		// The upload buffer will be copied into the command buffer on bake init
 	}
@@ -192,7 +233,6 @@ void SDFFactoryHierarchical::InitializePipelines()
 		rootParams[EditListSlot].InitAsShaderResourceView(1);
 		rootParams[BricksSlot].InitAsUnorderedAccessView(0);
 		rootParams[CountTableSlot].InitAsUnorderedAccessView(1);
-		rootParams[PrefixSumGroupCounterSlot].InitAsUnorderedAccessView(2);
 
 		D3DComputePipelineDesc desc = {};
 		desc.NumRootParameters = ARRAYSIZE(rootParams);
@@ -202,6 +242,23 @@ void SDFFactoryHierarchical::InitializePipelines()
 		desc.Defines = nullptr;
 
 		m_BrickCounterPipeline = std::make_unique<D3DComputePipeline>(&desc);
+	}
+
+	{
+		using namespace ScanThreadGroupCalculatorSignature;
+
+		CD3DX12_ROOT_PARAMETER1 rootParams[Count];
+		rootParams[BrickCounterSlot].InitAsShaderResourceView(0);
+		rootParams[IndirectCommandArgumentSlot].InitAsUnorderedAccessView(0);
+
+		D3DComputePipelineDesc desc = {};
+		desc.NumRootParameters = ARRAYSIZE(rootParams);
+		desc.RootParameters = rootParams;
+		desc.Shader = L"assets/shaders/compute/scan_thread_group_calculator.hlsl";
+		desc.EntryPoint = L"main";
+		desc.Defines = nullptr;
+
+		m_ScanGroupCountCalculatorPipeline = std::make_unique<D3DComputePipeline>(&desc);
 	}
 
 	{
@@ -323,7 +380,7 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 
 	// Buffers for calculating prefix sums
 	DefaultBuffer subBrickCountBuffer, blockPrefixSumsBuffer, scannedBlockPrefixSumsBuffer, prefixSumsBuffer;
-	CounterResource blockCounter; // How many block scan groups to dispatch
+	//CounterResource blockCounter; // How many block scan groups to dispatch
 	
 	{
 		// Step 1: Set up resources
@@ -382,8 +439,6 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 		blockPrefixSumsBuffer.Allocate(device, width, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, L"Block prefix sums buffer");
 		scannedBlockPrefixSumsBuffer.Allocate(device, width, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, L"Scanned block prefix sums buffer");
 		prefixSumsBuffer.Allocate(device, width, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, L"prefix sums buffer");
-
-		blockCounter.Allocate(device, L"Block Group Counter");
 	}
 
 	{
@@ -402,9 +457,8 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 
 		// Copy brick data into the brick buffer
 		m_CommandList->CopyBufferRegion(brickBuffers.at(currentBuffers).GetResource(), 0, brickUpload.GetResource(), 0, sizeof(Brick));
-
-		// Copy default command buffer into the processed command buffer
-		m_CommandList->CopyBufferRegion(m_CommandBuffer.GetResource(), 0, m_CommandUploadBuffer.GetResource(), 0, 2 * sizeof(IndirectCommand));
+		// Copy default command buffer into the command buffer
+		m_CommandList->CopyBufferRegion(m_CommandBuffer.GetResource(), 0, m_CommandUploadBuffer.GetResource(), 0, s_NumCommands * sizeof(IndirectCommand));
 
 		{
 			// Transition brick buffers into unordered access
@@ -419,8 +473,6 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 		// Set initial counter values
 		counters.at(currentBuffers).SetValue(m_CommandList.Get(), counterUploadOne.GetResource());
 		counters.at(1 - currentBuffers).SetValue(m_CommandList.Get(), counterUploadZero.GetResource());
-
-		blockCounter.SetValue(m_CommandList.Get(), counterUploadZero.GetResource());
 
 		{
 			// The counter will initially be read from so it should be in read only state
@@ -466,7 +518,6 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 			m_CommandList->SetComputeRootShaderResourceView(BrickCounterSignature::EditListSlot, editList.GetEditBufferAddress());
 			m_CommandList->SetComputeRootUnorderedAccessView(BrickCounterSignature::BricksSlot, brickBuffers.at(currentBuffers).GetAddress());
 			m_CommandList->SetComputeRootUnorderedAccessView(BrickCounterSignature::CountTableSlot, subBrickCountBuffer.GetAddress());
-			m_CommandList->SetComputeRootUnorderedAccessView(BrickCounterSignature::PrefixSumGroupCounterSlot, blockCounter.GetAddress());
 
 			// Indirectly dispatch compute shader
 			// The number of groups to dispatch is contained in the processed command buffer
@@ -491,23 +542,24 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 				m_CommandList->ResourceBarrier(ARRAYSIZE(barriers), barriers);
 			}
 
-			// Copy block counter into second indirect argument
+			// Calculate thread group counts to dispatch for the prefix sum stages
 			{
 				{
 					D3D12_RESOURCE_BARRIER barriers[] = {
-						CD3DX12_RESOURCE_BARRIER::Transition(m_CommandBuffer.GetResource(), D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT, D3D12_RESOURCE_STATE_COPY_DEST),
-						CD3DX12_RESOURCE_BARRIER::Transition(blockCounter.GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE)
+						CD3DX12_RESOURCE_BARRIER::Transition(m_CommandBuffer.GetResource(), D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT, D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
 					};
 					m_CommandList->ResourceBarrier(ARRAYSIZE(barriers), barriers);
 				}
 
-				// Copy the counter that was just written to into the groups X of the dispatch args
-				m_CommandList->CopyBufferRegion(m_CommandBuffer.GetResource(), sizeof(IndirectCommand), blockCounter.GetResource(), 0, sizeof(UINT32));
+				m_ScanGroupCountCalculatorPipeline->Bind(m_CommandList.Get());
+				m_CommandList->SetComputeRootShaderResourceView(ScanThreadGroupCalculatorSignature::BrickCounterSlot, counters.at(currentBuffers).GetAddress());
+				m_CommandList->SetComputeRootUnorderedAccessView(ScanThreadGroupCalculatorSignature::IndirectCommandArgumentSlot, m_CommandBuffer.GetAddress() + sizeof(IndirectCommand));
+				m_CommandList->Dispatch(1, 1, 1);
 
 				{
 					D3D12_RESOURCE_BARRIER barriers[] = {
-						CD3DX12_RESOURCE_BARRIER::Transition(m_CommandBuffer.GetResource(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT),
-						CD3DX12_RESOURCE_BARRIER::Transition(blockCounter.GetResource(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
+						CD3DX12_RESOURCE_BARRIER::UAV(m_CommandBuffer.GetResource()),
+						CD3DX12_RESOURCE_BARRIER::Transition(m_CommandBuffer.GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT)
 					};
 					m_CommandList->ResourceBarrier(ARRAYSIZE(barriers), barriers);
 				}
@@ -524,7 +576,7 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 				m_CommandList->SetComputeRootUnorderedAccessView(BrickScanSignature::BlockSumTableSlot, blockPrefixSumsBuffer.GetAddress());
 				m_CommandList->SetComputeRootUnorderedAccessView(BrickScanSignature::PrefixSumTable, prefixSumsBuffer.GetAddress());
 
-				m_CommandList->ExecuteIndirect(m_CommandSignature.Get(), 1, m_CommandBuffer.GetResource(), sizeof(IndirectCommand), nullptr, 0);
+				m_CommandList->ExecuteIndirect(m_CommandSignature.Get(), 1, m_CommandBuffer.GetResource(), 1 * sizeof(IndirectCommand), nullptr, 0);
 
 				{
 					const D3D12_RESOURCE_BARRIER uavBarriers[] = {
@@ -539,7 +591,7 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 				m_CommandList->SetComputeRootUnorderedAccessView(BrickScanSignature::BlockSumTableSlot, blockPrefixSumsBuffer.GetAddress());
 				m_CommandList->SetComputeRootUnorderedAccessView(BrickScanSignature::ScannedBlockTableSlot, scannedBlockPrefixSumsBuffer.GetAddress());
 
-				m_CommandList->ExecuteIndirect(m_CommandSignature.Get(), 1, m_CommandBuffer.GetResource(), sizeof(IndirectCommand), nullptr, 0);
+				m_CommandList->ExecuteIndirect(m_CommandSignature.Get(), 1, m_CommandBuffer.GetResource(), 2 * sizeof(IndirectCommand), nullptr, 0);
 
 				{
 					const D3D12_RESOURCE_BARRIER uavBarriers[] = {
@@ -553,7 +605,7 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 				m_CommandList->SetComputeRootUnorderedAccessView(BrickScanSignature::ScannedBlockTableSlot, scannedBlockPrefixSumsBuffer.GetAddress());
 				m_CommandList->SetComputeRootUnorderedAccessView(BrickScanSignature::PrefixSumTable, prefixSumsBuffer.GetAddress());
 
-				m_CommandList->ExecuteIndirect(m_CommandSignature.Get(), 1, m_CommandBuffer.GetResource(), sizeof(IndirectCommand), nullptr, 0);
+				m_CommandList->ExecuteIndirect(m_CommandSignature.Get(), 1, m_CommandBuffer.GetResource(), 3 * sizeof(IndirectCommand), nullptr, 0);
 
 				{
 					const auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(prefixSumsBuffer.GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
@@ -614,8 +666,6 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 			m_CommandList->CopyBufferRegion(m_CommandBuffer.GetResource(), 0, counters.at(1 - currentBuffers).GetResource(), 0, sizeof(UINT32));
 			// Reset the other counter to 0
 			counters.at(currentBuffers).SetValue(m_CommandList.Get(), counterUploadZero.GetResource());
-			// Also reset block counter to 0 for next iteration
-			blockCounter.SetValue(m_CommandList.Get(), counterUploadZero.GetResource());
 
 			{
 				D3D12_RESOURCE_BARRIER barriers[] = {

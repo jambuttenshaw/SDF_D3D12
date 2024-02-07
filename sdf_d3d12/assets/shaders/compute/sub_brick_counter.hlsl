@@ -24,7 +24,6 @@ RWStructuredBuffer<Brick> g_Bricks : register(u0);
 
 // For calculating prefix sums
 RWStructuredBuffer<uint> g_CountTable : register(u1);
-RWByteAddressBuffer g_PrefixSumBlocksCounter : register(u2);
 
 
 // Group-shared variables
@@ -114,12 +113,6 @@ void main(uint3 GroupID : SV_GroupID, uint GI : SV_GroupIndex, uint3 GTid : SV_G
 	{
 		g_Bricks[GroupID.x] = gs_Brick;
 		g_CountTable[GroupID.x] = gs_SubBrickCount;
-
-		if (GroupID.x % 64 == 0)
-		{
-			uint _;
-			g_PrefixSumBlocksCounter.InterlockedAdd(0, 1, _);
-		}
 	}
 }
 
