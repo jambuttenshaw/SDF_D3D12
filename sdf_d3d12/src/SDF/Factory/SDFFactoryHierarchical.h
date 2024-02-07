@@ -49,17 +49,15 @@ protected:
 	ComPtr<ID3D12GraphicsCommandList> m_CommandList;
 
 	// Indirect execution objects
-	struct IndirectCommand
-	{
-		D3D12_DISPATCH_ARGUMENTS dispatchArgs;
-	};
-
 	ComPtr<ID3D12CommandSignature> m_CommandSignature;
 	// The number of commands in the buffer
 	inline static constexpr UINT s_NumCommands = 4;
-	UploadBuffer<IndirectCommand> m_CommandUploadBuffer;
-	DefaultBuffer m_CommandBuffer;
+	UploadBuffer<D3D12_DISPATCH_ARGUMENTS> m_CommandUploadBuffer;
 
+	// Upload buffers that can be re-used for any build
+	// The counter reset buffers never have their contents changed so they can be part of the factory
+	UploadBuffer<UINT32> m_CounterUploadZero;	// Used to set a counter to 0
+	UploadBuffer<UINT32> m_CounterUploadOne;	// Used to set a counter to 1
 
 	// Pipelines
 	std::unique_ptr<D3DComputePipeline> m_BrickCounterPipeline;

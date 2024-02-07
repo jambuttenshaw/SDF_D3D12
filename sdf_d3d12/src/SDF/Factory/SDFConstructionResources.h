@@ -43,9 +43,9 @@ public:
 	inline DefaultBuffer& GetPrefixSumsBuffer() { return m_PrefixSumsBuffer; }
 
 	inline UploadBuffer<Brick>& GetBrickUploadBuffer() { return m_BrickUpload; }
-	inline UploadBuffer<UINT>& GetCounterUploadZeroBuffer() { return m_CounterUploadZero; }
-	inline UploadBuffer<UINT>& GetCounterUploadOneBuffer() { return m_CounterUploadOne; }
 	inline ReadbackBuffer<UINT>& GetCounterReadbackBuffer() { return m_CounterReadback; }
+
+	inline DefaultBuffer& GetCommandBuffer() { return m_CommandBuffer; }
 	
 protected:
 	bool m_Allocated = false;
@@ -73,7 +73,10 @@ protected:
 
 	// Utility buffers to set and read values
 	UploadBuffer<Brick> m_BrickUpload;			// An upload buffer for bricks is required to send the initial brick to the GPU
-	UploadBuffer<UINT32> m_CounterUploadZero;	// Used to set a counter to 0
-	UploadBuffer<UINT32> m_CounterUploadOne;	// Used to set a counter to 1
 	ReadbackBuffer<UINT32> m_CounterReadback;	// Used to read the value of a counter
+
+	// Command buffer for indirect dispatching
+	// This will contain 4 arguments
+	inline static constexpr UINT s_NumCommands = 4;
+	DefaultBuffer m_CommandBuffer;
 };

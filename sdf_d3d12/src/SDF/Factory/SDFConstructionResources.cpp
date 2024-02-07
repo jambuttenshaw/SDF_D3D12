@@ -45,10 +45,7 @@ void SDFConstructionResources::AllocateResources(const SDFEditList& editList, fl
 	m_BlockPrefixSumsBuffer.Allocate(device, blockWidth, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, L"Block prefix sums buffer");
 	m_PrefixSumsBuffer.Allocate(device, width, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, L"Prefix sums buffer");
 
-
 	m_BrickUpload.Allocate(device, 1, 0, L"Brick upload");
-	m_CounterUploadZero.Allocate(device, 1, 0, L"Counters Upload Zero");
-	m_CounterUploadOne.Allocate(device, 1, 0, L"Counters Upload One");
 	m_CounterReadback.Allocate(device, 1, 0, L"Counters Readback");
 
 	// Create and upload initial brick
@@ -60,8 +57,7 @@ void SDFConstructionResources::AllocateResources(const SDFEditList& editList, fl
 	};
 	m_BrickUpload.CopyElement(0, initialBrick);
 
-	m_CounterUploadZero.CopyElement(0, 0);
-	m_CounterUploadOne.CopyElement(0, 1);
+	m_CommandBuffer.Allocate(device, s_NumCommands * sizeof(D3D12_DISPATCH_ARGUMENTS), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, L"Indirect Dispatch Command Buffer");;
 }
 
 
