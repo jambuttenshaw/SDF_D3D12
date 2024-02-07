@@ -24,6 +24,9 @@ public:
 
 	virtual void BakeSDFSync(SDFObject* object, const SDFEditList& editList);
 
+	inline void SetMaxBrickBuildIterations(UINT maxIterations) { m_MaxBrickBuildIterations = maxIterations; }
+	inline UINT GetMaxBrickBuildIterations() const { return m_MaxBrickBuildIterations; }
+
 protected:
 
 	void InitializePipelines();
@@ -65,4 +68,6 @@ protected:
 
 	// This fence is used to store when the last submitted work is complete
 	UINT64 m_PreviousWorkFence = 0;
+
+	std::atomic<UINT> m_MaxBrickBuildIterations = -1;
 };

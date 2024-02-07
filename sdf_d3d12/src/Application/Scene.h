@@ -29,7 +29,6 @@ public:
 
 private:
 	void BuildEditList(float deltaTime, bool async);
-	void BuildEditList2(float deltaTime, bool async);
 
 	void CheckSDFGeometryUpdates();
 	void UpdateAccelerationStructure();
@@ -46,19 +45,14 @@ private:
 	// SDF Objects
 	std::unique_ptr<SDFFactoryHierarchicalAsync> m_SDFFactoryHierarchicalAsync;
 
-	//std::unique_ptr<SDFObject> m_SphereObject;
 	std::unique_ptr<SDFObject> m_BlobObject;
-	//std::unique_ptr<SDFObject> m_OctahedronObject;
+	std::unique_ptr<SDFObject> m_FrameObject;
 
 	// Demo Scene
-	inline static constexpr UINT s_InstanceGridDims = 1;
-	inline static constexpr UINT s_InstanceCount = s_InstanceGridDims * s_InstanceGridDims * s_InstanceGridDims;
-	inline static constexpr float s_InstanceSpacing = 8.0f;
+	inline static constexpr UINT s_InstanceCount = 2;
 
 	XMMATRIX m_InstanceRotations[s_InstanceCount];
 	XMFLOAT3 m_InstanceRotationDeltas[s_InstanceCount];
-
-	XMFLOAT3 m_InstanceTranslation[s_InstanceCount];
 
 	// GUI controls
 	bool m_RotateInstances = true;
@@ -72,19 +66,7 @@ private:
 		XMFLOAT3 scale;
 		XMFLOAT3 speed;
 	};
-	UINT m_SphereCount = 160;
+	UINT m_SphereCount = 100;
 	std::vector<SphereData> m_SphereData;
 	float m_SphereBlend = 0.4f;
-
-	struct OctahedronData
-	{
-		XMFLOAT3 offset;
-		float range;
-		float speed;
-		float scale;
-		bool sphere;
-	};
-	UINT m_OctahedronCount = 30;
-	std::vector<OctahedronData> m_OctahedronData;
-	float m_OctahedronBlend = 0.3f;
 };

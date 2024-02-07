@@ -321,6 +321,13 @@ void SDFFactoryHierarchical::InitializePipelines()
 
 void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const SDFEditList& editList)
 {
+	if (m_MaxBrickBuildIterations == 0)
+	{
+		LOG_WARN("Max build iterations cannot be 0!");
+		return;
+	}
+	UINT maxIterations = m_MaxBrickBuildIterations;
+
 	const auto device = g_D3DGraphicsContext->GetDevice();
 	const auto computeQueue = g_D3DGraphicsContext->GetComputeCommandQueue();
 
@@ -430,7 +437,8 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 		m_CommandList->SetDescriptorHeaps(_countof(ppDescriptorHeaps), ppDescriptorHeaps);
 
 		// Multiple iterations will be made until the brick size is small enough
-		while(buildParamsCB.SubBrickSize >= object->GetMinBrickSize())
+		UINT iterations = 0;
+		while(buildParamsCB.SubBrickSize >= object->GetMinBrickSize() && iterations++ < maxIterations)
 		{
 			PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(45), L"Brick Building Iteration");
 
