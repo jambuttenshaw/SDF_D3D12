@@ -331,10 +331,23 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 		// Copy edit list into GPU memory
 		editList.CopyStagingToGPU();
 
+		// Default eval space size is 8x8x8
+		// TODO: This could be calculate from edits? or some others smarter means
+		constexpr float defaultEvalSpaceSize = 8.0f;
+
+		// Determine eval space size
+		// It should be a multiple of the smallest brick size
+		// Therefore the final iteration will build bricks of the desired size
+		float evalSpaceSize = object->GetMinBrickSize();
+		while (evalSpaceSize < defaultEvalSpaceSize)
+		{
+			evalSpaceSize *= 4.0f;
+		}
+
 		// Populate initial build params
 		buildParamsCB.SDFEditCount = editList.GetEditCount();
 		// The brick size will be different for each dispatch
-		buildParamsCB.BrickSize = 6.4f; // size of entire evaluation space
+		buildParamsCB.BrickSize = evalSpaceSize; // size of entire evaluation space
 		buildParamsCB.SubBrickSize = buildParamsCB.BrickSize / 4.0f; // brick size will quarter with each dispatch
 
 
@@ -345,9 +358,10 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 		}
 		brickUpload.Allocate(device, 1, 0, L"Brick upload");
 
-		constexpr Brick initialBrick = {
+		const float evalSpaceTL = -0.5f * evalSpaceSize;
+		const Brick initialBrick = {
 			{0, 0},
-			{ -3.2f, -3.2f, -3.2f }
+			{ evalSpaceTL, evalSpaceTL, evalSpaceTL }
 		};
 		brickUpload.CopyElement(0, initialBrick);
 
