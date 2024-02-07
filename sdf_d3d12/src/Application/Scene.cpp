@@ -56,7 +56,7 @@ Scene::Scene()
 			}
 
 			// Bake the primitives into the SDF object
-			m_SDFFactoryHierarchicalAsync->BakeSDFSync(m_SphereObject.get(), std::move(sphereEditList));
+			m_SDFFactoryHierarchicalAsync->BakeSDFSync(m_SphereObject.get(), sphereEditList);
 			*/
 		}
 		{
@@ -311,11 +311,11 @@ void Scene::BuildEditList(float deltaTime, bool async)
 
 	if (async)
 	{
-		m_SDFFactoryHierarchicalAsync->BakeSDFAsync(m_BlobObject.get(), std::move(editList));
+		m_SDFFactoryHierarchicalAsync->BakeSDFAsync(m_BlobObject.get(), editList);
 	}
 	else
 	{
-		m_SDFFactoryHierarchicalAsync->BakeSDFSync(m_BlobObject.get(), std::move(editList));
+		m_SDFFactoryHierarchicalAsync->BakeSDFSync(m_BlobObject.get(), editList);
 	}
 
 	PIXEndEvent();
@@ -354,11 +354,11 @@ void Scene::BuildEditList2(float deltaTime, bool async)
 
 	if (async)
 	{
-		//m_SDFFactoryHierarchicalAsync->BakeSDFAsync(m_OctahedronObject.get(), std::move(editList));
+		//m_SDFFactoryHierarchicalAsync->BakeSDFAsync(m_OctahedronObject.get(), editList);
 	}
 	else
 	{
-		//m_SDFFactoryHierarchicalAsync->BakeSDFSync(m_OctahedronObject.get(), std::move(editList));
+		//m_SDFFactoryHierarchicalAsync->BakeSDFSync(m_OctahedronObject.get(), editList);
 	}
 
 	PIXEndEvent();

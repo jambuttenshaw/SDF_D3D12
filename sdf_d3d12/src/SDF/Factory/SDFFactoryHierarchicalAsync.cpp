@@ -2,7 +2,6 @@
 #include "SDFFactoryHierarchicalAsync.h"
 
 #include "Renderer/D3DGraphicsContext.h"
-#include "SDF/SDFEditList.h"
 #include "SDF/SDFObject.h"
 
 #include "pix3.h"
@@ -23,7 +22,7 @@ SDFFactoryHierarchicalAsync::~SDFFactoryHierarchicalAsync()
 	}
 }
 
-void SDFFactoryHierarchicalAsync::BakeSDFSync(SDFObject* object, SDFEditList&& editList)
+void SDFFactoryHierarchicalAsync::BakeSDFSync(SDFObject* object, const SDFEditList& editList)
 {
 	if (m_AsyncInUse)
 	{
@@ -35,7 +34,7 @@ void SDFFactoryHierarchicalAsync::BakeSDFSync(SDFObject* object, SDFEditList&& e
 }
 
 
-void SDFFactoryHierarchicalAsync::BakeSDFAsync(SDFObject* object, SDFEditList&& editList)
+void SDFFactoryHierarchicalAsync::BakeSDFAsync(SDFObject* object, const SDFEditList& editList)
 {
 	{
 		std::lock_guard lockGuard(m_QueueMutex);
@@ -45,15 +44,12 @@ void SDFFactoryHierarchicalAsync::BakeSDFAsync(SDFObject* object, SDFEditList&& 
 		{
 			if (item.Object == object)
 			{
-				item.EditList = std::make_unique<SDFEditList>(std::move(editList));
+				item.EditList = editList;
 				return;
 			}
 		}
 
-		m_BuildQueue.push_back({
-			object,
-			std::make_unique<SDFEditList>(std::move(editList))
-			});
+		m_BuildQueue.push_back({ object, editList });
 	}
 }
 
@@ -69,7 +65,7 @@ void SDFFactoryHierarchicalAsync::AsyncFactoryThreadProc()
 	m_Timer.Reset();
 
 	SDFObject* object = nullptr;
-	std::unique_ptr<SDFEditList> editList;
+	SDFEditList editList(0); // max edits specified doesn't matter as this will be copy-constructed later
 
 	while (!m_TerminateThread)
 	{
@@ -84,7 +80,7 @@ void SDFFactoryHierarchicalAsync::AsyncFactoryThreadProc()
 			{
 
 				object = m_BuildQueue.front().Object;
-				editList = std::move(m_BuildQueue.front().EditList);
+				editList = m_BuildQueue.front().EditList;
 
 				m_BuildQueue.pop_front();
 			}
@@ -128,7 +124,7 @@ void SDFFactoryHierarchicalAsync::AsyncFactoryThreadProc()
 			computeQueue->WaitForFenceCPUBlocking(m_PreviousWorkFence);
 			PIXEndEvent();
 
-			PerformSDFBake_CPUBlocking(object, *editList.get());
+			PerformSDFBake_CPUBlocking(object, editList);
 
 			// The CPU can optionally wait until the operations have completed too
 			PIXBeginEvent(PIX_COLOR_INDEX(13), L"Wait for bake completion");
@@ -139,7 +135,7 @@ void SDFFactoryHierarchicalAsync::AsyncFactoryThreadProc()
 
 			// Clear resources
 			object = nullptr;
-			editList.reset();
+			editList.Reset();
 
 			m_AsyncInUse = false;
 			PIXEndEvent();

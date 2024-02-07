@@ -125,6 +125,8 @@ void SDFFactory::InitializePipelines()
 
 void SDFFactory::PerformSDFBake_CPUBlocking(SDFObject* object, const SDFEditList& editList)
 {
+	DEPRECATED
+	/*
 	const auto device = g_D3DGraphicsContext->GetDevice();
 	const auto computeQueue = g_D3DGraphicsContext->GetComputeCommandQueue();
 
@@ -295,11 +297,14 @@ void SDFFactory::PerformSDFBake_CPUBlocking(SDFObject* object, const SDFEditList
 		ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
 		m_PreviousBakeFence = computeQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 	}
+	*/
 }
 
 
 void SDFFactory::PerformPipelinedSDFBake_CPUBlocking(UINT count, SDFObject** ppObjects, SDFEditList** ppEditLists)
 {
+	DEPRECATED
+	/*
 	// argument validation
 	ASSERT(count < s_MaxPipelinedObjects, "Count is larger than max pipelined objects!");
 
@@ -488,6 +493,7 @@ void SDFFactory::PerformPipelinedSDFBake_CPUBlocking(UINT count, SDFObject** ppO
 		ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
 		m_PreviousBakeFence = computeQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 	}
+	*/
 }
 
 

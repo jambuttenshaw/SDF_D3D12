@@ -2,6 +2,8 @@
 
 
 #include "SDFFactoryHierarchical.h"
+#include "SDF/SDFEditList.h"
+
 #include "Framework/GameTimer.h"
 
 
@@ -14,8 +16,8 @@ public:
 	DISALLOW_COPY(SDFFactoryHierarchicalAsync)
 	DEFAULT_MOVE(SDFFactoryHierarchicalAsync)
 
-	virtual void BakeSDFSync(SDFObject* object, SDFEditList&& editList) override;
-	void BakeSDFAsync(SDFObject* object, SDFEditList&& editList);
+	virtual void BakeSDFSync(SDFObject* object, const SDFEditList& editList) override;
+	void BakeSDFAsync(SDFObject* object, const SDFEditList& editList);
 
 	float GetAsyncBuildsPerSecond() const { return m_Timer.GetFPS(); };
 
@@ -32,7 +34,7 @@ protected:
 	struct BuildQueueItem
 	{
 		SDFObject* Object;
-		std::unique_ptr<SDFEditList> EditList;
+		SDFEditList EditList;
 	};
 	// Queue of bakes to perform
 	std::deque<BuildQueueItem> m_BuildQueue;

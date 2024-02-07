@@ -22,7 +22,7 @@ public:
 	DISALLOW_COPY(SDFFactoryHierarchical)
 	DEFAULT_MOVE(SDFFactoryHierarchical)
 
-	virtual void BakeSDFSync(SDFObject* object, SDFEditList&& editList);
+	virtual void BakeSDFSync(SDFObject* object, const SDFEditList& editList);
 
 protected:
 

@@ -8,8 +8,7 @@
 SDFEditList::SDFEditList(UINT maxEdits)
 	: m_MaxEdits(maxEdits)
 {
-	m_EditsStaging.resize(m_MaxEdits);
-	m_EditsBuffer.Allocate(g_D3DGraphicsContext->GetDevice(), m_MaxEdits, 0, L"Edit Buffer");
+	m_Edits.resize(m_MaxEdits);
 }
 
 void SDFEditList::Reset()
@@ -25,20 +24,9 @@ bool SDFEditList::AddEdit(const SDFEdit& edit)
 		return false;
 	}
 
-	m_EditsStaging.at(m_EditCount++) = BuildEditData(edit);
+	m_Edits.at(m_EditCount++) = BuildEditData(edit);
 	return true;
 }
-
-void SDFEditList::CopyStagingToGPU() const
-{
-	m_EditsBuffer.CopyElements(0, m_EditCount, m_EditsStaging.data());
-}
-
-D3D12_GPU_VIRTUAL_ADDRESS SDFEditList::GetEditBufferAddress() const
-{
-	return m_EditsBuffer.GetAddressOfElement(0);
-}
-
 
 SDFEditData SDFEditList::BuildEditData(const SDFEdit& edit)
 {
@@ -57,3 +45,17 @@ SDFEditData SDFEditList::BuildEditData(const SDFEdit& edit)
 
 	return primitiveData;
 }
+
+
+void SDFEditBuffer::Allocate(UINT maxEdits)
+{
+	m_MaxEdits = maxEdits;
+	m_EditsBuffer.Allocate(g_D3DGraphicsContext->GetDevice(), maxEdits, 0, L"Edit Buffer");
+}
+
+void SDFEditBuffer::Populate(const SDFEditList& editList) const
+{
+	ASSERT(editList.GetEditCount() <= m_MaxEdits, "Edit list buffer does not have capacity for this edit list!");
+	m_EditsBuffer.CopyElements(0, editList.GetEditCount(), editList.GetEditData());
+}
+

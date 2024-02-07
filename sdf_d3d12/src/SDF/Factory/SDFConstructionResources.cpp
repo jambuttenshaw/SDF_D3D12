@@ -11,9 +11,15 @@ SDFConstructionResources::SDFConstructionResources(UINT brickCapacity)
 }
 
 
-void SDFConstructionResources::AllocateResources(const Brick& initialBrick)
+void SDFConstructionResources::AllocateResources(const SDFEditList& editList, const Brick& initialBrick)
 {
+	ASSERT(!m_Allocated, "Resources have already been allocated!");
+	m_Allocated = true;
+
 	const auto device = g_D3DGraphicsContext->GetDevice();
+
+	m_EditBuffer.Allocate(editList.GetEditCount());
+	m_EditBuffer.Populate(editList);
 
 	for (auto& buffer : m_BrickBuffers)
 	{

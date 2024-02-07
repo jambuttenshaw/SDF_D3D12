@@ -147,7 +147,7 @@ SDFFactoryHierarchical::SDFFactoryHierarchical()
 }
 
 
-void SDFFactoryHierarchical::BakeSDFSync(SDFObject* object, SDFEditList&& editList)
+void SDFFactoryHierarchical::BakeSDFSync(SDFObject* object, const SDFEditList& editList)
 {
 	// Check object is not being constructed anywhere else
 	// It's okay if the resource is in the switching state - we're going to wait on the render queue anyway
@@ -339,9 +339,6 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 	{
 		// Step 1: Set up resources
 
-		// Copy edit list into GPU memory
-		editList.CopyStagingToGPU();
-
 		// Default eval space size is 8x8x8
 		// TODO: This could be calculate from edits? or some others smarter means
 		constexpr float defaultEvalSpaceSize = 8.0f;
@@ -367,7 +364,7 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 			-0.5f * evalSpaceSize,
 			-0.5f * evalSpaceSize
 		};
-		resources.AllocateResources(initialBrick);
+		resources.AllocateResources(editList, initialBrick);
 	}
 
 	{
@@ -444,7 +441,7 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 			// Set root parameters
 			m_CommandList->SetComputeRoot32BitConstants(BrickCounterSignature::BuildParameterSlot, SizeOfInUint32(buildParamsCB), &buildParamsCB, 0);
 			m_CommandList->SetComputeRootShaderResourceView(BrickCounterSignature::BrickCounterSlot, resources.GetReadCounter().GetAddress());
-			m_CommandList->SetComputeRootShaderResourceView(BrickCounterSignature::EditListSlot, editList.GetEditBufferAddress());
+			m_CommandList->SetComputeRootShaderResourceView(BrickCounterSignature::EditListSlot, resources.GetEditBuffer().GetAddress());
 			m_CommandList->SetComputeRootUnorderedAccessView(BrickCounterSignature::BricksSlot, resources.GetReadBrickBuffer().GetAddress());
 			m_CommandList->SetComputeRootUnorderedAccessView(BrickCounterSignature::CountTableSlot, resources.GetSubBrickCountBuffer().GetAddress());
 
@@ -724,7 +721,7 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 
 		// Set resource views
 		m_CommandList->SetComputeRoot32BitConstants(BrickEvaluatorSignature::BuildParameterSlot, SizeOfInUint32(BrickEvaluationConstantBuffer), &brickEvalCB, 0);
-		m_CommandList->SetComputeRootShaderResourceView(BrickEvaluatorSignature::EditListSlot, editList.GetEditBufferAddress());
+		m_CommandList->SetComputeRootShaderResourceView(BrickEvaluatorSignature::EditListSlot, resources.GetEditBuffer().GetAddress());
 		m_CommandList->SetComputeRootShaderResourceView(BrickEvaluatorSignature::BrickBufferSlot, object->GetBrickBufferAddress(SDFObject::RESOURCES_WRITE));
 		m_CommandList->SetComputeRootDescriptorTable(BrickEvaluatorSignature::BrickPoolSlot, object->GetBrickPoolUAV(SDFObject::RESOURCES_WRITE));
 

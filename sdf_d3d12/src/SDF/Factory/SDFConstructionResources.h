@@ -8,6 +8,7 @@
 #include "Renderer/Buffer/UploadBuffer.h"
 
 #include "Renderer/Hlsl/ComputeHlslCompat.h"
+#include "SDF/SDFEditList.h"
 
 
 class SDFConstructionResources
@@ -19,10 +20,12 @@ public:
 	DISALLOW_COPY(SDFConstructionResources)
 	DEFAULT_MOVE(SDFConstructionResources)
 
-	void AllocateResources(const Brick& initialBrick);
+	void AllocateResources(const SDFEditList& editList, const Brick& initialBrick);
 	inline void SwapBuffers() { m_CurrentReadBuffers = 1 - m_CurrentReadBuffers; }
 
 	// Getters
+	inline SDFEditBuffer& GetEditBuffer() { return m_EditBuffer; }
+
 	inline StructuredBuffer<Brick>& GetReadBrickBuffer() { return m_BrickBuffers.at(m_CurrentReadBuffers); }
 	inline StructuredBuffer<Brick>& GetWriteBrickBuffer() { return m_BrickBuffers.at(1 - m_CurrentReadBuffers); }
 
@@ -40,7 +43,11 @@ public:
 	inline ReadbackBuffer<UINT>& GetCounterReadbackBuffer() { return m_CounterReadback; }
 	
 protected:
+	bool m_Allocated = false;
+
 	UINT m_BrickCapacity = 0;
+
+	SDFEditBuffer m_EditBuffer;
 
 	// Ping-pong buffers to contain the bricks
 	// Which index is currently being read from
