@@ -26,11 +26,11 @@ Scene::Scene()
 	// Build SDF Object
 	{
 		// Create SDF factory 
-		m_SDFFactoryHierarchical = std::make_unique<SDFFactoryHierarchical>();
+		m_SDFFactoryHierarchicalAsync = std::make_unique<SDFFactoryHierarchicalAsync>();
 
 		// Create SDF objects
-		//m_BlobObject = std::make_unique<SDFObject>(0.125f, 65536);
-		m_SphereObject = std::make_unique<SDFObject>(0.05f, 125'000);
+		m_BlobObject = std::make_unique<SDFObject>(0.1f, 65536);
+		//m_SphereObject = std::make_unique<SDFObject>(0.05f, 125'000);
 		//m_OctahedronObject = std::make_unique<SDFObject>(0.125f, 65536);
 
 		{
@@ -56,11 +56,8 @@ Scene::Scene()
 			}
 
 			// Bake the primitives into the SDF object
+			m_SDFFactoryHierarchicalAsync->BakeSDFSync(m_SphereObject.get(), std::move(sphereEditList));
 			*/
-			SDFEditList sphereEditList(1);
-			sphereEditList.AddEdit(SDFEdit::CreateSphere({}, 0.5f));
-
-			m_SDFFactoryHierarchical->BakeSDFSync(m_SphereObject.get(), std::move(sphereEditList));
 		}
 		{
 			for (UINT i = 0; i < m_SphereCount; i++)
@@ -68,14 +65,14 @@ Scene::Scene()
 				m_SphereData.push_back({});
 				SphereData& sphereData = m_SphereData.at(i);
 				sphereData.scale = {
-					Random::Float(-0.7f, 0.7f),
-					Random::Float(-0.7f, 0.7f),
-					Random::Float(-0.7f, 0.7f)
+					Random::Float(-2.7f, 2.7f),
+					Random::Float(-2.7f, 2.7f),
+					Random::Float(-2.7f, 2.7f)
 				};
 				sphereData.speed = {
-					Random::Float(0.5f, 2.0f),
-					Random::Float(0.5f, 2.0f),
-					Random::Float(0.5f, 2.0f)
+					Random::Float(0.1f, 1.0f),
+					Random::Float(0.1f, 1.0f),
+					Random::Float(0.1f, 1.0f)
 				};
 			}
 
@@ -102,9 +99,9 @@ Scene::Scene()
 
 	{
 		// Construct scene geometry
-		//m_SceneGeometry.push_back({ L"Blobs", m_BlobObject.get()});
+		//m_SceneGeometry.push_back({ L"Spheres", m_SphereObject.get() });
+		m_SceneGeometry.push_back({ L"Blobs", m_BlobObject.get()});
 		//m_SceneGeometry.push_back({ L"Octahedron", m_OctahedronObject.get() });
-		m_SceneGeometry.push_back({ L"Spheres", m_SphereObject.get() });
 
 		CheckSDFGeometryUpdates();
 	}
@@ -167,7 +164,7 @@ Scene::Scene()
 Scene::~Scene()
 {
 	// SDFFactory should be deleted first
-	m_SDFFactoryHierarchical.reset();
+	m_SDFFactoryHierarchicalAsync.reset();
 }
 
 
@@ -204,11 +201,6 @@ void Scene::OnUpdate(float deltaTime)
 	{
 		BuildEditList(deltaTime, m_AsyncConstruction);
 		BuildEditList2(deltaTime, m_AsyncConstruction);
-
-		SDFEditList sphereEditList(1);
-		sphereEditList.AddEdit(SDFEdit::CreateSphere({}, 0.5f));
-
-		m_SDFFactoryHierarchical->BakeSDFSync(m_SphereObject.get(), std::move(sphereEditList));
 	}
 
 	PIXEndEvent();
@@ -271,7 +263,7 @@ bool Scene::ImGuiSceneInfo()
 			m_Rebuild |= checkbox;
 		}
 		ImGui::Checkbox("Async Construction", &m_AsyncConstruction);
-		//ImGui::Text("Async Builds/Sec: %.1f", m_AsyncConstruction ? m_SDFFactoryAsync->GetAsyncBuildsPerSecond() : 0.0f);
+		ImGui::Text("Async Builds/Sec: %.1f", m_AsyncConstruction ? m_SDFFactoryHierarchicalAsync->GetAsyncBuildsPerSecond() : 0.0f);
 
 		ImGui::Separator();
 
@@ -295,7 +287,6 @@ bool Scene::ImGuiSceneInfo()
 
 void Scene::BuildEditList(float deltaTime, bool async)
 {
-	return; 
 	PIXBeginEvent(PIX_COLOR_INDEX(10), L"Build Edit List");
 
 	static float t = 1.0f;
@@ -304,7 +295,7 @@ void Scene::BuildEditList(float deltaTime, bool async)
 	SDFEditList editList(m_SphereCount + 1);
 
 	editList.Reset();
-	editList.AddEdit(SDFEdit::CreateBoxFrame({}, { 1.0f, 1.0f, 1.0f }, 0.025f));
+	editList.AddEdit(SDFEdit::CreateBoxFrame({}, { 3.0f, 3.0f, 3.0f }, 0.025f));
 
 	for (UINT i = 0; i < m_SphereCount; i++)
 	{
@@ -320,11 +311,11 @@ void Scene::BuildEditList(float deltaTime, bool async)
 
 	if (async)
 	{
-		//m_SDFFactoryHierarchical->BakeSDFAsync(m_BlobObject.get(), std::move(editList));
+		m_SDFFactoryHierarchicalAsync->BakeSDFAsync(m_BlobObject.get(), std::move(editList));
 	}
 	else
 	{
-		m_SDFFactoryHierarchical->BakeSDFSync(m_BlobObject.get(), std::move(editList));
+		m_SDFFactoryHierarchicalAsync->BakeSDFSync(m_BlobObject.get(), std::move(editList));
 	}
 
 	PIXEndEvent();
@@ -363,11 +354,11 @@ void Scene::BuildEditList2(float deltaTime, bool async)
 
 	if (async)
 	{
-		//m_SDFFactoryAsync->BakeSDFAsync(m_OctahedronObject.get(), std::move(editList));
+		//m_SDFFactoryHierarchicalAsync->BakeSDFAsync(m_OctahedronObject.get(), std::move(editList));
 	}
 	else
 	{
-		m_SDFFactoryHierarchical->BakeSDFSync(m_OctahedronObject.get(), std::move(editList));
+		//m_SDFFactoryHierarchicalAsync->BakeSDFSync(m_OctahedronObject.get(), std::move(editList));
 	}
 
 	PIXEndEvent();

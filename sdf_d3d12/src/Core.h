@@ -6,10 +6,11 @@
 
 #ifdef _DEBUG
 
-#define THROW_IF_FAIL(x) if (FAILED(x)) { LOG_FATAL(DXException(x).ToString().c_str()); throw; }
+#define THROW_IF_FAIL(x) { const HRESULT hr = x; if (FAILED(hr)) { LOG_FATAL(DXException(hr).ToString().c_str()); throw; }}
 #define ASSERT(x, msg) if (!(x)) { LOG_ERROR("Debug assertion failed in file ({0}) on line ({1}). Message: {2}", __FILE__, __LINE__, msg); DebugBreak(); }
 
 #define NOT_IMPLEMENTED ASSERT(false, "Not Implemented")
+#define DEPRECATED ASSERT(false, "Deprecated")
 
 #else
 
@@ -17,6 +18,7 @@
 #define ASSERT(x, msg)
 
 #define NOT_IMPLEMENTED
+#define DEPRECATED
 
 #endif
 

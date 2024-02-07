@@ -17,7 +17,7 @@ class SDFFactoryHierarchical
 {
 public:
 	SDFFactoryHierarchical();
-	~SDFFactoryHierarchical() = default;
+	virtual ~SDFFactoryHierarchical() = default;
 
 	DISALLOW_COPY(SDFFactoryHierarchical)
 	DEFAULT_MOVE(SDFFactoryHierarchical)

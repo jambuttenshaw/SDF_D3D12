@@ -3,8 +3,7 @@
 
 #include "Renderer/Raytracing/AccelerationStructure.h"
 
-//#include "SDF/Factory/SDFFactoryAsync.h"
-#include "SDF/Factory/SDFFactoryHierarchical.h"
+#include "SDF/Factory/SDFFactoryHierarchicalAsync.h"
 #include "SDF/SDFObject.h"
 
 
@@ -45,11 +44,11 @@ private:
 	std::unique_ptr<RaytracingAccelerationStructureManager> m_AccelerationStructure;
 
 	// SDF Objects
-	std::unique_ptr<SDFFactoryHierarchical> m_SDFFactoryHierarchical;
+	std::unique_ptr<SDFFactoryHierarchicalAsync> m_SDFFactoryHierarchicalAsync;
 
-	std::unique_ptr<SDFObject> m_SphereObject;
+	//std::unique_ptr<SDFObject> m_SphereObject;
 	std::unique_ptr<SDFObject> m_BlobObject;
-	std::unique_ptr<SDFObject> m_OctahedronObject;
+	//std::unique_ptr<SDFObject> m_OctahedronObject;
 
 	// Demo Scene
 	inline static constexpr UINT s_InstanceGridDims = 1;
@@ -73,7 +72,7 @@ private:
 		XMFLOAT3 scale;
 		XMFLOAT3 speed;
 	};
-	UINT m_SphereCount = 60;
+	UINT m_SphereCount = 160;
 	std::vector<SphereData> m_SphereData;
 	float m_SphereBlend = 0.4f;
 

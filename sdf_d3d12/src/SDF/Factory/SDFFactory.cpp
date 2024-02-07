@@ -15,6 +15,8 @@
 SDFFactory::SDFFactory()
 	: m_CounterResource(s_MaxPipelinedObjects)
 {
+	DEPRECATED;
+
 	const auto device = g_D3DGraphicsContext->GetDevice();
 
 	THROW_IF_FAIL(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COMPUTE, IID_PPV_ARGS(&m_CommandAllocator)));

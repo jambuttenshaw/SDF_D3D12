@@ -25,7 +25,7 @@ void D3DApplication::OnInit()
 
 	// Setup camera
 
-	m_Camera.SetPosition(XMVECTOR{ 0.0f, 1.0f, -5.0f });
+	m_Camera.SetPosition(XMVECTOR{ 0.0f, 4.0f, -10.0f });
 	m_Timer.Reset();
 
 	m_CameraController = CameraController{ m_InputManager.get(), &m_Camera };
