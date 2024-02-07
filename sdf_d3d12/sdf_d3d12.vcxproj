@@ -176,6 +176,7 @@
     <ClCompile Include="src\Renderer\ShaderTable.cpp" />
     <ClCompile Include="src\Renderer\Raytracing\AccelerationStructure.cpp" />
     <ClCompile Include="src\Renderer\Raytracing\Raytracer.cpp" />
+    <ClCompile Include="src\SDF\Factory\SDFConstructionResources.cpp" />
     <ClCompile Include="src\SDF\Factory\SDFFactoryAsync.cpp" />
     <ClCompile Include="src\SDF\Factory\SDFFactoryHierarchical.cpp" />
     <ClCompile Include="src\SDF\Factory\SDFFactoryHierarchicalAsync.cpp" />
@@ -251,6 +252,7 @@
     <ClInclude Include="src\Renderer\Raytracing\RaytracingSceneDefines.h" />
     <ClInclude Include="src\Renderer\Memory\MemoryAllocator.h" />
     <ClInclude Include="src\Renderer\Raytracing\AccelerationStructure.h" />
+    <ClInclude Include="src\SDF\Factory\SDFConstructionResources.h" />
     <ClInclude Include="src\SDF\Factory\SDFFactoryAsync.h" />
     <ClInclude Include="src\SDF\Factory\SDFFactoryHierarchical.h" />
     <ClInclude Include="src\SDF\Factory\SDFFactoryHierarchicalAsync.h" />
