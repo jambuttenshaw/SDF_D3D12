@@ -343,7 +343,7 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 	}
 
 	PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(40), L"SDF Bake Hierarchical");
-	SDFConstructionResources resources(object->GetBrickBufferCapacity());
+	SDFConstructionResources resources;
 
 	{
 		// Set up resources
@@ -361,7 +361,7 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 			evalSpaceSize *= 4.0f;
 		}
 		
-		resources.AllocateResources(editList, evalSpaceSize);
+		resources.AllocateResources(object->GetBrickBufferCapacity(), editList, evalSpaceSize);
 	}
 
 	BuildCommandList_Setup(object, resources);

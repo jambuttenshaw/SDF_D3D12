@@ -16,13 +16,14 @@
 class SDFConstructionResources
 {
 public:
-	SDFConstructionResources(UINT brickCapacity);
+	SDFConstructionResources() = default;
 	~SDFConstructionResources() = default;
 
 	DISALLOW_COPY(SDFConstructionResources)
 	DEFAULT_MOVE(SDFConstructionResources)
 
-	void AllocateResources(const SDFEditList& editList, float evalSpaceSize);
+	// Don't call while a previous construction using this object is in flight!
+	void AllocateResources(UINT brickCapacity, const SDFEditList& editList, float evalSpaceSize);
 	void SwapBuffersAndRefineBrickSize();
 
 	// Getters
@@ -46,11 +47,10 @@ public:
 	inline ReadbackBuffer<UINT>& GetCounterReadbackBuffer() { return m_CounterReadback; }
 
 	inline DefaultBuffer& GetCommandBuffer() { return m_CommandBuffer; }
-	
-protected:
-	bool m_Allocated = false;
 
+protected:
 	UINT m_BrickCapacity = 0;
+	bool m_Allocated = false;
 
 	// Edits
 	SDFEditBuffer m_EditBuffer;

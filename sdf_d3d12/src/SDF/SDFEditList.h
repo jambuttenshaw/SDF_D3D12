@@ -48,7 +48,7 @@ public:
 	void Allocate(UINT maxEdits);
 	void Populate(const SDFEditList& editList) const;
 
-
+	inline UINT GetMaxEdits() const { return m_MaxEdits; }
 	inline D3D12_GPU_VIRTUAL_ADDRESS GetAddress() const { return m_EditsBuffer.GetAddressOfElement(0); }
 
 private:
