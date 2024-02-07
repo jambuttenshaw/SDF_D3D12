@@ -47,9 +47,8 @@ namespace BrickScanSignature
 	{
 		CountTableSlot = 0,
 		NumberOfCountsSlot,
-		BlockSumTableSlot,
-		ScannedBlockTableSlot,
-		PrefixSumTable,
+		BlockPrefixSumTableSlot,
+		PrefixSumTableSlot,
 		Count
 	};
 }
@@ -235,9 +234,8 @@ void SDFFactoryHierarchical::InitializePipelines()
 		CD3DX12_ROOT_PARAMETER1 rootParams[Count];
 		rootParams[CountTableSlot].InitAsShaderResourceView(0);
 		rootParams[NumberOfCountsSlot].InitAsShaderResourceView(1);
-		rootParams[BlockSumTableSlot].InitAsUnorderedAccessView(0);
-		rootParams[ScannedBlockTableSlot].InitAsUnorderedAccessView(1);
-		rootParams[PrefixSumTable].InitAsUnorderedAccessView(2);
+		rootParams[BlockPrefixSumTableSlot].InitAsUnorderedAccessView(0);
+		rootParams[PrefixSumTableSlot].InitAsUnorderedAccessView(1);
 
 		D3DComputePipelineDesc desc = {};
 		desc.NumRootParameters = ARRAYSIZE(rootParams);
@@ -418,7 +416,6 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 			const D3D12_RESOURCE_BARRIER barriers[] = {
 				CD3DX12_RESOURCE_BARRIER::Transition(resources.GetSubBrickCountBuffer().GetResource(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
 				CD3DX12_RESOURCE_BARRIER::Transition(resources.GetBlockPrefixSumsBuffer().GetResource(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
-				CD3DX12_RESOURCE_BARRIER::Transition(resources.GetScannedBlockPrefixSumsBuffer().GetResource(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
 				CD3DX12_RESOURCE_BARRIER::Transition(resources.GetPrefixSumsBuffer().GetResource(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
 			};
 			m_CommandList->ResourceBarrier(ARRAYSIZE(barriers), barriers);
@@ -507,8 +504,8 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 				m_ScanBlocksPipeline->Bind(m_CommandList.Get());
 				m_CommandList->SetComputeRootShaderResourceView(BrickScanSignature::CountTableSlot, resources.GetSubBrickCountBuffer().GetAddress());
 				m_CommandList->SetComputeRootShaderResourceView(BrickScanSignature::NumberOfCountsSlot, resources.GetReadCounter().GetAddress());
-				m_CommandList->SetComputeRootUnorderedAccessView(BrickScanSignature::BlockSumTableSlot, resources.GetBlockPrefixSumsBuffer().GetAddress());
-				m_CommandList->SetComputeRootUnorderedAccessView(BrickScanSignature::PrefixSumTable, resources.GetPrefixSumsBuffer().GetAddress());
+				m_CommandList->SetComputeRootUnorderedAccessView(BrickScanSignature::BlockPrefixSumTableSlot, resources.GetBlockPrefixSumsBuffer().GetAddress());
+				m_CommandList->SetComputeRootUnorderedAccessView(BrickScanSignature::PrefixSumTableSlot, resources.GetPrefixSumsBuffer().GetAddress());
 
 				m_CommandList->ExecuteIndirect(m_CommandSignature.Get(), 1, m_CommandBuffer.GetResource(), 1 * sizeof(IndirectCommand), nullptr, 0);
 
@@ -522,22 +519,21 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 
 				m_ScanBlockSumsPipeline->Bind(m_CommandList.Get());
 				m_CommandList->SetComputeRootShaderResourceView(BrickScanSignature::NumberOfCountsSlot, resources.GetReadCounter().GetAddress());
-				m_CommandList->SetComputeRootUnorderedAccessView(BrickScanSignature::BlockSumTableSlot, resources.GetBlockPrefixSumsBuffer().GetAddress());
-				m_CommandList->SetComputeRootUnorderedAccessView(BrickScanSignature::ScannedBlockTableSlot, resources.GetScannedBlockPrefixSumsBuffer().GetAddress());
+				m_CommandList->SetComputeRootUnorderedAccessView(BrickScanSignature::BlockPrefixSumTableSlot, resources.GetBlockPrefixSumsBuffer().GetAddress());
 
 				m_CommandList->ExecuteIndirect(m_CommandSignature.Get(), 1, m_CommandBuffer.GetResource(), 2 * sizeof(IndirectCommand), nullptr, 0);
 
 				{
 					const D3D12_RESOURCE_BARRIER uavBarriers[] = {
-						CD3DX12_RESOURCE_BARRIER::UAV(resources.GetScannedBlockPrefixSumsBuffer().GetResource()),
+						CD3DX12_RESOURCE_BARRIER::UAV(resources.GetBlockPrefixSumsBuffer().GetResource()),
 					};
 					m_CommandList->ResourceBarrier(ARRAYSIZE(uavBarriers), uavBarriers);
 				}
 
 				m_SumScansPipeline->Bind(m_CommandList.Get());
 				m_CommandList->SetComputeRootShaderResourceView(BrickScanSignature::NumberOfCountsSlot, resources.GetReadCounter().GetAddress());
-				m_CommandList->SetComputeRootUnorderedAccessView(BrickScanSignature::ScannedBlockTableSlot, resources.GetScannedBlockPrefixSumsBuffer().GetAddress());
-				m_CommandList->SetComputeRootUnorderedAccessView(BrickScanSignature::PrefixSumTable, resources.GetPrefixSumsBuffer().GetAddress());
+				m_CommandList->SetComputeRootUnorderedAccessView(BrickScanSignature::BlockPrefixSumTableSlot, resources.GetBlockPrefixSumsBuffer().GetAddress());
+				m_CommandList->SetComputeRootUnorderedAccessView(BrickScanSignature::PrefixSumTableSlot, resources.GetPrefixSumsBuffer().GetAddress());
 
 				m_CommandList->ExecuteIndirect(m_CommandSignature.Get(), 1, m_CommandBuffer.GetResource(), 3 * sizeof(IndirectCommand), nullptr, 0);
 

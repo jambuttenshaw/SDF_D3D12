@@ -26,7 +26,7 @@ Scene::Scene()
 	// Build SDF Object
 	{
 		// Create SDF factory 
-		m_SDFFactoryHierarchicalAsync = std::make_unique<SDFFactoryHierarchicalAsync>();
+		m_Factory = std::make_unique<SDFFactoryHierarchicalAsync>();
 
 		// Create SDF objects
 		m_BlobObject = std::make_unique<SDFObject>(0.1f, 125'000);
@@ -64,7 +64,7 @@ Scene::Scene()
 			editList.AddEdit(SDFEdit::CreateBoxFrame({ -3.0f,  3.0f,  3.0f }, { 1.0f, 1.0f, 1.0f }, 0.025f));
 			editList.AddEdit(SDFEdit::CreateBoxFrame({ 3.0f,  3.0f,  3.0f }, { 1.0f, 1.0f, 1.0f }, 0.025f));
 
-			m_SDFFactoryHierarchicalAsync->BakeSDFSync(m_FrameObject.get(), editList);
+			m_Factory->BakeSDFSync(m_FrameObject.get(), editList);
 		}
 	}
 
@@ -113,7 +113,7 @@ Scene::Scene()
 Scene::~Scene()
 {
 	// SDFFactory should be deleted first
-	m_SDFFactoryHierarchicalAsync.reset();
+	m_Factory.reset();
 }
 
 
@@ -203,14 +203,14 @@ bool Scene::ImGuiSceneInfo()
 			m_Rebuild |= checkbox;
 		}
 		ImGui::Checkbox("Async Construction", &m_AsyncConstruction);
-		ImGui::Text("Async Builds/Sec: %.1f", m_AsyncConstruction ? m_SDFFactoryHierarchicalAsync->GetAsyncBuildsPerSecond() : 0.0f);
+		ImGui::Text("Async Builds/Sec: %.1f", m_AsyncConstruction ? m_Factory->GetAsyncBuildsPerSecond() : 0.0f);
 		{
-			int maxIterations = static_cast<int>(m_SDFFactoryHierarchicalAsync->GetMaxBrickBuildIterations());
+			int maxIterations = static_cast<int>(m_Factory->GetMaxBrickBuildIterations());
 			if (ImGui::InputInt("Max Brick Build Iterations", &maxIterations))
 			{
 				if (maxIterations < -1)
 					maxIterations = -1;
-				m_SDFFactoryHierarchicalAsync->SetMaxBrickBuildIterations(maxIterations);
+				m_Factory->SetMaxBrickBuildIterations(maxIterations);
 			}
 		}
 
@@ -256,11 +256,11 @@ void Scene::BuildEditList(float deltaTime, bool async)
 
 	if (async)
 	{
-		m_SDFFactoryHierarchicalAsync->BakeSDFAsync(m_BlobObject.get(), editList);
+		m_Factory->BakeSDFAsync(m_BlobObject.get(), editList);
 	}
 	else
 	{
-		m_SDFFactoryHierarchicalAsync->BakeSDFSync(m_BlobObject.get(), editList);
+		m_Factory->BakeSDFSync(m_BlobObject.get(), editList);
 	}
 
 	PIXEndEvent();

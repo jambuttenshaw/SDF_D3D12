@@ -34,7 +34,6 @@ public:
 
 	inline DefaultBuffer& GetSubBrickCountBuffer() { return m_SubBrickCountBuffer; }
 	inline DefaultBuffer& GetBlockPrefixSumsBuffer() { return m_BlockPrefixSumsBuffer; }
-	inline DefaultBuffer& GetScannedBlockPrefixSumsBuffer() { return m_ScannedBlockPrefixSumsBuffer; }
 	inline DefaultBuffer& GetPrefixSumsBuffer() { return m_PrefixSumsBuffer; }
 
 	inline UploadBuffer<Brick>& GetBrickUploadBuffer() { return m_BrickUpload; }
@@ -58,7 +57,6 @@ protected:
 	// Buffers for calculating prefix sums
 	DefaultBuffer m_SubBrickCountBuffer;			// Contains sub-brick counts for each brick
 	DefaultBuffer m_BlockPrefixSumsBuffer;			// Contains the prefix sum of each entire block
-	DefaultBuffer m_ScannedBlockPrefixSumsBuffer;	// Contains the scan of the sum of the scans for each block
 	DefaultBuffer m_PrefixSumsBuffer;				// The final prefix sums output buffer
 
 	// Utility buffers to set and read values

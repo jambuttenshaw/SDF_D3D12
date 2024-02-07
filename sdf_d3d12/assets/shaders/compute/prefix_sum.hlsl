@@ -5,10 +5,8 @@
 StructuredBuffer<uint> g_InCountTable : register(t0);
 ByteAddressBuffer g_NumberOfCounts : register(t1);
 
-RWStructuredBuffer<uint> g_BlockSumTable : register(u0); // A buffer containing the prefix sums of each entire block
-RWStructuredBuffer<uint> g_ScannedBlockTable : register(u1); // A table of the prefix sums of the block sum table
-
-RWStructuredBuffer<uint> g_OutPrefixSumTable : register(u2);
+RWStructuredBuffer<uint> g_BlockSumTable : register(u0);
+RWStructuredBuffer<uint> g_OutPrefixSumTable : register(u1);
 
 
 #define SCAN_GROUP_THREADS 64
@@ -101,7 +99,7 @@ void scan_block_sums(uint GI : SV_GroupIndex, uint DTid : SV_DispatchThreadID)
 	}
 
 	// Store the prefix sum for this element in the output
-	g_ScannedBlockTable[DTid.x] = gs_Table[GI];
+	g_BlockSumTable[DTid.x] = gs_Table[GI];
 }
 
 
@@ -114,7 +112,7 @@ void sum_scans(uint3 GroupID : SV_GroupID, uint GI : SV_GroupIndex, uint DTid : 
 
 	if (GI == 0)
 	{
-		gs_BlockSum = g_ScannedBlockTable[GroupID.x];
+		gs_BlockSum = g_BlockSumTable[GroupID.x];
 	}
 
 	GroupMemoryBarrierWithGroupSync();

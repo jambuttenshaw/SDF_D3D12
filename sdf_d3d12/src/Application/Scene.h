@@ -43,7 +43,7 @@ private:
 	std::unique_ptr<RaytracingAccelerationStructureManager> m_AccelerationStructure;
 
 	// SDF Objects
-	std::unique_ptr<SDFFactoryHierarchicalAsync> m_SDFFactoryHierarchicalAsync;
+	std::unique_ptr<SDFFactoryHierarchicalAsync> m_Factory;
 
 	std::unique_ptr<SDFObject> m_BlobObject;
 	std::unique_ptr<SDFObject> m_FrameObject;
