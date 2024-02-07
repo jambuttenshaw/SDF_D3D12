@@ -10,7 +10,9 @@
 #include "Renderer/Hlsl/ComputeHlslCompat.h"
 #include "SDF/SDFEditList.h"
 
-
+// An encapsulation of all temporary resources required to perform an SDF object build
+// These are encapsulated to make the construction pipeline neater and more readable
+// It also makes multithreading/pipelining the construction much simpler
 class SDFConstructionResources
 {
 public:
@@ -20,11 +22,15 @@ public:
 	DISALLOW_COPY(SDFConstructionResources)
 	DEFAULT_MOVE(SDFConstructionResources)
 
-	void AllocateResources(const SDFEditList& editList, const Brick& initialBrick);
-	inline void SwapBuffers() { m_CurrentReadBuffers = 1 - m_CurrentReadBuffers; }
+	void AllocateResources(const SDFEditList& editList, float evalSpaceSize);
+	void SwapBuffersAndRefineBrickSize();
 
 	// Getters
 	inline SDFEditBuffer& GetEditBuffer() { return m_EditBuffer; }
+
+	inline BrickBuildParametersConstantBuffer& GetBrickBuildParams() { return m_BuildParamsCB; }
+	inline AABBBuilderConstantBuffer& GetAABBBuildParams() { return m_AABBBuildCB; }
+	inline BrickEvaluationConstantBuffer& GetBrickEvalParams() { return m_BrickEvalCB; }
 
 	inline StructuredBuffer<Brick>& GetReadBrickBuffer() { return m_BrickBuffers.at(m_CurrentReadBuffers); }
 	inline StructuredBuffer<Brick>& GetWriteBrickBuffer() { return m_BrickBuffers.at(1 - m_CurrentReadBuffers); }
@@ -46,7 +52,13 @@ protected:
 
 	UINT m_BrickCapacity = 0;
 
+	// Edits
 	SDFEditBuffer m_EditBuffer;
+
+	// Constant buffers
+	BrickBuildParametersConstantBuffer m_BuildParamsCB;
+	AABBBuilderConstantBuffer m_AABBBuildCB;
+	BrickEvaluationConstantBuffer m_BrickEvalCB;
 
 	// Ping-pong buffers to contain the bricks
 	// Which index is currently being read from

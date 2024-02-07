@@ -11,6 +11,7 @@ using Microsoft::WRL::ComPtr;
 
 class SDFObject;
 class SDFEditList;
+class SDFConstructionResources;
 
 
 class SDFFactoryHierarchical
@@ -32,6 +33,14 @@ protected:
 	void InitializePipelines();
 
 	void PerformSDFBake_CPUBlocking(SDFObject* object, const SDFEditList& editList);
+
+
+private:
+	// SDF Bake stages
+	// Split into functions for readability and easy multi-threading
+	void BuildCommandList_Setup(SDFObject* object, SDFConstructionResources& resources) const;
+	void BuildCommandList_HierarchicalBrickBuilding(SDFObject* object, SDFConstructionResources& resources, UINT maxIterations) const;
+	void BuildCommandList_BrickEvaluation(SDFObject* object, SDFConstructionResources& resources) const;
 
 
 protected:

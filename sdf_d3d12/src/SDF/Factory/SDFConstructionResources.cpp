@@ -11,7 +11,7 @@ SDFConstructionResources::SDFConstructionResources(UINT brickCapacity)
 }
 
 
-void SDFConstructionResources::AllocateResources(const SDFEditList& editList, const Brick& initialBrick)
+void SDFConstructionResources::AllocateResources(const SDFEditList& editList, float evalSpaceSize)
 {
 	ASSERT(!m_Allocated, "Resources have already been allocated!");
 	m_Allocated = true;
@@ -20,6 +20,14 @@ void SDFConstructionResources::AllocateResources(const SDFEditList& editList, co
 
 	m_EditBuffer.Allocate(editList.GetEditCount());
 	m_EditBuffer.Populate(editList);
+
+
+	// Populate initial constant buffer params
+	m_BuildParamsCB.SDFEditCount = editList.GetEditCount();
+	// The brick size will be different for each dispatch
+	m_BuildParamsCB.BrickSize = evalSpaceSize; // size of entire evaluation space
+	m_BuildParamsCB.SubBrickSize = m_BuildParamsCB.BrickSize / 4.0f; // brick size will quarter with each dispatch
+
 
 	for (auto& buffer : m_BrickBuffers)
 	{
@@ -43,8 +51,25 @@ void SDFConstructionResources::AllocateResources(const SDFEditList& editList, co
 	m_CounterUploadOne.Allocate(device, 1, 0, L"Counters Upload One");
 	m_CounterReadback.Allocate(device, 1, 0, L"Counters Readback");
 
+	// Create and upload initial brick
+	Brick initialBrick;
+	initialBrick.TopLeft_EvalSpace = {
+		-0.5f * evalSpaceSize,
+		-0.5f * evalSpaceSize,
+		-0.5f * evalSpaceSize
+	};
 	m_BrickUpload.CopyElement(0, initialBrick);
 
 	m_CounterUploadZero.CopyElement(0, 0);
 	m_CounterUploadOne.CopyElement(0, 1);
 }
+
+
+void SDFConstructionResources::SwapBuffersAndRefineBrickSize()
+{
+	m_CurrentReadBuffers = 1 - m_CurrentReadBuffers;
+
+	m_BuildParamsCB.BrickSize = m_BuildParamsCB.SubBrickSize;
+	m_BuildParamsCB.SubBrickSize = m_BuildParamsCB.BrickSize / 4.0f;
+}
+

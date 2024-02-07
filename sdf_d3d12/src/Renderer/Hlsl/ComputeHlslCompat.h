@@ -32,12 +32,8 @@ struct SDFEditData
 
 struct BrickEvaluationConstantBuffer
 {
-	// The region of space to run the brick builder over
-	XMVECTOR EvalSpace_MinBoundary;
-	XMVECTOR EvalSpace_MaxBoundary;
-
-	XMUINT3 EvalSpace_BricksPerAxis;	// The number of bricks along each axis in the space to evaluate
-	float EvalSpace_BrickSize;			// Object-space size of a brick
+	// Object-space size of a brick
+	float EvalSpace_BrickSize;
 
 	// Information about how many bricks the pool can store
 	XMUINT3 BrickPool_BrickCapacityPerAxis;
