@@ -46,13 +46,17 @@ void main(uint3 GroupID : SV_GroupID, uint GI : SV_GroupIndex, uint3 GTid : SV_G
 	GroupMemoryBarrierWithGroupSync();
 
 	// Check if this thread has a sub-brick to write
-	if (gs_Brick.SubBrickMask & (uint64_t(1) << GI))
+	uint buildBrick = 0;
+	if (GI < 32)
+		buildBrick = gs_Brick.SubBrickMask.x & (uint(1) << GI);
+	else
+		buildBrick = gs_Brick.SubBrickMask.y & (uint(1) << (GI - 32));
+	if (buildBrick != 0)
 	{
 		// Create brick
 		Brick outBrick;
-		outBrick.SubBrickMask = 0;
+		outBrick.SubBrickMask = uint2(0, 0);
 		outBrick.TopLeft_EvalSpace = gs_Brick.TopLeft_EvalSpace + g_BuildParameters.SubBrickSize * GTid;
-		outBrick.Count = 0;
 
 		// write it to global memory at the correct index
 		uint groupIndex;

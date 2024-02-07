@@ -346,7 +346,7 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 		brickUpload.Allocate(device, 1, 0, L"Brick upload");
 
 		constexpr Brick initialBrick = {
-			0,
+			{0, 0},
 			{ -3.2f, -3.2f, -3.2f }
 		};
 		brickUpload.CopyElement(0, initialBrick);

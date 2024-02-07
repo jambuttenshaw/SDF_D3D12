@@ -94,13 +94,18 @@ void main(uint3 GroupID : SV_GroupID, uint GI : SV_GroupIndex, uint3 GTid : SV_G
 		// This sub-brick contains geometry and should be evaluated
 
 		uint _;			// temps
-		uint64_t __;
 
 		// Increment the count
 		InterlockedAdd(gs_SubBrickCount, 1, _);
-		InterlockedAdd(gs_Brick.Count, 1, _);
 		// Set the bit corresponding to this brick
-		InterlockedOr(gs_Brick.SubBrickMask, uint64_t(1) << GI, __);
+		if (GI < 32)
+		{
+			InterlockedOr(gs_Brick.SubBrickMask.x, uint(1) << GI, _);
+		}
+		else
+		{
+			InterlockedOr(gs_Brick.SubBrickMask.y, uint(1) << (GI - 32), _);
+		}
 	}
 
 	GroupMemoryBarrierWithGroupSync();

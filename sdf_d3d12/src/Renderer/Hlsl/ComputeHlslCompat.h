@@ -60,10 +60,9 @@ struct AABBBuilderConstantBuffer
 
 struct Brick
 {
-	uint64_t SubBrickMask;		// A bit mask of sub-bricks
+	XMUINT2 SubBrickMask;		// A bit mask of sub-bricks
 								// Will initially be 0 before the sub_brick_counter has executed
 	XMFLOAT3 TopLeft_EvalSpace;	// Top left of this brick in eval space
-	UINT Count;
 };
 
 struct BrickBuildParametersConstantBuffer
