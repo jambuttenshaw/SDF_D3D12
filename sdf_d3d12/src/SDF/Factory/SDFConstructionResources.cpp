@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "SDFConstructionResources.h"
 
+#include "Framework/Math.h"
 #include "Renderer/D3DGraphicsContext.h"
 
 
@@ -56,6 +57,7 @@ void SDFConstructionResources::AllocateResources(UINT brickCapacity, const SDFEd
 	// The brick size will be different for each dispatch
 	m_BuildParamsCB.BrickSize = evalSpaceSize; // size of entire evaluation space
 	m_BuildParamsCB.SubBrickSize = m_BuildParamsCB.BrickSize / 4.0f; // brick size will quarter with each dispatch
+	m_BuildParamsCB.EvalSpaceSize = evalSpaceSize; // This will not get reduced between iterations
 
 	// Create and upload initial brick
 	Brick initialBrick;

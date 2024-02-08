@@ -45,11 +45,12 @@ private:
 	// SDF Objects
 	std::unique_ptr<SDFFactoryHierarchicalAsync> m_Factory;
 
+	std::unique_ptr<SDFObject> m_SphereObject;
 	std::unique_ptr<SDFObject> m_BlobObject;
 	std::unique_ptr<SDFObject> m_FrameObject;
 
 	// Demo Scene
-	inline static constexpr UINT s_InstanceCount = 2;
+	inline static constexpr UINT s_InstanceCount = 1;
 
 	XMMATRIX m_InstanceRotations[s_InstanceCount];
 	XMFLOAT3 m_InstanceRotationDeltas[s_InstanceCount];

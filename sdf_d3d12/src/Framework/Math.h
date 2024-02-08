@@ -2,6 +2,7 @@
 
 #include <random>
 
+using namespace DirectX;
 
 // Math helper library
 
