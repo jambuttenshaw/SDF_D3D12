@@ -29,7 +29,7 @@ Scene::Scene()
 		m_Factory = std::make_unique<SDFFactoryHierarchicalAsync>();
 
 		// Create SDF objects
-		m_BlobObject = std::make_unique<SDFObject>(0.1f, 125'000);
+		m_BlobObject = std::make_unique<SDFObject>(0.05f, 125'000);
 		{
 			for (UINT i = 0; i < m_SphereCount; i++)
 			{
@@ -47,7 +47,7 @@ Scene::Scene()
 				};
 			}
 
-			//BuildEditList(0.0f, false);
+			BuildEditList(0.0f, false);
 		}
 
 		m_FrameObject = std::make_unique<SDFObject>(0.1f, 125'000);
@@ -66,20 +66,12 @@ Scene::Scene()
 
 			//m_Factory->BakeSDFSync(m_FrameObject.get(), editList);
 		}
-
-		m_SphereObject = std::make_unique<SDFObject>(0.25f, 25'000);
-		{
-			SDFEditList editList(1);
-			editList.AddEdit(SDFEdit::CreateSphere({}, 1.0f));
-			m_Factory->BakeSDFSync(m_SphereObject.get(), editList);
-		}
 	}
 
 	{
 		// Construct scene geometry
-		//m_SceneGeometry.push_back({ L"Blobs", m_BlobObject.get()});
+		m_SceneGeometry.push_back({ L"Blobs", m_BlobObject.get()});
 		//m_SceneGeometry.push_back({ L"Frame", m_FrameObject.get()});
-		m_SceneGeometry.push_back({ L"Sphere", m_SphereObject.get()});
 
 		CheckSDFGeometryUpdates();
 	}
@@ -146,11 +138,7 @@ void Scene::OnUpdate(float deltaTime)
 
 	if (m_Rebuild)
 	{
-		//BuildEditList(deltaTime, m_AsyncConstruction);
-
-		SDFEditList editList(1);
-		editList.AddEdit(SDFEdit::CreateSphere({}, 1.0f));
-		m_Factory->BakeSDFSync(m_SphereObject.get(), editList);
+		BuildEditList(deltaTime, m_AsyncConstruction);
 	}
 
 	PIXEndEvent();

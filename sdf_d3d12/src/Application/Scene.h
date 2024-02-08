@@ -45,7 +45,6 @@ private:
 	// SDF Objects
 	std::unique_ptr<SDFFactoryHierarchicalAsync> m_Factory;
 
-	std::unique_ptr<SDFObject> m_SphereObject;
 	std::unique_ptr<SDFObject> m_BlobObject;
 	std::unique_ptr<SDFObject> m_FrameObject;
 

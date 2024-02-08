@@ -350,7 +350,7 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 
 		// Default eval space size is 8x8x8
 		// TODO: This could be calculate from edits? or some others smarter means
-		constexpr float defaultEvalSpaceSize = 4.0f;
+		constexpr float defaultEvalSpaceSize = 8.0f;
 
 		// Determine eval space size
 		// It should be a multiple of the smallest brick size

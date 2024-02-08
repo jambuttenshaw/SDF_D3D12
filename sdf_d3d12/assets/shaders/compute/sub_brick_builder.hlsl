@@ -36,12 +36,6 @@ groupshared uint gs_GroupBrickCount;
 groupshared uint gs_MortonCodes[BRICK_COUNTING_GROUP];
 groupshared uint gs_OutBrickIndices[BRICK_COUNTING_GROUP];
 
-// Temporary sorting arrays
-groupshared uint gs_BitsZero[BRICK_COUNTING_GROUP];
-groupshared uint gs_Scan[BRICK_COUNTING_GROUP];
-groupshared uint gs_TotalZeros;
-groupshared uint gs_DestIndices[BRICK_COUNTING_GROUP];
-
 
 [numthreads(BRICK_COUNTING_THREADS, BRICK_COUNTING_THREADS, BRICK_COUNTING_THREADS)]
 void main(uint3 GroupID : SV_GroupID, uint GI : SV_GroupIndex, uint3 GTid : SV_GroupThreadID)
@@ -90,55 +84,24 @@ void main(uint3 GroupID : SV_GroupID, uint GI : SV_GroupIndex, uint3 GTid : SV_G
 	GroupMemoryBarrierWithGroupSync();
 
 	// Sort bricks based on morton code
-	// Loop through the first 31 bits (31st bit is required to be sorted as it will be set for empty bricks)
-	[unroll(32)]
-	for (uint n = 0; n < 31; n++)
+	const uint mortonCode = gs_MortonCodes[GI];
+	uint destIndex = 0;
+	for (uint n = 0; n < BRICK_COUNTING_GROUP; n++)
 	{
-		// Populate the array with 1 if the current bit is 0
-		gs_BitsZero[GI] = (gs_MortonCodes[GI] & (1U << n)) == 0;
-
-		GroupMemoryBarrierWithGroupSync();
-
-		gs_Scan[GI] = GI > 0 ? gs_BitsZero[GI - 1] : 0;
-
-		GroupMemoryBarrierWithGroupSync();
-
-		[unroll(6)]
-		for (uint i = 1; i < BRICK_COUNTING_GROUP; i <<= 1)
-		{
-			uint temp;
-			if (GI > i)
-			{
-				temp = gs_Scan[GI] + gs_Scan[GI - i];
-			}
-			else
-			{
-				temp = gs_Scan[GI];
-			}
-			GroupMemoryBarrierWithGroupSync();
-			gs_Scan[GI] = temp;
-			GroupMemoryBarrierWithGroupSync();
-		}
-
-		if (GI == 0)
-		{
-			gs_TotalZeros = gs_BitsZero[BRICK_COUNTING_GROUP - 1] + gs_Scan[BRICK_COUNTING_GROUP - 1];
-		}
-		GroupMemoryBarrierWithGroupSync();
-
-		gs_DestIndices[GI] = gs_BitsZero[GI] ? gs_Scan[GI] : GI - gs_Scan[GI] + gs_TotalZeros;
-
-		const uint tempCode = gs_MortonCodes[GI];
-		const uint tempIndex = gs_OutBrickIndices[GI];
-
-		GroupMemoryBarrierWithGroupSync();
-
-		gs_MortonCodes[gs_DestIndices[GI]] = tempCode;
-		gs_OutBrickIndices[gs_DestIndices[GI]] = tempIndex;
-
-		GroupMemoryBarrierWithGroupSync();
+		if (mortonCode >= gs_MortonCodes[n] && (mortonCode != gs_MortonCodes[n] || GI > n))
+			destIndex++;
 	} 
-	
+
+	const uint tempIndex = gs_OutBrickIndices[GI];
+
+	GroupMemoryBarrierWithGroupSync();
+
+	// Re-order
+	gs_OutBrickIndices[destIndex] = tempIndex;
+
+	GroupMemoryBarrierWithGroupSync();
+
+
 	if (GI < gs_GroupBrickCount)
 	{
 		// Write brick to global memory
