@@ -23,36 +23,52 @@ StructuredBuffer<BrickPointer> g_BrickBuffer : register(t1);
 RWTexture3D<float> g_OutputTexture : register(u1);
 
 
-float EvaluateEditList(float3 p)
+#define MAX_EDITS_CHUNK 32
+groupshared SDFEditData gs_Edits[MAX_EDITS_CHUNK];
+
+
+float EvaluateEditList(float3 p, uint GI)
 {
 	// Evaluate SDF list
-	float4 nearest = float4(0.0f, 0.0f, 0.0f, FLOAT_MAX);
-	
-	for (uint i = 0; i < g_BuildParameters.SDFEditCount; i++)
-	{
-		// apply primitive transform
-		const float3 p_transformed = opTransform(p, g_EditList[i].InvWorldMat) / g_EditList[i].Scale;
-		
-		// evaluate primitive
-		float4 shape = float4(
-			g_EditList[i].Color.rgb,
-			sdPrimitive(p_transformed, g_EditList[i].Shape, g_EditList[i].ShapeParams)
-		);
-		shape.w *= g_EditList[i].Scale;
+	float nearest = FLOAT_MAX;
 
-		// combine with scene
-		nearest = opPrimitive(nearest, shape, g_EditList[i].Operation, g_EditList[i].BlendingFactor);
+	const uint numChunks = (g_BuildParameters.SDFEditCount + MAX_EDITS_CHUNK - 1) / MAX_EDITS_CHUNK;
+	uint editsRemaining = g_BuildParameters.SDFEditCount;
+	for (uint chunk = 0; chunk < numChunks; chunk++)
+	{
+		// Load edits
+		GroupMemoryBarrierWithGroupSync();
+
+		if (GI < MAX_EDITS_CHUNK)
+		{
+			gs_Edits[GI] = g_EditList.Load(chunk * MAX_EDITS_CHUNK + GI);
+		}
+
+		GroupMemoryBarrierWithGroupSync();
+
+		// Eval edits
+		for (uint edit = 0; edit < min(MAX_EDITS_CHUNK, editsRemaining); edit++)
+		{
+			// apply primitive transform
+			const float3 p_transformed = opTransform(p, gs_Edits[edit].InvWorldMat) / gs_Edits[edit].Scale;
+		
+			// evaluate primitive
+			float dist = sdPrimitive(p_transformed, gs_Edits[edit].Shape, gs_Edits[edit].ShapeParams);
+			dist *= gs_Edits[edit].Scale;
+
+			// combine with scene
+			nearest = opPrimitive(nearest, dist, gs_Edits[edit].Operation, gs_Edits[edit].BlendingFactor);
+		}
+
+		editsRemaining -= MAX_EDITS_CHUNK;
 	}
 
-	return nearest.w;
+	return nearest;
 }
 
 
-
-
-
 [numthreads(SDF_BRICK_SIZE_VOXELS_ADJACENCY, SDF_BRICK_SIZE_VOXELS_ADJACENCY, SDF_BRICK_SIZE_VOXELS_ADJACENCY)]
-void main(uint3 GroupID : SV_GroupID, uint3 GTid : SV_GroupThreadID)
+void main(uint3 GroupID : SV_GroupID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex)
 {
 	// Which brick is this thread processing
 	const BrickPointer brick = g_BrickBuffer[GroupID.x];
@@ -65,7 +81,7 @@ void main(uint3 GroupID : SV_GroupID, uint3 GTid : SV_GroupThreadID)
 																											// and then map from voxels to eval space units
 
 	// Evaluate SDF volume
-	const float nearest = EvaluateEditList(evaluationPosition);
+	const float nearest = EvaluateEditList(evaluationPosition, GI);
 	const float mappedDistance = FormatDistance(nearest, g_BuildParameters.EvalSpace_VoxelsPerUnit);
 
 	// Now calculate where to store the voxel in the brick pool

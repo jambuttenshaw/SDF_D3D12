@@ -42,8 +42,6 @@ SDFEditData SDFEditList::BuildEditData(const SDFEdit& edit)
 	static_assert(sizeof(SDFShapeProperties) == sizeof(XMFLOAT4));
 	memcpy(&primitiveData.ShapeParams, &edit.ShapeProperties, sizeof(XMFLOAT4));
 
-	primitiveData.Color = edit.Color;
-
 	return primitiveData;
 }
 

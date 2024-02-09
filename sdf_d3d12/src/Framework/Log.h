@@ -46,5 +46,5 @@ private:
 #define D3D_LOG_WARN(...)
 #define D3D_LOG_INFO(...)
 #define D3D_LOG_TRACE(...)
-
 #endif
+

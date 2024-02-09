@@ -38,7 +38,7 @@ groupshared uint gs_SubBrickCount;
 float EvaluateEditList(float3 p)
 {
 	// Evaluate SDF list
-	float4 nearest = float4(0.0f, 0.0f, 0.0f, FLOAT_MAX);
+	float nearest = FLOAT_MAX;
 	
 	for (uint i = 0; i < g_BuildParameters.SDFEditCount; i++)
 	{
@@ -46,17 +46,14 @@ float EvaluateEditList(float3 p)
 		const float3 p_transformed = opTransform(p, g_EditList[i].InvWorldMat) / g_EditList[i].Scale;
 		
 		// evaluate primitive
-		float4 shape = float4(
-			g_EditList[i].Color.rgb,
-			sdPrimitive(p_transformed, g_EditList[i].Shape, g_EditList[i].ShapeParams)
-		);
-		shape.w *= g_EditList[i].Scale;
+		float dist = sdPrimitive(p_transformed, g_EditList[i].Shape, g_EditList[i].ShapeParams);
+		dist *= g_EditList[i].Scale;
 
 		// combine with scene
-		nearest = opPrimitive(nearest, shape, g_EditList[i].Operation, g_EditList[i].BlendingFactor);
+		nearest = opPrimitive(nearest, dist, g_EditList[i].Operation, g_EditList[i].BlendingFactor);
 	}
 
-	return nearest.w;
+	return nearest;
 }
 
 

@@ -14,46 +14,40 @@
 // OPERATIONS
 //
 
-float4 opUnion(float4 a, float4 b)
+float opUnion(float a, float b)
 {
-	return a.w < b.w ? a : b;
+	return min(a, b);
 }
 
-float4 opSubtraction(float4 a, float4 b)
+float opSubtraction(float a, float b)
 {
-	return a.w > -b.w ? a : float4(b.rgb, -b.w);
+	return max(a, -b);
 }
 
-float4 opIntersection(float4 a, float4 b)
+float opIntersection(float a, float b)
 {
-	return a.w > b.w ? a : b;
+	return max(a, b);
 }
   
-float4 opSmoothUnion(float4 a, float4 b, float k)
+float opSmoothUnion(float a, float b, float k)
 {
-	float h = clamp(0.5f + 0.5f * (a.w - b.w) / k, 0.0f, 1.0f);
-	float3 c = lerp(a.rgb, b.rgb, h);
-	float d = lerp(a.w, b.w, h) - k * h * (1.0f - h);
-   
-	return float4(c, d);
+	float h = clamp(0.5f + 0.5f * (a - b) / k, 0.0f, 1.0f);
+	float d = lerp(a, b, h) - k * h * (1.0f - h);
+	return d;
 }
  
-float4 opSmoothSubtraction(float4 a, float4 b, float k)
+float opSmoothSubtraction(float a, float b, float k)
 {
-	float h = clamp(0.5f - 0.5f * (a.w + b.w) / k, 0.0f, 1.0f);
-	float3 c = lerp(a.rgb, b.rgb, h);
-	float d = lerp(a.w, -b.w, h) + k * h * (1.0f - h);
-   
-	return float4(c, d);
+	float h = clamp(0.5f - 0.5f * (a + b) / k, 0.0f, 1.0f);
+	float d = lerp(a, -b, h) + k * h * (1.0f - h);
+	return d;
 }
 
-float4 opSmoothIntersection(float4 a, float4 b, float k)
+float opSmoothIntersection(float a, float b, float k)
 {
-	float h = clamp(0.5f - 0.5f * (a.w - b.w) / k, 0.0f, 1.0f);
-	float3 c = lerp(a.rgb, b.rgb, h);
-	float d = lerp(a.w, b.w, h) + k * h * (1.0f - h);
-   
-	return float4(c, d);
+	float h = clamp(0.5f - 0.5f * (a - b) / k, 0.0f, 1.0f);
+	float d = lerp(a, b, h) + k * h * (1.0f - h);
+	return d;
 }
 
 
@@ -64,7 +58,7 @@ float3 opTransform(float3 p, matrix t)
 
 
 
-float4 opPrimitive(float4 a, float4 b, uint op, float k)
+float opPrimitive(float a, float b, uint op, float k)
 {
 	switch (op)
 	{

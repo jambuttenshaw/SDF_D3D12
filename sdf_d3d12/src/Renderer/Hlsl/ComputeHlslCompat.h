@@ -24,8 +24,6 @@ struct SDFEditData
 	float BlendingFactor;
 
 	XMFLOAT4 ShapeParams;
-
-	XMFLOAT4 Color;
 };
 
 struct BrickEvaluationConstantBuffer

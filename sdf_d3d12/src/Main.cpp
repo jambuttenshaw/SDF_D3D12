@@ -11,7 +11,6 @@ int main()
 #else
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 #endif
-
 {
 	Log::Init();
 
