@@ -328,11 +328,6 @@ void SDFFactoryHierarchical::InitializePipelines()
 
 void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const SDFEditList& editList)
 {
-	if (m_MaxBrickBuildIterations == 0)
-	{
-		LOG_WARN("Max build iterations cannot be 0!");
-		return;
-	}
 	const UINT maxIterations = m_MaxBrickBuildIterations;
 
 	const auto computeQueue = g_D3DGraphicsContext->GetComputeCommandQueue();
