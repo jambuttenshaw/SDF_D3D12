@@ -65,8 +65,8 @@ void main(uint3 GroupID : SV_GroupID, uint GI : SV_GroupIndex, uint3 GTid : SV_G
 		gs_OutBricks[GI].TopLeft_EvalSpace = gs_InBrick.TopLeft_EvalSpace + g_BuildParameters.SubBrickSize * GTid;
 
 		// Calculate morton code for brick
-		const float3 brickInUnitCube = 0.5f + (gs_OutBricks[GI].TopLeft_EvalSpace / g_BuildParameters.EvalSpaceSize);
-		gs_MortonCodes[GI] = morton3D(brickInUnitCube);
+		const uint mortonCode = morton3Df(0.5f + (gs_OutBricks[GI].TopLeft_EvalSpace / g_BuildParameters.EvalSpaceSize));
+		gs_MortonCodes[GI] = mortonCode;
 
 		// Increment the group brick counter
 		uint _;

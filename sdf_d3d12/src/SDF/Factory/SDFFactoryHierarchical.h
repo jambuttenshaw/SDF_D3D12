@@ -69,6 +69,7 @@ protected:
 
 	std::unique_ptr<D3DComputePipeline> m_BrickBuilderPipeline;
 
+	std::unique_ptr<D3DComputePipeline> m_MortonEnumeratorPipeline;
 	std::unique_ptr<D3DComputePipeline> m_AABBBuilderPipeline;
 	std::unique_ptr<D3DComputePipeline> m_BrickEvaluatorPipeline;
 

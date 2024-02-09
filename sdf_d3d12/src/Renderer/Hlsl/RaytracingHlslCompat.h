@@ -74,6 +74,8 @@ struct BrickPropertiesConstantBuffer
 {
 	// Half the brick dimensions
 	float BrickHalfSize;
+	// Total number of bricks in the object
+	UINT BrickCount;
 };
 
 #endif

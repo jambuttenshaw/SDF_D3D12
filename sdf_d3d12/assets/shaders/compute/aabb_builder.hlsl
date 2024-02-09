@@ -6,6 +6,8 @@
 #include "../../../src/Renderer/Hlsl/ComputeHlslCompat.h"
 #include "../../../src/Renderer/Hlsl/RaytracingHlslCompat.h"
 
+#include "../include/brick_helper.hlsli"
+
 
 ConstantBuffer<AABBBuilderConstantBuffer> g_BuilderCB : register(b0);
 StructuredBuffer<Brick> g_Bricks : register(t0);
@@ -35,6 +37,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
 	BrickPointer brickPointer;
 	brickPointer.AABBCentre = brick.TopLeft_EvalSpace + 0.5f * g_BuilderCB.BrickSize;
 	brickPointer.BrickIndex = DTid.x;
+
 	g_BrickBuffer[DTid.x] = brickPointer;
 }
 

@@ -69,7 +69,7 @@ void main(uint3 GroupID : SV_GroupID, uint3 GTid : SV_GroupThreadID)
 	const float mappedDistance = FormatDistance(nearest, g_BuildParameters.EvalSpace_VoxelsPerUnit);
 
 	// Now calculate where to store the voxel in the brick pool
-	const uint3 brickVoxel = CalculateBrickPoolPosition(brick.BrickIndex, g_BuildParameters.BrickPool_BrickCapacityPerAxis) + GTid;
+	const uint3 brickVoxel = CalculateBrickPoolPosition(brick.BrickIndex, g_BuildParameters.BrickCount, g_BuildParameters.BrickPool_BrickCapacityPerAxis) + GTid;
 
 	// Store the mapped distance in the volume
 	g_OutputTexture[brickVoxel] = mappedDistance;

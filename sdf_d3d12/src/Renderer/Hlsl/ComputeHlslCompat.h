@@ -9,9 +9,7 @@ using namespace DirectX;
 
 #include "HlslDefines.h"
 
-// TODO: DEPRECATED
-#define AABB_BUILD_NUM_THREADS_PER_GROUP 8 // 8x8x8 threads per group to build AABBs
-
+#define MORTON_ENUMERATOR_THREADS 8 // 8x8x8
 #define AABB_BUILDING_THREADS 128
 
 
@@ -38,21 +36,21 @@ struct BrickEvaluationConstantBuffer
 	// Information about how many bricks the pool can store
 	XMUINT3 BrickPool_BrickCapacityPerAxis;
 
-	// Helpful values
 	float EvalSpace_VoxelsPerUnit;
+
+	// How many bricks are in the object
+	UINT BrickCount;
 
 	UINT SDFEditCount;
 };
 
 struct AABBBuilderConstantBuffer
 {
+	XMUINT3 BrickPool_BrickCapacityPerAxis;
+
 	UINT BrickCount;
 	float BrickSize;
 };
-
-
-
-////// NEW SDF FACTORY TYPES //////
 
 struct Brick
 {

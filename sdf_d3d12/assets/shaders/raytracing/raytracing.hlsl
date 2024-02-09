@@ -150,7 +150,7 @@ void MyIntersectionShader()
 		uvwAABB = uvwAABB * 0.5f + 0.5f;
 
 		// get voxel coordinate of top left of brick
-		const uint3 brickTopLeftVoxel = CalculateBrickPoolPosition(brick.BrickIndex, poolDims / SDF_BRICK_SIZE_VOXELS_ADJACENCY);
+		const uint3 brickTopLeftVoxel = CalculateBrickPoolPosition(brick.BrickIndex, l_BrickProperties.BrickCount, poolDims / SDF_BRICK_SIZE_VOXELS_ADJACENCY);
 
 		// Offset by 1 due to adjacency data
 		// e.g., uvwAABB of (0, 0, 0) actually references the voxel at (1, 1, 1) - not (0, 0, 0)

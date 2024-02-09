@@ -392,12 +392,14 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 		object->AllocateOptimalResources(brickCount, brickSize, SDFObject::RESOURCES_WRITE);
 
 		// Update build data required for the next stage
-		resources.GetAABBBuildParams().BrickSize = brickSize;
+		resources.GetAABBBuildParams().BrickPool_BrickCapacityPerAxis = object->GetBrickPoolDimensions(SDFObject::RESOURCES_WRITE);
 		resources.GetAABBBuildParams().BrickCount = brickCount;
+		resources.GetAABBBuildParams().BrickSize = brickSize;
 
 		resources.GetBrickEvalParams().EvalSpace_BrickSize = brickSize;
 		resources.GetBrickEvalParams().BrickPool_BrickCapacityPerAxis = object->GetBrickPoolDimensions(SDFObject::RESOURCES_WRITE);
 		resources.GetBrickEvalParams().EvalSpace_VoxelsPerUnit = SDF_BRICK_SIZE_VOXELS / brickSize;
+		resources.GetBrickEvalParams().BrickCount = brickCount;
 		resources.GetBrickEvalParams().SDFEditCount = editList.GetEditCount();
 	}
 
@@ -691,7 +693,7 @@ void SDFFactoryHierarchical::BuildCommandList_BrickEvaluation(SDFObject* object,
 	}
 
 	{
-		// Step 7: Evaluate bricks
+		// Evaluate bricks
 
 		PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(44), L"Evaluate Bricks");
 
@@ -725,5 +727,7 @@ void SDFFactoryHierarchical::BuildCommandList_BrickEvaluation(SDFObject* object,
 				CD3DX12_RESOURCE_BARRIER::Transition(object->GetBrickPool(SDFObject::RESOURCES_WRITE), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 			m_CommandList->ResourceBarrier(1, &barrier);
 		}
+
+		PIXEndEvent(m_CommandList.Get());
 	}
 }
