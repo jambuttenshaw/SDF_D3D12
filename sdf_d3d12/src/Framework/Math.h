@@ -10,6 +10,8 @@ using namespace DirectX;
 class Random
 {
 public:
+	static void Seed(int seed);
+
 	// generate a random integer between 0 and max
 	static int Int(int max);
 	// generate a random integer between min and max

@@ -9,6 +9,10 @@ Random::Random()
 	m_RandomNumberGenerator.seed(rd());
 }
 
+void Random::Seed(int seed)
+{
+	Get().m_RandomNumberGenerator.seed(seed);
+}
 
 int Random::Int(int max)
 {

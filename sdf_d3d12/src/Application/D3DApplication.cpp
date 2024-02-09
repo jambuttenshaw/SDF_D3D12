@@ -25,7 +25,7 @@ void D3DApplication::OnInit()
 
 	// Setup camera
 
-	m_Camera.SetPosition(XMVECTOR{ 0.0f, 4.0f, -10.0f });
+	m_Camera.SetPosition(XMVECTOR{ 0.0f, 0.0f, -5.0f });
 	m_Timer.Reset();
 
 	m_CameraController = CameraController{ m_InputManager.get(), &m_Camera };
@@ -138,8 +138,7 @@ void D3DApplication::InitImGui() const
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
-	const auto font = io.Fonts->AddFontFromFileTTF("assets/fonts/Cousine-Regular.ttf", 18);
-	io.FontDefault = font;
+	
 
 	ImGui::StyleColorsDark();
 
@@ -149,7 +148,16 @@ void D3DApplication::InitImGui() const
 		style.WindowRounding = 0.0f;
 		style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 	}
+#ifdef _DEBUG
+	// I have no clue why imgui shrinks in debug mode
 	style.ScaleAllSizes(1.5f);
+
+	const auto font = io.Fonts->AddFontFromFileTTF("assets/fonts/Cousine-Regular.ttf", 18);
+	io.FontDefault = font;
+#else
+	const auto font = io.Fonts->AddFontFromFileTTF("assets/fonts/Cousine-Regular.ttf", 13);
+	io.FontDefault = font;
+#endif
 
 	// Setup platform and renderer back-ends
 	ImGui_ImplWin32_Init(Win32Application::GetHwnd());

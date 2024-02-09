@@ -85,11 +85,11 @@ uint3 CalculateBrickPoolPosition(uint brickIndex, uint brickCount, uint3 brickPo
 	// normalized = (decodeMorton3D(index) / (max size for component))
 	// brickTopLeft = normalized * (capacity - 1)
 
-	uint3 brickTopLeft = decodeMorton3D(brickIndex);
+	//uint3 brickTopLeft = decodeMorton3D(brickIndex);
 
 	//const float maxComponentSize = float(1U << uint(ceil(log2(brickCount) / 3.0f)));
 	//uint3 brickTopLeft = (decodeMorton3D(brickIndex) / maxComponentSize) * (brickPoolCapacity - 1);
-	/*
+	
 	uint3 brickTopLeft;
 	
 	brickTopLeft.x = brickIndex % brickPoolCapacity.x;
@@ -97,7 +97,7 @@ uint3 CalculateBrickPoolPosition(uint brickIndex, uint brickCount, uint3 brickPo
 	brickTopLeft.y = brickIndex % brickPoolCapacity.y;
 	brickIndex /= brickPoolCapacity.y;
 	brickTopLeft.z = brickIndex;
-*/
+
 	return brickTopLeft * SDF_BRICK_SIZE_VOXELS_ADJACENCY;
 }
 

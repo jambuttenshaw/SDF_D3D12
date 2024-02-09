@@ -209,9 +209,10 @@ void SDFObject::AllocateOptimalBrickPool(UINT brickCount, ResourceGroup res)
 	// Calculate dimensions for the brick pool such that it contains at least m_BrickCount entries
 	// but is also a useful shape
 	UINT nextCube = static_cast<UINT>(std::floor(std::cbrtf(static_cast<float>(resources.BrickCount)))) + 1;
-	UINT nextPow2 = 1U << (static_cast<UINT>(std::floor(log2(resources.BrickCount) / 3.0f)) + 1);
+	resources.BrickPoolDimensions = { nextCube, nextCube, nextCube };
 
-	resources.BrickPoolDimensions = { nextPow2, nextPow2, nextPow2 };
+	//UINT nextPow2 = 1U << (static_cast<UINT>(std::floor(log2(resources.BrickCount) / 3.0f)) + 1);
+	//resources.BrickPoolDimensions = { nextPow2, nextPow2, nextPow2 };
 
 	// Create brick pool resource
 	{
