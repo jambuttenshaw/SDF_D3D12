@@ -5,6 +5,30 @@
 #include "Renderer/D3DGraphicsContext.h"
 
 
+
+UINT expandBits(UINT v)
+{
+	v = (v * 0x00010001u) & 0xFF0000FFu;
+	v = (v * 0x00000101u) & 0x0F00F00Fu;
+	v = (v * 0x00000011u) & 0xC30C30C3u;
+	v = (v * 0x00000005u) & 0x49249249u;
+	return v;
+}
+
+// Calculates a 30-bit Morton code for the
+// given 3D point located within the range [0,1023].
+UINT morton3Du(XMUINT3 p)
+{
+	p.x = min(p.x, 1023u);
+	p.y = min(p.y, 1023u);
+	p.z = min(p.z, 1023u);
+	unsigned int xx = expandBits(p.x);
+	unsigned int yy = expandBits(p.y);
+	unsigned int zz = expandBits(p.z);
+	return xx * 4 + yy * 2 + zz;
+}
+
+
 void SDFConstructionResources::AllocateResources(UINT brickCapacity, const SDFEditList& editList, float evalSpaceSize)
 {
 	const auto device = g_D3DGraphicsContext->GetDevice();
@@ -71,7 +95,8 @@ void SDFConstructionResources::AllocateResources(UINT brickCapacity, const SDFEd
 			-0.5f * evalSpaceSize + (static_cast<float>(y) * m_BuildParamsCB.BrickSize),
 			-0.5f * evalSpaceSize + (static_cast<float>(z) * m_BuildParamsCB.BrickSize)
 		};
-		const UINT index = (x * 4 + y) * 4 + z;
+
+		const UINT index = morton3Du({ x, y, z });
 		m_BrickUpload.CopyElement(index, initialBrick);
 	}
 

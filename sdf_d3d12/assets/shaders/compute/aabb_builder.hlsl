@@ -9,7 +9,7 @@
 #include "../include/brick_helper.hlsli"
 
 
-ConstantBuffer<AABBBuilderConstantBuffer> g_BuilderCB : register(b0);
+ConstantBuffer<BrickEvaluationConstantBuffer> g_BuilderCB : register(b0);
 StructuredBuffer<Brick> g_Bricks : register(t0);
 
 RWStructuredBuffer<AABB> g_AABBs : register(u0);
@@ -30,12 +30,12 @@ void main(uint3 DTid : SV_DispatchThreadID)
 	// Build a raytracing AABB from this brick
 	AABB outAABB;
 	outAABB.TopLeft = brick.TopLeft_EvalSpace;
-	outAABB.BottomRight = brick.TopLeft_EvalSpace + g_BuilderCB.BrickSize;
+	outAABB.BottomRight = brick.TopLeft_EvalSpace + g_BuilderCB.EvalSpace_BrickSize;
 
 	g_AABBs[DTid.x] = outAABB;
 
 	BrickPointer brickPointer;
-	brickPointer.AABBCentre = brick.TopLeft_EvalSpace + 0.5f * g_BuilderCB.BrickSize;
+	brickPointer.AABBCentre = brick.TopLeft_EvalSpace + 0.5f * g_BuilderCB.EvalSpace_BrickSize;
 	brickPointer.BrickIndex = DTid.x;
 
 	g_BrickBuffer[DTid.x] = brickPointer;

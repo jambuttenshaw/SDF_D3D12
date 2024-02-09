@@ -30,7 +30,6 @@ public:
 	inline SDFEditBuffer& GetEditBuffer() { return m_EditBuffer; }
 
 	inline BrickBuildParametersConstantBuffer& GetBrickBuildParams() { return m_BuildParamsCB; }
-	inline AABBBuilderConstantBuffer& GetAABBBuildParams() { return m_AABBBuildCB; }
 	inline BrickEvaluationConstantBuffer& GetBrickEvalParams() { return m_BrickEvalCB; }
 
 	inline StructuredBuffer<Brick>& GetReadBrickBuffer() { return m_BrickBuffers.at(m_CurrentReadBuffers); }
@@ -57,7 +56,6 @@ protected:
 
 	// Constant buffers
 	BrickBuildParametersConstantBuffer m_BuildParamsCB;
-	AABBBuilderConstantBuffer m_AABBBuildCB;
 	BrickEvaluationConstantBuffer m_BrickEvalCB;
 
 	// Ping-pong buffers to contain the bricks

@@ -8,7 +8,7 @@
 class SDFEditList
 {
 public:
-	SDFEditList(UINT maxEdits);
+	SDFEditList(UINT maxEdits, float evaluationRange = 2.0f);
 	~SDFEditList() = default;
 
 	DEFAULT_COPY(SDFEditList)
@@ -23,6 +23,8 @@ public:
 
 	inline const SDFEditData* GetEditData() const { return m_Edits.data(); }
 
+	inline float GetEvaluationRange() const { return m_EvaluationRange; }
+
 private:
 	SDFEditData BuildEditData(const SDFEdit& edit);
 
@@ -32,6 +34,8 @@ private:
 	// Buffer capacity
 	UINT m_MaxEdits = 0;
 	UINT m_EditCount = 0;
+
+	float m_EvaluationRange = 0.0f;
 };
 
 

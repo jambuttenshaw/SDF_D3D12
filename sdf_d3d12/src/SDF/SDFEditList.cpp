@@ -5,8 +5,9 @@
 #include "Renderer/D3DGraphicsContext.h"
 
 
-SDFEditList::SDFEditList(UINT maxEdits)
+SDFEditList::SDFEditList(UINT maxEdits, float evaluationRange)
 	: m_MaxEdits(maxEdits)
+	, m_EvaluationRange(evaluationRange)
 {
 	m_Edits.resize(m_MaxEdits);
 }

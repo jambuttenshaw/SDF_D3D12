@@ -287,7 +287,7 @@ void SDFFactoryHierarchical::InitializePipelines()
 		using namespace AABBBuilderSignature;
 
 		CD3DX12_ROOT_PARAMETER1 rootParams[Count];
-		rootParams[BuildParameterSlot].InitAsConstants(SizeOfInUint32(AABBBuilderConstantBuffer), 0);
+		rootParams[BuildParameterSlot].InitAsConstants(SizeOfInUint32(BrickEvaluationConstantBuffer), 0);
 		rootParams[BricksSlot].InitAsShaderResourceView(0);
 		rootParams[AABBsSlot].InitAsUnorderedAccessView(0);
 		rootParams[BrickBufferSlot].InitAsUnorderedAccessView(1);
@@ -345,15 +345,11 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 	{
 		// Set up resources
 
-		// Default eval space size is 8x8x8
-		// TODO: This could be calculate from edits? or some others smarter means
-		constexpr float defaultEvalSpaceSize = 8.0f;
-
 		// Determine eval space size
 		// It should be a multiple of the smallest brick size
 		// Therefore the final iteration will build bricks of the desired size
 		float evalSpaceSize = object->GetMinBrickSize();
-		while (evalSpaceSize < defaultEvalSpaceSize)
+		while (evalSpaceSize < editList.GetEvaluationRange())
 		{
 			evalSpaceSize *= 4.0f;
 		}
@@ -389,10 +385,6 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 		object->AllocateOptimalResources(brickCount, brickSize, SDFObject::RESOURCES_WRITE);
 
 		// Update build data required for the next stage
-		resources.GetAABBBuildParams().BrickPool_BrickCapacityPerAxis = object->GetBrickPoolDimensions(SDFObject::RESOURCES_WRITE);
-		resources.GetAABBBuildParams().BrickCount = brickCount;
-		resources.GetAABBBuildParams().BrickSize = brickSize;
-
 		resources.GetBrickEvalParams().EvalSpace_BrickSize = brickSize;
 		resources.GetBrickEvalParams().BrickPool_BrickCapacityPerAxis = object->GetBrickPoolDimensions(SDFObject::RESOURCES_WRITE);
 		resources.GetBrickEvalParams().EvalSpace_VoxelsPerUnit = SDF_BRICK_SIZE_VOXELS / brickSize;
@@ -677,13 +669,13 @@ void SDFFactoryHierarchical::BuildCommandList_BrickEvaluation(SDFObject* object,
 
 		m_AABBBuilderPipeline->Bind(m_CommandList.Get());
 
-		m_CommandList->SetComputeRoot32BitConstants(AABBBuilderSignature::BuildParameterSlot, SizeOfInUint32(AABBBuilderConstantBuffer), &resources.GetAABBBuildParams(), 0);
+		m_CommandList->SetComputeRoot32BitConstants(AABBBuilderSignature::BuildParameterSlot, SizeOfInUint32(BrickEvaluationConstantBuffer), &resources.GetBrickEvalParams(), 0);
 		m_CommandList->SetComputeRootShaderResourceView(AABBBuilderSignature::BricksSlot, resources.GetReadBrickBuffer().GetAddress());
 		m_CommandList->SetComputeRootUnorderedAccessView(AABBBuilderSignature::AABBsSlot, object->GetAABBBufferAddress(SDFObject::RESOURCES_WRITE));
 		m_CommandList->SetComputeRootUnorderedAccessView(AABBBuilderSignature::BrickBufferSlot, object->GetBrickBufferAddress(SDFObject::RESOURCES_WRITE));
 
 		// Calculate number of thread groups and dispatch
-		const UINT threadGroupX = (resources.GetAABBBuildParams().BrickCount + AABB_BUILDING_THREADS - 1) / AABB_BUILDING_THREADS;
+		const UINT threadGroupX = (resources.GetBrickEvalParams().BrickCount + AABB_BUILDING_THREADS - 1) / AABB_BUILDING_THREADS;
 		m_CommandList->Dispatch(threadGroupX, 1, 1);
 
 		PIXEndEvent(m_CommandList.Get());
@@ -709,7 +701,7 @@ void SDFFactoryHierarchical::BuildCommandList_BrickEvaluation(SDFObject* object,
 		m_BrickEvaluatorPipeline->Bind(m_CommandList.Get());
 
 		// Set resource views
-		m_CommandList->SetComputeRoot32BitConstants(BrickEvaluatorSignature::BuildParameterSlot, SizeOfInUint32(BrickEvaluationConstantBuffer), &resources.GetBrickEvalParams(), 0);
+		m_CommandList->SetComputeRoot32BitConstants(AABBBuilderSignature::BuildParameterSlot, SizeOfInUint32(BrickEvaluationConstantBuffer), &resources.GetBrickEvalParams(), 0);
 		m_CommandList->SetComputeRootShaderResourceView(BrickEvaluatorSignature::EditListSlot, resources.GetEditBuffer().GetAddress());
 		m_CommandList->SetComputeRootShaderResourceView(BrickEvaluatorSignature::BrickBufferSlot, object->GetBrickBufferAddress(SDFObject::RESOURCES_WRITE));
 		m_CommandList->SetComputeRootDescriptorTable(BrickEvaluatorSignature::BrickPoolSlot, object->GetBrickPoolUAV(SDFObject::RESOURCES_WRITE));
@@ -717,6 +709,7 @@ void SDFFactoryHierarchical::BuildCommandList_BrickEvaluation(SDFObject* object,
 		// Execute one group for each brick
 		const UINT threadGroupX = object->GetBrickCount(SDFObject::RESOURCES_WRITE);
 		m_CommandList->Dispatch(threadGroupX, 1, 1);
+		
 
 		// Brick pool resource will now be read from in the subsequent stages
 		{

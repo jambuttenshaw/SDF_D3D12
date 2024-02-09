@@ -44,14 +44,6 @@ struct BrickEvaluationConstantBuffer
 	UINT SDFEditCount;
 };
 
-struct AABBBuilderConstantBuffer
-{
-	XMUINT3 BrickPool_BrickCapacityPerAxis;
-
-	UINT BrickCount;
-	float BrickSize;
-};
-
 struct Brick
 {
 	XMFLOAT3 TopLeft_EvalSpace;	// Top left of this brick in eval space
