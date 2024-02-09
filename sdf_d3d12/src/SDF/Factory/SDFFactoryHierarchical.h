@@ -57,7 +57,7 @@ protected:
 	// Upload buffers that can be re-used for any build
 	// The counter reset buffers never have their contents changed so they can be part of the factory
 	UploadBuffer<UINT32> m_CounterUploadZero;	// Used to set a counter to 0
-	UploadBuffer<UINT32> m_CounterUploadOne;	// Used to set a counter to 1
+	UploadBuffer<UINT32> m_CounterUpload64;	// Used to set a counter to 1
 
 	// Pipelines
 	std::unique_ptr<D3DComputePipeline> m_BrickCounterPipeline;

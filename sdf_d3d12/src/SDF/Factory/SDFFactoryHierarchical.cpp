@@ -126,11 +126,12 @@ SDFFactoryHierarchical::SDFFactoryHierarchical()
 		// Upload the commands into the command buffer
 		m_CommandUploadBuffer.Allocate(device, s_NumCommands, 0, L"Command buffer upload");
 
-		// The default commands are to only dispatch 1 group
+		// The default commands is to only dispatch 64 groups
+		// Only the first one will ever be used - the others will be re-assigned before they are ever dispatched
 		D3D12_DISPATCH_ARGUMENTS commands[s_NumCommands];
 		for (int i = 0; i < s_NumCommands; i++)
 		{
-			commands[i].ThreadGroupCountX = 1;
+			commands[i].ThreadGroupCountX = 64;
 			commands[i].ThreadGroupCountY = 1;
 			commands[i].ThreadGroupCountZ = 1;
 		}
@@ -143,10 +144,11 @@ SDFFactoryHierarchical::SDFFactoryHierarchical()
 	// Allocate and populate upload buffers
 	{
 		m_CounterUploadZero.Allocate(device, 1, 0, L"Counters Upload Zero");
-		m_CounterUploadOne.Allocate(device, 1, 0, L"Counters Upload One");
+		// One counter needs to be able to be reset to 64
+		m_CounterUpload64.Allocate(device, 1, 0, L"Counters Upload 64");
 
 		m_CounterUploadZero.CopyElement(0, 0);
-		m_CounterUploadOne.CopyElement(0, 1);
+		m_CounterUpload64.CopyElement(0, 64);
 	}
 
 	InitializePipelines();
@@ -431,7 +433,7 @@ void SDFFactoryHierarchical::BuildCommandList_Setup(SDFObject* object, SDFConstr
 	}
 
 	// Copy brick data into the brick buffer
-	m_CommandList->CopyBufferRegion(resources.GetReadBrickBuffer().GetResource(), 0, resources.GetBrickUploadBuffer().GetResource(), 0, sizeof(Brick));
+	m_CommandList->CopyBufferRegion(resources.GetReadBrickBuffer().GetResource(), 0, resources.GetBrickUploadBuffer().GetResource(), 0, 64 * sizeof(Brick));
 	// Copy default command buffer into the command buffer
 	m_CommandList->CopyBufferRegion(resources.GetCommandBuffer().GetResource(), 0, m_CommandUploadBuffer.GetResource(), 0, s_NumCommands * sizeof(D3D12_DISPATCH_ARGUMENTS));
 
@@ -446,7 +448,7 @@ void SDFFactoryHierarchical::BuildCommandList_Setup(SDFObject* object, SDFConstr
 	}
 
 	// Set initial counter values
-	resources.GetReadCounter().SetValue(m_CommandList.Get(), m_CounterUploadOne.GetResource());
+	resources.GetReadCounter().SetValue(m_CommandList.Get(), m_CounterUpload64.GetResource());
 	resources.GetWriteCounter().SetValue(m_CommandList.Get(), m_CounterUploadZero.GetResource());
 
 	{
