@@ -23,7 +23,7 @@ StructuredBuffer<BrickPointer> g_BrickBuffer : register(t1);
 RWTexture3D<float> g_OutputTexture : register(u1);
 
 
-#define MAX_EDITS_CHUNK 32
+#define MAX_EDITS_CHUNK 64
 groupshared SDFEditData gs_Edits[MAX_EDITS_CHUNK];
 
 
@@ -39,7 +39,7 @@ float EvaluateEditList(float3 p, uint GI)
 		// Load edits
 		GroupMemoryBarrierWithGroupSync();
 
-		if (GI < MAX_EDITS_CHUNK)
+		if (GI < min(MAX_EDITS_CHUNK, g_BuildParameters.SDFEditCount))
 		{
 			gs_Edits[GI] = g_EditList.Load(chunk * MAX_EDITS_CHUNK + GI);
 		}

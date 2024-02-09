@@ -127,7 +127,7 @@ private:
 
 	bool m_WindowedMode = true;
 	bool m_TearingSupport = false;
-	bool m_VSyncEnabled = true;
+	bool m_VSyncEnabled = false;
 
 	// Projection properties
 	float m_FOV = 0.25f * XM_PI;
