@@ -29,7 +29,7 @@ Scene::Scene()
 		m_Factory = std::make_unique<SDFFactoryHierarchicalAsync>();
 
 		// Create SDF objects
-		m_BlobObject = std::make_unique<SDFObject>(0.025f, 125'000);
+		m_BlobObject = std::make_unique<SDFObject>(0.1f, 64000);
 		{
 			Random::Seed(0);
 			for (UINT i = 0; i < m_SphereCount; i++)
@@ -37,17 +37,11 @@ Scene::Scene()
 				m_SphereData.push_back({});
 				SphereData& sphereData = m_SphereData.at(i);
 				sphereData.scale = {
-					//fmodf(i * 1.47f, 2.0f),
-					//fmodf(i * 1.25f, 3.0f),
-					//fmodf(i * 2.94f, 1.5f),
 					Random::Float(-1.0f, 1.0f),
 					Random::Float(-1.0f, 1.0f),
 					Random::Float(-1.0f, 1.0f)	
 				};
 				sphereData.speed = {
-					//fmodf(i * 0.532f, 2.0f),
-					//fmodf(i * 7.35f, 3.0f),
-					//fmodf(i * 2.94f, 1.5f),
 					Random::Float(-1.0f, 1.0f),
 					Random::Float(-1.0f, 1.0f),
 					Random::Float(-1.0f, 1.0f)
@@ -56,29 +50,11 @@ Scene::Scene()
 
 			BuildEditList(0.0f, false);
 		}
-
-		m_FrameObject = std::make_unique<SDFObject>(0.1f, 125'000);
-		{
-			SDFEditList editList(9);
-			editList.AddEdit(SDFEdit::CreateBoxFrame({}, { 3.0f, 3.0f, 3.0f }, 0.05f));
-
-			editList.AddEdit(SDFEdit::CreateBoxFrame({ -3.0f, -3.0f, -3.0f }, { 1.0f, 1.0f, 1.0f }, 0.025f));
-			editList.AddEdit(SDFEdit::CreateBoxFrame({ 3.0f, -3.0f, -3.0f }, { 1.0f, 1.0f, 1.0f }, 0.025f));
-			editList.AddEdit(SDFEdit::CreateBoxFrame({ -3.0f,  3.0f, -3.0f }, { 1.0f, 1.0f, 1.0f }, 0.025f));
-			editList.AddEdit(SDFEdit::CreateBoxFrame({ 3.0f,  3.0f, -3.0f }, { 1.0f, 1.0f, 1.0f }, 0.025f));
-			editList.AddEdit(SDFEdit::CreateBoxFrame({ -3.0f, -3.0f,  3.0f }, { 1.0f, 1.0f, 1.0f }, 0.025f));
-			editList.AddEdit(SDFEdit::CreateBoxFrame({ 3.0f, -3.0f,  3.0f }, { 1.0f, 1.0f, 1.0f }, 0.025f));
-			editList.AddEdit(SDFEdit::CreateBoxFrame({ -3.0f,  3.0f,  3.0f }, { 1.0f, 1.0f, 1.0f }, 0.025f));
-			editList.AddEdit(SDFEdit::CreateBoxFrame({ 3.0f,  3.0f,  3.0f }, { 1.0f, 1.0f, 1.0f }, 0.025f));
-
-			//m_Factory->BakeSDFSync(m_FrameObject.get(), editList);
-		}
 	}
 
 	{
 		// Construct scene geometry
 		m_SceneGeometry.push_back({ L"Blobs", m_BlobObject.get()});
-		//m_SceneGeometry.push_back({ L"Frame", m_FrameObject.get()});
 
 		CheckSDFGeometryUpdates();
 	}

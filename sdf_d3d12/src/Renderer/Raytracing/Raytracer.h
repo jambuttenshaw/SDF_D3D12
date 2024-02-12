@@ -13,6 +13,14 @@ class Scene;
 class Raytracer
 {
 public:
+	enum GlobalSamplerType
+	{
+		GlobalSamplerPoint = 0,
+		GlobalSamplerLinear = 1,
+		GlobalSamplerCount
+	};
+
+public:
 	Raytracer();
 	~Raytracer();
 
@@ -21,7 +29,9 @@ public:
 
 	void Resize();
 
-	// Getters
+	inline GlobalSamplerType GetCurrentSampler() const { return m_CurrentSampler; }
+	inline void SetCurrentSampler(GlobalSamplerType sampler) { m_CurrentSampler = sampler; }
+
 	inline ID3D12Resource* GetRaytracingOutput() const { return m_RaytracingOutput.Get(); }
 
 private:
@@ -30,6 +40,7 @@ private:
 	void CreateRootSignatures();
 	void CreateRaytracingPipelineStateObject();
 	void CreateRaytracingOutputResource();
+	void CreateSamplers();
 
 	// Scene setup
 
@@ -59,6 +70,12 @@ private:
 	std::unique_ptr<ShaderTable> m_MissShaderTable;
 	std::unique_ptr<ShaderTable> m_HitGroupShaderTable;
 	std::unique_ptr<ShaderTable> m_RayGenShaderTable;
+
+	// Samplers
+	DescriptorAllocation m_Samplers;	// Contains 2 samplers:
+										// [0] -> Point sampler
+										// [1] -> Linear sampler
+	GlobalSamplerType m_CurrentSampler = GlobalSamplerLinear;
 
 	// The scene to raytrace
 	const Scene* m_Scene = nullptr;

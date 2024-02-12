@@ -85,7 +85,7 @@ void main(uint3 GroupID : SV_GroupID, uint GI : SV_GroupIndex, uint3 GTid : SV_G
 
 	// If there is a distance value of magnitude small enough, that means its possible this sub-brick
 	// could contain geometry and it should be either divided or evaluated
-	if (abs(distance) < 0.75f * g_BuildParameters.SubBrickSize)
+	if (abs(distance) < g_BuildParameters.SubBrickSize)
 	{
 		// This sub-brick contains geometry and should be evaluated
 

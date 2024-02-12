@@ -447,7 +447,7 @@ void D3DGraphicsContext::CreateDescriptorHeaps()
 	constexpr UINT Count = 64;
 	m_SRVHeap = std::make_unique<DescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, Count, false);
 
-	m_SamplerHeap = std::make_unique<DescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 1, false);
+	m_SamplerHeap = std::make_unique<DescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 8, false);
 }
 
 void D3DGraphicsContext::CreateCommandAllocator()
@@ -537,6 +537,7 @@ void D3DGraphicsContext::ProcessDeferrals(UINT frameIndex) const
 
 	m_RTVHeap->ProcessDeferredFree(frameIndex);
 	m_SRVHeap->ProcessDeferredFree(frameIndex);
+	m_SamplerHeap->ProcessDeferredFree(frameIndex);
 }
 
 void D3DGraphicsContext::ProcessAllDeferrals() const

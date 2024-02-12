@@ -266,6 +266,16 @@ bool D3DApplication::ImGuiApplicationInfo()
 			}
 		}
 
+		ImGui::Separator();
+		{
+			const char* samplers[] = { "Point", "Linear" };
+			int currentSampler = m_Raytracer->GetCurrentSampler();
+			if (ImGui::Combo("Sampler", &currentSampler, samplers, ARRAYSIZE(samplers)))
+			{
+				m_Raytracer->SetCurrentSampler(static_cast<Raytracer::GlobalSamplerType>(currentSampler));
+			}
+		}
+
 		ImGui::End();
 	}
 	return open;

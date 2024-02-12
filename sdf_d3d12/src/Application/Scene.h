@@ -46,7 +46,6 @@ private:
 	std::unique_ptr<SDFFactoryHierarchicalAsync> m_Factory;
 
 	std::unique_ptr<SDFObject> m_BlobObject;
-	std::unique_ptr<SDFObject> m_FrameObject;
 
 	// Demo Scene
 	inline static constexpr UINT s_InstanceCount = 1;
