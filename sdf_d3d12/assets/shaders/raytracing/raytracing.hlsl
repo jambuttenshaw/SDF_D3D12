@@ -36,7 +36,7 @@ StructuredBuffer<BrickPointer> l_BrickBuffer : register(t1, space1);
 
 #define EPSILON 0.00390625f // 1 / 256 - the smallest value representable in an R8_UNORM format
 
-#define LIGHT_DIRECTION normalize(float3(0.5f, 1.0f, -1.0f))
+#define LIGHT_DIRECTION normalize(float3(0.5f, 1.0f, -1.0f)) // direction to the light
 #define LIGHT_AMBIENT float3(0.2f, 0.2f, 0.2f)
 #define LIGHT_DIFFUSE float3(1.0f, 1.0f, 1.0f)
 

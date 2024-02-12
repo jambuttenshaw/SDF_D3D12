@@ -14,6 +14,7 @@ RWStructuredBuffer<uint> g_OutPrefixSumTable : register(u1);
 
 groupshared uint gs_Table[SCAN_GROUP_THREADS];
 groupshared uint gs_BlockSum;
+groupshared uint gs_BlockCarry;
 // The last value to be processed by this group needs to be passed up to the next group
 // So we will add it on to the sum sent to the next stage
 groupshared uint gs_Last;
@@ -22,7 +23,7 @@ groupshared uint gs_Last;
 void scan_blocks(uint3 GroupID : SV_GroupID, uint GI : SV_GroupIndex, uint DTid : SV_DispatchThreadID)
 {
 	const uint numCounts = g_NumberOfCounts.Load(0);
-	if (DTid.x > numCounts)
+	if (DTid.x >= numCounts)
 		return;
 
 	if (GI != 0)
@@ -68,16 +69,17 @@ void scan_blocks(uint3 GroupID : SV_GroupID, uint GI : SV_GroupIndex, uint DTid 
 void scan_block_sums(uint GI : SV_GroupIndex, uint DTid : SV_DispatchThreadID)
 {
 	const uint numCounts = g_NumberOfCounts.Load(0);
-	if (DTid.x > uint(ceil(numCounts / 64.0f)))
+	if (DTid.x > uint(floor(numCounts / 64.0f)))
 		return;
 
-	if (GI != 0)
+	if (GI > 0)
 	{
 		gs_Table[GI] = g_BlockSumTable[DTid.x - 1];
 	}
 	else
 	{
 		gs_Table[GI] = 0;
+		gs_BlockCarry = DTid.x > 0 ? g_BlockSumTable[DTid.x - 1] : 0;
 	}
 
 	GroupMemoryBarrierWithGroupSync();
@@ -99,7 +101,7 @@ void scan_block_sums(uint GI : SV_GroupIndex, uint DTid : SV_DispatchThreadID)
 	}
 
 	// Store the prefix sum for this element in the output
-	g_BlockSumTable[DTid.x] = gs_Table[GI];
+	g_BlockSumTable[DTid.x] = gs_Table[GI] + gs_BlockCarry;
 }
 
 
@@ -107,12 +109,19 @@ void scan_block_sums(uint GI : SV_GroupIndex, uint DTid : SV_DispatchThreadID)
 void sum_scans(uint3 GroupID : SV_GroupID, uint GI : SV_GroupIndex, uint DTid : SV_DispatchThreadID)
 {
 	const uint numCounts = g_NumberOfCounts.Load(0);
-	if (DTid.x > numCounts)
+	if (DTid.x >= numCounts)
 		return;
 
 	if (GI == 0)
 	{
 		gs_BlockSum = g_BlockSumTable[GroupID.x];
+
+		uint x = 63;
+		while (x < GroupID.x)
+		{
+			gs_BlockSum += g_BlockSumTable[x];
+			x += 64;
+		}
 	}
 
 	GroupMemoryBarrierWithGroupSync();

@@ -11,7 +11,7 @@ struct IndirectDispatchArguments
 ByteAddressBuffer g_SubBrickCounter : register(t0);
 //
 //	index 0 -> number of groups of scan_blocks to dispatch
-//	index 1 -> number of groups of scan_block_sums to dispatch
+//	index 1 -> number of groups of fist dispatch of scan_block_sums to dispatch
 //	index 2 -> number of groups of sum_scans to dispatch
 //
 RWStructuredBuffer<IndirectDispatchArguments> g_IndirectArguments : register(u0);

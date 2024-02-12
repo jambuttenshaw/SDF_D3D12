@@ -16,7 +16,12 @@
 #include "../include/sdf_operations.hlsli"
 
 
-ConstantBuffer<BrickEvaluationConstantBuffer> g_BuildParameters : register(b0);
+struct EvalGroupOffset
+{
+	UINT Offset;
+};
+ConstantBuffer<EvalGroupOffset> g_EvalGroupOffset : register(b0);
+ConstantBuffer<BrickEvaluationConstantBuffer> g_BuildParameters : register(b1);
 StructuredBuffer<SDFEditData> g_EditList : register(t0);
 
 StructuredBuffer<BrickPointer> g_BrickBuffer : register(t1);
@@ -71,7 +76,7 @@ float EvaluateEditList(float3 p, uint GI)
 void main(uint3 GroupID : SV_GroupID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex)
 {
 	// Which brick is this thread processing
-	const BrickPointer brick = g_BrickBuffer[GroupID.x];
+	const BrickPointer brick = g_BrickBuffer[GroupID.x + g_EvalGroupOffset.Offset];
 
 	// Calculate the point in space that this thread is processing
 	const float3 evaluationPosition = (brick.AABBCentre - 0.5f * g_BuildParameters.EvalSpace_BrickSize)		// Top left of brick

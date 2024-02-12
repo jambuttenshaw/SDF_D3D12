@@ -83,7 +83,8 @@ namespace BrickEvaluatorSignature
 {
 	enum Value
 	{
-		BuildParameterSlot = 0,
+		GroupOffsetSlot = 0,
+		BuildParameterSlot,
 		EditListSlot,
 		BrickBufferSlot,
 		BrickPoolSlot,
@@ -309,7 +310,8 @@ void SDFFactoryHierarchical::InitializePipelines()
 		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1);
 
 		CD3DX12_ROOT_PARAMETER1 rootParameters[Count];
-		rootParameters[BuildParameterSlot].InitAsConstants(SizeOfInUint32(BrickEvaluationConstantBuffer), 0);
+		rootParameters[GroupOffsetSlot].InitAsConstants(1, 0);
+		rootParameters[BuildParameterSlot].InitAsConstants(SizeOfInUint32(BrickEvaluationConstantBuffer), 1);
 		rootParameters[EditListSlot].InitAsShaderResourceView(0);
 		rootParameters[BrickBufferSlot].InitAsShaderResourceView(1);
 		rootParameters[BrickPoolSlot].InitAsDescriptorTable(1, &ranges[0]);
@@ -549,6 +551,7 @@ void SDFFactoryHierarchical::BuildCommandList_HierarchicalBrickBuilding(SDFObjec
 			m_CommandList->SetComputeRootShaderResourceView(BrickScanSignature::NumberOfCountsSlot, resources.GetReadCounter().GetAddress());
 			m_CommandList->SetComputeRootUnorderedAccessView(BrickScanSignature::BlockPrefixSumTableSlot, resources.GetBlockPrefixSumsBuffer().GetAddress());
 
+			// Execute this stage up to twice for support for up to 262,000 input bricks (output can be up to 64x this)
 			m_CommandList->ExecuteIndirect(m_CommandSignature.Get(), 1, resources.GetCommandBuffer().GetResource(), 2 * sizeof(D3D12_DISPATCH_ARGUMENTS), nullptr, 0);
 
 			{
@@ -701,14 +704,34 @@ void SDFFactoryHierarchical::BuildCommandList_BrickEvaluation(SDFObject* object,
 		m_BrickEvaluatorPipeline->Bind(m_CommandList.Get());
 
 		// Set resource views
-		m_CommandList->SetComputeRoot32BitConstants(AABBBuilderSignature::BuildParameterSlot, SizeOfInUint32(BrickEvaluationConstantBuffer), &resources.GetBrickEvalParams(), 0);
+		m_CommandList->SetComputeRoot32BitConstants(BrickEvaluatorSignature::BuildParameterSlot, SizeOfInUint32(BrickEvaluationConstantBuffer), &resources.GetBrickEvalParams(), 0);
 		m_CommandList->SetComputeRootShaderResourceView(BrickEvaluatorSignature::EditListSlot, resources.GetEditBuffer().GetAddress());
 		m_CommandList->SetComputeRootShaderResourceView(BrickEvaluatorSignature::BrickBufferSlot, object->GetBrickBufferAddress(SDFObject::RESOURCES_WRITE));
 		m_CommandList->SetComputeRootDescriptorTable(BrickEvaluatorSignature::BrickPoolSlot, object->GetBrickPoolUAV(SDFObject::RESOURCES_WRITE));
 
+		// Calculate number of thread groups and dispatch
 		// Execute one group for each brick
-		const UINT threadGroupX = object->GetBrickCount(SDFObject::RESOURCES_WRITE);
-		m_CommandList->Dispatch(threadGroupX, 1, 1);
+		INT brickCount = static_cast<INT>(resources.GetBrickEvalParams().BrickCount);
+		if (brickCount > 65536)
+		{
+			UINT groupOffset = 0;
+			while (brickCount > 0)
+			{
+				m_CommandList->SetComputeRoot32BitConstant(BrickEvaluatorSignature::GroupOffsetSlot, groupOffset, 0);
+
+				const UINT threadGroupX = min(brickCount, 65536);
+				m_CommandList->Dispatch(threadGroupX, 1, 1);
+				brickCount -= static_cast<INT>(threadGroupX);
+				groupOffset += threadGroupX;
+			}
+		}
+		else
+		{
+			m_CommandList->SetComputeRoot32BitConstant(BrickEvaluatorSignature::GroupOffsetSlot, 0, 0);
+
+			const UINT threadGroupX = brickCount;
+			m_CommandList->Dispatch(threadGroupX, 1, 1);
+		}
 		
 
 		// Brick pool resource will now be read from in the subsequent stages
