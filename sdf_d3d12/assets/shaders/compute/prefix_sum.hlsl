@@ -6,7 +6,9 @@ StructuredBuffer<uint> g_InCountTable : register(t0);
 ByteAddressBuffer g_NumberOfCounts : register(t1);
 
 RWStructuredBuffer<uint> g_BlockSumTable : register(u0);
-RWStructuredBuffer<uint> g_OutPrefixSumTable : register(u1);
+RWStructuredBuffer<uint> g_BlockSumOutputTable : register(u1);
+
+RWStructuredBuffer<uint> g_OutPrefixSumTable : register(u2);
 
 
 #define SCAN_GROUP_THREADS 64
@@ -101,7 +103,7 @@ void scan_block_sums(uint GI : SV_GroupIndex, uint DTid : SV_DispatchThreadID)
 	}
 
 	// Store the prefix sum for this element in the output
-	g_BlockSumTable[DTid.x] = gs_Table[GI] + gs_BlockCarry;
+	g_BlockSumOutputTable[DTid.x] = gs_Table[GI] + gs_BlockCarry;
 }
 
 
@@ -114,12 +116,12 @@ void sum_scans(uint3 GroupID : SV_GroupID, uint GI : SV_GroupIndex, uint DTid : 
 
 	if (GI == 0)
 	{
-		gs_BlockSum = g_BlockSumTable[GroupID.x];
+		gs_BlockSum = g_BlockSumOutputTable[GroupID.x];
 
 		uint x = 63;
 		while (x < GroupID.x)
 		{
-			gs_BlockSum += g_BlockSumTable[x];
+			gs_BlockSum += g_BlockSumOutputTable[x];
 			x += 64;
 		}
 	}

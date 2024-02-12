@@ -48,6 +48,7 @@ namespace BrickScanSignature
 		CountTableSlot = 0,
 		NumberOfCountsSlot,
 		BlockPrefixSumTableSlot,
+		BlockPrefixSumOutputTableSlot,
 		PrefixSumTableSlot,
 		Count
 	};
@@ -245,7 +246,8 @@ void SDFFactoryHierarchical::InitializePipelines()
 		rootParams[CountTableSlot].InitAsShaderResourceView(0);
 		rootParams[NumberOfCountsSlot].InitAsShaderResourceView(1);
 		rootParams[BlockPrefixSumTableSlot].InitAsUnorderedAccessView(0);
-		rootParams[PrefixSumTableSlot].InitAsUnorderedAccessView(1);
+		rootParams[BlockPrefixSumOutputTableSlot].InitAsUnorderedAccessView(1);
+		rootParams[PrefixSumTableSlot].InitAsUnorderedAccessView(2);
 
 		D3DComputePipelineDesc desc;
 		desc.NumRootParameters = ARRAYSIZE(rootParams);
@@ -550,6 +552,7 @@ void SDFFactoryHierarchical::BuildCommandList_HierarchicalBrickBuilding(SDFObjec
 			m_ScanBlockSumsPipeline->Bind(m_CommandList.Get());
 			m_CommandList->SetComputeRootShaderResourceView(BrickScanSignature::NumberOfCountsSlot, resources.GetReadCounter().GetAddress());
 			m_CommandList->SetComputeRootUnorderedAccessView(BrickScanSignature::BlockPrefixSumTableSlot, resources.GetBlockPrefixSumsBuffer().GetAddress());
+			m_CommandList->SetComputeRootUnorderedAccessView(BrickScanSignature::BlockPrefixSumOutputTableSlot, resources.GetBlockPrefixSumsOutputBuffer().GetAddress());
 
 			// Execute this stage up to twice for support for up to 262,000 input bricks (output can be up to 64x this)
 			m_CommandList->ExecuteIndirect(m_CommandSignature.Get(), 1, resources.GetCommandBuffer().GetResource(), 2 * sizeof(D3D12_DISPATCH_ARGUMENTS), nullptr, 0);
@@ -563,7 +566,7 @@ void SDFFactoryHierarchical::BuildCommandList_HierarchicalBrickBuilding(SDFObjec
 
 			m_SumScansPipeline->Bind(m_CommandList.Get());
 			m_CommandList->SetComputeRootShaderResourceView(BrickScanSignature::NumberOfCountsSlot, resources.GetReadCounter().GetAddress());
-			m_CommandList->SetComputeRootUnorderedAccessView(BrickScanSignature::BlockPrefixSumTableSlot, resources.GetBlockPrefixSumsBuffer().GetAddress());
+			m_CommandList->SetComputeRootUnorderedAccessView(BrickScanSignature::BlockPrefixSumOutputTableSlot, resources.GetBlockPrefixSumsOutputBuffer().GetAddress());
 			m_CommandList->SetComputeRootUnorderedAccessView(BrickScanSignature::PrefixSumTableSlot, resources.GetPrefixSumsBuffer().GetAddress());
 
 			m_CommandList->ExecuteIndirect(m_CommandSignature.Get(), 1, resources.GetCommandBuffer().GetResource(), 3 * sizeof(D3D12_DISPATCH_ARGUMENTS), nullptr, 0);
