@@ -28,6 +28,8 @@ public:
 
 	// Getters
 	inline SDFEditBuffer& GetEditBuffer() { return m_EditBuffer; }
+	inline StructuredBuffer<UINT16>& GetReadIndexBuffer() { return m_IndexBuffers.at(m_CurrentReadBuffers); }
+	inline StructuredBuffer<UINT16>& GetWriteIndexBuffer() { return m_IndexBuffers.at(m_CurrentReadBuffers); }
 
 	inline BrickBuildParametersConstantBuffer& GetBrickBuildParams() { return m_BuildParamsCB; }
 	inline BrickEvaluationConstantBuffer& GetBrickEvalParams() { return m_BrickEvalCB; }
@@ -54,6 +56,7 @@ protected:
 
 	// Edits
 	SDFEditBuffer m_EditBuffer;
+	std::array<StructuredBuffer<UINT16>, 2> m_IndexBuffers;
 
 	// Constant buffers
 	BrickBuildParametersConstantBuffer m_BuildParamsCB;

@@ -137,6 +137,10 @@ private:
 		StructuredBuffer<D3D12_RAYTRACING_AABB> AABBBuffer;
 		StructuredBuffer<BrickPointer> BrickBuffer;
 
+		// Edits
+		StructuredBuffer<SDFEditData> EditBuffer;
+		StructuredBuffer<UINT16> IndexBuffer;
+
 		DescriptorAllocation ResourceViews;	// index 0 = brick pool SRV
 											// index 1 = brick pool UAV
 											// index 2 = aabb buffer UAV

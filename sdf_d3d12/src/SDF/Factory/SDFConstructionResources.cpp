@@ -87,6 +87,10 @@ void SDFConstructionResources::AllocateResources(UINT brickCapacity, const SDFEd
 	// Create and upload initial bricks
 	Brick initialBrick;
 	initialBrick.SubBrickMask = { 0, 0 };
+	// Place the edit count in the 16 MSB
+	// 0 should remain in the LSB - offset is 0
+	initialBrick.IndexOffsetAndCount = editList.GetEditCount() << 16;
+
 	for (UINT x = 0; x < 4; x++)
 	for (UINT y = 0; y < 4; y++)
 	for (UINT z = 0; z < 4; z++)
