@@ -41,7 +41,7 @@ public:
 			&readbackHeap,
 			D3D12_HEAP_FLAG_NONE,
 			&bufferDesc,
-			D3D12_RESOURCE_STATE_COMMON,
+			D3D12_RESOURCE_STATE_COPY_DEST,
 			nullptr,
 			IID_PPV_ARGS(&m_ReadbackBuffer)));
 		if (name)

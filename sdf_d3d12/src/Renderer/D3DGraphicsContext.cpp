@@ -27,7 +27,11 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
 	LOG_INFO("Creating D3D12 Graphics Context");
 
 	// Init PIX
-	//PIXLoadLatestWinPixGpuCapturerLibrary();
+	m_PIXCaptureModule = PIXLoadLatestWinPixGpuCapturerLibrary();
+	if (!m_PIXCaptureModule)
+	{
+		LOG_ERROR("Failed to load PIX capture library.");
+	}
 
 	// Initialize D3D components
 	CreateAdapter();
@@ -93,6 +97,11 @@ D3DGraphicsContext::~D3DGraphicsContext()
 	if (m_InfoQueue)
 	{
 		(void)m_InfoQueue->UnregisterMessageCallback(m_MessageCallbackCookie);
+	}
+
+	if (m_PIXCaptureModule)
+	{
+		FreeLibrary(m_PIXCaptureModule);
 	}
 }
 

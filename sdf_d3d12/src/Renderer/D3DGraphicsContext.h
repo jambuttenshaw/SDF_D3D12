@@ -148,6 +148,7 @@ private:
 	inline static constexpr bool s_EnableDRED = true;
 	ComPtr<ID3D12InfoQueue1> m_InfoQueue;
 	DWORD m_MessageCallbackCookie;
+	HMODULE m_PIXCaptureModule = nullptr;
 
 	ComPtr<IDXGISwapChain3> m_SwapChain;
 	ComPtr<ID3D12Resource> m_RenderTargets[s_FrameCount];
