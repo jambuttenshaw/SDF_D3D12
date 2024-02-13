@@ -12,6 +12,9 @@ typedef uint2 XMUINT2;
 typedef uint3 XMUINT3;
 typedef uint4 XMUINT4;
 
+typedef uint16_t UINT16;
+typedef uint64_t UINT64;
+
 
 struct Ray
 {
