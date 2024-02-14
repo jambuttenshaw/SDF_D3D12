@@ -28,8 +28,11 @@ public:
 
 	// Getters
 	inline SDFEditBuffer& GetEditBuffer() { return m_EditBuffer; }
-	inline StructuredBuffer<UINT16>& GetReadIndexBuffer() { return m_IndexBuffers.at(m_CurrentReadBuffers); }
-	inline StructuredBuffer<UINT16>& GetWriteIndexBuffer() { return m_IndexBuffers.at(m_CurrentReadBuffers); }
+	inline DefaultBuffer& GetReadIndexBuffer() { return m_IndexBuffers.at(m_CurrentReadBuffers); }
+	inline DefaultBuffer& GetWriteIndexBuffer() { return m_IndexBuffers.at(m_CurrentReadBuffers); }
+
+	inline CounterResource& GetReadIndexCounter() { return m_IndexCounters.at(m_CurrentReadBuffers); }
+	inline CounterResource& GetWriteIndexCounter() { return m_IndexCounters.at(1 - m_CurrentReadBuffers); }
 
 	inline BrickBuildParametersConstantBuffer& GetBrickBuildParams() { return m_BuildParamsCB; }
 	inline BrickEvaluationConstantBuffer& GetBrickEvalParams() { return m_BrickEvalCB; }
@@ -37,14 +40,15 @@ public:
 	inline StructuredBuffer<Brick>& GetReadBrickBuffer() { return m_BrickBuffers.at(m_CurrentReadBuffers); }
 	inline StructuredBuffer<Brick>& GetWriteBrickBuffer() { return m_BrickBuffers.at(1 - m_CurrentReadBuffers); }
 
-	inline CounterResource& GetReadCounter() { return m_SubBrickCounters.at(m_CurrentReadBuffers); }
-	inline CounterResource& GetWriteCounter() { return m_SubBrickCounters.at(1 - m_CurrentReadBuffers); }
+	inline CounterResource& GetReadBrickCounter() { return m_SubBrickCounters.at(m_CurrentReadBuffers); }
+	inline CounterResource& GetWriteBrickCounter() { return m_SubBrickCounters.at(1 - m_CurrentReadBuffers); }
 
 	inline DefaultBuffer& GetSubBrickCountBuffer() { return m_SubBrickCountBuffer; }
 	inline DefaultBuffer& GetBlockPrefixSumsBuffer() { return m_BlockPrefixSumsBuffer; }
 	inline DefaultBuffer& GetBlockPrefixSumsOutputBuffer() { return m_BlockPrefixSumsOutputBuffer; }
 	inline DefaultBuffer& GetPrefixSumsBuffer() { return m_PrefixSumsBuffer; }
 
+	inline UploadBuffer<UINT>& GetIndexUploadBuffer() { return m_IndexUpload; }
 	inline UploadBuffer<Brick>& GetBrickUploadBuffer() { return m_BrickUpload; }
 	inline ReadbackBuffer<UINT>& GetCounterReadbackBuffer() { return m_CounterReadback; }
 
@@ -56,7 +60,8 @@ protected:
 
 	// Edits
 	SDFEditBuffer m_EditBuffer;
-	std::array<StructuredBuffer<UINT16>, 2> m_IndexBuffers;
+	std::array<DefaultBuffer, 2> m_IndexBuffers;
+	std::array<CounterResource, 2> m_IndexCounters;
 
 	// Constant buffers
 	BrickBuildParametersConstantBuffer m_BuildParamsCB;
@@ -75,6 +80,7 @@ protected:
 	DefaultBuffer m_PrefixSumsBuffer;				// The final prefix sums output buffer
 
 	// Utility buffers to set and read values
+	UploadBuffer<UINT> m_IndexUpload;			// An upload buffer for the index data for each brick
 	UploadBuffer<Brick> m_BrickUpload;			// An upload buffer for bricks is required to send the initial brick to the GPU
 	ReadbackBuffer<UINT32> m_CounterReadback;	// Used to read the value of a counter
 

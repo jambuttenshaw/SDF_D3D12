@@ -39,9 +39,7 @@ public:
 			IID_PPV_ARGS(&m_CounterResource)));
 		if (resourceName)
 		{
-			std::wstring counterName(resourceName);
-			counterName += L"_Counter";
-			THROW_IF_FAIL(m_CounterResource->SetName(counterName.c_str()));
+			THROW_IF_FAIL(m_CounterResource->SetName(resourceName));
 		}
 	}
 

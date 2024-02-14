@@ -38,9 +38,14 @@ void SDFConstructionResources::AllocateResources(UINT brickCapacity, const SDFEd
 	{
 		m_Allocated = true;
 
+		for (auto& counter : m_IndexCounters)
+		{
+			counter.Allocate(device, L"Index Counters");
+		}
+
 		for (auto& counter : m_SubBrickCounters)
 		{
-			counter.Allocate(device, L"SDF Factory Counters");
+			counter.Allocate(device, L"Sub Brick Counters");
 		}
 
 		m_BrickUpload.Allocate(device, 64, 0, L"Brick upload");
@@ -72,6 +77,26 @@ void SDFConstructionResources::AllocateResources(UINT brickCapacity, const SDFEd
 	if (editList.GetEditCount() > m_EditBuffer.GetMaxEdits())
 	{
 		m_EditBuffer.Allocate(editList.GetEditCount());
+
+		// Worst case: every brick uses every edit
+		// Indices = Bricks * Edits
+		const UINT indexBufferCapacity = editList.GetEditCount() * m_BrickCapacity;
+		const UINT64 indexBufferWidth = indexBufferCapacity * sizeof(UINT);
+		for (auto& indexBuffer: m_IndexBuffers)
+		{
+			indexBuffer.Allocate(device, indexBufferWidth, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, L"Construction Index Buffer");
+		}
+
+		// Upload only needs to contain data for the first 64 bricks
+		const UINT indexUploadCapacity = editList.GetEditCount() * 64;
+		m_IndexUpload.Allocate(device, indexUploadCapacity, 0, L"Index Upload");
+
+		// Populate index buffer
+		for (UINT brick = 0; brick < 64; brick++)
+		for (UINT edit = 0; edit < editList.GetEditCount(); edit++)
+		{
+			m_IndexUpload.CopyElement(brick * editList.GetEditCount() + edit, edit);
+		}
 	}
 
 	// Always populate the resources with new data
@@ -87,24 +112,23 @@ void SDFConstructionResources::AllocateResources(UINT brickCapacity, const SDFEd
 	// Create and upload initial bricks
 	Brick initialBrick;
 	initialBrick.SubBrickMask = { 0, 0 };
-	// Place the edit count in the 16 MSB
-	// 0 should remain in the LSB - offset is 0
-	initialBrick.IndexOffsetAndCount = editList.GetEditCount() << 16;
+	initialBrick.IndexCount = editList.GetEditCount();
 
 	for (UINT x = 0; x < 4; x++)
 	for (UINT y = 0; y < 4; y++)
 	for (UINT z = 0; z < 4; z++)
 	{
+		const UINT index = morton3Du({ x, y, z });
+
 		initialBrick.TopLeft_EvalSpace = {
 			-0.5f * evalSpaceSize + (static_cast<float>(x) * m_BuildParamsCB.BrickSize),
 			-0.5f * evalSpaceSize + (static_cast<float>(y) * m_BuildParamsCB.BrickSize),
 			-0.5f * evalSpaceSize + (static_cast<float>(z) * m_BuildParamsCB.BrickSize)
 		};
+		initialBrick.IndexOffset = index * editList.GetEditCount();
 
-		const UINT index = morton3Du({ x, y, z });
 		m_BrickUpload.CopyElement(index, initialBrick);
 	}
-
 }
 
 
