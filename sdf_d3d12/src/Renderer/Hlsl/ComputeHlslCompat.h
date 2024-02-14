@@ -46,7 +46,8 @@ struct Brick
 {
 	XMFLOAT3 TopLeft_EvalSpace;	// Top left of this brick in eval space
 	XMUINT2 SubBrickMask;		// A bit mask of sub-bricks
-	UINT IndexOffsetAndCount;	// Two 16-bit integers - 16 LSB is offset, 16 MSB is count
+	UINT IndexOffset;			// Offset into the index buffer for this bricks indices
+	UINT IndexCount;			// The number of indices this brick has
 };
 
 struct BrickBuildParametersConstantBuffer
