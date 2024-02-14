@@ -66,7 +66,7 @@ protected:
 	std::unique_ptr<D3DComputePipeline> m_ScanGroupCountCalculatorPipeline;
 	std::unique_ptr<D3DComputePipeline> m_ScanBlocksPipeline;
 	std::unique_ptr<D3DComputePipeline> m_ScanBlockSumsPipeline;
-	std::unique_ptr<D3DComputePipeline> m_SumScansPipeline;
+	std::unique_ptr<D3DComputePipeline> m_SumScansPipeline; 
 
 	std::unique_ptr<D3DComputePipeline> m_BrickBuilderPipeline;
 

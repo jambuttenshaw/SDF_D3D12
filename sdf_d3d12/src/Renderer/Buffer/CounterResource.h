@@ -43,25 +43,25 @@ public:
 		}
 	}
 
-	void SetValue(ID3D12GraphicsCommandList* commandList, ID3D12Resource* src) const
+	void SetValue(ID3D12GraphicsCommandList* commandList, ID3D12Resource* src, D3D12_RESOURCE_STATES beforeState, D3D12_RESOURCE_STATES afterState) const
 	{
-		auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_CounterResource.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_DEST);
+		auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_CounterResource.Get(), beforeState, D3D12_RESOURCE_STATE_COPY_DEST);
 		commandList->ResourceBarrier(1, &barrier);
 
 		commandList->CopyResource(m_CounterResource.Get(), src);
 
-		barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_CounterResource.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+		barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_CounterResource.Get(), D3D12_RESOURCE_STATE_COPY_DEST, afterState);
 		commandList->ResourceBarrier(1, &barrier);
 	}
 
-	void ReadValue(ID3D12GraphicsCommandList* commandList, ID3D12Resource* dest) const
+	void ReadValue(ID3D12GraphicsCommandList* commandList, ID3D12Resource* dest, D3D12_RESOURCE_STATES beforeState, D3D12_RESOURCE_STATES afterState) const
 	{
-		auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_CounterResource.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
+		auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_CounterResource.Get(), beforeState, D3D12_RESOURCE_STATE_COPY_SOURCE);
 		commandList->ResourceBarrier(1, &barrier);
 
 		commandList->CopyResource(dest, m_CounterResource.Get());
 
-		barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_CounterResource.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+		barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_CounterResource.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, afterState);
 		commandList->ResourceBarrier(1, &barrier);
 	}
 

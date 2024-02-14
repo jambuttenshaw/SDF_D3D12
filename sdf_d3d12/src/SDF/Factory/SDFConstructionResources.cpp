@@ -38,10 +38,7 @@ void SDFConstructionResources::AllocateResources(UINT brickCapacity, const SDFEd
 	{
 		m_Allocated = true;
 
-		for (auto& counter : m_IndexCounters)
-		{
-			counter.Allocate(device, L"Index Counters");
-		}
+		m_IndexCounter.Allocate(device, L"Index Counters");
 
 		for (auto& counter : m_SubBrickCounters)
 		{
@@ -79,12 +76,12 @@ void SDFConstructionResources::AllocateResources(UINT brickCapacity, const SDFEd
 		m_EditBuffer.Allocate(editList.GetEditCount());
 
 		// Worst case: every brick uses every edit
-		// Indices = Bricks * Edits
+		// Max Indices = Bricks * Edits
 		const UINT indexBufferCapacity = editList.GetEditCount() * m_BrickCapacity;
 		const UINT64 indexBufferWidth = indexBufferCapacity * sizeof(UINT);
-		for (auto& indexBuffer: m_IndexBuffers)
+		for (auto& indexBuffer : m_IndexBuffers)
 		{
-			indexBuffer.Allocate(device, indexBufferWidth, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, L"Construction Index Buffer");
+			indexBuffer.Allocate(device, indexBufferWidth, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, L"Index Buffer");
 		}
 
 		// Upload only needs to contain data for the first 64 bricks
