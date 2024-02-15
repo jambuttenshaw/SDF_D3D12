@@ -101,6 +101,7 @@ namespace BrickEvaluatorSignature
 		GroupOffsetSlot = 0,
 		BuildParameterSlot,
 		EditListSlot,
+		IndexBufferSlot,
 		BrickBufferSlot,
 		BrickPoolSlot,
 		Count
@@ -350,7 +351,8 @@ void SDFFactoryHierarchical::InitializePipelines()
 		rootParameters[GroupOffsetSlot].InitAsConstants(1, 0);
 		rootParameters[BuildParameterSlot].InitAsConstants(SizeOfInUint32(BrickEvaluationConstantBuffer), 1);
 		rootParameters[EditListSlot].InitAsShaderResourceView(0);
-		rootParameters[BrickBufferSlot].InitAsShaderResourceView(1);
+		rootParameters[IndexBufferSlot].InitAsShaderResourceView(1);
+		rootParameters[BrickBufferSlot].InitAsShaderResourceView(2);
 		rootParameters[BrickPoolSlot].InitAsDescriptorTable(1, &ranges[0]);
 
 		D3DComputePipelineDesc desc;
@@ -794,6 +796,7 @@ void SDFFactoryHierarchical::BuildCommandList_BrickEvaluation(SDFObject* object,
 		// Set resource views
 		m_CommandList->SetComputeRoot32BitConstants(BrickEvaluatorSignature::BuildParameterSlot, SizeOfInUint32(BrickEvaluationConstantBuffer), &resources.GetBrickEvalParams(), 0);
 		m_CommandList->SetComputeRootShaderResourceView(BrickEvaluatorSignature::EditListSlot, resources.GetEditBuffer().GetAddress());
+		m_CommandList->SetComputeRootShaderResourceView(BrickEvaluatorSignature::IndexBufferSlot, object->GetIndexBufferAddress(SDFObject::RESOURCES_WRITE));
 		m_CommandList->SetComputeRootShaderResourceView(BrickEvaluatorSignature::BrickBufferSlot, object->GetBrickBufferAddress(SDFObject::RESOURCES_WRITE));
 		m_CommandList->SetComputeRootDescriptorTable(BrickEvaluatorSignature::BrickPoolSlot, object->GetBrickPoolUAV(SDFObject::RESOURCES_WRITE));
 

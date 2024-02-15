@@ -159,25 +159,28 @@ void MyIntersectionShader()
 		if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_BOUNDING_BOX)
 		{ // Display AABB
 			attr.flags |= INTERSECTION_FLAG_NO_REMAP_NORMALS;
+			attr.utility = 0;
 
 			// Debug: Display the brick index that this bounding box would sphere trace
 			if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_BRICK_INDEX)
 			{
 				// Some method of turning the index into a color
-				const uint i = PrimitiveIndex();
-				attr.normal = RGBFromHSV(float3(frac(i / 64.0f), 1, 0.5f + 0.5f * frac(i / 256.0f)));
+				attr.utility = PrimitiveIndex();
 			}
 			// Debug: Display the brick pool uvw of the intersection with the surface of the box
 			else if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_POOL_UVW)
 			{
 				attr.normal = BrickVoxelToPoolUVW(brickVoxel, brickTopLeftVoxel, uvwPerVoxel);
 			}
+			else if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_BRICK_EDIT_COUNT)
+			{
+				attr.utility = brick.IndexCount;
+			}
 			else
 			{
 				attr.normal = uvwAABB;
 			}
 			
-			attr.heatmap = 0;
 			ReportHit(max(tMin, RayTMin()), 0, attr);
 			return;
 		}
@@ -194,7 +197,6 @@ void MyIntersectionShader()
 
 		// step through volume to find surface
 		uint iterationCount = 0;
-		attr.flags |= INTERSECTION_FLAG_ITERATION_GUARD_TERMINATION;
 
 		while (iterationCount < 32) // iteration guard
 		{
@@ -204,8 +206,6 @@ void MyIntersectionShader()
 			// 0.0625 was the largest threshold before unacceptable artifacts were produced
 			if (s <= 0.0625f)
 			{
-				// Not early terminated - clear flag
-				attr.flags &= ~INTERSECTION_FLAG_ITERATION_GUARD_TERMINATION;
 				break;
 			}
 
@@ -230,7 +230,7 @@ void MyIntersectionShader()
 
 		// Transform from object space to world space
 		attr.normal = normalize(mul(ComputeSurfaceNormal(uvw, 0.5f * uvwPerVoxel), transpose((float3x3) ObjectToWorld())));
-		attr.heatmap = iterationCount;
+		attr.utility = (g_PassCB.Flags & RENDER_FLAG_DISPLAY_BRICK_EDIT_COUNT) ? brick.IndexCount : iterationCount;
 		ReportHit(newT, 0, attr);
 	}
 }
@@ -245,13 +245,16 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 {
 	if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_HEATMAP)
 	{
-		payload.color = float4(RGBFromHSV(float3(0.25f - (attr.heatmap) / 64.0f, 1.0f, 1.0f)), 1.0f);
+		payload.color = float4(RGBFromHSV(float3(0.25f - (attr.utility) / 64.0f, 1.0f, 1.0f)), 1.0f);
 	}
-	else if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_ITERATION_GUARD_TERMINATIONS)
+	else if (g_PassCB.Flags & (RENDER_FLAG_DISPLAY_BRICK_INDEX))
 	{
-		payload.color = attr.flags & INTERSECTION_FLAG_ITERATION_GUARD_TERMINATION ?
-						float4(1.0f, 0.2f, 0.2f, 1.0f) :
-						float4(0.2f, 0.4f, 0.2f, 1.0f);
+		payload.color = float4(RGBFromHSV(float3(frac(attr.utility / 64.0f), 1, 0.5f + 0.5f * frac(attr.utility / 256.0f))), 1.0f);
+	}
+	else if (g_PassCB.Flags & (RENDER_FLAG_DISPLAY_BRICK_EDIT_COUNT))
+	{
+		uint i = min(attr.utility - 1, 16);
+		payload.color = float4(RGBFromHSV(float3(frac(i / 32.0f), 1, 1)), 1.0f);
 	}
 	else if (g_PassCB.Flags & (RENDER_FLAG_DISPLAY_NORMALS | RENDER_FLAG_DISPLAY_BOUNDING_BOX))
 	{

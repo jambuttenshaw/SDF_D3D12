@@ -18,17 +18,16 @@ using namespace DirectX;
 #define RENDER_FLAG_DISPLAY_NORMALS								4u
 #define RENDER_FLAG_DISPLAY_BRICK_INDEX							8u
 #define RENDER_FLAG_DISPLAY_POOL_UVW							16u
-#define RENDER_FLAG_DISPLAY_ITERATION_GUARD_TERMINATIONS		32u
+#define RENDER_FLAG_DISPLAY_BRICK_EDIT_COUNT					32u
 
 #define INTERSECTION_FLAG_NONE									0u
 #define INTERSECTION_FLAG_NO_REMAP_NORMALS						1u
-#define INTERSECTION_FLAG_ITERATION_GUARD_TERMINATION			2u
 
 
 struct MyAttributes
 {
 	XMFLOAT3 normal;
-	UINT heatmap;		// Sphere marching iteration count
+	UINT utility;		// general purpose integer to pass through to the closest hit shader for debug visualization purposes
 	UINT flags;
 };
 struct RayPayload

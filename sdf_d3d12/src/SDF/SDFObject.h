@@ -61,6 +61,7 @@ public:
 	inline UINT GetBrickBufferStride(ResourceGroup res) const { return GetResources(res).BrickBuffer.GetElementStride(); }
 
 	inline ID3D12Resource* GetIndexBuffer(ResourceGroup res) const { return GetResources(res).IndexBuffer.GetResource(); }
+	inline D3D12_GPU_VIRTUAL_ADDRESS GetIndexBufferAddress(ResourceGroup res) const { return GetResources(res).IndexBuffer.GetAddress(); }
 
 	// Get Resource Views
 	D3D12_GPU_DESCRIPTOR_HANDLE GetBrickPoolSRV(ResourceGroup res) const { return GetResources(res).ResourceViews.GetGPUHandle(0); }

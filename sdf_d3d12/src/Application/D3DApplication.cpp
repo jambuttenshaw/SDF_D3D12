@@ -262,8 +262,8 @@ bool D3DApplication::ImGuiApplicationInfo()
 			{
 				RenderFlagOption("Heatmap", RENDER_FLAG_DISPLAY_HEATMAP);
 				RenderFlagOption("Normals", RENDER_FLAG_DISPLAY_NORMALS);
-				RenderFlagOption("Iteration Guard Terminations", RENDER_FLAG_DISPLAY_ITERATION_GUARD_TERMINATIONS);
 			}
+			RenderFlagOption("Edit Count", RENDER_FLAG_DISPLAY_BRICK_EDIT_COUNT);
 		}
 
 		ImGui::Separator();
