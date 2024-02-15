@@ -28,7 +28,7 @@ SDFObject::~SDFObject()
 		resources.ResourceViews.Free();
 }
 
-void SDFObject::AllocateOptimalResources(UINT brickCount, float brickSize, ResourceGroup res)
+void SDFObject::AllocateOptimalResources(UINT brickCount, float brickSize, UINT64 indexCount, ResourceGroup res)
 {
 	ASSERT(brickCount > 0, "SDF Object does not have any bricks!");
 
@@ -39,23 +39,10 @@ void SDFObject::AllocateOptimalResources(UINT brickCount, float brickSize, Resou
 	AllocateOptimalAABBBuffer(brickCount, res);
 	AllocateOptimalBrickBuffer(brickCount, res);
 	AllocateOptimalBrickPool(brickCount, res);
+	AllocateOptimalIndexBuffer(indexCount, res);
 }
 
 
-ID3D12Resource* SDFObject::GetBrickPool(ResourceGroup res) const
-{
-	return GetResources(res).BrickPool.Get();
-}
-
-float SDFObject::GetBrickSize(ResourceGroup res) const
-{
-	return GetResources(res).BrickSize;
-}
-
-UINT SDFObject::GetBrickCount(ResourceGroup res) const
-{
-	return GetResources(res).BrickCount;
-}
 const XMUINT3& SDFObject::GetBrickPoolDimensions(ResourceGroup res) const
 {
 	return GetResources(res).BrickPoolDimensions;
@@ -64,43 +51,6 @@ UINT SDFObject::GetBrickPoolCapacity(ResourceGroup res) const
 {
 	const auto& dims = GetResources(res).BrickPoolDimensions;
 	return dims.x * dims.y * dims.z;
-}
-
-ID3D12Resource* SDFObject::GetAABBBuffer(ResourceGroup res) const
-{
-	return GetResources(res).AABBBuffer.GetResource();
-}
-
-D3D12_GPU_VIRTUAL_ADDRESS SDFObject::GetAABBBufferAddress(ResourceGroup res) const
-{
-	return GetResources(res).AABBBuffer.GetAddress();
-}
-UINT SDFObject::GetAABBBufferStride(ResourceGroup res) const
-{
-	return GetResources(res).AABBBuffer.GetElementStride();
-}
-
-ID3D12Resource* SDFObject::GetBrickBuffer(ResourceGroup res) const
-{
-	return GetResources(res).BrickBuffer.GetResource();
-}
-
-D3D12_GPU_VIRTUAL_ADDRESS SDFObject::GetBrickBufferAddress(ResourceGroup res) const
-{
-	return GetResources(res).BrickBuffer.GetAddress();
-}
-UINT SDFObject::GetBrickBufferStride(ResourceGroup res) const
-{
-	return GetResources(res).BrickBuffer.GetElementStride();
-}
-
-D3D12_GPU_DESCRIPTOR_HANDLE SDFObject::GetBrickPoolSRV(ResourceGroup res) const
-{
-	return GetResources(res).ResourceViews.GetGPUHandle(0);
-};
-D3D12_GPU_DESCRIPTOR_HANDLE SDFObject::GetBrickPoolUAV(ResourceGroup res) const
-{
-	return GetResources(res).ResourceViews.GetGPUHandle(1);
 }
 
 
@@ -236,9 +186,15 @@ void SDFObject::AllocateOptimalBrickPool(UINT brickCount, ResourceGroup res)
 			nullptr,
 			resources.ResourceViews.GetCPUHandle(1));
 	}
-
-	// Local arguments for shading have changed
-	// The shader table will need updated
-	m_IsLocalArgsDirty = true;
 }
 
+void SDFObject::AllocateOptimalIndexBuffer(UINT64 indexCount, ResourceGroup res)
+{
+	auto& resources = GetResources(res);
+
+	const UINT64 width = indexCount * sizeof(UINT);
+	if (!resources.IndexBuffer.GetResource() || width > resources.IndexBuffer.GetResource()->GetDesc().Width)
+	{
+		resources.IndexBuffer.Allocate(g_D3DGraphicsContext->GetDevice(), width, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, L"SDF Object Index Buffer");
+	}
+}

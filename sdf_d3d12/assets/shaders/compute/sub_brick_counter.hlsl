@@ -19,6 +19,7 @@ ConstantBuffer<BrickBuildParametersConstantBuffer> g_BuildParameters : register(
 // The brick counter should therefore be read-only
 ByteAddressBuffer g_BrickCounter : register(t0);
 StructuredBuffer<SDFEditData> g_EditList : register(t1);
+StructuredBuffer<uint> g_IndexBuffer : register(t2);
 
 RWStructuredBuffer<Brick> g_Bricks : register(u0);
 
@@ -40,17 +41,21 @@ float EvaluateEditList(float3 p)
 	// Evaluate SDF list
 	float nearest = FLOAT_MAX;
 	
-	for (uint i = 0; i < g_BuildParameters.SDFEditCount; i++)
+	for (uint i = 0; i < gs_Brick.IndexCount; i++)
 	{
+		// Load the edit index
+		const uint index = g_IndexBuffer.Load(gs_Brick.IndexOffset + i);
+		const SDFEditData edit = g_EditList.Load(index);
+
 		// apply primitive transform
-		const float3 p_transformed = opTransform(p, g_EditList[i].InvWorldMat) / g_EditList[i].Scale;
+		const float3 p_transformed = opTransform(p, edit.InvWorldMat) / edit.Scale;
 		
 		// evaluate primitive
-		float dist = sdPrimitive(p_transformed, g_EditList[i].Shape, g_EditList[i].ShapeParams);
-		dist *= g_EditList[i].Scale;
+		float dist = sdPrimitive(p_transformed, edit.Shape, edit.ShapeParams);
+		dist *= edit.Scale;
 
 		// combine with scene
-		nearest = opPrimitive(nearest, dist, g_EditList[i].Operation, g_EditList[i].BlendingFactor);
+		nearest = opPrimitive(nearest, dist, edit.Operation, edit.BlendingFactor);
 	}
 
 	return nearest;

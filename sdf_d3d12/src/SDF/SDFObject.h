@@ -39,30 +39,32 @@ public:
 	DEFAULT_MOVE(SDFObject)
 
 	// Brick Pool
-	void AllocateOptimalResources(UINT brickCount, float brickSize, ResourceGroup res);
-	ID3D12Resource* GetBrickPool(ResourceGroup res) const;
+	void AllocateOptimalResources(UINT brickCount, float brickSize, UINT64 indexCount, ResourceGroup res);
+	inline ID3D12Resource* GetBrickPool(ResourceGroup res) const { return GetResources(res).BrickPool.Get(); }
 
 	inline float GetMinBrickSize() const { return m_MinBrickSize; }
-	float GetBrickSize(ResourceGroup res) const;
+	inline float GetBrickSize(ResourceGroup res) const { return GetResources(res).BrickSize; }
 
 	inline UINT GetBrickBufferCapacity() const { return m_BrickCapacity; }
 
-	UINT GetBrickCount(ResourceGroup res) const;
+	inline UINT GetBrickCount(ResourceGroup res) const { return GetResources(res).BrickCount; }
 	const XMUINT3& GetBrickPoolDimensions(ResourceGroup res) const;
 	UINT GetBrickPoolCapacity(ResourceGroup res) const;
 
 	// Geometry buffer
-	ID3D12Resource* GetAABBBuffer(ResourceGroup res) const;
-	D3D12_GPU_VIRTUAL_ADDRESS GetAABBBufferAddress(ResourceGroup res) const;
-	UINT GetAABBBufferStride(ResourceGroup res) const;
+	inline ID3D12Resource* GetAABBBuffer(ResourceGroup res) const { return GetResources(res).AABBBuffer.GetResource(); }
+	inline D3D12_GPU_VIRTUAL_ADDRESS GetAABBBufferAddress(ResourceGroup res) const { return GetResources(res).AABBBuffer.GetAddress(); }
+	inline UINT GetAABBBufferStride(ResourceGroup res) const { return GetResources(res).AABBBuffer.GetElementStride(); }
 
-	ID3D12Resource* GetBrickBuffer(ResourceGroup res) const;
-	D3D12_GPU_VIRTUAL_ADDRESS GetBrickBufferAddress(ResourceGroup res) const;
-	UINT GetBrickBufferStride(ResourceGroup res) const;
+	inline ID3D12Resource* GetBrickBuffer(ResourceGroup res) const { return GetResources(res).BrickBuffer.GetResource(); }
+	inline D3D12_GPU_VIRTUAL_ADDRESS GetBrickBufferAddress(ResourceGroup res) const { return GetResources(res).BrickBuffer.GetAddress(); }
+	inline UINT GetBrickBufferStride(ResourceGroup res) const { return GetResources(res).BrickBuffer.GetElementStride(); }
+
+	inline ID3D12Resource* GetIndexBuffer(ResourceGroup res) const { return GetResources(res).IndexBuffer.GetResource(); }
 
 	// Get Resource Views
-	D3D12_GPU_DESCRIPTOR_HANDLE GetBrickPoolSRV(ResourceGroup res) const;
-	D3D12_GPU_DESCRIPTOR_HANDLE GetBrickPoolUAV(ResourceGroup res) const;
+	D3D12_GPU_DESCRIPTOR_HANDLE GetBrickPoolSRV(ResourceGroup res) const { return GetResources(res).ResourceViews.GetGPUHandle(0); }
+	D3D12_GPU_DESCRIPTOR_HANDLE GetBrickPoolUAV(ResourceGroup res) const { return GetResources(res).ResourceViews.GetGPUHandle(1); }
 
 	// Acceleration structure properties
 	inline D3D12_RAYTRACING_GEOMETRY_FLAGS GetGeometryFlags() const { return m_GeometryFlags; }
@@ -124,6 +126,7 @@ private:
 	void AllocateOptimalAABBBuffer(UINT brickCount, ResourceGroup res);
 	void AllocateOptimalBrickBuffer(UINT brickCount, ResourceGroup res);
 	void AllocateOptimalBrickPool(UINT brickCount, ResourceGroup res);
+	void AllocateOptimalIndexBuffer(UINT64 indexCount, ResourceGroup res);
 
 private:
 	// A complete set of resources that make up this object
@@ -136,7 +139,6 @@ private:
 		StructuredBuffer<Brick> BrickBuffer;
 
 		// Edits
-		StructuredBuffer<SDFEditData> EditBuffer;
 		DefaultBuffer IndexBuffer;
 
 		DescriptorAllocation ResourceViews;	// index 0 = brick pool SRV
