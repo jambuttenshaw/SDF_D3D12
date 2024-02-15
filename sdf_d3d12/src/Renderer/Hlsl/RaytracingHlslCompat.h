@@ -62,8 +62,8 @@ struct PassConstantBuffer
 // Data that is constant among all bricks in an object
 struct BrickPropertiesConstantBuffer
 {
-	// Half the brick dimensions
-	float BrickHalfSize;
+	// The brick dimensions
+	float BrickSize;
 	// Total number of bricks in the object
 	UINT BrickCount;
 };

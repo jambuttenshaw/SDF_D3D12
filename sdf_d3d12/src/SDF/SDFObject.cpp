@@ -17,7 +17,7 @@ SDFObject::SDFObject(float minBrickSize, UINT brickCapacity, D3D12_RAYTRACING_GE
 
 	for (auto& resources : m_Resources)
 	{
-		resources.ResourceViews = descriptorHeap->Allocate(4);
+		resources.ResourceViews = descriptorHeap->Allocate(2);
 		ASSERT(resources.ResourceViews.IsValid(), "Descriptor allocation failed!");
 	}
 }
@@ -102,14 +102,6 @@ D3D12_GPU_DESCRIPTOR_HANDLE SDFObject::GetBrickPoolUAV(ResourceGroup res) const
 {
 	return GetResources(res).ResourceViews.GetGPUHandle(1);
 }
-D3D12_GPU_DESCRIPTOR_HANDLE SDFObject::GetAABBBufferUAV(ResourceGroup res) const
-{
-	return GetResources(res).ResourceViews.GetGPUHandle(2);
-}
-D3D12_GPU_DESCRIPTOR_HANDLE SDFObject::GetBrickBufferUAV(ResourceGroup res) const
-{
-	return GetResources(res).ResourceViews.GetGPUHandle(3);
-}
 
 
 UINT64 SDFObject::GetBrickPoolSizeBytes(ResourceGroup res) const
@@ -161,9 +153,7 @@ void SDFObject::AllocateOptimalAABBBuffer(UINT brickCount, ResourceGroup res)
 
 	if (resources.AABBBuffer.GetElementCount() < brickCount)
 	{
-		resources.AABBBuffer.Allocate(device, brickCount, D3D12_RESOURCE_STATE_COMMON, L"AABB Buffer");
-		const auto uavDesc = resources.AABBBuffer.CreateUAVDesc();
-		device->CreateUnorderedAccessView(resources.AABBBuffer.GetResource(), nullptr, &uavDesc, resources.ResourceViews.GetCPUHandle(2));
+		resources.AABBBuffer.Allocate(device, brickCount, D3D12_RESOURCE_STATE_COMMON, L"SDF Object AABB Buffer");
 	}
 }
 
@@ -175,9 +165,7 @@ void SDFObject::AllocateOptimalBrickBuffer(UINT brickCount, ResourceGroup res)
 
 	if (resources.BrickBuffer.GetElementCount() < brickCount)
 	{
-		resources.BrickBuffer.Allocate(device, brickCount, D3D12_RESOURCE_STATE_COMMON, L"Brick Buffer");
-		const auto uavDesc = resources.BrickBuffer.CreateUAVDesc();
-		device->CreateUnorderedAccessView(resources.BrickBuffer.GetResource(), nullptr, &uavDesc, resources.ResourceViews.GetCPUHandle(3));
+		resources.BrickBuffer.Allocate(device, brickCount, D3D12_RESOURCE_STATE_COMMON, L"SDF Object Brick Buffer");
 	}
 }
 

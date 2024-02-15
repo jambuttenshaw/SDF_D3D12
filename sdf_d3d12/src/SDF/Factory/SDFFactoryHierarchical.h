@@ -4,7 +4,6 @@
 
 #include "Renderer/D3DPipeline.h"
 #include "Renderer/Buffer/UploadBuffer.h"
-#include "Renderer/Buffer/DefaultBuffer.h"
 
 #include "SDFConstructionResources.h"
 

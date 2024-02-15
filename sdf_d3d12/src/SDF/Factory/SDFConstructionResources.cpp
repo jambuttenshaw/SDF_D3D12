@@ -117,7 +117,7 @@ void SDFConstructionResources::AllocateResources(UINT brickCapacity, const SDFEd
 	{
 		const UINT index = morton3Du({ x, y, z });
 
-		initialBrick.TopLeft_EvalSpace = {
+		initialBrick.TopLeft = {
 			-0.5f * evalSpaceSize + (static_cast<float>(x) * m_BuildParamsCB.BrickSize),
 			-0.5f * evalSpaceSize + (static_cast<float>(y) * m_BuildParamsCB.BrickSize),
 			-0.5f * evalSpaceSize + (static_cast<float>(z) * m_BuildParamsCB.BrickSize)

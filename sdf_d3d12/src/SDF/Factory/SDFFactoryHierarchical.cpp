@@ -89,7 +89,6 @@ namespace AABBBuilderSignature
 		BuildParameterSlot = 0,
 		BricksSlot,
 		AABBsSlot,
-		BrickBufferSlot,
 		Count
 	};
 }
@@ -328,7 +327,6 @@ void SDFFactoryHierarchical::InitializePipelines()
 		rootParams[BuildParameterSlot].InitAsConstants(SizeOfInUint32(BrickEvaluationConstantBuffer), 0);
 		rootParams[BricksSlot].InitAsShaderResourceView(0);
 		rootParams[AABBsSlot].InitAsUnorderedAccessView(0);
-		rootParams[BrickBufferSlot].InitAsUnorderedAccessView(1);
 
 		D3DComputePipelineDesc desc;
 		desc.NumRootParameters = ARRAYSIZE(rootParams);
@@ -611,13 +609,6 @@ void SDFFactoryHierarchical::BuildCommandList_HierarchicalBrickBuilding(SDFObjec
 				const auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(resources.GetPrefixSumsBuffer().GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 				m_CommandList->ResourceBarrier(1, &barrier);
 			}
-
-			{
-				const D3D12_RESOURCE_BARRIER uavBarriers[] = {
-					CD3DX12_RESOURCE_BARRIER::UAV(resources.GetPrefixSumsBuffer().GetResource()),
-				};
-				m_CommandList->ResourceBarrier(ARRAYSIZE(uavBarriers), uavBarriers);
-			}
 		}
 
 		PIXEndEvent(m_CommandList.Get());
@@ -733,7 +724,6 @@ void SDFFactoryHierarchical::BuildCommandList_BrickEvaluation(SDFObject* object,
 			D3D12_RESOURCE_BARRIER barriers[] =
 			{
 				CD3DX12_RESOURCE_BARRIER::Transition(object->GetAABBBuffer(SDFObject::RESOURCES_WRITE), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
-				CD3DX12_RESOURCE_BARRIER::Transition(object->GetBrickBuffer(SDFObject::RESOURCES_WRITE), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
 			};
 			m_CommandList->ResourceBarrier(ARRAYSIZE(barriers), barriers);
 		}
@@ -743,11 +733,28 @@ void SDFFactoryHierarchical::BuildCommandList_BrickEvaluation(SDFObject* object,
 		m_CommandList->SetComputeRoot32BitConstants(AABBBuilderSignature::BuildParameterSlot, SizeOfInUint32(BrickEvaluationConstantBuffer), &resources.GetBrickEvalParams(), 0);
 		m_CommandList->SetComputeRootShaderResourceView(AABBBuilderSignature::BricksSlot, resources.GetReadBrickBuffer().GetAddress());
 		m_CommandList->SetComputeRootUnorderedAccessView(AABBBuilderSignature::AABBsSlot, object->GetAABBBufferAddress(SDFObject::RESOURCES_WRITE));
-		m_CommandList->SetComputeRootUnorderedAccessView(AABBBuilderSignature::BrickBufferSlot, object->GetBrickBufferAddress(SDFObject::RESOURCES_WRITE));
 
 		// Calculate number of thread groups and dispatch
 		const UINT threadGroupX = (resources.GetBrickEvalParams().BrickCount + AABB_BUILDING_THREADS - 1) / AABB_BUILDING_THREADS;
 		m_CommandList->Dispatch(threadGroupX, 1, 1);
+
+		PIXEndEvent(m_CommandList.Get());
+	}
+
+	{
+		PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(52), L"Copy Brick Data");
+
+		// Copy brick data from temp buffer into objects brick buffer
+		{
+			D3D12_RESOURCE_BARRIER barriers[] =
+			{
+				CD3DX12_RESOURCE_BARRIER::Transition(object->GetBrickBuffer(SDFObject::RESOURCES_WRITE), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_COPY_DEST),
+			};
+			m_CommandList->ResourceBarrier(ARRAYSIZE(barriers), barriers);
+		}
+
+		const UINT numBytes = resources.GetBrickEvalParams().BrickCount * sizeof(Brick);
+		m_CommandList->CopyBufferRegion(object->GetBrickBuffer(SDFObject::RESOURCES_WRITE), 0, resources.GetReadBrickBuffer().GetResource(), 0, numBytes);
 
 		PIXEndEvent(m_CommandList.Get());
 	}
@@ -764,7 +771,7 @@ void SDFFactoryHierarchical::BuildCommandList_BrickEvaluation(SDFObject* object,
 			{
 				CD3DX12_RESOURCE_BARRIER::Transition(object->GetBrickPool(SDFObject::RESOURCES_WRITE), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
 				CD3DX12_RESOURCE_BARRIER::Transition(object->GetAABBBuffer(SDFObject::RESOURCES_WRITE), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE),
-				CD3DX12_RESOURCE_BARRIER::Transition(object->GetBrickBuffer(SDFObject::RESOURCES_WRITE), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE),
+				CD3DX12_RESOURCE_BARRIER::Transition(object->GetBrickBuffer(SDFObject::RESOURCES_WRITE), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE),
 			};
 			m_CommandList->ResourceBarrier(ARRAYSIZE(barriers), barriers);
 		}

@@ -234,7 +234,7 @@ void Scene::BuildEditList(float deltaTime, bool async)
 				m_SphereData.at(i).scale.y * cosf(m_SphereData.at(i).speed.y * t),
 				m_SphereData.at(i).scale.z * cosf(m_SphereData.at(i).speed.z * t)
 			});
-		editList.AddEdit(SDFEdit::CreateSphere(transform, 0.05f, i == 0 ? SDFOperation::Union : SDFOperation::SmoothUnion, m_SphereBlend));
+		editList.AddEdit(SDFEdit::CreateSphere(transform, 0.05f, i == 0 ? SDFOperation::Union : SDFOperation::Union, m_SphereBlend));
 	}
 
 	if (async)

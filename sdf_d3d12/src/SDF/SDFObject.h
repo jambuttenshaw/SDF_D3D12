@@ -63,8 +63,6 @@ public:
 	// Get Resource Views
 	D3D12_GPU_DESCRIPTOR_HANDLE GetBrickPoolSRV(ResourceGroup res) const;
 	D3D12_GPU_DESCRIPTOR_HANDLE GetBrickPoolUAV(ResourceGroup res) const;
-	D3D12_GPU_DESCRIPTOR_HANDLE GetAABBBufferUAV(ResourceGroup res) const;
-	D3D12_GPU_DESCRIPTOR_HANDLE GetBrickBufferUAV(ResourceGroup res) const;
 
 	// Acceleration structure properties
 	inline D3D12_RAYTRACING_GEOMETRY_FLAGS GetGeometryFlags() const { return m_GeometryFlags; }
@@ -123,11 +121,9 @@ private:
 		return m_Resources.at(res == RESOURCES_READ ? ReadIndex() : WriteIndex());
 	}
 
-
 	void AllocateOptimalAABBBuffer(UINT brickCount, ResourceGroup res);
 	void AllocateOptimalBrickBuffer(UINT brickCount, ResourceGroup res);
 	void AllocateOptimalBrickPool(UINT brickCount, ResourceGroup res);
-
 
 private:
 	// A complete set of resources that make up this object
@@ -145,8 +141,6 @@ private:
 
 		DescriptorAllocation ResourceViews;	// index 0 = brick pool SRV
 											// index 1 = brick pool UAV
-											// index 2 = aabb buffer UAV
-											// index 3 = brick buffer UAV
 
 		// Brick count/pool related properties are only pertinent to a specific set
 		UINT BrickCount = 0; // The number of bricks that actually make up this object

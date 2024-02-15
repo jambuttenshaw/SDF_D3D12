@@ -125,7 +125,7 @@ void MyIntersectionShader()
 
 	float3 aabb[2];
 	aabb[0] = float3(0.0f, 0.0f, 0.0f);
-	aabb[1] = 2.0f * float3(l_BrickProperties.BrickHalfSize, l_BrickProperties.BrickHalfSize, l_BrickProperties.BrickHalfSize);
+	aabb[1] = float3(l_BrickProperties.BrickSize, l_BrickProperties.BrickSize, l_BrickProperties.BrickSize);
 
 	// Get the tmin and tmax of the intersection between the ray and this aabb
 	float tMin, tMax;
@@ -144,10 +144,8 @@ void MyIntersectionShader()
 		// if we are inside the aabb, begin ray marching from t = 0
 		// otherwise, begin from where the view ray first hits the box
 		float3 uvwAABB = ray.origin + max(tMin, 0.0f) * ray.direction;
-		// map uvw to range [-1,1]
-		uvwAABB /= l_BrickProperties.BrickHalfSize;
-		// map to [0,1]
-		uvwAABB = uvwAABB * 0.5f + 0.5f;
+		// map uvw to range [0,1]
+		uvwAABB /= l_BrickProperties.BrickSize;
 
 		// get voxel coordinate of top left of brick
 		const uint3 brickTopLeftVoxel = CalculateBrickPoolPosition(PrimitiveIndex(), l_BrickProperties.BrickCount, poolDims / SDF_BRICK_SIZE_VOXELS_ADJACENCY);
@@ -226,7 +224,7 @@ void MyIntersectionShader()
 		// Calculate the hit point as a UVW of the AABB
 		float3 hitUVWAABB = (PoolUVWToBrickVoxel(uvw, brickTopLeftVoxel, poolDims) - float3(1.0f, 1.0f, 1.0f)) / SDF_BRICK_SIZE_VOXELS;
 		// point of intersection in local space
-		const float3 pointOfIntersection = (hitUVWAABB * 2.0f - 1.0f) * l_BrickProperties.BrickHalfSize;
+		const float3 pointOfIntersection = hitUVWAABB * l_BrickProperties.BrickSize;
 		// t is the distance from the ray origin to the point of intersection
 		const float newT = length(ray.origin - pointOfIntersection);
 
