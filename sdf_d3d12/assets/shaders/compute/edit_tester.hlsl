@@ -79,7 +79,7 @@ void main(uint3 GroupID : SV_GroupID, uint GI : SV_GroupIndex)
 		const SDFEditData edit = g_EditList.Load(index);
 
 		// Evaluate edit
-		const float3 brickCentre = gs_Brick.TopLeft_EvalSpace + 0.5f * g_BuildParameters.SubBrickSize; // This stage is executed AFTER sub-brick building - so bricks are now sub-brick sized
+		const float3 brickCentre = gs_Brick.TopLeft + 0.5f * g_BuildParameters.SubBrickSize; // This stage is executed AFTER sub-brick building - so bricks are now sub-brick sized
 		if (abs(EvaluateEdit(edit, brickCentre)) < g_BuildParameters.SubBrickSize) // Edit is relevant
 		{
 			localIndices[localEditCount++] = index;

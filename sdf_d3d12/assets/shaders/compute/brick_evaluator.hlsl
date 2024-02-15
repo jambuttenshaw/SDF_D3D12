@@ -24,7 +24,7 @@ ConstantBuffer<EvalGroupOffset> g_EvalGroupOffset : register(b0);
 ConstantBuffer<BrickEvaluationConstantBuffer> g_BuildParameters : register(b1);
 StructuredBuffer<SDFEditData> g_EditList : register(t0);
 
-StructuredBuffer<BrickPointer> g_BrickBuffer : register(t1);
+StructuredBuffer<Brick> g_BrickBuffer : register(t1);
 RWTexture3D<float> g_OutputTexture : register(u1);
 
 
@@ -76,10 +76,11 @@ float EvaluateEditList(float3 p, uint GI)
 void main(uint3 GroupID : SV_GroupID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex)
 {
 	// Which brick is this thread processing
-	const BrickPointer brick = g_BrickBuffer[GroupID.x + g_EvalGroupOffset.Offset];
+	const uint brickIndex = GroupID.x + g_EvalGroupOffset.Offset;
+	const Brick brick = g_BrickBuffer[brickIndex];
 
 	// Calculate the point in space that this thread is processing
-	const float3 evaluationPosition = (brick.AABBCentre - 0.5f * g_BuildParameters.EvalSpace_BrickSize)		// Top left of brick
+	const float3 evaluationPosition = (brick.TopLeft)														// Top left of brick
 									+ ((float3) GTid - 0.5f) / g_BuildParameters.EvalSpace_VoxelsPerUnit;	// Offset within brick
 																											// such that group thread (0,0,0) goes to (-0.5, -0.5, -0.5)
 																											// and (7,7,7) goes to (6.5, 6.5, 6.5)
@@ -90,7 +91,7 @@ void main(uint3 GroupID : SV_GroupID, uint3 GTid : SV_GroupThreadID, uint GI : S
 	const float mappedDistance = FormatDistance(nearest, g_BuildParameters.EvalSpace_VoxelsPerUnit);
 
 	// Now calculate where to store the voxel in the brick pool
-	const uint3 brickVoxel = CalculateBrickPoolPosition(brick.BrickIndex, g_BuildParameters.BrickCount, g_BuildParameters.BrickPool_BrickCapacityPerAxis) + GTid;
+	const uint3 brickVoxel = CalculateBrickPoolPosition(brickIndex, g_BuildParameters.BrickCount, g_BuildParameters.BrickPool_BrickCapacityPerAxis) + GTid;
 
 	// Store the mapped distance in the volume
 	g_OutputTexture[brickVoxel] = mappedDistance;

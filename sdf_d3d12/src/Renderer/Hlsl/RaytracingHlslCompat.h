@@ -7,6 +7,7 @@
 using namespace DirectX;
 #endif
 
+#include "StructureHlslCompat.h"
 #include "HlslDefines.h"
 
 
@@ -57,17 +58,6 @@ struct PassConstantBuffer
 	float DeltaTime;
 };
 
-
-// This structure associates a raytracing AABB with a brick in the pool
-struct BrickPointer
-{
-	// Where this brick is placed in object space
-	// For transforming rays to local space of the brick
-	XMFLOAT3 AABBCentre;
-
-	// Which brick in the pool does this point to
-	UINT BrickIndex;
-};
 
 // Data that is constant among all bricks in an object
 struct BrickPropertiesConstantBuffer

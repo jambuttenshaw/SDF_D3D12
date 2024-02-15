@@ -7,7 +7,9 @@
 using namespace DirectX;
 #endif
 
+#include "StructureHlslCompat.h"
 #include "HlslDefines.h"
+
 
 #define MORTON_ENUMERATOR_THREADS 8 // 8x8x8
 #define AABB_BUILDING_THREADS 128
@@ -42,13 +44,6 @@ struct BrickEvaluationConstantBuffer
 	UINT SDFEditCount;
 };
 
-struct Brick
-{
-	XMFLOAT3 TopLeft_EvalSpace;	// Top left of this brick in eval space
-	XMUINT2 SubBrickMask;		// A bit mask of sub-bricks
-	UINT IndexOffset;			// Offset into the index buffer for this bricks indices
-	UINT IndexCount;			// The number of indices this brick has
-};
 
 struct BrickBuildParametersConstantBuffer
 {

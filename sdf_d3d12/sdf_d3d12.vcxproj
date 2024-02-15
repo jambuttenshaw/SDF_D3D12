@@ -239,6 +239,7 @@
     <ClInclude Include="src\Renderer\D3DQueue.h" />
     <ClInclude Include="src\Renderer\D3DShaderCompiler.h" />
     <ClInclude Include="src\Renderer\Hlsl\HlslDefines.h" />
+    <ClInclude Include="src\Renderer\Hlsl\StructureHlslCompat.h" />
     <ClInclude Include="src\Renderer\ShaderTable.h" />
     <ClInclude Include="src\Renderer\Hlsl\ComputeHlslCompat.h" />
     <ClInclude Include="src\Renderer\Hlsl\HlslCompat.h" />

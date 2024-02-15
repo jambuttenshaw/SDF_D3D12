@@ -2,7 +2,7 @@
 
 #include "Core.h"
 #include "Renderer/Memory/MemoryAllocator.h"
-#include "Renderer/Hlsl/RaytracingHlslCompat.h"
+#include "Renderer/Hlsl/StructureHlslCompat.h"
 #include "Renderer/Buffer/StructuredBuffer.h"
 
 
@@ -137,7 +137,7 @@ private:
 		
 		// Geometry
 		StructuredBuffer<D3D12_RAYTRACING_AABB> AABBBuffer;
-		StructuredBuffer<BrickPointer> BrickBuffer;
+		StructuredBuffer<Brick> BrickBuffer;
 
 		// Edits
 		StructuredBuffer<SDFEditData> EditBuffer;

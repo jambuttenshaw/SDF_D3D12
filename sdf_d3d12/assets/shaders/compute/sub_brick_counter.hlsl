@@ -80,7 +80,7 @@ void main(uint3 GroupID : SV_GroupID, uint GI : SV_GroupIndex, uint3 GTid : SV_G
 	// Determine if this thread's sub-region is occupied
 
 	// Calculate the centre of the sub-brick that this thread should evaluate
-	const float3 subBrickCentre = gs_Brick.TopLeft_EvalSpace + g_BuildParameters.SubBrickSize * (GTid + 0.5f);
+	const float3 subBrickCentre = gs_Brick.TopLeft + g_BuildParameters.SubBrickSize * (GTid + 0.5f);
 	const float distance = EvaluateEditList(subBrickCentre);
 
 	// If there is a distance value of magnitude small enough, that means its possible this sub-brick

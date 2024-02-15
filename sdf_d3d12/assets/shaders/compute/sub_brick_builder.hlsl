@@ -62,12 +62,12 @@ void main(uint3 GroupID : SV_GroupID, uint GI : SV_GroupIndex, uint3 GTid : SV_G
 	{
 		// Create brick
 		gs_OutBricks[GI].SubBrickMask = uint2(0, 0);
-		gs_OutBricks[GI].TopLeft_EvalSpace = gs_InBrick.TopLeft_EvalSpace + g_BuildParameters.SubBrickSize * GTid;
+		gs_OutBricks[GI].TopLeft = gs_InBrick.TopLeft + g_BuildParameters.SubBrickSize * GTid;
 		gs_OutBricks[GI].IndexOffset = gs_InBrick.IndexOffset; // These will be refined in the next stage
 		gs_OutBricks[GI].IndexCount = gs_InBrick.IndexCount;
 
 		// Calculate morton code for brick
-		const uint mortonCode = morton3Df(0.5f + (gs_OutBricks[GI].TopLeft_EvalSpace / g_BuildParameters.EvalSpaceSize));
+		const uint mortonCode = morton3Df(0.5f + (gs_OutBricks[GI].TopLeft / g_BuildParameters.EvalSpaceSize));
 		gs_MortonCodes[GI] = mortonCode;
 
 		// Increment the group brick counter

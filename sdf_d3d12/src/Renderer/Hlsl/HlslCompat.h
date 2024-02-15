@@ -14,21 +14,6 @@ typedef uint4 XMUINT4;
 
 typedef uint64_t UINT64;
 
-
-struct Ray
-{
-	XMFLOAT3 origin;
-	XMFLOAT3 direction;
-};
-
-struct AABB
-{
-	XMFLOAT3 TopLeft;
-	XMFLOAT3 BottomRight;
-};
-
-
 #define FLOAT_MAX 3.402823466e+38F
-
 
 #endif // HLSLCOMPAT_H

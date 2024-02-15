@@ -28,7 +28,7 @@ SamplerState g_Sampler : register(s0);
 // The SDF volume that will be ray-marched in the intersection shader
 ConstantBuffer<BrickPropertiesConstantBuffer> l_BrickProperties : register(b0, space1);
 Texture3D<float> l_BrickPool : register(t0, space1);
-StructuredBuffer<BrickPointer> l_BrickBuffer : register(t1, space1);
+StructuredBuffer<Brick> l_BrickBuffer : register(t1, space1);
 
 /////////////////
 //// DEFINES ////
@@ -117,15 +117,15 @@ void MyRaygenShader()
 [shader("intersection")]
 void MyIntersectionShader()
 {
-	const BrickPointer brick = l_BrickBuffer[PrimitiveIndex()];
+	const Brick brick = l_BrickBuffer[PrimitiveIndex()];
 
 	Ray ray;
-	ray.origin = ObjectRayOrigin() - brick.AABBCentre;
+	ray.origin = ObjectRayOrigin() - brick.TopLeft;
 	ray.direction = ObjectRayDirection();
 
 	float3 aabb[2];
-	aabb[1] = float3(l_BrickProperties.BrickHalfSize, l_BrickProperties.BrickHalfSize, l_BrickProperties.BrickHalfSize);
-	aabb[0] = -aabb[1];
+	aabb[0] = float3(0.0f, 0.0f, 0.0f);
+	aabb[1] = 2.0f * float3(l_BrickProperties.BrickHalfSize, l_BrickProperties.BrickHalfSize, l_BrickProperties.BrickHalfSize);
 
 	// Get the tmin and tmax of the intersection between the ray and this aabb
 	float tMin, tMax;
@@ -150,7 +150,7 @@ void MyIntersectionShader()
 		uvwAABB = uvwAABB * 0.5f + 0.5f;
 
 		// get voxel coordinate of top left of brick
-		const uint3 brickTopLeftVoxel = CalculateBrickPoolPosition(brick.BrickIndex, l_BrickProperties.BrickCount, poolDims / SDF_BRICK_SIZE_VOXELS_ADJACENCY);
+		const uint3 brickTopLeftVoxel = CalculateBrickPoolPosition(PrimitiveIndex(), l_BrickProperties.BrickCount, poolDims / SDF_BRICK_SIZE_VOXELS_ADJACENCY);
 
 		// Offset by 1 due to adjacency data
 		// e.g., uvwAABB of (0, 0, 0) actually references the voxel at (1, 1, 1) - not (0, 0, 0)
@@ -166,7 +166,7 @@ void MyIntersectionShader()
 			if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_BRICK_INDEX)
 			{
 				// Some method of turning the index into a color
-				const uint i = brick.BrickIndex;
+				const uint i = PrimitiveIndex();
 				attr.normal = RGBFromHSV(float3(frac(i / 64.0f), 1, 0.5f + 0.5f * frac(i / 256.0f)));
 			}
 			// Debug: Display the brick pool uvw of the intersection with the surface of the box
