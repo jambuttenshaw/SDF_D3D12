@@ -27,10 +27,13 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
 	LOG_INFO("Creating D3D12 Graphics Context");
 
 	// Init PIX
-	m_PIXCaptureModule = PIXLoadLatestWinPixGpuCapturerLibrary();
-	if (!m_PIXCaptureModule)
+	if (s_EnablePIXCapture)
 	{
-		LOG_ERROR("Failed to load PIX capture library.");
+		m_PIXCaptureModule = PIXLoadLatestWinPixGpuCapturerLibrary();
+		if (!m_PIXCaptureModule)
+		{
+			LOG_ERROR("Failed to load PIX capture library.");
+		}
 	}
 
 	// Initialize D3D components

@@ -344,8 +344,8 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 	}
 
 	PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(40), L"SDF Bake Hierarchical");
-	SDFConstructionResources resources;
 
+	PIXBeginEvent(PIX_COLOR_INDEX(51), L"Set up resources");
 	{
 		// Set up resources
 
@@ -358,11 +358,12 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 			evalSpaceSize *= 4.0f;
 		}
 		
-		resources.AllocateResources(object->GetBrickBufferCapacity(), editList, evalSpaceSize);
+		m_Resources.AllocateResources(object->GetBrickBufferCapacity(), editList, evalSpaceSize);
 	}
+	PIXEndEvent();
 
-	BuildCommandList_Setup(object, resources);
-	BuildCommandList_HierarchicalBrickBuilding(object, resources, maxIterations);
+	BuildCommandList_Setup(object, m_Resources);
+	BuildCommandList_HierarchicalBrickBuilding(object, m_Resources, maxIterations);
 
 	{
 		// Execute work and wait for it to complete
@@ -384,19 +385,19 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 		// Read counter value
 
 		// It is only save to read the counter value after the GPU has finished its work
-		const UINT brickCount = resources.GetCounterReadbackBuffer().ReadElement(0);
-		const float brickSize = resources.GetBrickBuildParams().BrickSize;
+		const UINT brickCount = m_Resources.GetCounterReadbackBuffer().ReadElement(0);
+		const float brickSize = m_Resources.GetBrickBuildParams().BrickSize;
 		object->AllocateOptimalResources(brickCount, brickSize, SDFObject::RESOURCES_WRITE);
 
 		// Update build data required for the next stage
-		resources.GetBrickEvalParams().EvalSpace_BrickSize = brickSize;
-		resources.GetBrickEvalParams().BrickPool_BrickCapacityPerAxis = object->GetBrickPoolDimensions(SDFObject::RESOURCES_WRITE);
-		resources.GetBrickEvalParams().EvalSpace_VoxelsPerUnit = SDF_BRICK_SIZE_VOXELS / brickSize;
-		resources.GetBrickEvalParams().BrickCount = brickCount;
-		resources.GetBrickEvalParams().SDFEditCount = editList.GetEditCount();
+		m_Resources.GetBrickEvalParams().EvalSpace_BrickSize = brickSize;
+		m_Resources.GetBrickEvalParams().BrickPool_BrickCapacityPerAxis = object->GetBrickPoolDimensions(SDFObject::RESOURCES_WRITE);
+		m_Resources.GetBrickEvalParams().EvalSpace_VoxelsPerUnit = SDF_BRICK_SIZE_VOXELS / brickSize;
+		m_Resources.GetBrickEvalParams().BrickCount = brickCount;
+		m_Resources.GetBrickEvalParams().SDFEditCount = editList.GetEditCount();
 	}
 
-	BuildCommandList_BrickEvaluation(object, resources);
+	BuildCommandList_BrickEvaluation(object, m_Resources);
 
 	{
 		// Execute command list

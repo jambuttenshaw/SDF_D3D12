@@ -6,12 +6,13 @@
 #include "Renderer/Buffer/UploadBuffer.h"
 #include "Renderer/Buffer/DefaultBuffer.h"
 
+#include "SDFConstructionResources.h"
+
 
 using Microsoft::WRL::ComPtr;
 
 class SDFObject;
 class SDFEditList;
-class SDFConstructionResources;
 
 
 class SDFFactoryHierarchical
@@ -78,4 +79,7 @@ protected:
 	UINT64 m_PreviousWorkFence = 0;
 
 	std::atomic<UINT> m_MaxBrickBuildIterations = -1;
+
+	// Temporary resources used to construct an object
+	SDFConstructionResources m_Resources;
 };
