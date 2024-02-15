@@ -142,10 +142,6 @@ private:
 		// Edits
 		DefaultBuffer IndexBuffer;
 
-		// Edits
-		StructuredBuffer<SDFEditData> EditBuffer;
-		DefaultBuffer IndexBuffer;
-
 		DescriptorAllocation ResourceViews;	// index 0 = brick pool SRV
 											// index 1 = brick pool UAV
 
