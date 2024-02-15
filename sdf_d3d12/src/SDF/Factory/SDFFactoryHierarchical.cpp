@@ -422,9 +422,9 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 		// Read counter value
 
 		// It is only save to read the counter value after the GPU has finished its work
-		const UINT brickCount = resources.GetCounterReadbackBuffer().ReadElement(0);
-		const float brickSize = resources.GetBrickBuildParams().BrickSize;
-		const UINT64 indexCount = resources.GetReadIndexBuffer().GetResource()->GetDesc().Width;
+		const UINT brickCount = m_Resources.GetCounterReadbackBuffer().ReadElement(0);
+		const float brickSize = m_Resources.GetBrickBuildParams().BrickSize;
+		const UINT64 indexCount = m_Resources.GetReadIndexBuffer().GetResource()->GetDesc().Width;
 		object->AllocateOptimalResources(brickCount, brickSize, indexCount, SDFObject::RESOURCES_WRITE);
 
 		// Update build data required for the next stage

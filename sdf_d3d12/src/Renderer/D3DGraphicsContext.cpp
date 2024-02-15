@@ -27,7 +27,7 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
 	LOG_INFO("Creating D3D12 Graphics Context");
 
 	// Init PIX
-	if (s_EnablePIXCapture)
+	if (s_EnablePIXCaptures)
 	{
 		m_PIXCaptureModule = PIXLoadLatestWinPixGpuCapturerLibrary();
 		if (!m_PIXCaptureModule)

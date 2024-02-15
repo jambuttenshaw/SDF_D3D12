@@ -149,11 +149,7 @@ private:
 	ComPtr<ID3D12InfoQueue1> m_InfoQueue;
 	DWORD m_MessageCallbackCookie;
 
-<<<<<<< HEAD
-	inline static constexpr bool s_EnablePIXCapture = false;
-=======
 	inline static constexpr bool s_EnablePIXCaptures = false;
->>>>>>> ec495c7 (Created resources and most of the CS)
 	HMODULE m_PIXCaptureModule = nullptr;
 
 	ComPtr<IDXGISwapChain3> m_SwapChain;
