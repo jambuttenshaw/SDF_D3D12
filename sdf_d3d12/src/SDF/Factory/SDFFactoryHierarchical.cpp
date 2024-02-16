@@ -168,11 +168,12 @@ SDFFactoryHierarchical::SDFFactoryHierarchical()
 		m_CounterUpload64.CopyElement(0, 64);
 	}
 
-	InitializePipelines();
+	CreatePipelineSet(L"Default", {});
+	CreatePipelineSet(L"NoEditCulling", { L"DISABLE_EDIT_CULLING" });
 }
 
 
-void SDFFactoryHierarchical::BakeSDFSync(SDFObject* object, const SDFEditList& editList)
+void SDFFactoryHierarchical::BakeSDFSync(const std::wstring& pipelineName, SDFObject* object, const SDFEditList& editList)
 {
 	// Check object is not being constructed anywhere else
 	// It's okay if the resource is in the switching state - we're going to wait on the render queue anyway
@@ -198,7 +199,7 @@ void SDFFactoryHierarchical::BakeSDFSync(SDFObject* object, const SDFEditList& e
 	// Make the compute queue wait until the render queue has finished its work
 	computeQueue->InsertWaitForQueue(directQueue);
 
-	PerformSDFBake_CPUBlocking(object, editList);
+	PerformSDFBake_CPUBlocking(pipelineName, object, editList);
 
 	// The rendering queue should wait until these operations have completed
 	directQueue->InsertWaitForQueue(computeQueue);
@@ -215,8 +216,13 @@ void SDFFactoryHierarchical::BakeSDFSync(SDFObject* object, const SDFEditList& e
 }
 
 
-void SDFFactoryHierarchical::InitializePipelines()
+void SDFFactoryHierarchical::CreatePipelineSet(const std::wstring& name, const std::vector<std::wstring>& defines)
 {
+	ASSERT(m_Pipelines.find(name) == m_Pipelines.end(), "Pipeline already exists with that name!");
+
+	m_Pipelines.emplace(name, PipelineSet{});
+	PipelineSet& pipelineSet = m_Pipelines.at(name);
+
 	{
 		using namespace BrickCounterSignature;
 
@@ -233,9 +239,9 @@ void SDFFactoryHierarchical::InitializePipelines()
 		desc.RootParameters = rootParams;
 		desc.Shader = L"assets/shaders/compute/sub_brick_counter.hlsl";
 		desc.EntryPoint = L"main";
-		desc.Defines = nullptr;
+		desc.Defines = defines;
 
-		m_BrickCounterPipeline = std::make_unique<D3DComputePipeline>(&desc);
+		pipelineSet[SDFFactoryPipeline::BrickCounter] = std::make_unique<D3DComputePipeline>(&desc);
 	}
 
 	{
@@ -250,9 +256,9 @@ void SDFFactoryHierarchical::InitializePipelines()
 		desc.RootParameters = rootParams;
 		desc.Shader = L"assets/shaders/compute/scan_thread_group_calculator.hlsl";
 		desc.EntryPoint = L"main";
-		desc.Defines = nullptr;
+		desc.Defines = defines;
 
-		m_ScanGroupCountCalculatorPipeline = std::make_unique<D3DComputePipeline>(&desc);
+		pipelineSet[SDFFactoryPipeline::ScanGroupCountCalculator] = std::make_unique<D3DComputePipeline>(&desc);
 	}
 
 	{
@@ -269,16 +275,16 @@ void SDFFactoryHierarchical::InitializePipelines()
 		desc.NumRootParameters = ARRAYSIZE(rootParams);
 		desc.RootParameters = rootParams;
 		desc.Shader = L"assets/shaders/compute/prefix_sum.hlsl";
-		desc.Defines = nullptr;
+		desc.Defines = defines;
 
 		desc.EntryPoint = L"scan_blocks";
-		m_ScanBlocksPipeline = std::make_unique<D3DComputePipeline>(&desc);
+		pipelineSet[SDFFactoryPipeline::ScanBlocks] = std::make_unique<D3DComputePipeline>(&desc);
 
 		desc.EntryPoint = L"scan_block_sums";
-		m_ScanBlockSumsPipeline = std::make_unique<D3DComputePipeline>(&desc);
+		pipelineSet[SDFFactoryPipeline::ScanBlockSums] = std::make_unique<D3DComputePipeline>(&desc);
 
 		desc.EntryPoint = L"sum_scans";
-		m_SumScansPipeline = std::make_unique<D3DComputePipeline>(&desc);
+		pipelineSet[SDFFactoryPipeline::SumScans] = std::make_unique<D3DComputePipeline>(&desc);
 	}
 
 	{
@@ -297,9 +303,9 @@ void SDFFactoryHierarchical::InitializePipelines()
 		desc.RootParameters = rootParams;
 		desc.Shader = L"assets/shaders/compute/sub_brick_builder.hlsl";
 		desc.EntryPoint = L"main";
-		desc.Defines = nullptr;
+		desc.Defines = defines;
 
-		m_BrickBuilderPipeline = std::make_unique<D3DComputePipeline>(&desc);
+		pipelineSet[SDFFactoryPipeline::BrickBuilder] = std::make_unique<D3DComputePipeline>(&desc);
 	}
 
 	{
@@ -318,9 +324,9 @@ void SDFFactoryHierarchical::InitializePipelines()
 		desc.RootParameters = rootParams;
 		desc.Shader = L"assets/shaders/compute/edit_tester.hlsl";
 		desc.EntryPoint = L"main";
-		desc.Defines = nullptr;
+		desc.Defines = defines;
 
-		m_EditTesterPipeline = std::make_unique<D3DComputePipeline>(&desc);
+		pipelineSet[SDFFactoryPipeline::EditTester] = std::make_unique<D3DComputePipeline>(&desc);
 	}
 
 	{
@@ -336,9 +342,9 @@ void SDFFactoryHierarchical::InitializePipelines()
 		desc.RootParameters = rootParams;
 		desc.Shader = L"assets/shaders/compute/aabb_builder.hlsl";
 		desc.EntryPoint = L"main";
-		desc.Defines = nullptr;
+		desc.Defines = defines;
 
-		m_AABBBuilderPipeline = std::make_unique<D3DComputePipeline>(&desc);
+		pipelineSet[SDFFactoryPipeline::AABBBuilder] = std::make_unique<D3DComputePipeline>(&desc);
 	}
 
 	{
@@ -360,15 +366,18 @@ void SDFFactoryHierarchical::InitializePipelines()
 		desc.RootParameters = rootParameters;
 		desc.Shader = L"assets/shaders/compute/brick_evaluator.hlsl";
 		desc.EntryPoint = L"main";
-		desc.Defines = nullptr;
+		desc.Defines = defines;
 
-		m_BrickEvaluatorPipeline = std::make_unique<D3DComputePipeline>(&desc);
+		pipelineSet[SDFFactoryPipeline::BrickEvaluator] = std::make_unique<D3DComputePipeline>(&desc);
 	}
 }
 
 
-void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const SDFEditList& editList)
+void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(const std::wstring& pipelineName, SDFObject* object, const SDFEditList& editList)
 {
+	ASSERT(m_Pipelines.find(pipelineName) != m_Pipelines.end(), "Pipeline doesn't exist!");
+	const PipelineSet& pipelineSet = m_Pipelines.at(pipelineName);
+
 	const UINT maxIterations = m_MaxBrickBuildIterations;
 
 	const auto computeQueue = g_D3DGraphicsContext->GetComputeCommandQueue();
@@ -399,8 +408,8 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 	}
 	PIXEndEvent();
 
-	BuildCommandList_Setup(object, m_Resources);
-	BuildCommandList_HierarchicalBrickBuilding(object, m_Resources, maxIterations);
+	BuildCommandList_Setup(pipelineSet, object, m_Resources);
+	BuildCommandList_HierarchicalBrickBuilding(pipelineSet, object, m_Resources, maxIterations);
 
 	{
 		// Execute work and wait for it to complete
@@ -435,7 +444,7 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 		m_Resources.GetBrickEvalParams().SDFEditCount = editList.GetEditCount();
 	}
 
-	BuildCommandList_BrickEvaluation(object, m_Resources);
+	BuildCommandList_BrickEvaluation(pipelineSet, object, m_Resources);
 
 	{
 		// Execute command list
@@ -449,7 +458,7 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(SDFObject* object, const
 	}
 }
 
-void SDFFactoryHierarchical::BuildCommandList_Setup(SDFObject* object, SDFConstructionResources& resources) const
+void SDFFactoryHierarchical::BuildCommandList_Setup(const PipelineSet& pipeline, SDFObject* object, SDFConstructionResources& resources) const
 {
 	PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(41), L"Data upload");
 
@@ -500,7 +509,7 @@ void SDFFactoryHierarchical::BuildCommandList_Setup(SDFObject* object, SDFConstr
 	PIXEndEvent(m_CommandList.Get());
 }
 
-void SDFFactoryHierarchical::BuildCommandList_HierarchicalBrickBuilding(SDFObject* object, SDFConstructionResources& resources, UINT maxIterations) const
+void SDFFactoryHierarchical::BuildCommandList_HierarchicalBrickBuilding(const PipelineSet& pipeline, SDFObject* object, SDFConstructionResources& resources, UINT maxIterations) const
 {
 	PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(42), L"Hierarchical brick building");
 
@@ -512,7 +521,7 @@ void SDFFactoryHierarchical::BuildCommandList_HierarchicalBrickBuilding(SDFObjec
 
 		PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(46), L"Brick Counting");
 		// Step 3.1: Dispatch brick counter
-		m_BrickCounterPipeline->Bind(m_CommandList.Get());
+		pipeline[SDFFactoryPipeline::BrickCounter]->Bind(m_CommandList.Get());
 
 		// Set root parameters
 		m_CommandList->SetComputeRoot32BitConstants(BrickCounterSignature::BuildParameterSlot, SizeOfInUint32(BrickBuildParametersConstantBuffer), &resources.GetBrickBuildParams(), 0);
@@ -554,7 +563,7 @@ void SDFFactoryHierarchical::BuildCommandList_HierarchicalBrickBuilding(SDFObjec
 				m_CommandList->ResourceBarrier(ARRAYSIZE(barriers), barriers);
 			}
 
-			m_ScanGroupCountCalculatorPipeline->Bind(m_CommandList.Get());
+			pipeline[SDFFactoryPipeline::ScanGroupCountCalculator]->Bind(m_CommandList.Get());
 			m_CommandList->SetComputeRootShaderResourceView(ScanThreadGroupCalculatorSignature::BrickCounterSlot, resources.GetReadBrickCounter().GetAddress());
 			m_CommandList->SetComputeRootUnorderedAccessView(ScanThreadGroupCalculatorSignature::IndirectCommandArgumentSlot, resources.GetCommandBuffer().GetAddress() + sizeof(D3D12_DISPATCH_ARGUMENTS));
 			m_CommandList->Dispatch(1, 1, 1);
@@ -573,7 +582,7 @@ void SDFFactoryHierarchical::BuildCommandList_HierarchicalBrickBuilding(SDFObjec
 
 		// Step 3.2: Calculate prefix sums. This is done with 3 dispatches
 		{
-			m_ScanBlocksPipeline->Bind(m_CommandList.Get());
+			pipeline[SDFFactoryPipeline::ScanBlocks]->Bind(m_CommandList.Get());
 			m_CommandList->SetComputeRootShaderResourceView(BrickScanSignature::CountTableSlot, resources.GetSubBrickCountBuffer().GetAddress());
 			m_CommandList->SetComputeRootShaderResourceView(BrickScanSignature::NumberOfCountsSlot, resources.GetReadBrickCounter().GetAddress());
 			m_CommandList->SetComputeRootUnorderedAccessView(BrickScanSignature::BlockPrefixSumTableSlot, resources.GetBlockPrefixSumsBuffer().GetAddress());
@@ -589,7 +598,7 @@ void SDFFactoryHierarchical::BuildCommandList_HierarchicalBrickBuilding(SDFObjec
 				m_CommandList->ResourceBarrier(ARRAYSIZE(uavBarriers), uavBarriers);
 			}
 
-			m_ScanBlockSumsPipeline->Bind(m_CommandList.Get());
+			pipeline[SDFFactoryPipeline::ScanBlockSums]->Bind(m_CommandList.Get());
 			m_CommandList->SetComputeRootShaderResourceView(BrickScanSignature::NumberOfCountsSlot, resources.GetReadBrickCounter().GetAddress());
 			m_CommandList->SetComputeRootUnorderedAccessView(BrickScanSignature::BlockPrefixSumTableSlot, resources.GetBlockPrefixSumsBuffer().GetAddress());
 			m_CommandList->SetComputeRootUnorderedAccessView(BrickScanSignature::BlockPrefixSumOutputTableSlot, resources.GetBlockPrefixSumsOutputBuffer().GetAddress());
@@ -604,7 +613,7 @@ void SDFFactoryHierarchical::BuildCommandList_HierarchicalBrickBuilding(SDFObjec
 				m_CommandList->ResourceBarrier(ARRAYSIZE(uavBarriers), uavBarriers);
 			}
 
-			m_SumScansPipeline->Bind(m_CommandList.Get());
+			pipeline[SDFFactoryPipeline::SumScans]->Bind(m_CommandList.Get());
 			m_CommandList->SetComputeRootShaderResourceView(BrickScanSignature::NumberOfCountsSlot, resources.GetReadBrickCounter().GetAddress());
 			m_CommandList->SetComputeRootUnorderedAccessView(BrickScanSignature::BlockPrefixSumOutputTableSlot, resources.GetBlockPrefixSumsOutputBuffer().GetAddress());
 			m_CommandList->SetComputeRootUnorderedAccessView(BrickScanSignature::PrefixSumTableSlot, resources.GetPrefixSumsBuffer().GetAddress());
@@ -622,7 +631,7 @@ void SDFFactoryHierarchical::BuildCommandList_HierarchicalBrickBuilding(SDFObjec
 
 		// Step 3.3: Dispatch brick builder
 		// This step will make use of the ping-pong buffers to output the next collection of bricks to process
-		m_BrickBuilderPipeline->Bind(m_CommandList.Get());
+		pipeline[SDFFactoryPipeline::BrickBuilder]->Bind(m_CommandList.Get());
 
 		// Set root parameters
 		m_CommandList->SetComputeRoot32BitConstants(BrickBuilderSignature::BuildParameterSlot, SizeOfInUint32(BrickBuildParametersConstantBuffer), &resources.GetBrickBuildParams(), 0);
@@ -672,7 +681,7 @@ void SDFFactoryHierarchical::BuildCommandList_HierarchicalBrickBuilding(SDFObjec
 			m_CommandList->ResourceBarrier(ARRAYSIZE(barriers), barriers);
 		}
 
-		m_EditTesterPipeline->Bind(m_CommandList.Get());
+		pipeline[SDFFactoryPipeline::EditTester]->Bind(m_CommandList.Get());
 
 		m_CommandList->SetComputeRoot32BitConstants(EditTesterSignature::BuildParameterSlot, SizeOfInUint32(BrickBuildParametersConstantBuffer), &resources.GetBrickBuildParams(), 0);
 		m_CommandList->SetComputeRootShaderResourceView(EditTesterSignature::EditListSlot, resources.GetEditBuffer().GetAddress());
@@ -721,7 +730,7 @@ void SDFFactoryHierarchical::BuildCommandList_HierarchicalBrickBuilding(SDFObjec
 	PIXEndEvent(m_CommandList.Get());
 }
 
-void SDFFactoryHierarchical::BuildCommandList_BrickEvaluation(SDFObject* object, SDFConstructionResources& resources) const
+void SDFFactoryHierarchical::BuildCommandList_BrickEvaluation(const PipelineSet& pipeline, SDFObject* object, SDFConstructionResources& resources) const
 {
 	{
 		PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(43), L"Build AABBs");
@@ -734,7 +743,7 @@ void SDFFactoryHierarchical::BuildCommandList_BrickEvaluation(SDFObject* object,
 			m_CommandList->ResourceBarrier(ARRAYSIZE(barriers), barriers);
 		}
 
-		m_AABBBuilderPipeline->Bind(m_CommandList.Get());
+		pipeline[SDFFactoryPipeline::AABBBuilder]->Bind(m_CommandList.Get());
 
 		m_CommandList->SetComputeRoot32BitConstants(AABBBuilderSignature::BuildParameterSlot, SizeOfInUint32(BrickEvaluationConstantBuffer), &resources.GetBrickEvalParams(), 0);
 		m_CommandList->SetComputeRootShaderResourceView(AABBBuilderSignature::BricksSlot, resources.GetReadBrickBuffer().GetAddress());
@@ -791,7 +800,7 @@ void SDFFactoryHierarchical::BuildCommandList_BrickEvaluation(SDFObject* object,
 			m_CommandList->ResourceBarrier(ARRAYSIZE(barriers), barriers);
 		}
 
-		m_BrickEvaluatorPipeline->Bind(m_CommandList.Get());
+		pipeline[SDFFactoryPipeline::BrickEvaluator]->Bind(m_CommandList.Get());
 
 		// Set resource views
 		m_CommandList->SetComputeRoot32BitConstants(BrickEvaluatorSignature::BuildParameterSlot, SizeOfInUint32(BrickEvaluationConstantBuffer), &resources.GetBrickEvalParams(), 0);
@@ -803,14 +812,14 @@ void SDFFactoryHierarchical::BuildCommandList_BrickEvaluation(SDFObject* object,
 		// Calculate number of thread groups and dispatch
 		// Execute one group for each brick
 		INT brickCount = static_cast<INT>(resources.GetBrickEvalParams().BrickCount);
-		if (brickCount > 65536)
+		if (brickCount > 4096)
 		{
 			UINT groupOffset = 0;
 			while (brickCount > 0)
 			{
 				m_CommandList->SetComputeRoot32BitConstant(BrickEvaluatorSignature::GroupOffsetSlot, groupOffset, 0);
 
-				const UINT threadGroupX = min(brickCount, 65536);
+				const UINT threadGroupX = min(brickCount, 4096);
 				m_CommandList->Dispatch(threadGroupX, 1, 1);
 				brickCount -= static_cast<INT>(threadGroupX);
 				groupOffset += threadGroupX;

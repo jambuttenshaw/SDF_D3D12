@@ -32,7 +32,7 @@ Scene::Scene()
 		m_BlobObject = std::make_unique<SDFObject>(0.05f, 65536);
 		{
 			Random::Seed(0);
-			for (UINT i = 0; i < m_SphereCount; i++)
+			for (UINT i = 0; i < m_SubtractSphereCount; i++)
 			{
 				m_SphereData.push_back({});
 				SphereData& sphereData = m_SphereData.at(i);
@@ -45,6 +45,21 @@ Scene::Scene()
 					Random::Float(-1.0f, 1.0f),
 					Random::Float(-1.0f, 1.0f),
 					Random::Float(-1.0f, 1.0f)
+				};
+			}
+			for (UINT i = 0; i < m_AddSphereCount; i++)
+			{
+				m_SphereData.push_back({});
+				SphereData& sphereData = m_SphereData.at(i);
+				sphereData.scale = {
+					Random::Float(-0.5f, 0.5f),
+					Random::Float(-0.5f, 0.5f),
+					Random::Float(-0.5f, 0.5f)
+				};
+				sphereData.speed = {
+					Random::Float(-2.0f, 2.0f),
+					Random::Float(-2.0f, 2.0f),
+					Random::Float(-2.0f, 2.0f)
 				};
 			}
 
@@ -139,14 +154,6 @@ void Scene::PreRender()
 	PIXEndEvent();
 }
 
-void Scene::PostRender()
-{
-	// Rendering has completed
-	// It's important that this is set so that a flip can be triggered next frame, if an async factory has been working on the write resources
-	for (auto&[name, geometry] : m_SceneGeometry)
-		geometry->SetResourceState(SDFObject::RESOURCES_READ, SDFObject::RENDERED);
-}
-
 
 bool Scene::ImGuiSceneInfo()
 {
@@ -196,6 +203,12 @@ bool Scene::ImGuiSceneInfo()
 				m_Factory->SetMaxBrickBuildIterations(maxIterations);
 			}
 		}
+		ImGui::Separator();
+
+		if (ImGui::Checkbox("Edit Culling", &m_EnableEditCulling))
+		{
+			m_CurrentPipelineName = m_EnableEditCulling ? L"Default" : L"NoEditCulling";
+		}
 
 		ImGui::Separator();
 
@@ -223,29 +236,40 @@ void Scene::BuildEditList(float deltaTime, bool async)
 	static float t = 1.0f;
 	t += deltaTime * m_TimeScale;
 
-	SDFEditList editList(m_SphereCount + 1);
+	SDFEditList editList(m_SubtractSphereCount + m_AddSphereCount + 1, 10.0f);
 
 	editList.AddEdit(SDFEdit::CreateBox({  }, { 1.0f, 1.0f, 1.0f }, SDFOperation::Union));
 
-	for (UINT i = 0; i < m_SphereCount; i++)
+	for (UINT i = 0; i < m_SubtractSphereCount; i++)
 	{
 		Transform transform;
 		transform.SetTranslation(
 			{
-				m_SphereData.at(i).scale.x * cosf(m_SphereData.at(i).speed.x * t),
-				m_SphereData.at(i).scale.y * cosf(m_SphereData.at(i).speed.y * t),
-				m_SphereData.at(i).scale.z * cosf(m_SphereData.at(i).speed.z * t)
+				2.0f * m_SphereData.at(i).scale.x * cosf(m_SphereData.at(i).speed.x * t),
+				2.0f * m_SphereData.at(i).scale.y * cosf(m_SphereData.at(i).speed.y * t),
+				2.0f * m_SphereData.at(i).scale.z * cosf(m_SphereData.at(i).speed.z * t)
 			});
-		editList.AddEdit(SDFEdit::CreateSphere(transform, 0.25f, SDFOperation::Subtraction));
+		editList.AddEdit(SDFEdit::CreateSphere(transform, 0.35f, SDFOperation::Subtraction));
+	}
+	for (UINT i = 0; i < m_AddSphereCount; i++)
+	{
+		Transform transform;
+		transform.SetTranslation(
+			{
+				10.0f * m_SphereData.at(i).scale.x * cosf(m_SphereData.at(i).speed.x * t),
+				10.0f * m_SphereData.at(i).scale.y * cosf(m_SphereData.at(i).speed.y * t),
+				10.0f * m_SphereData.at(i).scale.z * cosf(m_SphereData.at(i).speed.z * t)
+			});
+		editList.AddEdit(SDFEdit::CreateSphere(transform, 0.05f, SDFOperation::Union));
 	}
 
 	if (async)
 	{
-		m_Factory->BakeSDFAsync(m_BlobObject.get(), editList);
+		m_Factory->BakeSDFAsync(m_CurrentPipelineName, m_BlobObject.get(), editList);
 	}
 	else
 	{
-		m_Factory->BakeSDFSync(m_BlobObject.get(), editList);
+		m_Factory->BakeSDFSync(m_CurrentPipelineName, m_BlobObject.get(), editList);
 	}
 
 	PIXEndEvent();
@@ -268,7 +292,7 @@ void Scene::CheckSDFGeometryUpdates()
 			PIXSetMarker(PIX_COLOR_INDEX(23), L"Flip resources");
 			object->FlipResources();
 		}
-		else if (object->GetResourcesState(SDFObject::RESOURCES_WRITE) == SDFObject::SWITCHING)
+		//else if (object->GetResourcesState(SDFObject::RESOURCES_WRITE) == SDFObject::SWITCHING)
 		{
 			object->SetResourceState(SDFObject::RESOURCES_WRITE, SDFObject::READY_COMPUTE);
 		}

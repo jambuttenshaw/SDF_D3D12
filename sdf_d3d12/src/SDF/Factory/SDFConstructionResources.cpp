@@ -89,10 +89,9 @@ void SDFConstructionResources::AllocateResources(UINT brickCapacity, const SDFEd
 		m_IndexUpload.Allocate(device, indexUploadCapacity, 0, L"Index Upload");
 
 		// Populate index buffer
-		for (UINT brick = 0; brick < 64; brick++)
 		for (UINT edit = 0; edit < editList.GetEditCount(); edit++)
 		{
-			m_IndexUpload.CopyElement(brick * editList.GetEditCount() + edit, edit);
+			m_IndexUpload.CopyElement(edit, edit);
 		}
 	}
 
@@ -109,6 +108,7 @@ void SDFConstructionResources::AllocateResources(UINT brickCapacity, const SDFEd
 	// Create and upload initial bricks
 	Brick initialBrick;
 	initialBrick.SubBrickMask = { 0, 0 };
+	initialBrick.IndexOffset = 0;
 	initialBrick.IndexCount = editList.GetEditCount();
 
 	for (UINT x = 0; x < 4; x++)
@@ -122,7 +122,6 @@ void SDFConstructionResources::AllocateResources(UINT brickCapacity, const SDFEd
 			-0.5f * evalSpaceSize + (static_cast<float>(y) * m_BuildParamsCB.BrickSize),
 			-0.5f * evalSpaceSize + (static_cast<float>(z) * m_BuildParamsCB.BrickSize)
 		};
-		initialBrick.IndexOffset = index * editList.GetEditCount();
 
 		m_BrickUpload.CopyElement(index, initialBrick);
 	}

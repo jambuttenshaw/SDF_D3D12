@@ -14,7 +14,7 @@ struct D3DComputePipelineDesc
 	const wchar_t* Shader = nullptr;
 	const wchar_t* EntryPoint = nullptr;
 
-	D3D_SHADER_MACRO* Defines = nullptr;
+	std::vector<std::wstring> Defines;
 };
 
 class D3DComputePipeline
@@ -22,7 +22,7 @@ class D3DComputePipeline
 public:
 	D3DComputePipeline(D3DComputePipelineDesc* desc);
 
-	void Bind(ID3D12GraphicsCommandList* commandList);
+	void Bind(ID3D12GraphicsCommandList* commandList) const;
 
 	inline ID3D12RootSignature* GetRootSignature() const { return m_RootSignature.Get(); }
 	inline ID3D12PipelineState* GetPipelineState() const { return m_PipelineState.Get(); }

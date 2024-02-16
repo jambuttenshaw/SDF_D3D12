@@ -13,7 +13,7 @@ public:
 		const wchar_t* file,
 		const wchar_t* entryPoint,
 		const wchar_t* target,
-		D3D_SHADER_MACRO* defines,
+		const std::vector<std::wstring>& defines,
 		ComPtr<IDxcBlob>* ppBlob
 	)
 	{
@@ -40,7 +40,7 @@ private:
 		const wchar_t* file,
 		const wchar_t* entryPoint,
 		const wchar_t* target,
-		D3D_SHADER_MACRO* defines,
+		const std::vector<std::wstring>& defines,
 		ComPtr<IDxcBlob>* ppBlob
 	) const;
 

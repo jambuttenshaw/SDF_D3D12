@@ -37,20 +37,30 @@ groupshared Brick gs_Brick;
 
 float EvaluateEditList(float3 p, uint GI)
 {
+#ifdef DISABLE_EDIT_CULLING
+	const uint editCount = g_BuildParameters.SDFEditCount;
+#else
+	const uint editCount = gs_Brick.IndexCount;
+#endif
+
 	// Evaluate SDF list
 	float nearest = FLOAT_MAX;
 
-	const uint numChunks = (gs_Brick.IndexCount + MAX_EDITS_CHUNK - 1) / MAX_EDITS_CHUNK;
-	uint editsRemaining = gs_Brick.IndexCount;
+	const uint numChunks = (editCount + MAX_EDITS_CHUNK - 1) / MAX_EDITS_CHUNK;
+	uint editsRemaining = editCount;
 	for (uint chunk = 0; chunk < numChunks; chunk++)
 	{
 		// Load edits
 		GroupMemoryBarrierWithGroupSync();
 
-		if (GI < min(MAX_EDITS_CHUNK, gs_Brick.IndexCount))
+		if (GI < min(MAX_EDITS_CHUNK, editCount))
 		{
+#ifdef DISABLE_EDIT_CULLING
+			gs_Edits[GI] = g_EditList.Load(chunk * MAX_EDITS_CHUNK + GI);
+#else
 			const uint index = g_IndexBuffer.Load(gs_Brick.IndexOffset + chunk * MAX_EDITS_CHUNK + GI);
 			gs_Edits[GI] = g_EditList.Load(index);
+#endif
 		}
 
 		GroupMemoryBarrierWithGroupSync();

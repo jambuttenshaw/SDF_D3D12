@@ -13,9 +13,29 @@ using Microsoft::WRL::ComPtr;
 class SDFObject;
 class SDFEditList;
 
+namespace SDFFactoryPipeline
+{
+	enum Value
+	{
+		BrickCounter = 0,
+		ScanGroupCountCalculator,
+		ScanBlocks,
+		ScanBlockSums,
+		SumScans,
+		BrickBuilder,
+		EditTester,
+		MortonEnumerator,
+		AABBBuilder,
+		BrickEvaluator,
+		Count
+	};
+}
 
 class SDFFactoryHierarchical
 {
+	inline static constexpr size_t s_PipelineCount = SDFFactoryPipeline::Count;
+	using PipelineSet = std::array<std::unique_ptr<D3DComputePipeline>, s_PipelineCount>;
+
 public:
 	SDFFactoryHierarchical();
 	virtual ~SDFFactoryHierarchical() = default;
@@ -23,24 +43,24 @@ public:
 	DISALLOW_COPY(SDFFactoryHierarchical)
 	DEFAULT_MOVE(SDFFactoryHierarchical)
 
-	virtual void BakeSDFSync(SDFObject* object, const SDFEditList& editList);
+	virtual void BakeSDFSync(const std::wstring& pipelineName, SDFObject* object, const SDFEditList& editList);
 
 	inline void SetMaxBrickBuildIterations(UINT maxIterations) { m_MaxBrickBuildIterations = maxIterations; }
 	inline UINT GetMaxBrickBuildIterations() const { return m_MaxBrickBuildIterations; }
 
 protected:
 
-	void InitializePipelines();
+	void CreatePipelineSet(const std::wstring& name, const std::vector<std::wstring>& defines);
 
-	void PerformSDFBake_CPUBlocking(SDFObject* object, const SDFEditList& editList);
+	void PerformSDFBake_CPUBlocking(const std::wstring& pipelineName, SDFObject* object, const SDFEditList& editList);
 
 
 private:
 	// SDF Bake stages
 	// Split into functions for readability and easy multi-threading
-	void BuildCommandList_Setup(SDFObject* object, SDFConstructionResources& resources) const;
-	void BuildCommandList_HierarchicalBrickBuilding(SDFObject* object, SDFConstructionResources& resources, UINT maxIterations) const;
-	void BuildCommandList_BrickEvaluation(SDFObject* object, SDFConstructionResources& resources) const;
+	void BuildCommandList_Setup(const PipelineSet& pipeline, SDFObject* object, SDFConstructionResources& resources) const;
+	void BuildCommandList_HierarchicalBrickBuilding(const PipelineSet& pipeline, SDFObject* object, SDFConstructionResources& resources, UINT maxIterations) const;
+	void BuildCommandList_BrickEvaluation(const PipelineSet& pipeline, SDFObject* object, SDFConstructionResources& resources) const;
 
 
 protected:
@@ -60,20 +80,7 @@ protected:
 	UploadBuffer<UINT32> m_CounterUpload64;	// Used to set a counter to 1
 
 	// Pipelines
-	std::unique_ptr<D3DComputePipeline> m_BrickCounterPipeline;
-
-	std::unique_ptr<D3DComputePipeline> m_ScanGroupCountCalculatorPipeline;
-	std::unique_ptr<D3DComputePipeline> m_ScanBlocksPipeline;
-	std::unique_ptr<D3DComputePipeline> m_ScanBlockSumsPipeline;
-	std::unique_ptr<D3DComputePipeline> m_SumScansPipeline; 
-
-	std::unique_ptr<D3DComputePipeline> m_BrickBuilderPipeline;
-
-	std::unique_ptr<D3DComputePipeline> m_EditTesterPipeline;
-
-	std::unique_ptr<D3DComputePipeline> m_MortonEnumeratorPipeline;
-	std::unique_ptr<D3DComputePipeline> m_AABBBuilderPipeline;
-	std::unique_ptr<D3DComputePipeline> m_BrickEvaluatorPipeline;
+	std::map<std::wstring, PipelineSet> m_Pipelines;
 
 
 	// This fence is used to store when the last submitted work is complete

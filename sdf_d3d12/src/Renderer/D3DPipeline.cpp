@@ -57,7 +57,7 @@ D3DComputePipeline::D3DComputePipeline(D3DComputePipelineDesc* desc)
 }
 
 
-void D3DComputePipeline::Bind(ID3D12GraphicsCommandList* commandList)
+void D3DComputePipeline::Bind(ID3D12GraphicsCommandList* commandList) const
 {
 	commandList->SetComputeRootSignature(m_RootSignature.Get());
 	commandList->SetPipelineState(m_PipelineState.Get());

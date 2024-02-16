@@ -22,7 +22,7 @@ SDFFactoryHierarchicalAsync::~SDFFactoryHierarchicalAsync()
 	}
 }
 
-void SDFFactoryHierarchicalAsync::BakeSDFSync(SDFObject* object, const SDFEditList& editList)
+void SDFFactoryHierarchicalAsync::BakeSDFSync(const std::wstring& pipelineName, SDFObject* object, const SDFEditList& editList)
 {
 	if (m_AsyncInUse)
 	{
@@ -30,11 +30,11 @@ void SDFFactoryHierarchicalAsync::BakeSDFSync(SDFObject* object, const SDFEditLi
 		return;
 	}
 
-	SDFFactoryHierarchical::BakeSDFSync(object, std::move(editList));
+	SDFFactoryHierarchical::BakeSDFSync(pipelineName, object, std::move(editList));
 }
 
 
-void SDFFactoryHierarchicalAsync::BakeSDFAsync(SDFObject* object, const SDFEditList& editList)
+void SDFFactoryHierarchicalAsync::BakeSDFAsync(const std::wstring& pipelineName, SDFObject* object, const SDFEditList& editList)
 {
 	{
 		std::lock_guard lockGuard(m_QueueMutex);
@@ -44,12 +44,13 @@ void SDFFactoryHierarchicalAsync::BakeSDFAsync(SDFObject* object, const SDFEditL
 		{
 			if (item.Object == object)
 			{
+				item.PipelineName = pipelineName;
 				item.EditList = editList;
 				return;
 			}
 		}
 
-		m_BuildQueue.push_back({ object, editList });
+		m_BuildQueue.push_back({ pipelineName, object, editList });
 	}
 }
 
@@ -64,6 +65,7 @@ void SDFFactoryHierarchicalAsync::AsyncFactoryThreadProc()
 
 	m_Timer.Reset();
 
+	std::wstring pipelineName;
 	SDFObject* object = nullptr;
 	SDFEditList editList(0); // max edits specified doesn't matter as this will be copy-constructed later
 
@@ -74,18 +76,15 @@ void SDFFactoryHierarchicalAsync::AsyncFactoryThreadProc()
 		// Check for work
 		{
 			std::lock_guard lockGuard(m_QueueMutex);
-			PIXBeginEvent(PIX_COLOR_INDEX(52), L"Check for work");
-
 			if (!m_BuildQueue.empty())
 			{
 
+				pipelineName = std::move(m_BuildQueue.front().PipelineName);
 				object = m_BuildQueue.front().Object;
-				editList = m_BuildQueue.front().EditList;
+				editList = std::move(m_BuildQueue.front().EditList);
 
 				m_BuildQueue.pop_front();
 			}
-
-			PIXEndEvent();
 		}
 
 		if (object)
@@ -124,7 +123,7 @@ void SDFFactoryHierarchicalAsync::AsyncFactoryThreadProc()
 			computeQueue->WaitForFenceCPUBlocking(m_PreviousWorkFence);
 			PIXEndEvent();
 
-			PerformSDFBake_CPUBlocking(object, editList);
+			PerformSDFBake_CPUBlocking(pipelineName, object, editList);
 
 			// The CPU can optionally wait until the operations have completed too
 			PIXBeginEvent(PIX_COLOR_INDEX(13), L"Wait for bake completion");

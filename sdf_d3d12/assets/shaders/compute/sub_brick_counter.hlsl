@@ -38,14 +38,25 @@ groupshared uint gs_SubBrickCount;
 
 float EvaluateEditList(float3 p)
 {
+#ifdef DISABLE_EDIT_CULLING
+	const uint editCount = g_BuildParameters.SDFEditCount;
+#else
+	const uint editCount = gs_Brick.IndexCount;
+#endif
+
 	// Evaluate SDF list
 	float nearest = FLOAT_MAX;
 	
-	for (uint i = 0; i < gs_Brick.IndexCount; i++)
+	for (uint i = 0; i < editCount; i++)
 	{
 		// Load the edit index
+		
+#ifdef DISABLE_EDIT_CULLING
+		const SDFEditData edit = g_EditList.Load(i);
+#else
 		const uint index = g_IndexBuffer.Load(gs_Brick.IndexOffset + i);
 		const SDFEditData edit = g_EditList.Load(index);
+#endif
 
 		// apply primitive transform
 		const float3 p_transformed = opTransform(p, edit.InvWorldMat) / edit.Scale;

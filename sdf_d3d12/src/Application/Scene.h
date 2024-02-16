@@ -18,7 +18,6 @@ public:
 
 	void OnUpdate(float deltaTime);
 	void PreRender();
-	void PostRender();
 
 	// Getters
 	inline const std::vector<BottomLevelAccelerationStructureGeometry>& GetAllGeometries() const { return m_SceneGeometry; }
@@ -44,6 +43,7 @@ private:
 
 	// SDF Objects
 	std::unique_ptr<SDFFactoryHierarchicalAsync> m_Factory;
+	std::wstring m_CurrentPipelineName = L"Default";
 
 	std::unique_ptr<SDFObject> m_BlobObject;
 
@@ -57,6 +57,7 @@ private:
 	bool m_RotateInstances = false;
 	bool m_Rebuild = false;
 	bool m_AsyncConstruction = false;
+	bool m_EnableEditCulling = true;
 
 	float m_TimeScale = 0.5f;
 
@@ -65,7 +66,8 @@ private:
 		XMFLOAT3 scale;
 		XMFLOAT3 speed;
 	};
-	UINT m_SphereCount = 256;
+	UINT m_SubtractSphereCount = 256;
+	UINT m_AddSphereCount = 256;
 	std::vector<SphereData> m_SphereData;
 	float m_SphereBlend = 0.4f;
 };

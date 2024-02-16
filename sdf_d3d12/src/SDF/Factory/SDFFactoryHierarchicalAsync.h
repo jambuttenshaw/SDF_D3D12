@@ -16,8 +16,8 @@ public:
 	DISALLOW_COPY(SDFFactoryHierarchicalAsync)
 	DEFAULT_MOVE(SDFFactoryHierarchicalAsync)
 
-	virtual void BakeSDFSync(SDFObject* object, const SDFEditList& editList) override;
-	void BakeSDFAsync(SDFObject* object, const SDFEditList& editList);
+	virtual void BakeSDFSync(const std::wstring& pipelineName, SDFObject* object, const SDFEditList& editList) override;
+	void BakeSDFAsync(const std::wstring& pipelineName, SDFObject* object, const SDFEditList& editList);
 
 	float GetAsyncBuildsPerSecond() const { return m_Timer.GetFPS(); };
 
@@ -33,6 +33,7 @@ protected:
 
 	struct BuildQueueItem
 	{
+		std::wstring PipelineName;
 		SDFObject* Object;
 		SDFEditList EditList;
 	};

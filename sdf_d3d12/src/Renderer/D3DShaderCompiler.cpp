@@ -12,25 +12,34 @@ D3DShaderCompiler::D3DShaderCompiler()
 }
 
 
-HRESULT D3DShaderCompiler::CompileFromFileImpl(const wchar_t* file, const wchar_t* entryPoint, const wchar_t* target, D3D_SHADER_MACRO* defines, ComPtr<IDxcBlob>* ppBlob) const
+HRESULT D3DShaderCompiler::CompileFromFileImpl(const wchar_t* file, const wchar_t* entryPoint, const wchar_t* target, const std::vector<std::wstring>& defines, ComPtr<IDxcBlob>* ppBlob) const
 {
 	// format target
 	std::wstring targetStr = target;
 	targetStr += m_ShaderModelExtension;
 
-	LPCWSTR pszArgs[] =
-	{
-		file,						// Optional shader source file name for error reporting
-									// and for PIX shader source view.
+	std::vector<LPCWSTR> args;
+	args.push_back(file);
+
 #ifdef _DEBUG
-		L"-Zi",
-		L"-Od",
-		L"-Qembed_debug",			// Embed debug PDB in shader bytecode
+	args.push_back(L"-Zi");
+	args.push_back(L"-Od");
+	args.push_back(L"-Qembed_debug");
 #endif
-		L"-E", entryPoint,          // Entry point.
-		L"-T", targetStr.c_str(),	// Target.
-		L"-Qstrip_reflect",         // Strip reflection into a separate blob.
-	};
+
+	args.push_back(L"-E");
+	args.push_back(entryPoint);
+
+	args.push_back(L"-T");
+	args.push_back(targetStr.c_str());
+
+	args.push_back(L"-Qstrip_reflect");
+
+	for (const auto& define : defines)
+	{
+		args.push_back(L"-D");
+		args.push_back(define.c_str());
+	}
 
 
     // Open source file.  
@@ -51,8 +60,8 @@ HRESULT D3DShaderCompiler::CompileFromFileImpl(const wchar_t* file, const wchar_
 	ComPtr<IDxcResult> pResults;
 	m_Compiler->Compile(
 		&Source,                // Source buffer.
-		pszArgs,                // Array of pointers to arguments.
-		_countof(pszArgs),      // Number of arguments.
+		args.data(),                // Array of pointers to arguments.
+		static_cast<UINT32>(args.size()),      // Number of arguments.
 		m_IncludeHandler.Get(), // User-provided interface to handle #include directives (optional).
 		IID_PPV_ARGS(&pResults) // Compiler output status, buffer, and errors.
 	);

@@ -27,8 +27,7 @@ public:
 		COMPUTING,
 		COMPUTED,
 		SWITCHING,
-		RENDERING,
-		RENDERED
+		RENDERING
 	};
 
 public:
