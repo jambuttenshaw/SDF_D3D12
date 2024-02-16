@@ -17,11 +17,9 @@ enum class SDFShape : UINT
 enum class SDFOperation : UINT
 {
 	Union = 0,
-	Subtraction = 1,
-	Intersection = 2,
-	SmoothUnion = 3,
-	SmoothSubtraction = 4,
-	SmoothIntersection = 5,
+	Subtraction,
+	SmoothUnion,
+	SmoothSubtraction
 };
 
 union SDFShapeProperties

@@ -38,12 +38,9 @@ float EvaluateEdit(SDFEditData edit, float3 p)
 	// apply primitive transform
 	const float3 p_transformed = opTransform(p, edit.InvWorldMat) / edit.Scale;
 		
-		// evaluate primitive
+	// evaluate primitive
 	float dist = sdPrimitive(p_transformed, edit.Shape, edit.ShapeParams);
 	dist *= edit.Scale;
-
-		// combine with scene
-	//nearest = opPrimitive(nearest, dist, edit.Operation, edit.BlendingFactor);
 
 	return dist;
 }
@@ -80,7 +77,7 @@ void main(uint3 GroupID : SV_GroupID, uint GI : SV_GroupIndex)
 
 		// Evaluate edit
 		const float3 brickCentre = gs_Brick.TopLeft + 0.5f * g_BuildParameters.SubBrickSize; // This stage is executed AFTER sub-brick building - so bricks are now sub-brick sized
-		if (abs(EvaluateEdit(edit, brickCentre)) < g_BuildParameters.SubBrickSize) // Edit is relevant
+		if (EvaluateEdit(edit, brickCentre) < g_BuildParameters.SubBrickSize) // Edit is relevant
 		{
 			localIndices[localEditCount++] = index;
 		}

@@ -254,8 +254,10 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 	else if (g_PassCB.Flags & (RENDER_FLAG_DISPLAY_BRICK_EDIT_COUNT))
 	{
 		const float maxEditsCountDisplay = 16.0f;
-		float i = min(attr.utility - 1, maxEditsCountDisplay);
-		payload.color = float4(RGBFromHSV(float3(frac(i / (2.0f * maxEditsCountDisplay)), 1, 1)), 1.0f);
+
+		const float i = min(attr.utility, maxEditsCountDisplay) - 1.0f;
+		const float hue = 0.25f - i / (2 * maxEditsCountDisplay);
+		payload.color = float4(RGBFromHSV(float3(hue, 1, 1)), 1.0f);
 	}
 	else if (g_PassCB.Flags & (RENDER_FLAG_DISPLAY_NORMALS | RENDER_FLAG_DISPLAY_BOUNDING_BOX))
 	{

@@ -29,7 +29,7 @@ Scene::Scene()
 		m_Factory = std::make_unique<SDFFactoryHierarchicalAsync>();
 
 		// Create SDF objects
-		m_BlobObject = std::make_unique<SDFObject>(0.1f, 10000);
+		m_BlobObject = std::make_unique<SDFObject>(0.05f, 65536);
 		{
 			Random::Seed(0);
 			for (UINT i = 0; i < m_SphereCount; i++)
@@ -223,7 +223,9 @@ void Scene::BuildEditList(float deltaTime, bool async)
 	static float t = 1.0f;
 	t += deltaTime * m_TimeScale;
 
-	SDFEditList editList(m_SphereCount);
+	SDFEditList editList(m_SphereCount + 1);
+
+	editList.AddEdit(SDFEdit::CreateBox({  }, { 1.0f, 1.0f, 1.0f }, SDFOperation::Union));
 
 	for (UINT i = 0; i < m_SphereCount; i++)
 	{
@@ -234,7 +236,7 @@ void Scene::BuildEditList(float deltaTime, bool async)
 				m_SphereData.at(i).scale.y * cosf(m_SphereData.at(i).speed.y * t),
 				m_SphereData.at(i).scale.z * cosf(m_SphereData.at(i).speed.z * t)
 			});
-		editList.AddEdit(SDFEdit::CreateSphere(transform, 0.05f, i == 0 ? SDFOperation::Union : SDFOperation::Union, m_SphereBlend));
+		editList.AddEdit(SDFEdit::CreateSphere(transform, 0.25f, SDFOperation::Subtraction));
 	}
 
 	if (async)

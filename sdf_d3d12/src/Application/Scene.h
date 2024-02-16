@@ -54,7 +54,7 @@ private:
 	XMFLOAT3 m_InstanceRotationDeltas[s_InstanceCount];
 
 	// GUI controls
-	bool m_RotateInstances = true;
+	bool m_RotateInstances = false;
 	bool m_Rebuild = false;
 	bool m_AsyncConstruction = false;
 
@@ -65,7 +65,7 @@ private:
 		XMFLOAT3 scale;
 		XMFLOAT3 speed;
 	};
-	UINT m_SphereCount = 1024;
+	UINT m_SphereCount = 256;
 	std::vector<SphereData> m_SphereData;
 	float m_SphereBlend = 0.4f;
 };
