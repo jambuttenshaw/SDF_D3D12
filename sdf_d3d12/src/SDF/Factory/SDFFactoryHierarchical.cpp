@@ -18,6 +18,17 @@
 #include "SDFConstructionResources.h"
 
 
+namespace EditDependencySignature
+{
+	enum Value
+	{
+		ParametersSlot = 0,
+		EditListSlot,
+		DependencyIndicesSlot,
+		Count
+	};
+}
+
 namespace BrickCounterSignature
 {
 	enum Value
@@ -76,6 +87,7 @@ namespace EditTesterSignature
 		BuildParameterSlot = 0,
 		EditListSlot,
 		InIndexBufferSlot,
+		EditDependenciesSlot,
 		BrickSlot,
 		OutIndexBufferSlot,
 		OutIndexCounterSlot,
@@ -224,6 +236,24 @@ void SDFFactoryHierarchical::CreatePipelineSet(const std::wstring& name, const s
 	PipelineSet& pipelineSet = m_Pipelines.at(name);
 
 	{
+		using namespace EditDependencySignature;
+
+		CD3DX12_ROOT_PARAMETER1 rootParams[Count];
+		rootParams[ParametersSlot].InitAsConstants(1, 0);
+		rootParams[EditListSlot].InitAsUnorderedAccessView(0);
+		rootParams[DependencyIndicesSlot].InitAsUnorderedAccessView(1);
+
+		D3DComputePipelineDesc desc;
+		desc.NumRootParameters = ARRAYSIZE(rootParams);
+		desc.RootParameters = rootParams;
+		desc.Shader = L"assets/shaders/compute/edit_dependency.hlsl";
+		desc.EntryPoint = L"main";
+		desc.Defines = defines;
+
+		pipelineSet[SDFFactoryPipeline::EditDependency] = std::make_unique<D3DComputePipeline>(&desc);
+	}
+
+	{
 		using namespace BrickCounterSignature;
 
 		CD3DX12_ROOT_PARAMETER1 rootParams[Count];
@@ -315,6 +345,7 @@ void SDFFactoryHierarchical::CreatePipelineSet(const std::wstring& name, const s
 		rootParams[BuildParameterSlot].InitAsConstants(SizeOfInUint32(BrickBuildParametersConstantBuffer), 0);
 		rootParams[EditListSlot].InitAsShaderResourceView(0);
 		rootParams[InIndexBufferSlot].InitAsShaderResourceView(1);
+		rootParams[EditDependenciesSlot].InitAsShaderResourceView(2);
 		rootParams[BrickSlot].InitAsUnorderedAccessView(0);
 		rootParams[OutIndexBufferSlot].InitAsUnorderedAccessView(1);
 		rootParams[OutIndexCounterSlot].InitAsUnorderedAccessView(2);
@@ -461,6 +492,46 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(const std::wstring& pipe
 void SDFFactoryHierarchical::BuildCommandList_Setup(const PipelineSet& pipeline, SDFObject* object, SDFConstructionResources& resources) const
 {
 	PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(41), L"Data upload");
+
+	// Copy edits into default heap
+	resources.GetEditBuffer().CopyFromUpload(m_CommandList.Get());
+
+	{
+		// Build edit dependency data
+		PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(56), L"Edit Dependencies");
+
+		{
+			// Transition brick buffer for reading
+			const D3D12_RESOURCE_BARRIER barriers[] = {
+				CD3DX12_RESOURCE_BARRIER::Transition(resources.GetEditDependencyBuffer().GetResource(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
+			};
+			m_CommandList->ResourceBarrier(ARRAYSIZE(barriers), barriers);
+		}
+
+		pipeline[SDFFactoryPipeline::EditDependency]->Bind(m_CommandList.Get());
+
+		const UINT editCount = resources.GetBrickBuildParams().SDFEditCount;
+
+		m_CommandList->SetComputeRoot32BitConstant(EditDependencySignature::ParametersSlot, editCount, 0);
+		m_CommandList->SetComputeRootUnorderedAccessView(EditDependencySignature::EditListSlot, resources.GetEditBuffer().GetAddress());
+		m_CommandList->SetComputeRootUnorderedAccessView(EditDependencySignature::DependencyIndicesSlot, resources.GetEditDependencyBuffer().GetAddress());
+
+		// Calculate thread groups
+		// One thread for each edit
+		const UINT threadGroupX = (editCount + EDIT_DEPENDENCY_THREAD_COUNT - 1) / EDIT_DEPENDENCY_THREAD_COUNT;
+		m_CommandList->Dispatch(threadGroupX, 1, 1);
+			
+		{
+			// Transition brick buffer for reading
+			const D3D12_RESOURCE_BARRIER barriers[] = {
+				CD3DX12_RESOURCE_BARRIER::Transition(resources.GetEditDependencyBuffer().GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE),
+				CD3DX12_RESOURCE_BARRIER::Transition(resources.GetEditBuffer().GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE),
+			};
+			m_CommandList->ResourceBarrier(ARRAYSIZE(barriers), barriers);
+		}
+
+		PIXEndEvent(m_CommandList.Get());
+	}
 
 	{
 		// Transition brick buffer for reading
@@ -686,6 +757,7 @@ void SDFFactoryHierarchical::BuildCommandList_HierarchicalBrickBuilding(const Pi
 		m_CommandList->SetComputeRoot32BitConstants(EditTesterSignature::BuildParameterSlot, SizeOfInUint32(BrickBuildParametersConstantBuffer), &resources.GetBrickBuildParams(), 0);
 		m_CommandList->SetComputeRootShaderResourceView(EditTesterSignature::EditListSlot, resources.GetEditBuffer().GetAddress());
 		m_CommandList->SetComputeRootShaderResourceView(EditTesterSignature::InIndexBufferSlot, resources.GetReadIndexBuffer().GetAddress());
+		m_CommandList->SetComputeRootShaderResourceView(EditTesterSignature::EditDependenciesSlot, resources.GetEditDependencyBuffer().GetAddress());
 		m_CommandList->SetComputeRootUnorderedAccessView(EditTesterSignature::BrickSlot, resources.GetWriteBrickBuffer().GetAddress());
 		m_CommandList->SetComputeRootUnorderedAccessView(EditTesterSignature::OutIndexBufferSlot, resources.GetWriteIndexBuffer().GetAddress());
 		m_CommandList->SetComputeRootUnorderedAccessView(EditTesterSignature::OutIndexCounterSlot, resources.GetIndexCounter().GetAddress());

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "SDFTypes.h"
+#include "Renderer/Buffer/StructuredBuffer.h"
 #include "Renderer/Buffer/UploadBuffer.h"
 #include "Renderer/Hlsl/ComputeHlslCompat.h"
 
@@ -53,12 +54,15 @@ public:
 
 	void Allocate(UINT maxEdits);
 	void Populate(const SDFEditList& editList) const;
+	void CopyFromUpload(ID3D12GraphicsCommandList* commandList) const;
 
 	inline UINT GetMaxEdits() const { return m_MaxEdits; }
-	inline D3D12_GPU_VIRTUAL_ADDRESS GetAddress() const { return m_EditsBuffer.GetAddressOfElement(0); }
+
+	inline ID3D12Resource* GetResource() const { return m_EditsBuffer.GetResource(); }
+	inline D3D12_GPU_VIRTUAL_ADDRESS GetAddress() const { return m_EditsBuffer.GetAddress(); }
 
 private:
 	UINT m_MaxEdits = 0;
-	UploadBuffer<SDFEditData> m_EditsBuffer;
-
+	UploadBuffer<SDFEditData> m_EditsUpload;
+	StructuredBuffer<SDFEditData> m_EditsBuffer;
 };

@@ -10,8 +10,7 @@ using namespace DirectX;
 #include "StructureHlslCompat.h"
 #include "HlslDefines.h"
 
-
-#define MORTON_ENUMERATOR_THREADS 8 // 8x8x8
+#define EDIT_DEPENDENCY_THREAD_COUNT 64
 #define AABB_BUILDING_THREADS 128
 
 

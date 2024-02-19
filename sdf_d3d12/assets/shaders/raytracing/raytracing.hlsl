@@ -253,7 +253,7 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 	}
 	else if (g_PassCB.Flags & (RENDER_FLAG_DISPLAY_BRICK_EDIT_COUNT))
 	{
-		const float maxEditsCountDisplay = 32.0f;
+		const float maxEditsCountDisplay = 8.0f;
 
 		const float i = min(attr.utility, maxEditsCountDisplay) - 1.0f;
 		const float hue = 0.25f - i / (2 * maxEditsCountDisplay);

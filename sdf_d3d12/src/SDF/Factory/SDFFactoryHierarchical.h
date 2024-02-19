@@ -17,7 +17,8 @@ namespace SDFFactoryPipeline
 {
 	enum Value
 	{
-		BrickCounter = 0,
+		EditDependency = 0,
+		BrickCounter,
 		ScanGroupCountCalculator,
 		ScanBlocks,
 		ScanBlockSums,
