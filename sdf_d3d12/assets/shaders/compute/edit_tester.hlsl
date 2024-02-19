@@ -2,8 +2,7 @@
 #define EDITTESTER_HLSL
 
 
-#include "../include/sdf_operations.hlsli"
-#include "../include/sdf_primitives.hlsli"
+#include "../include/sdf_helper.hlsli"
 
 #define HLSL
 #include "../../../src/Renderer/Hlsl/ComputeHlslCompat.h"
@@ -39,7 +38,7 @@ float EvaluateEdit(SDFEditData edit, float3 p)
 	const float3 p_transformed = opTransform(p, edit.InvWorldMat) / edit.Scale;
 		
 	// evaluate primitive
-	float dist = sdPrimitive(p_transformed, edit.Shape, edit.ShapeParams);
+	float dist = sdPrimitive(p_transformed, GetShape(edit.Primitive), edit.ShapeParams);
 	dist *= edit.Scale;
 
 	return dist;

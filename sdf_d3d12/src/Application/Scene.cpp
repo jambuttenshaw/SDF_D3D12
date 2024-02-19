@@ -238,7 +238,7 @@ void Scene::BuildEditList(float deltaTime, bool async)
 
 	SDFEditList editList(m_SubtractSphereCount + m_AddSphereCount + 1, 10.0f);
 
-	editList.AddEdit(SDFEdit::CreateBox({  }, { 1.0f, 1.0f, 1.0f }, SDFOperation::Union));
+	editList.AddEdit(SDFEdit::CreateBox({  }, { 1.0f, 1.0f, 1.0f }, SDF_OP_UNION));
 
 	for (UINT i = 0; i < m_SubtractSphereCount; i++)
 	{
@@ -249,7 +249,7 @@ void Scene::BuildEditList(float deltaTime, bool async)
 				2.0f * m_SphereData.at(i).scale.y * cosf(m_SphereData.at(i).speed.y * t),
 				2.0f * m_SphereData.at(i).scale.z * cosf(m_SphereData.at(i).speed.z * t)
 			});
-		editList.AddEdit(SDFEdit::CreateSphere(transform, 0.35f, SDFOperation::Subtraction));
+		editList.AddEdit(SDFEdit::CreateSphere(transform, 0.35f, SDF_OP_SUBTRACTION));
 	}
 	for (UINT i = 0; i < m_AddSphereCount; i++)
 	{
@@ -260,7 +260,7 @@ void Scene::BuildEditList(float deltaTime, bool async)
 				10.0f * m_SphereData.at(i).scale.y * cosf(m_SphereData.at(i).speed.y * t),
 				10.0f * m_SphereData.at(i).scale.z * cosf(m_SphereData.at(i).speed.z * t)
 			});
-		editList.AddEdit(SDFEdit::CreateSphere(transform, 0.05f, SDFOperation::Union));
+		editList.AddEdit(SDFEdit::CreateSphere(transform, 0.05f, SDF_OP_UNION));
 	}
 
 	if (async)

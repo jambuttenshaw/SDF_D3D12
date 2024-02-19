@@ -15,18 +15,45 @@ using namespace DirectX;
 #define AABB_BUILDING_THREADS 128
 
 
+enum SDFShape
+{
+	SDF_SHAPE_SPHERE = 0,
+	SDF_SHAPE_BOX,
+	SDF_SHAPE_PLANE,
+	SDF_SHAPE_TORUS,
+	SDF_SHAPE_OCTAHEDRON,
+	SDF_SHAPE_BOX_FRAME,
+};
+
+enum SDFOperation
+{
+	SDF_OP_UNION = 0,
+	SDF_OP_SUBTRACTION,
+	SDF_OP_SMOOTH_UNION,
+	SDF_OP_SMOOTH_SUBTRACTION
+};
+
+
 struct SDFEditData
 {
 	XMMATRIX InvWorldMat;
 	float Scale;
 
-	// SDF primitive data
-	UINT Shape;
-	UINT Operation;
+	// Note - operation will only take two bits.
+	// 	if first bit is set, it is a subtraction
+	// 	if second bit is set, it is a smooth operation
+	UINT Primitive;
+
 	float BlendingFactor;
+
+	UINT Padding;
 
 	XMFLOAT4 ShapeParams;
 };
+
+
+
+// Constant buffer types
 
 struct BrickEvaluationConstantBuffer
 {

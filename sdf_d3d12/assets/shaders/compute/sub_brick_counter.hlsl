@@ -5,8 +5,7 @@
 #define HLSL
 #include "../../../src/Renderer/Hlsl/ComputeHlslCompat.h"
 
-#include "../include/sdf_primitives.hlsli"
-#include "../include/sdf_operations.hlsli"
+#include "../include/sdf_helper.hlsli"
 
 
 #define BRICK_COUNTING_THREADS 4
@@ -62,11 +61,11 @@ float EvaluateEditList(float3 p)
 		const float3 p_transformed = opTransform(p, edit.InvWorldMat) / edit.Scale;
 		
 		// evaluate primitive
-		float dist = sdPrimitive(p_transformed, edit.Shape, edit.ShapeParams);
+		float dist = sdPrimitive(p_transformed, GetShape(edit.Primitive), edit.ShapeParams);
 		dist *= edit.Scale;
 
 		// combine with scene
-		nearest = opPrimitive(nearest, dist, edit.Operation, edit.BlendingFactor);
+		nearest = opPrimitive(nearest, dist, GetOperation(edit.Primitive), edit.BlendingFactor);
 	}
 
 	return nearest;

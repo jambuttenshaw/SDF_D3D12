@@ -12,8 +12,7 @@
 #include "../../../src/Renderer/Hlsl/RaytracingHlslCompat.h"
 
 #include "../include/brick_helper.hlsli"
-#include "../include/sdf_primitives.hlsli"
-#include "../include/sdf_operations.hlsli"
+#include "../include/sdf_helper.hlsli"
 
 
 struct EvalGroupOffset
@@ -72,50 +71,11 @@ float EvaluateEditList(float3 p, uint GI)
 			const float3 p_transformed = opTransform(p, gs_Edits[edit].InvWorldMat) / gs_Edits[edit].Scale;
 		
 			// evaluate primitive
-			float dist = sdPrimitive(p_transformed, gs_Edits[edit].Shape, gs_Edits[edit].ShapeParams);
+			float dist = sdPrimitive(p_transformed, GetShape(gs_Edits[edit].Primitive), gs_Edits[edit].ShapeParams);
 			dist *= gs_Edits[edit].Scale;
 
 			// combine with scene
-			nearest = opPrimitive(nearest, dist, gs_Edits[edit].Operation, gs_Edits[edit].BlendingFactor);
-		}
-
-		editsRemaining -= MAX_EDITS_CHUNK;
-	}
-
-	return nearest;
-}
-
-float EvaluateEditList_NoCulling(float3 p, uint GI)
-{
-	// Evaluate SDF list
-	float nearest = FLOAT_MAX;
-
-	const uint numChunks = (g_BuildParameters.SDFEditCount + MAX_EDITS_CHUNK - 1) / MAX_EDITS_CHUNK;
-	uint editsRemaining = g_BuildParameters.SDFEditCount;
-	for (uint chunk = 0; chunk < numChunks; chunk++)
-	{
-		// Load edits
-		GroupMemoryBarrierWithGroupSync();
-
-		if (GI < min(MAX_EDITS_CHUNK, g_BuildParameters.SDFEditCount))
-		{
-			gs_Edits[GI] = g_EditList.Load(chunk * MAX_EDITS_CHUNK + GI);
-		}
-
-		GroupMemoryBarrierWithGroupSync();
-
-		// Eval edits
-		for (uint edit = 0; edit < min(MAX_EDITS_CHUNK, editsRemaining); edit++)
-		{
-			// apply primitive transform
-			const float3 p_transformed = opTransform(p, gs_Edits[edit].InvWorldMat) / gs_Edits[edit].Scale;
-		
-			// evaluate primitive
-			float dist = sdPrimitive(p_transformed, gs_Edits[edit].Shape, gs_Edits[edit].ShapeParams);
-			dist *= gs_Edits[edit].Scale;
-
-			// combine with scene
-			nearest = opPrimitive(nearest, dist, gs_Edits[edit].Operation, gs_Edits[edit].BlendingFactor);
+			nearest = opPrimitive(nearest, dist, GetOperation(gs_Edits[edit].Primitive), gs_Edits[edit].BlendingFactor);
 		}
 
 		editsRemaining -= MAX_EDITS_CHUNK;
