@@ -46,7 +46,9 @@ struct SDFEditData
 
 	float BlendingRange;
 
-	UINT Padding;
+	// Other shapes in the edit list that this shape depends on
+	// For smooth blending - the things that this shape will smooth blend into must not be culled
+	UINT Dependencies;
 
 	XMFLOAT4 ShapeParams;
 };

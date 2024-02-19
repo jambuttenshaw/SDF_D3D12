@@ -151,13 +151,13 @@ SDFOperation GetOperation(uint sdfPrimitive)
 bool IsSmoothOperation(SDFOperation op)
 {
 	// smooth if second bit is set
-	return op & 1;
+	return op & 2;
 }
 
 bool IsSmoothPrimitive(uint sdfPrimitive)
 {
 	// smooth if second bit of op is set
-	return sdfPrimitive & 0x00000100;
+	return sdfPrimitive & 0x00000200;
 }
 
 #endif
