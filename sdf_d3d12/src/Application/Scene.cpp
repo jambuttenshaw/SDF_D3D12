@@ -23,13 +23,15 @@ std::string wstring_to_utf8(const std::wstring& str)
 
 Scene::Scene()
 {
+	m_CurrentPipelineName = m_EnableEditCulling ? L"Default" : L"NoEditCulling";
+
 	// Build SDF Object
 	{
 		// Create SDF factory 
 		m_Factory = std::make_unique<SDFFactoryHierarchicalAsync>();
 
 		// Create SDF objects
-		m_BlobObject = std::make_unique<SDFObject>(0.05f, 65536);
+		m_BlobObject = std::make_unique<SDFObject>(0.1f, 65536);
 		{
 			Random::Seed(0);
 			for (UINT i = 0; i < m_SubtractSphereCount; i++)
@@ -100,7 +102,7 @@ Scene::Scene()
 				};
 
 				const auto& geoName = m_SceneGeometry.at(i % m_SceneGeometry.size()).Name;
-				m_AccelerationStructure->AddBottomLevelASInstance(geoName, rotation, 1);
+				m_AccelerationStructure->AddBottomLevelASInstance(geoName, XMMatrixIdentity(), 1);
 		}
 
 		// Init top level AS
@@ -213,7 +215,7 @@ bool Scene::ImGuiSceneInfo()
 		ImGui::Separator();
 
 		ImGui::DragFloat("Time Scale", &m_TimeScale, 0.01f);
-		ImGui::SliderFloat("Sphere Blend", &m_SphereBlend, 0.0f, 0.5f);
+		ImGui::SliderFloat("Sphere Blend", &m_SphereBlend, 0.01f, 2.0f);
 
 		ImGui::Separator();
 
@@ -232,7 +234,7 @@ bool Scene::ImGuiSceneInfo()
 void Scene::BuildEditList(float deltaTime, bool async)
 {
 	PIXBeginEvent(PIX_COLOR_INDEX(10), L"Build Edit List");
-
+	/*
 	static float t = 1.0f;
 	t += deltaTime * m_TimeScale;
 
@@ -262,6 +264,11 @@ void Scene::BuildEditList(float deltaTime, bool async)
 			});
 		editList.AddEdit(SDFEdit::CreateSphere(transform, 0.05f, SDF_OP_UNION));
 	}
+	*/
+
+	SDFEditList editList(2, 4.0f);
+	editList.AddEdit(SDFEdit::CreateSphere({ -1.0f, 0.0f, 0.0f }, 1.0f, SDF_OP_SMOOTH_UNION, m_SphereBlend));
+	editList.AddEdit(SDFEdit::CreateSphere({  0.5f, 0.0f, 0.0f }, 1.0f, SDF_OP_SMOOTH_UNION, m_SphereBlend));
 
 	if (async)
 	{

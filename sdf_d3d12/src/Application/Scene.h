@@ -57,7 +57,7 @@ private:
 	bool m_RotateInstances = false;
 	bool m_Rebuild = false;
 	bool m_AsyncConstruction = false;
-	bool m_EnableEditCulling = true;
+	bool m_EnableEditCulling = false;
 
 	float m_TimeScale = 0.5f;
 

@@ -75,7 +75,6 @@ bool SDFEdit::DrawGui()
 	}
 
 	changed |= ImGui::SliderFloat("Blending", &BlendingFactor, 0.0f, 3.0f);
-	changed |= ImGui::ColorEdit3("Color", &Color.x);
 
 	return changed;
 }
@@ -111,63 +110,62 @@ void SDFEdit::SetShapePropertiesToDefault()
 
 
 
-SDFEdit SDFEdit::CreateSphere(const Transform& transform, float radius, SDFOperation op, float blend, const XMFLOAT4& color)
+SDFEdit SDFEdit::CreateSphere(const Transform& transform, float radius, SDFOperation op, float blend)
 {
-	SDFEdit prim = CreateGeneric(transform, op, blend, color);
+	SDFEdit prim = CreateGeneric(transform, op, blend);
 	prim.Shape = SDF_SHAPE_SPHERE;
 	prim.ShapeProperties.Sphere.Radius = radius;
 	return prim;
 }
 
-SDFEdit SDFEdit::CreateBox(const Transform& transform, const XMFLOAT3& extents, SDFOperation op, float blend, const XMFLOAT4& color)
+SDFEdit SDFEdit::CreateBox(const Transform& transform, const XMFLOAT3& extents, SDFOperation op, float blend)
 {
-	SDFEdit prim = CreateGeneric(transform, op, blend, color);
+	SDFEdit prim = CreateGeneric(transform, op, blend);
 	prim.Shape = SDF_SHAPE_BOX;
 	prim.ShapeProperties.Box.Extents = extents;
 	return prim;
 }
 
-SDFEdit SDFEdit::CreatePlane(const Transform& transform, const XMFLOAT3& normal, float height, SDFOperation op, float blend, const XMFLOAT4& color)
+SDFEdit SDFEdit::CreatePlane(const Transform& transform, const XMFLOAT3& normal, float height, SDFOperation op, float blend)
 {
-	SDFEdit prim = CreateGeneric(transform, op, blend, color);
+	SDFEdit prim = CreateGeneric(transform, op, blend);
 	prim.Shape = SDF_SHAPE_PLANE;
 	prim.ShapeProperties.Plane.Normal = normal;
 	prim.ShapeProperties.Plane.Height = height;
 	return prim;
 }
 
-SDFEdit SDFEdit::CreateTorus(const Transform& transform, float innerRadius, float torusRadius, SDFOperation op, float blend, const XMFLOAT4& color)
+SDFEdit SDFEdit::CreateTorus(const Transform& transform, float innerRadius, float torusRadius, SDFOperation op, float blend)
 {
-	SDFEdit prim = CreateGeneric(transform, op, blend, color);
+	SDFEdit prim = CreateGeneric(transform, op, blend);
 	prim.Shape = SDF_SHAPE_TORUS;
 	prim.ShapeProperties.Torus.InnerRadius = innerRadius;
 	prim.ShapeProperties.Torus.TorusRadius = torusRadius;
 	return prim;
 }
 
-SDFEdit SDFEdit::CreateOctahedron(const Transform& transform, float scale, SDFOperation op, float blend, const XMFLOAT4& color)
+SDFEdit SDFEdit::CreateOctahedron(const Transform& transform, float scale, SDFOperation op, float blend)
 {
-	SDFEdit prim = CreateGeneric(transform, op, blend, color);
+	SDFEdit prim = CreateGeneric(transform, op, blend);
 	prim.Shape = SDF_SHAPE_OCTAHEDRON;
 	prim.ShapeProperties.Octahedron.Scale = scale;
 	return prim;
 }
 
-SDFEdit SDFEdit::CreateBoxFrame(const Transform& transform, const XMFLOAT3& extents, float thickness, SDFOperation op, float blend, const XMFLOAT4& color)
+SDFEdit SDFEdit::CreateBoxFrame(const Transform& transform, const XMFLOAT3& extents, float thickness, SDFOperation op, float blend)
 {
-	SDFEdit prim = CreateGeneric(transform, op, blend, color);
+	SDFEdit prim = CreateGeneric(transform, op, blend);
 	prim.Shape = SDF_SHAPE_BOX_FRAME;
 	prim.ShapeProperties.BoxFrame.Extents = extents;
 	prim.ShapeProperties.BoxFrame.Thickness = thickness;
 	return prim;
 }
 
-SDFEdit SDFEdit::CreateGeneric(const Transform& transform, SDFOperation op, float blend, const XMFLOAT4& color)
+SDFEdit SDFEdit::CreateGeneric(const Transform& transform, SDFOperation op, float blend)
 {
 	SDFEdit prim;
 	prim.PrimitiveTransform = transform;
 	prim.Operation = op;
 	prim.BlendingFactor = blend;
-	prim.Color = color;
 	return prim;
 }

@@ -96,19 +96,18 @@ float opSubtraction(float a, float b)
 {
 	return max(a, -b);
 }
+
   
-float opSmoothUnion(float a, float b, float k)
+float opSmoothUnion(float a, float b, float r)
 {
-	float h = clamp(0.5f + 0.5f * (a - b) / k, 0.0f, 1.0f);
-	float d = lerp(a, b, h) - k * h * (1.0f - h);
-	return d;
+	float e = max(r - abs(a - b), 0.0f);
+	return min(a, b) - e * e * 0.25f / r;
 }
- 
-float opSmoothSubtraction(float a, float b, float k)
+
+float opSmoothSubtraction(float a, float b, float r)
 {
-	float h = clamp(0.5f - 0.5f * (a + b) / k, 0.0f, 1.0f);
-	float d = lerp(a, -b, h) + k * h * (1.0f - h);
-	return d;
+	float e = max(r - abs(a - b), 0.0f);
+	return max(a, -b) + e * e * 0.25f / r;
 }
 
 
