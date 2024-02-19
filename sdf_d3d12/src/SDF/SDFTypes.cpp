@@ -74,7 +74,7 @@ bool SDFEdit::DrawGui()
 		changed = true;
 	}
 
-	changed |= ImGui::SliderFloat("Blending", &BlendingFactor, 0.0f, 3.0f);
+	changed |= ImGui::SliderFloat("Blending", &BlendingRange, 0.0f, 3.0f);
 
 	return changed;
 }
@@ -166,6 +166,6 @@ SDFEdit SDFEdit::CreateGeneric(const Transform& transform, SDFOperation op, floa
 	SDFEdit prim;
 	prim.PrimitiveTransform = transform;
 	prim.Operation = op;
-	prim.BlendingFactor = blend;
+	prim.BlendingRange = blend;
 	return prim;
 }

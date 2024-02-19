@@ -268,7 +268,7 @@ void Scene::BuildEditList(float deltaTime, bool async)
 
 	SDFEditList editList(2, 4.0f);
 	editList.AddEdit(SDFEdit::CreateSphere({ -1.0f, 0.0f, 0.0f }, 1.0f, SDF_OP_SMOOTH_UNION, m_SphereBlend));
-	editList.AddEdit(SDFEdit::CreateSphere({  0.5f, 0.0f, 0.0f }, 1.0f, SDF_OP_SMOOTH_UNION, m_SphereBlend));
+	editList.AddEdit(SDFEdit::CreateSphere({  1.0f, 0.0f, 0.0f }, 1.0f, SDF_OP_SMOOTH_UNION, m_SphereBlend));
 
 	if (async)
 	{

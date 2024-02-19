@@ -29,6 +29,8 @@ private:
 	SDFEditData BuildEditData(const SDFEdit& edit);
 
 private:
+	inline static constexpr UINT s_EditLimit = 1024;
+
 	std::vector<SDFEditData> m_Edits;
 
 	// Buffer capacity

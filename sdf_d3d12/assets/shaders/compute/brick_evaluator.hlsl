@@ -75,7 +75,7 @@ float EvaluateEditList(float3 p, uint GI)
 			dist *= gs_Edits[edit].Scale;
 
 			// combine with scene
-			nearest = opPrimitive(nearest, dist, GetOperation(gs_Edits[edit].Primitive), gs_Edits[edit].BlendingFactor);
+			nearest = opPrimitive(nearest, dist, GetOperation(gs_Edits[edit].Primitive), gs_Edits[edit].BlendingRange);
 		}
 
 		editsRemaining -= MAX_EDITS_CHUNK;

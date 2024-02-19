@@ -44,7 +44,7 @@ struct SDFEditData
 	// 	if second bit is set, it is a smooth operation
 	UINT Primitive;
 
-	float BlendingFactor;
+	float BlendingRange;
 
 	UINT Padding;
 

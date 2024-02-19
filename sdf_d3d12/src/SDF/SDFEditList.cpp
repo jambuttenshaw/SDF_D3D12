@@ -9,6 +9,8 @@ SDFEditList::SDFEditList(UINT maxEdits, float evaluationRange)
 	: m_MaxEdits(maxEdits)
 	, m_EvaluationRange(evaluationRange)
 {
+	ASSERT(m_MaxEdits <= s_EditLimit, "Edit lists are limited to 1024 edits.");
+
 	m_Edits.resize(m_MaxEdits);
 }
 
@@ -36,7 +38,7 @@ SDFEditData SDFEditList::BuildEditData(const SDFEdit& edit)
 	primitiveData.Scale = edit.PrimitiveTransform.GetScale();
 
 	primitiveData.Primitive = (edit.Shape & 0x000000FF) | ((edit.Operation << 8) & 0x0000FF00);
-	primitiveData.BlendingFactor = edit.BlendingFactor;
+	primitiveData.BlendingRange = edit.BlendingRange;
 
 	static_assert(sizeof(SDFShapeProperties) == sizeof(XMFLOAT4));
 	memcpy(&primitiveData.ShapeParams, &edit.ShapeProperties, sizeof(XMFLOAT4));

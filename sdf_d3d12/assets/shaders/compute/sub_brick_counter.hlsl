@@ -65,7 +65,7 @@ float EvaluateEditList(float3 p)
 		dist *= edit.Scale;
 
 		// combine with scene
-		nearest = opPrimitive(nearest, dist, GetOperation(edit.Primitive), edit.BlendingFactor);
+		nearest = opPrimitive(nearest, dist, GetOperation(edit.Primitive), edit.BlendingRange);
 	}
 
 	return nearest;

@@ -50,7 +50,7 @@ struct SDFEdit
 	SDFShapeProperties ShapeProperties;
 
 	SDFOperation Operation = SDF_OP_UNION;
-	float BlendingFactor = 0.0f;
+	float BlendingRange = 0.0f;
 
 	SDFEdit();
 
