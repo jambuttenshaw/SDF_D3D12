@@ -53,18 +53,9 @@ private:
 
 	// GUI controls
 	bool m_RotateInstances = true;
-	bool m_Rebuild = false;
-	bool m_AsyncConstruction = false;
+	bool m_Rebuild = true;
+	bool m_AsyncConstruction = true;
 	bool m_EnableEditCulling = true;
 
 	float m_TimeScale = 0.5f;
-
-	struct SphereData
-	{
-		XMFLOAT3 scale;
-		XMFLOAT3 speed;
-	};
-	UINT m_SphereCount = 128;
-	std::vector<SphereData> m_SphereData;
-	float m_SphereBlend = 1.0f;
 };

@@ -150,6 +150,7 @@
   <ItemGroup>
     <ClCompile Include="src\Application\BaseApplication.cpp" />
     <ClCompile Include="src\Application\D3DApplication.cpp" />
+    <ClCompile Include="src\Application\Demos.cpp" />
     <ClCompile Include="src\Application\Scene.cpp" />
     <ClCompile Include="src\Framework\Camera.cpp" />
     <ClCompile Include="src\Framework\CameraController.cpp" />
@@ -213,6 +214,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Application\Demos.h" />
     <ClInclude Include="src\Application\Scene.h" />
     <ClInclude Include="src\Framework\Camera.h" />
     <ClInclude Include="src\Framework\CameraController.h" />

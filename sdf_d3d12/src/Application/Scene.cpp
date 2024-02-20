@@ -9,6 +9,8 @@
 #include "pix3.h"
 #include "Renderer/D3DDebugTools.h"
 
+#include "Demos.h"
+
 
 // For debug output
 // convert wstring to UTF-8 string
@@ -32,26 +34,8 @@ Scene::Scene()
 
 		// Create SDF objects
 		m_BlobObject = std::make_unique<SDFObject>(0.1f, 250'000);
-		{
-			Random::Seed(0);
-			for (UINT i = 0; i < m_SphereCount; i++)
-			{
-				m_SphereData.push_back({});
-				SphereData& sphereData = m_SphereData.at(i);
-				sphereData.scale = {
-					Random::Float(-3.0f, 3.0f),
-					Random::Float(-3.0f, 3.0f),
-					Random::Float(-3.0f, 3.0f)	
-				};
-				sphereData.speed = {
-					Random::Float(-1.0f, 1.0f),
-					Random::Float(-1.0f, 1.0f),
-					Random::Float(-1.0f, 1.0f)
-				};
-			}
 
-			BuildEditList(0.0f, false);
-		}
+		BuildEditList(0.0f, false);
 	}
 
 	{
@@ -72,14 +56,14 @@ Scene::Scene()
 		}
 
 		m_InstanceRotation = XMMatrixRotationRollPitchYaw(
+			XMConvertToRadians(Random::Float(-10.0f, 10.0f)),
 			XMConvertToRadians(Random::Float(360.0f)),
-			XMConvertToRadians(Random::Float(360.0f)),
-			XMConvertToRadians(Random::Float(360.0f))
+			0.0f
 		);
 		m_InstanceRotationDelta = {
-			Random::Float(-0.2f, 0.2f),
-			Random::Float(-0.2f, 0.2f),
-			Random::Float(-0.2f, 0.2f)
+			0.0f,
+			0.2f,
+			0.0f
 		};
 
 		const auto& geoName = m_SceneGeometry.at(0).Name;
@@ -166,7 +150,7 @@ bool Scene::ImGuiSceneInfo()
 		ImGui::Separator();
 
 		{
-			static bool checkbox = false;
+			static bool checkbox = m_Rebuild;
 			m_Rebuild = ImGui::Button("Rebuild Once");
 			ImGui::Checkbox("Rebuild", &checkbox);
 			m_Rebuild |= checkbox;
@@ -192,7 +176,6 @@ bool Scene::ImGuiSceneInfo()
 		ImGui::Separator();
 
 		ImGui::DragFloat("Time Scale", &m_TimeScale, 0.01f);
-		ImGui::SliderFloat("Sphere Blend", &m_SphereBlend, 0.0f, 2.0f);
 
 		ImGui::Separator();
 
@@ -212,21 +195,7 @@ void Scene::BuildEditList(float deltaTime, bool async)
 {
 	PIXBeginEvent(PIX_COLOR_INDEX(10), L"Build Edit List");
 
-	static float t = 0.0f;
-	t += deltaTime * m_TimeScale;
-
-	SDFEditList editList(m_SphereCount, 8.0f);
-	for (UINT i = 0; i < m_SphereCount; i++)
-	{
-		Transform transform;
-		transform.SetTranslation(
-			{
-				m_SphereData.at(i).scale.x * cosf(m_SphereData.at(i).speed.x * t),
-				m_SphereData.at(i).scale.y * cosf(m_SphereData.at(i).speed.y * t),
-				m_SphereData.at(i).scale.z * cosf(m_SphereData.at(i).speed.z * t)
-			});
-		editList.AddEdit(SDFEdit::CreateSphere(transform, 0.35f, SDF_OP_SMOOTH_UNION, m_SphereBlend));
-	}
+	const SDFEditList editList = Demos::DropsDemo(deltaTime * m_TimeScale);
 
 	if (async)
 	{
