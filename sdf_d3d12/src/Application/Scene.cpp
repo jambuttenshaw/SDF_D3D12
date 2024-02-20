@@ -200,7 +200,7 @@ bool Scene::ImGuiSceneInfo()
 		ImGui::Separator();
 
 		ImGui::DragFloat("Time Scale", &m_TimeScale, 0.01f);
-		ImGui::SliderFloat("Sphere Blend", &m_SphereBlend, 0.01f, 2.0f);
+		ImGui::SliderFloat("Sphere Blend", &m_SphereBlend, 0.0f, 2.0f);
 
 		ImGui::Separator();
 
@@ -265,7 +265,7 @@ void Scene::CheckSDFGeometryUpdates()
 			PIXSetMarker(PIX_COLOR_INDEX(23), L"Flip resources");
 			object->FlipResources();
 		}
-		//else if (object->GetResourcesState(SDFObject::RESOURCES_WRITE) == SDFObject::SWITCHING)
+		else if (object->GetResourcesState(SDFObject::RESOURCES_WRITE) == SDFObject::SWITCHING)
 		{
 			object->SetResourceState(SDFObject::RESOURCES_WRITE, SDFObject::READY_COMPUTE);
 		}

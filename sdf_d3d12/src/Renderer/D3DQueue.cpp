@@ -72,12 +72,12 @@ void D3DQueue::WaitForFenceCPUBlocking(UINT64 fenceValue)
 {
 	while (!IsFenceComplete(fenceValue))
 	{
-		if (!IsFenceComplete(fenceValue))
-		{
-			std::lock_guard lockGuard(m_EventMutex);
-			m_Fence->SetEventOnCompletion(fenceValue, m_FenceEventHandle);
-			WaitForSingleObjectEx(m_FenceEventHandle, INFINITE, false);
-		}
+		std::lock_guard lockGuard(m_EventMutex);
+
+		m_Fence->SetEventOnCompletion(fenceValue, m_FenceEventHandle);
+		// When it wakes up - it will check that the expected fence value has actually passed
+		// This handles spurious wake-ups, and also cases where we accidentally sleep after the fence has passed
+		WaitForSingleObjectEx(m_FenceEventHandle, 1, false);
 	}
 	m_LastCompletedFenceValue = fenceValue;
 }

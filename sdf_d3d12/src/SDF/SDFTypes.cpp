@@ -154,7 +154,7 @@ SDFEdit SDFEdit::CreateGeneric(const Transform& transform, SDFOperation op, floa
 
 	if ((prim.Operation & 2u) && prim.BlendingRange <= 0.0f)
 	{
-		LOG_WARN("Invalid blending range ({}) for smooth operation!", prim.BlendingRange);
+		prim.Operation = static_cast<SDFOperation>(prim.Operation & ~2u);
 	}
 
 	return prim;
