@@ -9,12 +9,6 @@
 // PRIMITIVES
 //
 
-float sdPlane(float3 p, float3 n, float h)
-{
-  // n must be normalized
-	return dot(p, n) + h;
-}
-
 float sdSphere(float3 p, float r)
 {
 	return length(p) - r;
@@ -69,8 +63,6 @@ float sdPrimitive(float3 p, SDFShape prim, float4 param)
 			return sdSphere(p, param.x);
 		case SDF_SHAPE_BOX:
 			return sdBox(p, param.xyz);
-		case SDF_SHAPE_PLANE:
-			return sdPlane(p, param.xyz, param.w);
 		case SDF_SHAPE_TORUS:
 			return sdTorus(p, param.xy);
 		case SDF_SHAPE_OCTAHEDRON:
@@ -134,6 +126,32 @@ float opPrimitive(float a, float b, SDFOperation op, float k)
 	}
 }
 
+
+//
+// BOUNDING SPHERES
+// Gives the distance to the surface of a bounding sphere for each primitive
+//
+
+float boundingSpherePrimitive(float3 p, SDFShape prim, float4 param)
+{
+	switch (prim)
+	{
+		case SDF_SHAPE_SPHERE:
+			return sdSphere(p, param.x);
+		case SDF_SHAPE_BOX:
+			return sdSphere(p, length(param.xyz));
+		case SDF_SHAPE_TORUS:
+			return sdSphere(p, param.x + param.y);
+		case SDF_SHAPE_OCTAHEDRON:
+			return sdSphere(p, param.x);
+		case SDF_SHAPE_BOX_FRAME:
+			return sdSphere(p, length(param.xyz) + param.w);
+		default:
+			return 0.0f;
+	}
+}
+
+
 //
 // HELPERS
 //
@@ -146,6 +164,11 @@ SDFShape GetShape(uint sdfPrimitive)
 SDFOperation GetOperation(uint sdfPrimitive)
 {
 	return (SDFOperation)((sdfPrimitive >> 8) & 0x000000FF);
+}
+
+uint GetDependencyCount(uint sdfPrimitive)
+{
+	return ((sdfPrimitive >> 16) & 0x0000FFFF);
 }
 
 bool IsSmoothOperation(SDFOperation op)

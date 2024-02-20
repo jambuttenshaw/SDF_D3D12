@@ -18,11 +18,6 @@ union SDFShapeProperties
 	} Box;
 
 	struct {
-		XMFLOAT3 Normal;
-		float Height;
-	} Plane;
-
-	struct {
 		float InnerRadius;
 		float TorusRadius;
 	} Torus;
@@ -65,7 +60,6 @@ public:
 	// Constructor for each shape type
 	static SDFEdit CreateSphere(const Transform& transform, float radius, SDFOperation op = SDF_OP_UNION, float blend = 0.0f);
 	static SDFEdit CreateBox(const Transform& transform, const XMFLOAT3& extents, SDFOperation op = SDF_OP_UNION, float blend = 0.0f);
-	static SDFEdit CreatePlane(const Transform& transform, const XMFLOAT3& normal, float height, SDFOperation op = SDF_OP_UNION, float blend = 0.0f);
 	static SDFEdit CreateTorus(const Transform& transform, float innerRadius, float torusRadius, SDFOperation op = SDF_OP_UNION, float blend = 0.0f);
 	static SDFEdit CreateOctahedron(const Transform& transform, float scale, SDFOperation op = SDF_OP_UNION, float blend = 0.0f);
 	static SDFEdit CreateBoxFrame(const Transform& transform, const XMFLOAT3& extents, float thickness, SDFOperation op = SDF_OP_UNION, float blend = 0.0f);

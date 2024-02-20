@@ -50,10 +50,6 @@ bool SDFEdit::DrawGui()
 	case SDF_SHAPE_BOX:
 		changed |= ImGui::DragFloat3("Extents", &ShapeProperties.Box.Extents.x, 0.01f);
 		break;
-	case SDF_SHAPE_PLANE:
-		changed |= ImGui::DragFloat3("Normal", &ShapeProperties.Plane.Normal.x, 0.01f);
-		changed |= ImGui::DragFloat("Height", &ShapeProperties.Plane.Height, 0.01f);
-		break;
 	case SDF_SHAPE_TORUS:
 		changed |= ImGui::DragFloat("InnerRadius", &ShapeProperties.Torus.InnerRadius, 0.01f);
 		changed |= ImGui::DragFloat("TorusRadius", &ShapeProperties.Torus.TorusRadius, 0.01f);
@@ -90,10 +86,6 @@ void SDFEdit::SetShapePropertiesToDefault()
 	case SDF_SHAPE_BOX:
 		ShapeProperties.Box.Extents = { 1.0f, 1.0f, 1.0f };
 		break;
-	case SDF_SHAPE_PLANE:
-		ShapeProperties.Plane.Normal = { 0.0f, 1.0f, 0.0f };
-		ShapeProperties.Plane.Height = 1.0f;
-		break;
 	case SDF_SHAPE_TORUS:
 		ShapeProperties.Torus.InnerRadius = 1.0f;
 		ShapeProperties.Torus.TorusRadius = 0.5f;
@@ -123,15 +115,6 @@ SDFEdit SDFEdit::CreateBox(const Transform& transform, const XMFLOAT3& extents, 
 	SDFEdit prim = CreateGeneric(transform, op, blend);
 	prim.Shape = SDF_SHAPE_BOX;
 	prim.ShapeProperties.Box.Extents = extents;
-	return prim;
-}
-
-SDFEdit SDFEdit::CreatePlane(const Transform& transform, const XMFLOAT3& normal, float height, SDFOperation op, float blend)
-{
-	SDFEdit prim = CreateGeneric(transform, op, blend);
-	prim.Shape = SDF_SHAPE_PLANE;
-	prim.ShapeProperties.Plane.Normal = normal;
-	prim.ShapeProperties.Plane.Height = height;
 	return prim;
 }
 

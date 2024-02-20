@@ -37,7 +37,7 @@ SDFEditData SDFEditList::BuildEditData(const SDFEdit& edit)
 	primitiveData.InvWorldMat = XMMatrixTranspose(XMMatrixInverse(nullptr, edit.PrimitiveTransform.GetWorldMatrix()));
 	primitiveData.Scale = edit.PrimitiveTransform.GetScale();
 
-	primitiveData.Primitive = (edit.Shape & 0x000000FF) | ((edit.Operation << 8) & 0x0000FF00);
+	primitiveData.PrimitivesAndDependencies = (edit.Shape & 0x000000FF) | ((edit.Operation << 8) & 0x0000FF00);
 	primitiveData.BlendingRange = edit.BlendingRange;
 
 	static_assert(sizeof(SDFShapeProperties) == sizeof(XMFLOAT4));

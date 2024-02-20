@@ -18,7 +18,6 @@ enum SDFShape
 {
 	SDF_SHAPE_SPHERE = 0,
 	SDF_SHAPE_BOX,
-	SDF_SHAPE_PLANE,
 	SDF_SHAPE_TORUS,
 	SDF_SHAPE_OCTAHEDRON,
 	SDF_SHAPE_BOX_FRAME,
@@ -38,16 +37,19 @@ struct SDFEditData
 	XMMATRIX InvWorldMat;
 	float Scale;
 
-	// Note - operation will only take two bits.
-	// 	if first bit is set, it is a subtraction
-	// 	if second bit is set, it is a smooth operation
-	UINT Primitive;
+	// First byte - Primitive Shape (allows max 256 shapes)
+	// Second byte - Operation (max 4 operations - only 2 bits required)
+	//				 First bit of operation is union/subtraction
+	//				 Second bit is hard/smooth
+	// Third and Fourth byte - Dependencies (max 1023 dependencies - only 10 bits required)
+
+	// Dependencies are other shapes in the edit list that this shape depends on
+	// For smooth blending - the things that this shape will smooth blend into must not be culled
+	UINT PrimitivesAndDependencies;
 
 	float BlendingRange;
 
-	// Other shapes in the edit list that this shape depends on
-	// For smooth blending - the things that this shape will smooth blend into must not be culled
-	UINT Dependencies;
+	UINT Padding;
 
 	XMFLOAT4 ShapeParams;
 };

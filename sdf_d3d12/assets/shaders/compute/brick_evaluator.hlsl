@@ -71,11 +71,11 @@ float EvaluateEditList(float3 p, uint GI)
 			const float3 p_transformed = opTransform(p, gs_Edits[edit].InvWorldMat) / gs_Edits[edit].Scale;
 		
 			// evaluate primitive
-			float dist = sdPrimitive(p_transformed, GetShape(gs_Edits[edit].Primitive), gs_Edits[edit].ShapeParams);
+			float dist = sdPrimitive(p_transformed, GetShape(gs_Edits[edit].PrimitivesAndDependencies), gs_Edits[edit].ShapeParams);
 			dist *= gs_Edits[edit].Scale;
 
 			// combine with scene
-			nearest = opPrimitive(nearest, dist, GetOperation(gs_Edits[edit].Primitive), gs_Edits[edit].BlendingRange);
+			nearest = opPrimitive(nearest, dist, GetOperation(gs_Edits[edit].PrimitivesAndDependencies), gs_Edits[edit].BlendingRange);
 		}
 
 		editsRemaining -= MAX_EDITS_CHUNK;
