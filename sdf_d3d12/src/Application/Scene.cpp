@@ -31,37 +31,22 @@ Scene::Scene()
 		m_Factory = std::make_unique<SDFFactoryHierarchicalAsync>();
 
 		// Create SDF objects
-		m_BlobObject = std::make_unique<SDFObject>(0.1f, 65536);
+		m_BlobObject = std::make_unique<SDFObject>(0.1f, 100'000);
 		{
 			Random::Seed(0);
-			for (UINT i = 0; i < m_SubtractSphereCount; i++)
+			for (UINT i = 0; i < m_SphereCount; i++)
 			{
 				m_SphereData.push_back({});
 				SphereData& sphereData = m_SphereData.at(i);
 				sphereData.scale = {
-					Random::Float(-1.0f, 1.0f),
-					Random::Float(-1.0f, 1.0f),
-					Random::Float(-1.0f, 1.0f)	
+					Random::Float(-3.0f, 3.0f),
+					Random::Float(-3.0f, 3.0f),
+					Random::Float(-3.0f, 3.0f)	
 				};
 				sphereData.speed = {
 					Random::Float(-1.0f, 1.0f),
 					Random::Float(-1.0f, 1.0f),
 					Random::Float(-1.0f, 1.0f)
-				};
-			}
-			for (UINT i = 0; i < m_AddSphereCount; i++)
-			{
-				m_SphereData.push_back({});
-				SphereData& sphereData = m_SphereData.at(i);
-				sphereData.scale = {
-					Random::Float(-0.5f, 0.5f),
-					Random::Float(-0.5f, 0.5f),
-					Random::Float(-0.5f, 0.5f)
-				};
-				sphereData.speed = {
-					Random::Float(-2.0f, 2.0f),
-					Random::Float(-2.0f, 2.0f),
-					Random::Float(-2.0f, 2.0f)
 				};
 			}
 
@@ -237,41 +222,19 @@ void Scene::BuildEditList(float deltaTime, bool async)
 
 	static float t = 0.0f;
 	t += deltaTime * m_TimeScale;
-	/*
 
-	SDFEditList editList(m_SubtractSphereCount + m_AddSphereCount + 1, 10.0f);
-
-	editList.AddEdit(SDFEdit::CreateBox({  }, { 1.0f, 1.0f, 1.0f }, SDF_OP_UNION));
-
-	for (UINT i = 0; i < m_SubtractSphereCount; i++)
+	SDFEditList editList(m_SphereCount, 10.0f);
+	for (UINT i = 0; i < m_SphereCount; i++)
 	{
 		Transform transform;
 		transform.SetTranslation(
 			{
-				2.0f * m_SphereData.at(i).scale.x * cosf(m_SphereData.at(i).speed.x * t),
-				2.0f * m_SphereData.at(i).scale.y * cosf(m_SphereData.at(i).speed.y * t),
-				2.0f * m_SphereData.at(i).scale.z * cosf(m_SphereData.at(i).speed.z * t)
+				m_SphereData.at(i).scale.x * cosf(m_SphereData.at(i).speed.x * t),
+				m_SphereData.at(i).scale.y * cosf(m_SphereData.at(i).speed.y * t),
+				m_SphereData.at(i).scale.z * cosf(m_SphereData.at(i).speed.z * t)
 			});
-		editList.AddEdit(SDFEdit::CreateSphere(transform, 0.35f, SDF_OP_SUBTRACTION));
+		editList.AddEdit(SDFEdit::CreateSphere(transform, 0.35f, SDF_OP_SMOOTH_UNION, m_SphereBlend));
 	}
-	for (UINT i = 0; i < m_AddSphereCount; i++)
-	{
-		Transform transform;
-		transform.SetTranslation(
-			{
-				10.0f * m_SphereData.at(i).scale.x * cosf(m_SphereData.at(i).speed.x * t),
-				10.0f * m_SphereData.at(i).scale.y * cosf(m_SphereData.at(i).speed.y * t),
-				10.0f * m_SphereData.at(i).scale.z * cosf(m_SphereData.at(i).speed.z * t)
-			});
-		editList.AddEdit(SDFEdit::CreateSphere(transform, 0.05f, SDF_OP_UNION));
-	}
-	*/
-
-	SDFEditList editList(3, 8.0f);
-
-	editList.AddEdit(SDFEdit::CreateBox({ 0.0f, 1.50f, 0.0f }, { 0.5f, 0.5f, 0.5f }, SDF_OP_UNION));
-	editList.AddEdit(SDFEdit::CreateSphere({ -1.0f, 0.0f, 0.0f }, 1.0f, SDF_OP_SMOOTH_UNION, m_SphereBlend));
-	editList.AddEdit(SDFEdit::CreateSphere({  1.0f, 0.0f, 0.0f }, 1.0f, SDF_OP_SMOOTH_UNION, m_SphereBlend));
 
 	if (async)
 	{

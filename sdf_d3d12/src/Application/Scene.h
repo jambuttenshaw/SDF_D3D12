@@ -66,8 +66,7 @@ private:
 		XMFLOAT3 scale;
 		XMFLOAT3 speed;
 	};
-	UINT m_SubtractSphereCount = 256;
-	UINT m_AddSphereCount = 256;
+	UINT m_SphereCount = 256;
 	std::vector<SphereData> m_SphereData;
-	float m_SphereBlend = 0.4f;
+	float m_SphereBlend = 0.2f;
 };

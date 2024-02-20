@@ -2,6 +2,7 @@
 #include "SDFTypes.h"
 
 #include "imgui.h"
+#include "Framework/Log.h"
 
 
 SDFEdit::SDFEdit()
@@ -150,5 +151,11 @@ SDFEdit SDFEdit::CreateGeneric(const Transform& transform, SDFOperation op, floa
 	prim.PrimitiveTransform = transform;
 	prim.Operation = op;
 	prim.BlendingRange = blend;
+
+	if ((prim.Operation & 2u) && prim.BlendingRange <= 0.0f)
+	{
+		LOG_WARN("Invalid blending range ({}) for smooth operation!", prim.BlendingRange);
+	}
+
 	return prim;
 }
