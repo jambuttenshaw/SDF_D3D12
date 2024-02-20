@@ -79,14 +79,14 @@ void SDFConstructionResources::AllocateResources(UINT brickCapacity, const SDFEd
 		// Worst case: every brick uses every edit
 		// Max Indices = Bricks * Edits
 		const UINT indexBufferCapacity = editList.GetEditCount() * m_BrickCapacity;
-		const UINT64 indexBufferWidth = indexBufferCapacity * sizeof(UINT);
+		const UINT64 indexBufferWidth = indexBufferCapacity * sizeof(UINT16);
 		for (auto& indexBuffer : m_IndexBuffers)
 		{
 			indexBuffer.Allocate(device, indexBufferWidth, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, L"Index Buffer");
 		}
 
 		// Upload only needs to contain data for the first 64 bricks
-		const UINT indexUploadCapacity = editList.GetEditCount() * 64;
+		const UINT indexUploadCapacity = editList.GetEditCount();
 		m_IndexUpload.Allocate(device, indexUploadCapacity, 0, L"Index Upload");
 
 		// Populate index buffer

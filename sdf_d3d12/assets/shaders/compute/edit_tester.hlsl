@@ -13,12 +13,12 @@
 ConstantBuffer<BrickBuildParametersConstantBuffer> g_BuildParameters : register(b0);
 
 StructuredBuffer<SDFEditData> g_EditList : register(t0);
-StructuredBuffer<uint> g_InIndexBuffer : register(t1);
+StructuredBuffer<uint16_t> g_InIndexBuffer : register(t1);
 StructuredBuffer<uint> g_EditDependencyIndices : register(t2);
 
 RWStructuredBuffer<Brick> g_Bricks : register(u0);
 
-RWStructuredBuffer<uint> g_OutIndexBuffer : register(u1);
+RWStructuredBuffer<uint16_t> g_OutIndexBuffer : register(u1);
 RWByteAddressBuffer g_OutIndexCounter : register(u2);
 
 
@@ -90,7 +90,7 @@ void main(uint3 GroupID : SV_GroupID, uint GI : SV_GroupIndex)
 		// Test edit i
 
 		// Get the index of i and load the edit
-		const uint index = g_InIndexBuffer.Load(gs_Brick.IndexOffset + i);
+		const uint index = (uint)g_InIndexBuffer.Load(gs_Brick.IndexOffset + i);
 		if (IsEditSet(index))
 			// If this edit has already been tested then skip (could be due to a smooth edit dependency)
 			continue;
@@ -180,7 +180,7 @@ void main(uint3 GroupID : SV_GroupID, uint GI : SV_GroupIndex)
 		if ((gs_EditMask[GI] >> i) & 1u)
 		{
 			const uint index = gs_IndexOffset + gs_SIMDScan[GI] + laneScan[i];
-			g_OutIndexBuffer[index] = 32 * GI + i;
+			g_OutIndexBuffer[index] = (uint16_t)(32 * GI + i);
 		}
 	}
 }

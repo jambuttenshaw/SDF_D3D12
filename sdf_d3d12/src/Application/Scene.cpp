@@ -31,7 +31,7 @@ Scene::Scene()
 		m_Factory = std::make_unique<SDFFactoryHierarchicalAsync>();
 
 		// Create SDF objects
-		m_BlobObject = std::make_unique<SDFObject>(0.1f, 100'000);
+		m_BlobObject = std::make_unique<SDFObject>(0.1f, 250'000);
 		{
 			Random::Seed(0);
 			for (UINT i = 0; i < m_SphereCount; i++)

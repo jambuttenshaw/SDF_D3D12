@@ -18,7 +18,7 @@ ConstantBuffer<BrickBuildParametersConstantBuffer> g_BuildParameters : register(
 // The brick counter should therefore be read-only
 ByteAddressBuffer g_BrickCounter : register(t0);
 StructuredBuffer<SDFEditData> g_EditList : register(t1);
-StructuredBuffer<uint> g_IndexBuffer : register(t2);
+StructuredBuffer<uint16_t> g_IndexBuffer : register(t2);
 
 RWStructuredBuffer<Brick> g_Bricks : register(u0);
 
@@ -53,7 +53,7 @@ float EvaluateEditList(float3 p)
 #ifdef DISABLE_EDIT_CULLING
 		const SDFEditData edit = g_EditList.Load(i);
 #else
-		const uint index = g_IndexBuffer.Load(gs_Brick.IndexOffset + i);
+		const uint16_t index = g_IndexBuffer.Load(gs_Brick.IndexOffset + i);
 		const SDFEditData edit = g_EditList.Load(index);
 #endif
 

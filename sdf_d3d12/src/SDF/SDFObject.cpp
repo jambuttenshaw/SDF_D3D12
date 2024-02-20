@@ -192,7 +192,7 @@ void SDFObject::AllocateOptimalIndexBuffer(UINT64 indexCount, ResourceGroup res)
 {
 	auto& resources = GetResources(res);
 
-	const UINT64 width = indexCount * sizeof(UINT);
+	const UINT64 width = indexCount * sizeof(UINT16);
 	if (!resources.IndexBuffer.GetResource() || width > resources.IndexBuffer.GetResource()->GetDesc().Width)
 	{
 		resources.IndexBuffer.Allocate(g_D3DGraphicsContext->GetDevice(), width, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, L"SDF Object Index Buffer");

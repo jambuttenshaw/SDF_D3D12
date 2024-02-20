@@ -23,7 +23,7 @@ ConstantBuffer<EvalGroupOffset> g_EvalGroupOffset : register(b0);
 ConstantBuffer<BrickEvaluationConstantBuffer> g_BuildParameters : register(b1);
 
 StructuredBuffer<SDFEditData> g_EditList : register(t0);
-StructuredBuffer<uint> g_IndexBuffer : register(t1);
+StructuredBuffer<uint16_t> g_IndexBuffer : register(t1);
 
 StructuredBuffer<Brick> g_BrickBuffer : register(t2);
 RWTexture3D<float> g_OutputTexture : register(u1);

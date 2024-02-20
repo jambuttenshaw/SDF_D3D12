@@ -34,6 +34,7 @@ HRESULT D3DShaderCompiler::CompileFromFileImpl(const wchar_t* file, const wchar_
 	args.push_back(targetStr.c_str());
 
 	args.push_back(L"-Qstrip_reflect");
+	args.push_back(L"-enable-16bit-types");
 
 	for (const auto& define : defines)
 	{

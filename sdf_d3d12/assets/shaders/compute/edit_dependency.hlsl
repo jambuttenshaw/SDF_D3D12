@@ -15,7 +15,7 @@ struct Parameters
 ConstantBuffer<Parameters> g_Parameters : register(b0);
 
 RWStructuredBuffer<SDFEditData> g_EditList : register(u0);
-RWStructuredBuffer<UINT> g_DependencyIndices : register(u1);
+RWStructuredBuffer<uint16_t> g_DependencyIndices : register(u1);
 
 
 float EvaluateBoundingSphere(SDFEditData edit, float3 p)
@@ -60,7 +60,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
 			const float d2 = EvaluateBoundingSphere(edit2, p1);
 			if (d2 - d1 <= edit1.BlendingRange)
 			{
-				g_DependencyIndices[baseIndex + dependencies] = i; 
+				g_DependencyIndices[baseIndex + dependencies] = (uint16_t)(i);
 				dependencies++;
 			}
 		}

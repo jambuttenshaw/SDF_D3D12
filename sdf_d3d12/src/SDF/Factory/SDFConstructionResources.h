@@ -49,7 +49,7 @@ public:
 	inline DefaultBuffer& GetBlockPrefixSumsOutputBuffer() { return m_BlockPrefixSumsOutputBuffer; }
 	inline DefaultBuffer& GetPrefixSumsBuffer() { return m_PrefixSumsBuffer; }
 
-	inline UploadBuffer<UINT>& GetIndexUploadBuffer() { return m_IndexUpload; }
+	inline UploadBuffer<UINT16>& GetIndexUploadBuffer() { return m_IndexUpload; }
 
 	inline UploadBuffer<Brick>& GetBrickUploadBuffer() { return m_BrickUpload; }
 	inline ReadbackBuffer<UINT>& GetCounterReadbackBuffer() { return m_CounterReadback; }
@@ -83,7 +83,7 @@ protected:
 	DefaultBuffer m_PrefixSumsBuffer;				// The final prefix sums output buffer
 
 	// Utility buffers to set and read values
-	UploadBuffer<UINT> m_IndexUpload;			// An upload buffer for the index data for each brick
+	UploadBuffer<UINT16> m_IndexUpload;			// An upload buffer for the index data for each brick
 
 	UploadBuffer<Brick> m_BrickUpload;			// An upload buffer for bricks is required to send the initial brick to the GPU
 	ReadbackBuffer<UINT32> m_CounterReadback;	// Used to read the value of a counter
