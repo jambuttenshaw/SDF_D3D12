@@ -34,8 +34,15 @@ enum SDFOperation
 
 struct SDFEditData
 {
-	XMMATRIX InvWorldMat;
+	// Store transform as individual rotation, translation and scale
+	// SDFs can only be scaled uniformly
+	XMFLOAT4 InvRotation;
+	XMFLOAT3 InvTranslation;
+
 	float Scale;
+
+	// Shape-specific data - eg radius of a sphere, extents of a box
+	XMFLOAT4 ShapeParams;
 
 	// First byte - Primitive Shape (allows max 256 shapes)
 	// Second byte - Operation (max 4 operations - only 2 bits required)
@@ -48,10 +55,6 @@ struct SDFEditData
 	UINT PrimitivesAndDependencies;
 
 	float BlendingRange;
-
-	UINT Padding;
-
-	XMFLOAT4 ShapeParams;
 };
 
 

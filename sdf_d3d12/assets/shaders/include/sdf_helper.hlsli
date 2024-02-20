@@ -4,6 +4,7 @@
 #define HLSL
 #include "../../../src/Renderer/Hlsl/ComputeHlslCompat.h"
 
+#include "Quaternion.hlsli"
 
 //
 // PRIMITIVES
@@ -106,6 +107,11 @@ float opSmoothSubtraction(float a, float b, float r)
 float3 opTransform(float3 p, matrix t)
 {
 	return mul(float4(p, 1.0f), t).xyz;
+}
+
+float3 opTransform(float3 p, float4 q, float3 t)
+{
+	return rotate_vector(p + t, q);
 }
 
 

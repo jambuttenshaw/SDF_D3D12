@@ -234,9 +234,10 @@ bool Scene::ImGuiSceneInfo()
 void Scene::BuildEditList(float deltaTime, bool async)
 {
 	PIXBeginEvent(PIX_COLOR_INDEX(10), L"Build Edit List");
-	/*
-	static float t = 1.0f;
+
+	static float t = 0.0f;
 	t += deltaTime * m_TimeScale;
+	/*
 
 	SDFEditList editList(m_SubtractSphereCount + m_AddSphereCount + 1, 10.0f);
 
@@ -266,8 +267,9 @@ void Scene::BuildEditList(float deltaTime, bool async)
 	}
 	*/
 
-	SDFEditList editList(6, 8.0f);
-	editList.AddEdit(SDFEdit::CreateSphere({  0.0f, 1.50f, 0.0f }, 0.5f, SDF_OP_UNION));
+	SDFEditList editList(3, 8.0f);
+
+	editList.AddEdit(SDFEdit::CreateBox({ 0.0f, 1.50f, 0.0f }, { 0.5f, 0.5f, 0.5f }, SDF_OP_UNION));
 	editList.AddEdit(SDFEdit::CreateSphere({ -1.0f, 0.0f, 0.0f }, 1.0f, SDF_OP_SMOOTH_UNION, m_SphereBlend));
 	editList.AddEdit(SDFEdit::CreateSphere({  1.0f, 0.0f, 0.0f }, 1.0f, SDF_OP_SMOOTH_UNION, m_SphereBlend));
 

@@ -34,7 +34,14 @@ bool SDFEditList::AddEdit(const SDFEdit& edit)
 SDFEditData SDFEditList::BuildEditData(const SDFEdit& edit)
 {
 	SDFEditData primitiveData;
-	primitiveData.InvWorldMat = XMMatrixTranspose(XMMatrixInverse(nullptr, edit.PrimitiveTransform.GetWorldMatrix()));
+
+	// Store the inverse rotation and inverse translation because the inverse transformation is performed to evaluate an edit
+	const XMVECTOR rotQuaternion = XMQuaternionRotationRollPitchYaw(edit.PrimitiveTransform.GetPitch(), edit.PrimitiveTransform.GetYaw(), edit.PrimitiveTransform.GetRoll());
+	XMStoreFloat4(&primitiveData.InvRotation, XMQuaternionInverse(rotQuaternion));
+
+	const XMVECTOR translation = edit.PrimitiveTransform.GetTranslation();
+	XMStoreFloat3(&primitiveData.InvTranslation, -translation);
+
 	primitiveData.Scale = edit.PrimitiveTransform.GetScale();
 
 	primitiveData.PrimitivesAndDependencies = (edit.Shape & 0x000000FF) | ((edit.Operation << 8) & 0x0000FF00);

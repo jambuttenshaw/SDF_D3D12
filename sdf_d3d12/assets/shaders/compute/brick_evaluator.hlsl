@@ -68,7 +68,7 @@ float EvaluateEditList(float3 p, uint GI)
 		for (uint edit = 0; edit < min(MAX_EDITS_CHUNK, editsRemaining); edit++)
 		{
 			// apply primitive transform
-			const float3 p_transformed = opTransform(p, gs_Edits[edit].InvWorldMat) / gs_Edits[edit].Scale;
+			const float3 p_transformed = opTransform(p, gs_Edits[edit].InvRotation, gs_Edits[edit].InvTranslation) / gs_Edits[edit].Scale;
 		
 			// evaluate primitive
 			float dist = sdPrimitive(p_transformed, GetShape(gs_Edits[edit].PrimitivesAndDependencies), gs_Edits[edit].ShapeParams);

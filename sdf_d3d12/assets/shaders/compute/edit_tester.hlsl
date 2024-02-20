@@ -52,7 +52,7 @@ bool IsEditSet(uint index)
 float EvaluateEdit(SDFEditData edit, float3 p)
 {
 	// apply primitive transform
-	const float3 p_transformed = opTransform(p, edit.InvWorldMat) / edit.Scale;
+	const float3 p_transformed = opTransform(p, edit.InvRotation, edit.InvTranslation) / edit.Scale;
 		
 	// evaluate primitive
 	float dist = sdPrimitive(p_transformed, GetShape(edit.PrimitivesAndDependencies), edit.ShapeParams);
