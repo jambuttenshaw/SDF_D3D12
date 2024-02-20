@@ -64,31 +64,26 @@ Scene::Scene()
 	{
 		// Set up acceleration structure
 		constexpr D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
-		m_AccelerationStructure = std::make_unique<RaytracingAccelerationStructureManager>(s_InstanceCount);
+		m_AccelerationStructure = std::make_unique<RaytracingAccelerationStructureManager>(1);
 
 		for (const auto& geometry : m_SceneGeometry)
 		{
 			m_AccelerationStructure->AddBottomLevelAS(buildFlags, geometry, true, true);
 		}
 
-		// Create instances of BLAS
-		for (UINT i = 0; i < s_InstanceCount; i++)
-		{
-				auto rotation = XMMatrixRotationRollPitchYaw(
-					XMConvertToRadians(Random::Float(360.0f)),
-					XMConvertToRadians(Random::Float(360.0f)),
-					XMConvertToRadians(Random::Float(360.0f))
-				);
-				m_InstanceRotations[i] = rotation;
-				m_InstanceRotationDeltas[i] = {
-					Random::Float(-0.2f, 0.2f),
-					Random::Float(-0.2f, 0.2f),
-					Random::Float(-0.2f, 0.2f)
-				};
+		m_InstanceRotation = XMMatrixRotationRollPitchYaw(
+			XMConvertToRadians(Random::Float(360.0f)),
+			XMConvertToRadians(Random::Float(360.0f)),
+			XMConvertToRadians(Random::Float(360.0f))
+		);
+		m_InstanceRotationDelta = {
+			Random::Float(-0.2f, 0.2f),
+			Random::Float(-0.2f, 0.2f),
+			Random::Float(-0.2f, 0.2f)
+		};
 
-				const auto& geoName = m_SceneGeometry.at(i % m_SceneGeometry.size()).Name;
-				m_AccelerationStructure->AddBottomLevelASInstance(geoName, XMMatrixIdentity(), 1);
-		}
+		const auto& geoName = m_SceneGeometry.at(0).Name;
+		m_AccelerationStructure->AddBottomLevelASInstance(geoName, m_InstanceRotation, 1);
 
 		// Init top level AS
 		m_AccelerationStructure->InitializeTopLevelAS(buildFlags, true, true, L"Top Level Acceleration Structure");
@@ -109,16 +104,13 @@ void Scene::OnUpdate(float deltaTime)
 	// Manipulate objects in the scene
 	if (m_RotateInstances)
 	{
-		for (UINT i = 0; i < s_InstanceCount; i++)
-		{
-			// Update rotation
-			auto rotation = m_InstanceRotations[i];
-			auto d = m_InstanceRotationDeltas[i];
-			rotation = rotation * XMMatrixRotationRollPitchYaw(d.x * deltaTime, d.y * deltaTime, d.z * deltaTime);
-			m_InstanceRotations[i] = rotation;
+		// Update rotation
+		m_InstanceRotation = m_InstanceRotation * XMMatrixRotationRollPitchYaw(
+			m_InstanceRotationDelta.x * deltaTime,
+			m_InstanceRotationDelta.y * deltaTime, 
+			m_InstanceRotationDelta.z * deltaTime);
 
-			m_AccelerationStructure->SetInstanceTransform(i, rotation);
-		}
+		m_AccelerationStructure->SetInstanceTransform(0, m_InstanceRotation);
 	}
 
 	if (m_Rebuild)
@@ -153,7 +145,7 @@ bool Scene::ImGuiSceneInfo()
 
 		ImGui::Separator();
 
-		ImGui::Text("Instance Count: %d", s_InstanceCount);
+		ImGui::Text("Instance Count: %d", 1);
 
 		ImGui::Separator();
 
@@ -223,7 +215,7 @@ void Scene::BuildEditList(float deltaTime, bool async)
 	static float t = 0.0f;
 	t += deltaTime * m_TimeScale;
 
-	SDFEditList editList(m_SphereCount, 10.0f);
+	SDFEditList editList(m_SphereCount, 8.0f);
 	for (UINT i = 0; i < m_SphereCount; i++)
 	{
 		Transform transform;

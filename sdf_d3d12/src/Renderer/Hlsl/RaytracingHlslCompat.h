@@ -55,6 +55,9 @@ struct PassConstantBuffer
 
 	float TotalTime;
 	float DeltaTime;
+
+	UINT HeatmapQuantization;
+	float HeatmapHueRange;
 };
 
 

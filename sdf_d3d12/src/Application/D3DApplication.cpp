@@ -79,7 +79,7 @@ void D3DApplication::OnRender()
 	PIXBeginEvent(PIX_COLOR_INDEX(1), L"App Render");
 
 	// Update constant buffer
-	m_GraphicsContext->UpdatePassCB(&m_Timer, &m_Camera, m_RenderFlags);
+	m_GraphicsContext->UpdatePassCB(&m_Timer, &m_Camera, m_RenderFlags, m_HeatmapQuantization, m_HeatmapHueRange);
 
 	// Begin drawing
 	m_GraphicsContext->StartDraw();
@@ -241,7 +241,7 @@ bool D3DApplication::ImGuiApplicationInfo()
 
 		ImGui::Separator();
 		{
-			auto RenderFlagOption = [&](const char* name, UINT value)
+			auto RenderFlagOption = [&](const char* name, UINT value)-> bool
 				{
 					bool flag = m_RenderFlags & value;
 					if (ImGui::Checkbox(name, &flag))
@@ -250,7 +250,11 @@ bool D3DApplication::ImGuiApplicationInfo()
 							m_RenderFlags |= value;
 						else
 							m_RenderFlags &= ~value;
-					}};
+						return true;
+					}
+					return false;
+				};
+
 			ImGui::Text("Display Options");
 			RenderFlagOption("Bounding Box", RENDER_FLAG_DISPLAY_BOUNDING_BOX);
 			if (m_RenderFlags & RENDER_FLAG_DISPLAY_BOUNDING_BOX)
@@ -275,6 +279,17 @@ bool D3DApplication::ImGuiApplicationInfo()
 				m_Raytracer->SetCurrentSampler(static_cast<Raytracer::GlobalSamplerType>(currentSampler));
 			}
 		}
+
+		ImGui::Separator();
+
+		ImGui::Text("Heatmap");
+
+		int heatmap = static_cast<int>(m_HeatmapQuantization);
+		if (ImGui::InputInt("Quantization", &heatmap))
+		{
+			m_HeatmapQuantization = static_cast<UINT>(heatmap);
+		}
+		ImGui::SliderFloat("Hue Range", &m_HeatmapHueRange, 0.0f, 1.0f);
 
 		ImGui::End();
 	}

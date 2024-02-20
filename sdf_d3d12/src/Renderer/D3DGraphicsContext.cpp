@@ -220,7 +220,7 @@ void D3DGraphicsContext::CopyRaytracingOutput(ID3D12Resource* raytracingOutput) 
 }
 
 
-void D3DGraphicsContext::UpdatePassCB(GameTimer* timer, Camera* camera, UINT flags)
+void D3DGraphicsContext::UpdatePassCB(GameTimer* timer, Camera* camera, UINT flags, UINT heatmapQuantization, float heatmapHueRange)
 {
 	ASSERT(timer, "Must use a valid timer!");
 	ASSERT(camera, "Must use a valid camera!");
@@ -249,6 +249,9 @@ void D3DGraphicsContext::UpdatePassCB(GameTimer* timer, Camera* camera, UINT fla
 
 	m_MainPassCB.TotalTime = timer->GetTimeSinceReset();
 	m_MainPassCB.DeltaTime = timer->GetDeltaTime();
+
+	m_MainPassCB.HeatmapQuantization = heatmapQuantization;
+	m_MainPassCB.HeatmapHueRange = heatmapHueRange;
 
 	m_CurrentFrameResources->CopyPassData(m_MainPassCB);
 }

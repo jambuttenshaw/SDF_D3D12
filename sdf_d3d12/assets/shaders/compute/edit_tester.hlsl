@@ -59,7 +59,7 @@ float EvaluateEdit(SDFEditData edit, float3 p)
 	dist *= edit.Scale;
 
 	// Apply blending range for smooth edits
-	dist -= IsSmoothPrimitive(edit.PrimitivesAndDependencies) * edit.BlendingRange;
+	dist -= 1.74f /* sqrt(3) */ * IsSmoothPrimitive(edit.PrimitivesAndDependencies) * edit.BlendingRange;
 
 	return dist;
 }

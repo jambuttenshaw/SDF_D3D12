@@ -243,20 +243,11 @@ void MyIntersectionShader()
 [shader("closesthit")]
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 {
-	if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_HEATMAP)
+	if (g_PassCB.Flags & (RENDER_FLAG_DISPLAY_BRICK_EDIT_COUNT | RENDER_FLAG_DISPLAY_HEATMAP | RENDER_FLAG_DISPLAY_BRICK_INDEX))
 	{
-		payload.color = float4(RGBFromHSV(float3(0.25f - (attr.utility) / 64.0f, 1.0f, 1.0f)), 1.0f);
-	}
-	else if (g_PassCB.Flags & (RENDER_FLAG_DISPLAY_BRICK_INDEX))
-	{
-		payload.color = float4(RGBFromHSV(float3(frac(attr.utility / 64.0f), 1, 0.5f + 0.5f * frac(attr.utility / 256.0f))), 1.0f);
-	}
-	else if (g_PassCB.Flags & (RENDER_FLAG_DISPLAY_BRICK_EDIT_COUNT))
-	{
-		const float maxEditsCountDisplay = 8.0f;
+		const float i = saturate((attr.utility - 1.0f) / g_PassCB.HeatmapQuantization);
+		const float hue = g_PassCB.HeatmapHueRange * (1.0f - i);
 
-		const float i = min(attr.utility, maxEditsCountDisplay) - 1.0f;
-		const float hue = 0.25f - i / (2 * maxEditsCountDisplay);
 		payload.color = float4(RGBFromHSV(float3(hue, 1, 1)), 1.0f);
 	}
 	else if (g_PassCB.Flags & (RENDER_FLAG_DISPLAY_NORMALS | RENDER_FLAG_DISPLAY_BOUNDING_BOX))

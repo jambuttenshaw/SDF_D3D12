@@ -48,13 +48,11 @@ private:
 	std::unique_ptr<SDFObject> m_BlobObject;
 
 	// Demo Scene
-	inline static constexpr UINT s_InstanceCount = 1;
-
-	XMMATRIX m_InstanceRotations[s_InstanceCount];
-	XMFLOAT3 m_InstanceRotationDeltas[s_InstanceCount];
+	XMMATRIX m_InstanceRotation;
+	XMFLOAT3 m_InstanceRotationDelta;
 
 	// GUI controls
-	bool m_RotateInstances = false;
+	bool m_RotateInstances = true;
 	bool m_Rebuild = false;
 	bool m_AsyncConstruction = false;
 	bool m_EnableEditCulling = true;
@@ -66,7 +64,7 @@ private:
 		XMFLOAT3 scale;
 		XMFLOAT3 speed;
 	};
-	UINT m_SphereCount = 32;
+	UINT m_SphereCount = 128;
 	std::vector<SphereData> m_SphereData;
-	float m_SphereBlend = 0.2f;
+	float m_SphereBlend = 1.0f;
 };

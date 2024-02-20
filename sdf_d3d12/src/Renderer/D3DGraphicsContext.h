@@ -44,7 +44,7 @@ public:
 	void CopyRaytracingOutput(ID3D12Resource* raytracingOutput) const;
 
 	// Updating constant buffers
-	void UpdatePassCB(GameTimer* timer, Camera* camera, UINT flags);
+	void UpdatePassCB(GameTimer* timer, Camera* camera, UINT flags, UINT heatmapQuantization, float heatmapHueRange);
 	D3D12_GPU_VIRTUAL_ADDRESS GetPassCBAddress() const;
 
 	void DeferRelease(const ComPtr<IUnknown>& resource) const;
