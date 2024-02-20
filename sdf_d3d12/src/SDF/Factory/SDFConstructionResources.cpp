@@ -47,7 +47,9 @@ void SDFConstructionResources::AllocateResources(UINT brickCapacity, const SDFEd
 		}
 
 		m_BrickUpload.Allocate(device, 64, 0, L"Brick upload");
-		m_CounterReadback.Allocate(device, 1, 0, L"Counters Readback");
+		m_BrickCounterReadback.Allocate(device, 1, 0, L"Brick Counter Readback");
+
+		m_IndexCounterReadback.Allocate(device, 1, 0, L"Index Counter Readback");
 
 		m_CommandBuffer.Allocate(device, s_NumCommands * sizeof(D3D12_DISPATCH_ARGUMENTS), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, L"Indirect Dispatch Command Buffer");
 	}
@@ -86,8 +88,7 @@ void SDFConstructionResources::AllocateResources(UINT brickCapacity, const SDFEd
 		}
 
 		// Upload only needs to contain data for the first 64 bricks
-		const UINT indexUploadCapacity = editList.GetEditCount();
-		m_IndexUpload.Allocate(device, indexUploadCapacity, 0, L"Index Upload");
+		m_IndexUpload.Allocate(device, editList.GetEditCount(), 0, L"Index Upload");
 
 		// Populate index buffer
 		for (UINT edit = 0; edit < editList.GetEditCount(); edit++)

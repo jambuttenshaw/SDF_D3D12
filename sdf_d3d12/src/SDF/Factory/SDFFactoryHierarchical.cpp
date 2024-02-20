@@ -462,9 +462,9 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(const std::wstring& pipe
 		// Read counter value
 
 		// It is only save to read the counter value after the GPU has finished its work
-		const UINT brickCount = m_Resources.GetCounterReadbackBuffer().ReadElement(0);
+		const UINT brickCount = m_Resources.GetBrickCounterReadbackBuffer().ReadElement(0);
 		const float brickSize = m_Resources.GetBrickBuildParams().BrickSize;
-		const UINT64 indexCount = m_Resources.GetReadIndexBuffer().GetResource()->GetDesc().Width / sizeof(UINT16);
+		const UINT64 indexCount = m_Resources.GetIndexCounterReadbackBuffer().ReadElement(0);
 		object->AllocateOptimalResources(brickCount, brickSize, indexCount, SDFObject::RESOURCES_WRITE);
 
 		// Update build data required for the next stage
@@ -563,7 +563,6 @@ void SDFFactoryHierarchical::BuildCommandList_Setup(const PipelineSet& pipeline,
 	}
 
 	// Set initial counter values
-	resources.GetIndexCounter().SetValue(m_CommandList.Get(), m_CounterUploadZero.GetResource(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	resources.GetReadBrickCounter().SetValue(m_CommandList.Get(), m_CounterUpload64.GetResource(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 	resources.GetWriteBrickCounter().SetValue(m_CommandList.Get(), m_CounterUploadZero.GetResource(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
@@ -572,7 +571,8 @@ void SDFFactoryHierarchical::BuildCommandList_Setup(const PipelineSet& pipeline,
 		const D3D12_RESOURCE_BARRIER barriers[] = {
 			CD3DX12_RESOURCE_BARRIER::Transition(resources.GetSubBrickCountBuffer().GetResource(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
 			CD3DX12_RESOURCE_BARRIER::Transition(resources.GetBlockPrefixSumsBuffer().GetResource(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
-			CD3DX12_RESOURCE_BARRIER::Transition(resources.GetPrefixSumsBuffer().GetResource(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
+			CD3DX12_RESOURCE_BARRIER::Transition(resources.GetPrefixSumsBuffer().GetResource(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
+			CD3DX12_RESOURCE_BARRIER::Transition(resources.GetIndexCounter().GetResource(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
 		};
 		m_CommandList->ResourceBarrier(ARRAYSIZE(barriers), barriers);
 	}
@@ -739,6 +739,8 @@ void SDFFactoryHierarchical::BuildCommandList_HierarchicalBrickBuilding(const Pi
 		m_CommandList->CopyBufferRegion(resources.GetCommandBuffer().GetResource(), 0, resources.GetWriteBrickCounter().GetResource(), 0, sizeof(UINT32));
 		// Reset the other counter to 0
 		resources.GetReadBrickCounter().SetValue(m_CommandList.Get(), m_CounterUploadZero.GetResource(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+		// Reset index counter to 0
+		resources.GetIndexCounter().SetValue(m_CommandList.Get(), m_CounterUploadZero.GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
 		PIXEndEvent(m_CommandList.Get());
 		PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(49), L"Cull edits");
@@ -770,17 +772,7 @@ void SDFFactoryHierarchical::BuildCommandList_HierarchicalBrickBuilding(const Pi
 		{
 			D3D12_RESOURCE_BARRIER barriers[] = {
 				CD3DX12_RESOURCE_BARRIER::UAV(resources.GetWriteBrickBuffer().GetResource()),
-				CD3DX12_RESOURCE_BARRIER::UAV(resources.GetWriteIndexBuffer().GetResource()),
 				CD3DX12_RESOURCE_BARRIER::UAV(resources.GetIndexCounter().GetResource()),
-			};
-			m_CommandList->ResourceBarrier(ARRAYSIZE(barriers), barriers);
-		}
-
-		// Reset index counter to 0
-		resources.GetIndexCounter().SetValue(m_CommandList.Get(), m_CounterUploadZero.GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-
-		{
-			D3D12_RESOURCE_BARRIER barriers[] = {
 				CD3DX12_RESOURCE_BARRIER::Transition(resources.GetReadIndexBuffer().GetResource(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
 				CD3DX12_RESOURCE_BARRIER::Transition(resources.GetWriteIndexBuffer().GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE),
 				CD3DX12_RESOURCE_BARRIER::Transition(resources.GetWriteBrickCounter().GetResource(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE),
@@ -797,7 +789,11 @@ void SDFFactoryHierarchical::BuildCommandList_HierarchicalBrickBuilding(const Pi
 
 	// Once all bricks have been built,
 	// copy the final number of bricks back to the CPU for the next stage
-	resources.GetReadBrickCounter().ReadValue(m_CommandList.Get(), resources.GetCounterReadbackBuffer().GetResource(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	resources.GetReadBrickCounter().ReadValue(m_CommandList.Get(), resources.GetBrickCounterReadbackBuffer().GetResource(), 
+		D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	// Also copy the final number of indices
+	resources.GetIndexCounter().ReadValue(m_CommandList.Get(), resources.GetIndexCounterReadbackBuffer().GetResource(), 
+		D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
 	PIXEndEvent(m_CommandList.Get());
 }
@@ -847,7 +843,7 @@ void SDFFactoryHierarchical::BuildCommandList_BrickEvaluation(const PipelineSet&
 		}
 		{
 			// Copy index data from temp buffer into objects brick buffer
-			const UINT64 numBytes = resources.GetReadIndexBuffer().GetResource()->GetDesc().Width;
+			const UINT64 numBytes = object->GetIndexBuffer(SDFObject::RESOURCES_WRITE)->GetDesc().Width;
 			m_CommandList->CopyBufferRegion(object->GetIndexBuffer(SDFObject::RESOURCES_WRITE), 0, resources.GetReadIndexBuffer().GetResource(), 0, numBytes);
 		}
 
