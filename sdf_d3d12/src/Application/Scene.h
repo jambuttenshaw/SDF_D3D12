@@ -54,8 +54,8 @@ private:
 	// GUI controls
 	bool m_RotateInstances = true;
 	bool m_Rebuild = true;
-	bool m_AsyncConstruction = true;
+	bool m_AsyncConstruction = false;
 	bool m_EnableEditCulling = true;
 
-	float m_TimeScale = 0.5f;
+	float m_TimeScale = 0.0f;
 };

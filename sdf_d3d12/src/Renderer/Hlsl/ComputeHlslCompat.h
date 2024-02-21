@@ -61,6 +61,14 @@ struct SDFEditData
 
 // Constant buffer types
 
+struct EditDependencyParameters
+{
+	UINT SDFEditCount;
+	// Can be computed from the SDF Edit Count:
+	// Max Dependencies = edits * (edits - 1) / 2
+	UINT DependencyPairsCount;
+};
+
 struct BrickEvaluationConstantBuffer
 {
 	// Object-space size of a brick

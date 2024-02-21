@@ -148,16 +148,11 @@ void D3DApplication::InitImGui() const
 		style.WindowRounding = 0.0f;
 		style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 	}
-#ifdef _DEBUG
-	// I have no clue why imgui shrinks in debug mode
+
 	style.ScaleAllSizes(1.5f);
 
 	const auto font = io.Fonts->AddFontFromFileTTF("assets/fonts/Cousine-Regular.ttf", 18);
 	io.FontDefault = font;
-#else
-	const auto font = io.Fonts->AddFontFromFileTTF("assets/fonts/Cousine-Regular.ttf", 13);
-	io.FontDefault = font;
-#endif
 
 	// Setup platform and renderer back-ends
 	ImGui_ImplWin32_Init(Win32Application::GetHwnd());

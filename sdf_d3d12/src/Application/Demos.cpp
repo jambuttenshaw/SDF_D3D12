@@ -42,7 +42,7 @@ struct DropsDemoData
 	};
 	UINT SphereCount = 256;
 	std::vector<SphereData> Spheres;
-	float SphereBlend = 0.5f;
+	float SphereBlend = 0.7f;
 	float Time = 0.0f;
 };
 

@@ -239,7 +239,7 @@ void SDFFactoryHierarchical::CreatePipelineSet(const std::wstring& name, const s
 		using namespace EditDependencySignature;
 
 		CD3DX12_ROOT_PARAMETER1 rootParams[Count];
-		rootParams[ParametersSlot].InitAsConstants(1, 0);
+		rootParams[ParametersSlot].InitAsConstants(SizeOfInUint32(EditDependencyParameters), 0);
 		rootParams[EditListSlot].InitAsUnorderedAccessView(0);
 		rootParams[DependencyIndicesSlot].InitAsUnorderedAccessView(1);
 
@@ -512,13 +512,17 @@ void SDFFactoryHierarchical::BuildCommandList_Setup(const PipelineSet& pipeline,
 
 		const UINT editCount = resources.GetBrickBuildParams().SDFEditCount;
 
-		m_CommandList->SetComputeRoot32BitConstant(EditDependencySignature::ParametersSlot, editCount, 0);
+		EditDependencyParameters params;
+		params.SDFEditCount = editCount;
+		params.DependencyPairsCount = editCount * (editCount + 1) / 2;
+
+		m_CommandList->SetComputeRoot32BitConstants(EditDependencySignature::ParametersSlot, SizeOfInUint32(EditDependencyParameters), &params, 0);
 		m_CommandList->SetComputeRootUnorderedAccessView(EditDependencySignature::EditListSlot, resources.GetEditBuffer().GetAddress());
 		m_CommandList->SetComputeRootUnorderedAccessView(EditDependencySignature::DependencyIndicesSlot, resources.GetEditDependencyBuffer().GetAddress());
 
 		// Calculate thread groups
-		// One thread for each edit
-		const UINT threadGroupX = (editCount + EDIT_DEPENDENCY_THREAD_COUNT - 1) / EDIT_DEPENDENCY_THREAD_COUNT;
+		// One thread for each pair
+		const UINT threadGroupX = (params.DependencyPairsCount + EDIT_DEPENDENCY_THREAD_COUNT - 1) / EDIT_DEPENDENCY_THREAD_COUNT;
 		m_CommandList->Dispatch(threadGroupX, 1, 1);
 			
 		{

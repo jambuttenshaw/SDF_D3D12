@@ -121,6 +121,9 @@
       </EntryPointSymbol>
       <AdditionalLibraryDirectories>vendor/PIX/bin/x64/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
+    <Manifest>
+      <EnableDpiAwareness>true</EnableDpiAwareness>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -146,6 +149,9 @@
       </EntryPointSymbol>
       <AdditionalLibraryDirectories>vendor/PIX/bin/x64/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
+    <Manifest>
+      <EnableDpiAwareness>true</EnableDpiAwareness>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\Application\BaseApplication.cpp" />

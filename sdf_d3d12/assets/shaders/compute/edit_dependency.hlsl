@@ -8,11 +8,7 @@
 #include "../../../src/Renderer/Hlsl/ComputeHlslCompat.h"
 
 
-struct Parameters
-{
-	UINT SDFEditCount;
-};
-ConstantBuffer<Parameters> g_Parameters : register(b0);
+ConstantBuffer<EditDependencyParameters> g_Parameters : register(b0);
 
 RWStructuredBuffer<SDFEditData> g_EditList : register(u0);
 RWStructuredBuffer<uint16_t> g_DependencyIndices : register(u1);
@@ -37,39 +33,56 @@ float EvaluateBoundingSphere(SDFEditData edit, float3 p)
 [numthreads(EDIT_DEPENDENCY_THREAD_COUNT, 1, 1)]
 void main(uint3 DTid : SV_DispatchThreadID)
 {
-	if (DTid.x >= g_Parameters.SDFEditCount)
+	if (DTid.x >= g_Parameters.DependencyPairsCount)
 		return;
 
-	SDFEditData edit1 = g_EditList.Load(DTid.x);
-	uint dependencies = 0;
+	// Work out which pair of edits that this thread will compare
 
-	if (IsSmoothPrimitive(edit1.PrimitivesAndDependencies))
+	// Index A will be the largest triangular number less than DTid
+	// Index B will be DTid - Index A
+
+	// Largest triangular number less than a natural number:
+	// https://math.stackexchange.com/questions/1417579/largest-triangular-number-less-than-a-given-natural-number.
+
+	// This formula will calculate pairs of indices such that every possible dependent pair will be processed
+	// In this table, the column is indexA, row indexB, and value is DTid.x
+	//
+	//   | 0 1 2 3 4 
+	// --+-----------
+	// 0 | x 0 1 3 6 
+	// 1 | x x 2 4 7
+	// 2 | x x x 5 8
+	// 3 | x x x x 9
+	// 4 | x x x x x
+
+	const float x = 0.5f * (1.0f + sqrt(8.0f * DTid.x + 2.0f));
+	const uint indexA = floor(x);
+	const uint indexB = floor(indexA * frac(x));
+
+	// Load editA, and only process if it is a smooth edit
+	// Hard edits will not have dependencies
+	const SDFEditData editA = g_EditList.Load(indexA);
+
+	if (IsSmoothPrimitive(editA.PrimitivesAndDependencies))
 	{
-		const uint baseIndex = DTid.x * (DTid.x - 1) / 2;
-
 		// get the world-space position of this edit
-		const float3 p1 = -edit1.InvTranslation;
-		const float d1 = EvaluateBoundingSphere(edit1, p1);
+		const float3 pA = -editA.InvTranslation;
+		const float dA = EvaluateBoundingSphere(editA, pA);
 
-		for (uint i = 0; i < DTid.x; i++)
+		// evaluate the distance to edit2
+		const SDFEditData edit2 = g_EditList.Load(indexB);
+		const float d2 = EvaluateBoundingSphere(edit2, pA);
+		// Check if they are close enough to be dependent
+		if (d2 - dA <= editA.BlendingRange)
 		{
-			// Compare against another edit to determine if they overlap
-			// The bounding sphere is used 
-			const SDFEditData edit2 = g_EditList.Load(i);
+			uint dependencies;
+			// 0x00010000 is added as dependencies is stored in the upper 16 bits of the variable
+			InterlockedAdd(g_EditList[indexA].PrimitivesAndDependencies, 0x00010000, dependencies);
 
-			const float d2 = EvaluateBoundingSphere(edit2, p1);
-			if (d2 - d1 <= edit1.BlendingRange)
-			{
-				g_DependencyIndices[baseIndex + dependencies] = (uint16_t)(i);
-				dependencies++;
-			}
+			const uint dependencyIndex = dependencies >> 16;
+			g_DependencyIndices[dependencyIndex] = (uint16_t)(indexB);
 		}
 	}
-
-	// Store dependencies in the upper 16 bits
-	// There can be a max of 1023 dependencies for any one edit - only 10 bits required
-	edit1.PrimitivesAndDependencies |= (dependencies << 16) & 0xFFFF0000;
-	g_EditList[DTid.x] = edit1;
 }
 
 #endif
