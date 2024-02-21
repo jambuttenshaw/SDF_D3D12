@@ -80,7 +80,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
 			InterlockedAdd(g_EditList[indexA].PrimitivesAndDependencies, 0x00010000, dependencies);
 
 			const uint dependencyIndex = dependencies >> 16;
-			g_DependencyIndices[dependencyIndex] = (uint16_t)(indexB);
+			g_DependencyIndices[indexA + dependencyIndex] = (uint16_t)(indexB);
 		}
 	}
 }

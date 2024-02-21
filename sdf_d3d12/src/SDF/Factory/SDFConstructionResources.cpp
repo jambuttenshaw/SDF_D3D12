@@ -39,7 +39,10 @@ void SDFConstructionResources::AllocateResources(UINT brickCapacity, const SDFEd
 		m_Allocated = true;
 
 		m_IndexCounter.Allocate(device, L"Index Counters");
+
 		m_EditDependencies.Allocate(device, 523'776 /* 1024 * (1024 - 1) / 2 */ * sizeof(UINT), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, L"Edit Dependency Indices");
+		m_EditDependenciesUpload.Allocate(device, 523'776, 0, L"Edit Dependency Upload");
+		m_EditDependenciesUpload.SetElements(0, m_EditDependenciesUpload.GetElementCount(), 0);
 
 		for (auto& counter : m_SubBrickCounters)
 		{

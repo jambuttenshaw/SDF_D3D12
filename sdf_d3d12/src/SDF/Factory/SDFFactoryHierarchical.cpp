@@ -503,7 +503,18 @@ void SDFFactoryHierarchical::BuildCommandList_Setup(const PipelineSet& pipeline,
 		{
 			// Transition brick buffer for reading
 			const D3D12_RESOURCE_BARRIER barriers[] = {
-				CD3DX12_RESOURCE_BARRIER::Transition(resources.GetEditDependencyBuffer().GetResource(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
+				CD3DX12_RESOURCE_BARRIER::Transition(resources.GetEditDependencyBuffer().GetResource(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST),
+			};
+			m_CommandList->ResourceBarrier(ARRAYSIZE(barriers), barriers);
+		}
+
+		const UINT64 numBytes = resources.GetEditDependencyUploadBuffer().GetElementCount() * resources.GetEditDependencyUploadBuffer().GetElementStride();
+		m_CommandList->CopyBufferRegion(resources.GetEditDependencyBuffer().GetResource(), 0, resources.GetEditDependencyUploadBuffer().GetResource(), 0, numBytes);
+
+		{
+			// Transition brick buffer for reading
+			const D3D12_RESOURCE_BARRIER barriers[] = {
+				CD3DX12_RESOURCE_BARRIER::Transition(resources.GetEditDependencyBuffer().GetResource(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
 			};
 			m_CommandList->ResourceBarrier(ARRAYSIZE(barriers), barriers);
 		}
@@ -514,7 +525,7 @@ void SDFFactoryHierarchical::BuildCommandList_Setup(const PipelineSet& pipeline,
 
 		EditDependencyParameters params;
 		params.SDFEditCount = editCount;
-		params.DependencyPairsCount = editCount * (editCount + 1) / 2;
+		params.DependencyPairsCount = editCount * (editCount - 1) / 2;
 
 		m_CommandList->SetComputeRoot32BitConstants(EditDependencySignature::ParametersSlot, SizeOfInUint32(EditDependencyParameters), &params, 0);
 		m_CommandList->SetComputeRootUnorderedAccessView(EditDependencySignature::EditListSlot, resources.GetEditBuffer().GetAddress());

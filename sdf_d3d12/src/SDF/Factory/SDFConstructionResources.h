@@ -34,6 +34,7 @@ public:
 	inline CounterResource& GetIndexCounter() { return m_IndexCounter; }
 
 	inline DefaultBuffer& GetEditDependencyBuffer() { return m_EditDependencies; }
+	inline UploadBuffer<UINT16>& GetEditDependencyUploadBuffer() { return m_EditDependenciesUpload; }
 
 	inline BrickBuildParametersConstantBuffer& GetBrickBuildParams() { return m_BuildParamsCB; }
 	inline BrickEvaluationConstantBuffer& GetBrickEvalParams() { return m_BrickEvalCB; }
@@ -65,7 +66,9 @@ protected:
 	SDFEditBuffer m_EditBuffer;
 	std::array<DefaultBuffer, 2> m_IndexBuffers;
 	CounterResource m_IndexCounter;
+
 	DefaultBuffer m_EditDependencies;
+	UploadBuffer<UINT16> m_EditDependenciesUpload;
 
 	// Constant buffers
 	BrickBuildParametersConstantBuffer m_BuildParamsCB;
