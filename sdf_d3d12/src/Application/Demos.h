@@ -40,9 +40,9 @@ private:
 	};
 
 	UINT m_MaxSphereCount = 1022;
-	UINT m_SphereCount = 1;
+	UINT m_SphereCount = 256;
 
 	std::vector<SphereData> m_Spheres;
-	float m_SphereBlend = 0.3f;
+	float m_SphereBlend = 0.4f;
 	float m_Time = 0.0f;
 };

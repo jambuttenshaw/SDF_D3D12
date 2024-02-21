@@ -61,4 +61,5 @@ private:
 	bool m_DisplayDemoGui = true;
 
 	float m_TimeScale = 0.5f;
+	bool m_Paused = false;
 };

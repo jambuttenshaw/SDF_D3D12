@@ -83,7 +83,7 @@ bool DropsDemo::DisplayGUI()
 		ImGui::Separator();
 
 		int sphereCount = static_cast<int>(m_SphereCount);
-		if (ImGui::SliderInt("Spheres", &sphereCount, 1, 512))
+		if (ImGui::SliderInt("Spheres", &sphereCount, 1, 1022))
 		{
 			m_SphereCount = sphereCount;
 		}

@@ -99,7 +99,7 @@ void Scene::OnUpdate(float deltaTime)
 
 	if (m_Rebuild)
 	{
-		BuildEditList(deltaTime, m_AsyncConstruction);
+		BuildEditList(deltaTime * m_TimeScale * !m_Paused, m_AsyncConstruction);
 	}
 
 	PIXEndEvent();
@@ -186,6 +186,7 @@ bool Scene::ImGuiSceneInfo()
 		ImGui::Separator();
 
 		ImGui::DragFloat("Time Scale", &m_TimeScale, 0.01f);
+		ImGui::Checkbox("Paused", &m_Paused);
 
 		ImGui::Separator();
 
@@ -208,7 +209,7 @@ bool Scene::ImGuiSceneInfo()
 
 void Scene::BuildEditList(float deltaTime, bool async)
 {
-	const SDFEditList editList = DropsDemo::Get().BuildEditList(deltaTime * m_TimeScale);
+	const SDFEditList editList = DropsDemo::Get().BuildEditList(deltaTime);
 
 	if (async)
 	{
