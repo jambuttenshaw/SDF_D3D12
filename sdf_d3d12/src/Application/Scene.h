@@ -24,6 +24,7 @@ public:
 	inline RaytracingAccelerationStructureManager* GetRaytracingAccelerationStructure() const { return m_AccelerationStructure.get(); }
 
 	// Draw ImGui Windows
+	void ImGuiSceneMenu();
 	bool ImGuiSceneInfo();
 
 private:
@@ -57,5 +58,7 @@ private:
 	bool m_AsyncConstruction = false;
 	bool m_EnableEditCulling = true;
 
-	float m_TimeScale = 0.0f;
+	bool m_DisplayDemoGui = true;
+
+	float m_TimeScale = 0.5f;
 };

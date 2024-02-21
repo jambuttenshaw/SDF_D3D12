@@ -118,6 +118,16 @@ void Scene::PreRender()
 }
 
 
+void Scene::ImGuiSceneMenu()
+{
+	if (ImGui::BeginMenu("Scene"))
+	{
+		ImGui::MenuItem("Drops Demo", nullptr, &m_DisplayDemoGui);
+
+		ImGui::EndMenu();
+	}
+}
+
 bool Scene::ImGuiSceneInfo()
 {
 	bool open = true;
@@ -187,15 +197,18 @@ bool Scene::ImGuiSceneInfo()
 		ImGui::End();
 	}
 
+	if (m_DisplayDemoGui)
+	{
+		m_DisplayDemoGui = DropsDemo::Get().DisplayGUI();
+	}
+
 	return open;
 }
 
 
 void Scene::BuildEditList(float deltaTime, bool async)
 {
-	PIXBeginEvent(PIX_COLOR_INDEX(10), L"Build Edit List");
-
-	const SDFEditList editList = Demos::DropsDemo(deltaTime * m_TimeScale);
+	const SDFEditList editList = DropsDemo::Get().BuildEditList(deltaTime * m_TimeScale);
 
 	if (async)
 	{
@@ -205,8 +218,6 @@ void Scene::BuildEditList(float deltaTime, bool async)
 	{
 		m_Factory->BakeSDFSync(m_CurrentPipelineName, m_BlobObject.get(), editList);
 	}
-
-	PIXEndEvent();
 }
 
 

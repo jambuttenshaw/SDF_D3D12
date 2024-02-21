@@ -60,6 +60,9 @@ void D3DApplication::OnUpdate()
 	
 				ImGui::EndMenu();
 			}
+
+			m_Scene->ImGuiSceneMenu();
+
 			ImGui::EndMainMenuBar();
 		}
 		if (m_ShowImGuiDemo)

@@ -1,72 +1,58 @@
 #include "pch.h"
 #include "Demos.h"
 
+#include "imgui.h"
 #include "Framework/Math.h"
 
 
-struct DropsDemoData
-{
-	DropsDemoData()
-	{
-		Random::Seed(0);
-		for (UINT i = 0; i < SphereCount; i++)
-		{
-			Spheres.push_back({});
-			SphereData& sphereData = Spheres.at(i);
 
-			sphereData.radius = Random::Float(0.25f, 0.75f);
-			sphereData.scale = {
-				Random::Float(-2.0f, 2.0f),
-				Random::Float(-5.0f, 5.0f),
-				Random::Float(-2.0f, 2.0f)
-			};
-			sphereData.speed = {
-				Random::Float(-1.0f, 1.0f) / sphereData.radius,
-				Random::Float(-1.0f, 1.0f) / sphereData.radius,
-				Random::Float(-1.0f, 1.0f) / sphereData.radius
-			};
-			sphereData.offset = {
-				Random::Float(-3.0f, 3.0f),
-				0.0f,
-				Random::Float(-3.0f, 3.0f)
-			};
-		}
+DropsDemo::DropsDemo()
+{
+	Random::Seed(0);
+	for (UINT i = 0; i < m_MaxSphereCount; i++)
+	{
+		m_Spheres.push_back({});
+		SphereData& sphereData = m_Spheres.at(i);
+
+		sphereData.radius = Random::Float(0.25f, 0.75f);
+		sphereData.scale = {
+			Random::Float(-2.0f, 2.0f),
+			Random::Float(-5.0f, 5.0f),
+			Random::Float(-2.0f, 2.0f)
+		};
+		sphereData.speed = {
+			Random::Float(-1.0f, 1.0f) / sphereData.radius,
+			Random::Float(-1.0f, 1.0f) / sphereData.radius,
+			Random::Float(-1.0f, 1.0f) / sphereData.radius
+		};
+		sphereData.offset = {
+			Random::Float(-3.0f, 3.0f),
+			0.0f,
+			Random::Float(-3.0f, 3.0f)
+		};
 	}
-
-	struct SphereData
-	{
-		XMFLOAT3 scale;
-		XMFLOAT3 speed;
-		XMFLOAT3 offset;
-		float radius;
-	};
-	UINT SphereCount = 256;
-	std::vector<SphereData> Spheres;
-	float SphereBlend = 0.7f;
-	float Time = 0.0f;
-};
+}
 
 
-SDFEditList Demos::DropsDemo(float deltaTime)
+SDFEditList DropsDemo::BuildEditList(float deltaTime)
 {
-	static DropsDemoData data;
-	data.Time += deltaTime;
+	m_Time += deltaTime;
 
-	SDFEditList editList(data.SphereCount + 2, 8.0f);
+	SDFEditList editList(m_SphereCount + 2, 8.0f);
 
 	// Create base
 	editList.AddEdit(SDFEdit::CreateBox({}, { 6.0f, 0.05f, 6.0f }));
 
-	for (UINT i = 0; i < data.SphereCount; i++)
+	for (UINT i = 0; i < m_SphereCount; i++)
 	{
 		Transform transform;
 		transform.SetTranslation(
 			{
-				data.Spheres.at(i).offset.x + data.Spheres.at(i).scale.x * cosf(data.Spheres.at(i).speed.x * data.Time),
-				data.Spheres.at(i).offset.y + data.Spheres.at(i).scale.y * cosf(data.Spheres.at(i).speed.y * data.Time),
-				data.Spheres.at(i).offset.z + data.Spheres.at(i).scale.z * cosf(data.Spheres.at(i).speed.z * data.Time)
+				m_Spheres.at(i).offset.x + m_Spheres.at(i).scale.x * cosf(m_Spheres.at(i).speed.x * m_Time),
+				m_Spheres.at(i).offset.y + m_Spheres.at(i).scale.y * cosf(m_Spheres.at(i).speed.y * m_Time),
+				m_Spheres.at(i).offset.z + m_Spheres.at(i).scale.z * cosf(m_Spheres.at(i).speed.z * m_Time)
 			});
-		editList.AddEdit(SDFEdit::CreateSphere(transform, data.Spheres.at(i).radius, SDF_OP_SMOOTH_UNION, data.SphereBlend));
+		editList.AddEdit(SDFEdit::CreateSphere(transform, m_Spheres.at(i).radius, SDF_OP_SMOOTH_UNION, m_SphereBlend));
 	}
 
 	// Delete anything poking from the bottom
@@ -75,7 +61,43 @@ SDFEditList Demos::DropsDemo(float deltaTime)
 	return editList;
 }
 
+bool DropsDemo::DisplayGUI()
+{
+	bool open = true;
+	if (ImGui::Begin("Drops Demo", &open))
+	{
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
+		ImGui::Text("Stats");
+		ImGui::PopStyleColor();
 
+		ImGui::Separator();
+
+		ImGui::Text("Edit Count: %d", m_SphereCount + 2);
+
+		ImGui::Separator();
+
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
+		ImGui::Text("Controls");
+		ImGui::PopStyleColor();
+
+		ImGui::Separator();
+
+		int sphereCount = static_cast<int>(m_SphereCount);
+		if (ImGui::SliderInt("Spheres", &sphereCount, 1, 512))
+		{
+			m_SphereCount = sphereCount;
+		}
+		ImGui::SliderFloat("Blending", &m_SphereBlend, 0.0f, 1.0f);
+
+		ImGui::Separator();
+		ImGui::End();
+	}
+
+	return true;
+}
+
+
+/*
 SDFEditList Demos::IceCreamDemo(float deltaTime)
 {
 	SDFEditList editList(64, 8.0f);
@@ -100,3 +122,4 @@ SDFEditList Demos::IceCreamDemo(float deltaTime)
 
 	return editList;
 }
+*/

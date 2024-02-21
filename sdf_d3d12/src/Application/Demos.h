@@ -2,14 +2,47 @@
 #include "SDF/SDFEditList.h"
 
 
-class Demos
+class BaseDemo
 {
-	Demos() = delete;
+protected:
+	BaseDemo() = default;
 public:
+	virtual ~BaseDemo() = default;
 
-	static SDFEditList DropsDemo(float deltaTime);
+	DISALLOW_COPY(BaseDemo);
+	DISALLOW_MOVE(BaseDemo);
 
-	static SDFEditList IceCreamDemo(float deltaTime);
+	virtual SDFEditList BuildEditList(float deltaTime) = 0;
+	virtual bool DisplayGUI() = 0;
+};
 
 
+class DropsDemo : public BaseDemo
+{
+	DropsDemo();
+public:
+	static DropsDemo& Get()
+	{
+		static DropsDemo instance;
+		return instance;
+	}
+
+	virtual SDFEditList BuildEditList(float deltaTime) override;
+	virtual bool DisplayGUI() override;
+
+private:
+	struct SphereData
+	{
+		XMFLOAT3 scale;
+		XMFLOAT3 speed;
+		XMFLOAT3 offset;
+		float radius;
+	};
+
+	UINT m_MaxSphereCount = 1022;
+	UINT m_SphereCount = 1;
+
+	std::vector<SphereData> m_Spheres;
+	float m_SphereBlend = 0.3f;
+	float m_Time = 0.0f;
 };
