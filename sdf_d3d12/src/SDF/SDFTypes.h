@@ -4,7 +4,7 @@
 using namespace DirectX;
 
 
-#include "Renderer/Hlsl/ComputeHlslCompat.h"
+#include "HlslCompat/ComputeHlslCompat.h"
 
 
 union SDFShapeProperties

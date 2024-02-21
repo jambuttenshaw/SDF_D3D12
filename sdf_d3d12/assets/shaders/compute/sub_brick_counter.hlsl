@@ -3,7 +3,7 @@
 
 
 #define HLSL
-#include "../../../src/Renderer/Hlsl/ComputeHlslCompat.h"
+#include "../HlslCompat/ComputeHlslCompat.h"
 
 #include "../include/sdf_helper.hlsli"
 

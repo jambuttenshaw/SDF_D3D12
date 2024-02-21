@@ -5,7 +5,7 @@
 #include "../include/sdf_helper.hlsli"
 
 #define HLSL
-#include "../../../src/Renderer/Hlsl/ComputeHlslCompat.h"
+#include "../HlslCompat/ComputeHlslCompat.h"
 
 #define EDIT_TESTING_THREADS 32
 

@@ -2,7 +2,7 @@
 #include "SDFObject.h"
 
 #include "Renderer/D3DGraphicsContext.h"
-#include "Renderer/Hlsl/ComputeHlslCompat.h"
+#include "HlslCompat/ComputeHlslCompat.h"
 
 SDFObject::SDFObject(float minBrickSize, UINT brickCapacity, D3D12_RAYTRACING_GEOMETRY_FLAGS geometryFlags)
 	: m_GeometryFlags(geometryFlags)

@@ -7,7 +7,7 @@
 #include "Renderer/Buffer/StructuredBuffer.h"
 #include "Renderer/Buffer/UploadBuffer.h"
 
-#include "Renderer/Hlsl/ComputeHlslCompat.h"
+#include "HlslCompat/ComputeHlslCompat.h"
 #include "SDF/SDFEditList.h"
 
 // An encapsulation of all temporary resources required to perform an SDF object build

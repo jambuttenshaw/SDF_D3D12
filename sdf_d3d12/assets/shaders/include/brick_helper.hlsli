@@ -2,7 +2,7 @@
 #define BRICKHELPER_H
 
 #define HLSL
-#include "../../../src/Renderer/Hlsl/HlslDefines.h"
+#include "../HlslCompat/HlslDefines.h"
 
 
 // float3 (in range [0,1]) -> 30-bit Morton code

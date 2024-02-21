@@ -3,8 +3,8 @@
 
 
 #define HLSL
-#include "../../../src/Renderer/Hlsl/ComputeHlslCompat.h"
-#include "../../../src/Renderer/Hlsl/RaytracingHlslCompat.h"
+#include "../HlslCompat/ComputeHlslCompat.h"
+#include "../HlslCompat/RaytracingHlslCompat.h"
 
 #include "../include/brick_helper.hlsli"
 

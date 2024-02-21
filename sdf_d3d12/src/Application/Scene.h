@@ -55,7 +55,7 @@ private:
 	// GUI controls
 	bool m_RotateInstances = true;
 	bool m_Rebuild = true;
-	bool m_AsyncConstruction = false;
+	bool m_AsyncConstruction = true;
 	bool m_EnableEditCulling = true;
 
 	bool m_DisplayDemoGui = true;

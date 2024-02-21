@@ -3,7 +3,7 @@
 #include "SDFTypes.h"
 #include "Renderer/Buffer/StructuredBuffer.h"
 #include "Renderer/Buffer/UploadBuffer.h"
-#include "Renderer/Hlsl/ComputeHlslCompat.h"
+#include "HlslCompat/ComputeHlslCompat.h"
 
 
 class SDFEditList

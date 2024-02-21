@@ -2,7 +2,7 @@
 
 #include "Core.h"
 #include "Renderer/Memory/MemoryAllocator.h"
-#include "Renderer/Hlsl/StructureHlslCompat.h"
+#include "HlslCompat/StructureHlslCompat.h"
 #include "Renderer/Buffer/StructuredBuffer.h"
 
 

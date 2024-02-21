@@ -5,7 +5,7 @@
 #include "../include/sdf_helper.hlsli"
 
 #define HLSL
-#include "../../../src/Renderer/Hlsl/ComputeHlslCompat.h"
+#include "../HlslCompat/ComputeHlslCompat.h"
 
 
 ConstantBuffer<EditDependencyParameters> g_Parameters : register(b0);

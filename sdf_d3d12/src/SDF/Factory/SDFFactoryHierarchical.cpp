@@ -7,7 +7,7 @@
 #include "Renderer/Buffer/ReadbackBuffer.h"
 #include "Renderer/Buffer/StructuredBuffer.h"
 
-#include "Renderer/Hlsl/ComputeHlslCompat.h"
+#include "HlslCompat/ComputeHlslCompat.h"
 
 #include "SDF/SDFEditList.h"
 #include "SDF/SDFObject.h"
@@ -304,16 +304,16 @@ void SDFFactoryHierarchical::CreatePipelineSet(const std::wstring& name, const s
 		D3DComputePipelineDesc desc;
 		desc.NumRootParameters = ARRAYSIZE(rootParams);
 		desc.RootParameters = rootParams;
-		desc.Shader = L"assets/shaders/compute/prefix_sum.hlsl";
+		desc.EntryPoint = L"main";
 		desc.Defines = defines;
 
-		desc.EntryPoint = L"scan_blocks";
+		desc.Shader = L"assets/shaders/compute/prefix_sum/scan_blocks.hlsl";
 		pipelineSet[SDFFactoryPipeline::ScanBlocks] = std::make_unique<D3DComputePipeline>(&desc);
 
-		desc.EntryPoint = L"scan_block_sums";
+		desc.Shader = L"assets/shaders/compute/prefix_sum/scan_block_sums.hlsl";
 		pipelineSet[SDFFactoryPipeline::ScanBlockSums] = std::make_unique<D3DComputePipeline>(&desc);
 
-		desc.EntryPoint = L"sum_scans";
+		desc.Shader = L"assets/shaders/compute/prefix_sum/sum_scans.hlsl";
 		pipelineSet[SDFFactoryPipeline::SumScans] = std::make_unique<D3DComputePipeline>(&desc);
 	}
 

@@ -33,7 +33,7 @@ Scene::Scene()
 		m_Factory = std::make_unique<SDFFactoryHierarchicalAsync>();
 
 		// Create SDF objects
-		m_BlobObject = std::make_unique<SDFObject>(0.1f, 250'000);
+		m_BlobObject = std::make_unique<SDFObject>(0.1f, 200'000);
 
 		BuildEditList(0.0f, false);
 	}
@@ -85,6 +85,8 @@ void Scene::OnUpdate(float deltaTime)
 {
 	PIXBeginEvent(PIX_COLOR_INDEX(9), L"Scene Update");
 
+	deltaTime *= !m_Paused;
+
 	// Manipulate objects in the scene
 	if (m_RotateInstances)
 	{
@@ -99,7 +101,7 @@ void Scene::OnUpdate(float deltaTime)
 
 	if (m_Rebuild)
 	{
-		BuildEditList(deltaTime * m_TimeScale * !m_Paused, m_AsyncConstruction);
+		BuildEditList(deltaTime * m_TimeScale, m_AsyncConstruction);
 	}
 
 	PIXEndEvent();

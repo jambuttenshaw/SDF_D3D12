@@ -2,7 +2,7 @@
 #define SDFHELPER_H
 
 #define HLSL
-#include "../../../src/Renderer/Hlsl/ComputeHlslCompat.h"
+#include "../HlslCompat/ComputeHlslCompat.h"
 
 #include "Quaternion.hlsli"
 

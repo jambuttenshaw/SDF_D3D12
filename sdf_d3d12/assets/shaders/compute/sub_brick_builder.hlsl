@@ -5,7 +5,7 @@
 #include "../include/brick_helper.hlsli"
 
 #define HLSL
-#include "../../../src/Renderer/Hlsl/ComputeHlslCompat.h"
+#include "../HlslCompat/ComputeHlslCompat.h"
 
 
 #define BRICK_COUNTING_THREADS 4
