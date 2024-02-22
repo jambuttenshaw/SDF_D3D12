@@ -264,8 +264,11 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 		// Simple phong lighting with directional light
 		const float irradiance = max(0.0f, dot(attr.normal, LIGHT_DIRECTION));
 		const float3 lightColor = LIGHT_AMBIENT + irradiance * LIGHT_DIFFUSE;
+
 		payload.color = float4(lightColor, 1.0f);
 	}
+
+	payload.color.xyz = pow(payload.color.xyz, 0.4545f);
 }
 
 
