@@ -57,8 +57,10 @@ void SDFFactoryHierarchicalAsync::BakeSDFAsync(const std::wstring& pipelineName,
 
 void SDFFactoryHierarchicalAsync::AsyncFactoryThreadProc()
 {
+	const HANDLE hThread = GetCurrentThread();
+	SetThreadDescription(hThread, L"SDF Factory Async Thread");
+
 	LOG_INFO("Async Factory Thread Begin");
-	PIXBeginEvent(PIX_COLOR_INDEX(51), L"Async Compute Thread");
 
 	const auto computeQueue = g_D3DGraphicsContext->GetComputeCommandQueue();
 	const auto directQueue = g_D3DGraphicsContext->GetDirectCommandQueue();
@@ -144,6 +146,5 @@ void SDFFactoryHierarchicalAsync::AsyncFactoryThreadProc()
 		SwitchToThread();
 	}
 
-	PIXEndEvent();
 	LOG_INFO("Async Factory Thread Terminated");
 }

@@ -27,7 +27,10 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 int Win32Application::Run(BaseApplication* pApp)
 {
-    HINSTANCE hInstance = GetModuleHandle(NULL);
+    const HINSTANCE hInstance = GetModuleHandle(NULL);
+
+	const HANDLE hThread = GetCurrentThread();
+    SetThreadDescription(hThread, L"Main Thread");
 
     // Parse the command line parameters
     int argc;

@@ -29,7 +29,7 @@ StructuredBuffer<Brick> g_BrickBuffer : register(t2);
 RWTexture3D<float> g_OutputTexture : register(u1);
 
 
-#define MAX_EDITS_CHUNK 64
+#define MAX_EDITS_CHUNK 256
 groupshared SDFEditData gs_Edits[MAX_EDITS_CHUNK];
 groupshared Brick gs_Brick;
 

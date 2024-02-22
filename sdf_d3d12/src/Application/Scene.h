@@ -30,6 +30,8 @@ public:
 private:
 	void BuildEditList(float deltaTime, bool async);
 
+	void ReportCounters() const;
+
 	void CheckSDFGeometryUpdates();
 	void UpdateAccelerationStructure();
 

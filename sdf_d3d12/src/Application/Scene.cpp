@@ -105,6 +105,8 @@ void Scene::OnUpdate(float deltaTime)
 	}
 
 	PIXEndEvent();
+
+	ReportCounters();
 }
 
 void Scene::PreRender()
@@ -220,6 +222,17 @@ void Scene::BuildEditList(float deltaTime, bool async)
 	else
 	{
 		m_Factory->BakeSDFSync(m_CurrentPipelineName, m_BlobObject.get(), editList);
+	}
+}
+
+
+void Scene::ReportCounters() const
+{
+	for (auto& [name, object] : m_SceneGeometry)
+	{
+		// Report object counters
+		std::wstring counterName = name + L" Brick Count";
+		PIXReportCounter(counterName.c_str(), static_cast<float>(object->GetBrickCount(SDFObject::RESOURCES_READ)));
 	}
 }
 
