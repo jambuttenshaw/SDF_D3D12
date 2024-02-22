@@ -32,8 +32,13 @@ int Win32Application::Run(BaseApplication* pApp)
     // Parse the command line parameters
     int argc;
     LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
-    pApp->ParseCommandLineArgs(argv, argc);
+    const bool success = pApp->ParseCommandLineArgs(argv, argc);
     LocalFree(argv);
+
+    if (!success)
+    {
+        return 0;
+    }
 
     // Initialize the window class.
     WNDCLASSEX windowClass = { 0 };
@@ -42,7 +47,7 @@ int Win32Application::Run(BaseApplication* pApp)
     windowClass.lpfnWndProc = WindowProc;
     windowClass.hInstance = hInstance;
     windowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
-    windowClass.lpszClassName = L"DXSampleClass";
+    windowClass.lpszClassName = L"SDFD3D12";
     RegisterClassEx(&windowClass);
 
     RECT windowRect = { 0, 0, static_cast<LONG>(pApp->GetWidth()), static_cast<LONG>(pApp->GetHeight()) };

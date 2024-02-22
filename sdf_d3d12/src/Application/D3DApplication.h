@@ -23,6 +23,8 @@ public:
 	D3DApplication(UINT width, UINT height, const std::wstring& name);
 	virtual ~D3DApplication() override = default;
 
+	virtual bool ParseCommandLineArgs(LPWSTR argv[], int argc) override;
+
 	virtual void OnInit() override;
 	virtual void OnUpdate() override;
 	virtual void OnRender() override;
@@ -59,8 +61,12 @@ private:
 	float m_HeatmapHueRange = 0.33f;
 
 	// GUI
+	bool m_DisableGUI = false;
 	bool m_ShowMainMenuBar = true;
 	bool m_ShowImGuiDemo = false;
 	bool m_ShowApplicationInfo = true;
 	bool m_ShowSceneInfo = true;
+
+	// Should the application toggle fullscreen on the next update
+	bool m_ToggleFullscreen = false;
 };

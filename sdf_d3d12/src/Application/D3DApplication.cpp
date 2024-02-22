@@ -6,6 +6,7 @@
 #include "backends/imgui_impl_win32.h"
 #include "backends/imgui_impl_dx12.h"
 
+#include <args.hxx>
 #include "pix3.h"
 
 
@@ -13,6 +14,62 @@ D3DApplication::D3DApplication(UINT width, UINT height, const std::wstring& name
 	: BaseApplication(width, height, name)
 {
 }
+
+
+// convert wstring to UTF-8 string
+#pragma warning( push )
+#pragma warning( disable : 4244)
+static std::string wstring_to_utf8(const std::wstring& str)
+{
+	return { str.begin(), str.end() };
+}
+#pragma warning( pop ) 
+
+bool D3DApplication::ParseCommandLineArgs(LPWSTR argv[], int argc)
+{
+	// Hacky horrible wstring to string conversion
+	// because the args library doesn't support wstring
+	// and windows only gives wstring
+	std::vector<std::string> args;
+	for (int i = 1; i < argc; i++)
+	{
+		args.emplace_back(wstring_to_utf8(std::wstring(argv[i])));
+	}
+
+	args::ArgumentParser parser("SDF Rendering in DirectX Raytracing");
+	args::HelpFlag help(parser, "help", "Display this help menu", { "help" });
+	args::ValueFlag<int> width(parser, "Width", "Set the window width", { 'w' });
+	args::ValueFlag<int> height(parser, "Height", "Set the window height", { 'h' });
+	args::Flag fullscreen(parser, "Fullscreen", "Start application in fullscreen", { 'f', "fullscreen" });
+	args::Flag noGUI(parser, "No GUI", "Disable GUI", { "no-gui" });
+
+	try
+	{
+		parser.ParseCLI(args);
+	}
+	catch (const args::Help&)
+	{
+		LOG_INFO(parser.Help());
+		return false;
+	}
+	catch (const args::ParseError& e)
+	{
+		LOG_ERROR(e.what());
+		return false;
+	}
+
+	if (width)
+		m_Width = width.Get();
+	if (height)
+		m_Height = height.Get();
+	if (fullscreen)
+		m_ToggleFullscreen = true;
+	if (noGUI)
+		m_DisableGUI = true;
+
+	return true;
+}
+
 
 void D3DApplication::OnInit()
 {
@@ -40,12 +97,18 @@ void D3DApplication::OnInit()
 
 void D3DApplication::OnUpdate()
 {
+	if (m_ToggleFullscreen)
+	{
+		m_ToggleFullscreen = false;
+		Win32Application::ToggleFullscreenWindow(m_GraphicsContext->GetSwapChain());
+	}
+
 	PIXBeginEvent(PIX_COLOR_INDEX(0), L"App Update");
 	BeginUpdate();
 
 	m_Scene->OnUpdate(m_Timer.GetDeltaTime());
 
-	if (m_ShowMainMenuBar)
+	if (m_ShowMainMenuBar && !m_DisableGUI)
 	{
 		if (ImGui::BeginMainMenuBar())
 		{

@@ -16,7 +16,7 @@
 // convert wstring to UTF-8 string
 #pragma warning( push )
 #pragma warning( disable : 4244)
-std::string wstring_to_utf8(const std::wstring& str)
+static std::string wstring_to_utf8(const std::wstring& str)
 {
 	return { str.begin(), str.end() };
 }

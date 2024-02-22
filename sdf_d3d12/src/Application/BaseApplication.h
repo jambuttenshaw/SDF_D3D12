@@ -39,7 +39,8 @@ public:
 	virtual bool GetTearingSupport() const = 0;
 	virtual IDXGISwapChain* GetSwapChain() const = 0;
 
-	virtual void ParseCommandLineArgs(WCHAR* argv[], int argc) {}
+	// Returns if parsing was successful and the application should start
+	virtual bool ParseCommandLineArgs(LPWSTR argv[], int argc) { return true; }
 
 protected:
 	// Callback event to be implemented by client applications
