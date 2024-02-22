@@ -23,10 +23,17 @@ class D3DGraphicsContext;
 extern D3DGraphicsContext* g_D3DGraphicsContext;
 
 
+struct D3DGraphicsContextFlags
+{
+	bool EnableGPUCaptures = false;
+	bool EnableDRED = false;
+};
+
+
 class D3DGraphicsContext
 {
 public:
-	D3DGraphicsContext(HWND window, UINT width, UINT height);
+	D3DGraphicsContext(HWND window, UINT width, UINT height, const D3DGraphicsContextFlags& flags);
 	~D3DGraphicsContext();
 
 	// Disable copying & moving
@@ -125,6 +132,7 @@ private:
 	HWND m_WindowHandle;
 	UINT m_ClientWidth;
 	UINT m_ClientHeight;
+	D3DGraphicsContextFlags m_Flags;
 
 	bool m_WindowedMode = true;
 	bool m_TearingSupport = false;
@@ -145,11 +153,9 @@ private:
 	ComPtr<ID3D12Device> m_Device;
 
 	// Device debug objects
-	inline static constexpr bool s_EnableDRED = true;
 	ComPtr<ID3D12InfoQueue1> m_InfoQueue;
 	DWORD m_MessageCallbackCookie;
 
-	inline static constexpr bool s_EnablePIXCaptures = false;
 	HMODULE m_PIXCaptureModule = nullptr;
 
 	ComPtr<IDXGISwapChain3> m_SwapChain;

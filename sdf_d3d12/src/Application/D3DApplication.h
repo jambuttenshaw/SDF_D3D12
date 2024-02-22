@@ -69,4 +69,5 @@ private:
 
 	// Should the application toggle fullscreen on the next update
 	bool m_ToggleFullscreen = false;
+	D3DGraphicsContextFlags m_GraphicsContextFlags;
 };

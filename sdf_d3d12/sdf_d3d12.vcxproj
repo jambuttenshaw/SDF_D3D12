@@ -111,6 +111,7 @@
       <AdditionalIncludeDirectories>vendor/;src/;vendor/imgui/;vendor/DirectX-Headers/include;vendor/PIX/Include/WinPixEventRuntime;assets/shaders/;vendor/args/</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <Optimization>Disabled</Optimization>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

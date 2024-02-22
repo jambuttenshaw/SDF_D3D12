@@ -15,10 +15,11 @@
 D3DGraphicsContext* g_D3DGraphicsContext = nullptr;
 
 
-D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
+D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height, const D3DGraphicsContextFlags& flags)
 	: m_WindowHandle(window)
 	, m_ClientWidth(width)
 	, m_ClientHeight(height)
+	, m_Flags(flags)
 	, m_BackBufferFormat(DXGI_FORMAT_R8G8B8A8_UNORM)
 {
 	ASSERT(!g_D3DGraphicsContext, "Cannot initialize a second graphics context!");
@@ -27,12 +28,16 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height)
 	LOG_INFO("Creating D3D12 Graphics Context");
 
 	// Init PIX
-	if (s_EnablePIXCaptures)
+	if (m_Flags.EnableGPUCaptures)
 	{
 		m_PIXCaptureModule = PIXLoadLatestWinPixGpuCapturerLibrary();
-		if (!m_PIXCaptureModule)
+		if (m_PIXCaptureModule)
 		{
-			LOG_ERROR("Failed to load PIX capture library.");
+			LOG_INFO("Succesfully loaded PIX GPU capture library.");
+		}
+		else
+		{
+			LOG_ERROR("Failed to load PIX GPU capture library.");
 		}
 	}
 
@@ -338,7 +343,7 @@ void D3DGraphicsContext::CreateAdapter()
 
 	// Enable DRED
 	ComPtr<ID3D12DeviceRemovedExtendedDataSettings1> dredSettings;
-	if (s_EnableDRED && SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&dredSettings))))
+	if (m_Flags.EnableDRED && SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&dredSettings))))
 	{
 		// Turn on AutoBreadcrumbs and Page Fault reporting
 		dredSettings->SetAutoBreadcrumbsEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);

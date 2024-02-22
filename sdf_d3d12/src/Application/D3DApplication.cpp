@@ -38,10 +38,16 @@ bool D3DApplication::ParseCommandLineArgs(LPWSTR argv[], int argc)
 
 	args::ArgumentParser parser("SDF Rendering in DirectX Raytracing");
 	args::HelpFlag help(parser, "help", "Display this help menu", { "help" });
-	args::ValueFlag<int> width(parser, "Width", "Set the window width", { 'w' });
-	args::ValueFlag<int> height(parser, "Height", "Set the window height", { 'h' });
-	args::Flag fullscreen(parser, "Fullscreen", "Start application in fullscreen", { 'f', "fullscreen" });
-	args::Flag noGUI(parser, "No GUI", "Disable GUI", { "no-gui" });
+
+	args::Group windowFlags(parser, "Window Flags");
+	args::ValueFlag<int> width(windowFlags, "Width", "Set the window width", { 'w' });
+	args::ValueFlag<int> height(windowFlags, "Height", "Set the window height", { 'h' });
+	args::Flag fullscreen(windowFlags, "Fullscreen", "Start application in fullscreen", { 'f', "fullscreen" });
+	args::Flag noGUI(windowFlags, "No GUI", "Disable GUI", { "no-gui" });
+
+	args::Group graphicsContextFlags(parser, "Graphics Context Flags");
+	args::Flag enablePIX(graphicsContextFlags, "Enable GPU Captures", "Enable PIX GPU Captures", { "enable-gpu-capture" });
+	args::Flag enableDRED(graphicsContextFlags, "Enable DRED", "Enable Device Removal Extended Data", { "enable-dred" });
 
 	try
 	{
@@ -67,6 +73,11 @@ bool D3DApplication::ParseCommandLineArgs(LPWSTR argv[], int argc)
 	if (noGUI)
 		m_DisableGUI = true;
 
+	if (enablePIX)
+		m_GraphicsContextFlags.EnableGPUCaptures = true;
+	if (enableDRED)
+		m_GraphicsContextFlags.EnableDRED = true;
+
 	return true;
 }
 
@@ -76,7 +87,7 @@ void D3DApplication::OnInit()
 	LOG_INFO("Application startup.");
 
 	// Create graphics context
-	m_GraphicsContext = std::make_unique<D3DGraphicsContext>(Win32Application::GetHwnd(), GetWidth(), GetHeight());
+	m_GraphicsContext = std::make_unique<D3DGraphicsContext>(Win32Application::GetHwnd(), GetWidth(), GetHeight(), m_GraphicsContextFlags);
 
 	InitImGui();
 

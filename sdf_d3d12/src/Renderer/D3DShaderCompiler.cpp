@@ -25,6 +25,8 @@ HRESULT D3DShaderCompiler::CompileFromFileImpl(const wchar_t* file, const wchar_
 	args.push_back(L"-Zi");
 	args.push_back(L"-Od");
 	args.push_back(L"-Qembed_debug");
+#else
+	args.push_back(L"-O3");
 #endif
 
 	args.push_back(L"-E");
