@@ -18,22 +18,18 @@ void Profiler::Create(ID3D12Device* device, const D3DQueue* queue)
 #ifdef NV_PERF_ENABLE_INSTRUMENTATION
 	s_Profiler = std::make_unique<NvProfiler>(device, queue);
 #endif
-
-	if (!s_Profiler)
-	{
-		LOG_ERROR("No profiler was created.");
-	}
 }
 
 
 void Profiler::Destroy()
 {
+	ASSERT(s_Profiler, "No profiler has been created.");
 	LOG_INFO("Destroying profiler...");
 	s_Profiler.reset();
 }
 
 Profiler& Profiler::Get()
 {
-	ASSERT(s_Profiler, "Instrumentation is enabled but Profiler::Create has not been called.");
+	ASSERT(s_Profiler, "No profiler has been created.");
 	return *s_Profiler;
 }

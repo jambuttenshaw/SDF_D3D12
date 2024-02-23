@@ -40,10 +40,10 @@ public:
 #ifdef ENABLE_INSTRUMENTATION
 
 #define PROFILER_CAPTURE_NEXT_FRAME()				::Profiler::Get().CaptureNextFrame()
-
+																		
 #define PROFILER_BEGIN_PASS(name)					::Profiler::Get().BeginPass(name)
 #define PROFILER_END_PASS()							::Profiler::Get().EndPass()
-
+																			
 #define PROFILER_PUSH_RANGE(name)					::Profiler::Get().PushRange(name)
 #define PROFILER_PUSH_CMD_LIST_RANGE(name, ...)		::Profiler::Get().PushRange(name, __VA_ARGS__)
 #define PROFILER_POP_RANGE()						::Profiler::Get().PopRange()
@@ -53,7 +53,7 @@ public:
 
 #define PROFILER_CAPTURE_NEXT_FRAME()				
 
-#define PROFILER_BEGIN_PASS()						
+#define PROFILER_BEGIN_PASS(name)					
 #define PROFILER_END_PASS()							
 
 #define PROFILER_PUSH_RANGE(name)					

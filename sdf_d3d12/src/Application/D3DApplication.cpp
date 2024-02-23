@@ -265,8 +265,6 @@ void D3DApplication::BeginUpdate()
 	// Update camera
 	m_CameraController.Update(deltaTime);
 
-	SetCustomWindowText((std::wstring(L"FPS: ") + std::to_wstring(static_cast<int>(m_Timer.GetFPS()))).c_str());
-
 	// Begin new ImGui frame
 	ImGui_ImplDX12_NewFrame();
 	ImGui_ImplWin32_NewFrame();

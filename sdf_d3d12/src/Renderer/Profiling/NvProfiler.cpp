@@ -1,15 +1,17 @@
 #include "pch.h"
 #include "NvProfiler.h"
 
-#include "Renderer/D3DQueue.h"
 
 #ifdef NV_PERF_ENABLE_INSTRUMENTATION
 
+#include "Renderer/D3DQueue.h"
 #include <nvperf_host_impl.h>
+
+#include <iomanip>
 
 
 const char* Metrics[] = {
-	"gpu__time_duration.sum",
+	"LTS.TriageSCG.lts__average_t_sector_hit_rate_realtime.pct",
 };
 
 
@@ -160,7 +162,13 @@ void NvProfiler::EndPass()
 					"Failed EvaluateToGpuValues.");
 
 				// Output data
-				LOG_INFO("{}: {}", rangeFullName, metricValues[0]);
+				std::stringstream stream;
+				stream << std::fixed << std::setprecision(0) << rangeFullName;
+				for (const auto& metricValue : metricValues)
+				{
+					stream << ", " << metricValue;
+				}
+				LOG_INFO("{}", stream.str());
 			}
 
 			m_InCollection = false;
