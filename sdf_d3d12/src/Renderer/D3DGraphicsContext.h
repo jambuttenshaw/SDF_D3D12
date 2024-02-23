@@ -5,6 +5,7 @@
 
 #include "D3DQueue.h"
 #include "HlslCompat/RaytracingHlslCompat.h"
+#include "Profiling/Profiler.h"
 
 
 using Microsoft::WRL::ComPtr;
@@ -188,4 +189,7 @@ private:
 	
 	// ImGui Resources
 	DescriptorAllocation m_ImGuiResources;
+
+	// Profiling
+	std::unique_ptr<Profiler> m_Profiler;
 };

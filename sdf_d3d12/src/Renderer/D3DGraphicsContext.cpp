@@ -48,6 +48,11 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height, con
 	// Create m_Device resources
 	CreateDevice();
 	CreateCommandQueues();
+
+#ifdef ENABLE_INSTRUMENTATION
+	m_Profiler = Profiler::Create(m_Device.Get(), m_DirectQueue.get());
+#endif
+
 	CreateSwapChain();
 	CreateDescriptorHeaps();
 	CreateCommandAllocator();
@@ -330,6 +335,9 @@ void D3DGraphicsContext::CreateAdapter()
 	UINT dxgiFactoryFlags = 0;
 
 #ifdef _DEBUG
+#ifdef ENABLE_INSTRUMENTATION
+	LOG_WARN("Instrumentation is enabled - debug layer will be disabled.");
+#else
 	// Enable debug layer
 	ComPtr<ID3D12Debug> debugController;
 	if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController))))
@@ -351,7 +359,7 @@ void D3DGraphicsContext::CreateAdapter()
 
 		LOG_INFO("DRED Enabled")
 	}
-
+#endif
 #endif
 
 	THROW_IF_FAIL(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&m_Factory)));

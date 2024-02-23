@@ -19,7 +19,7 @@ private:
 
 // Convenience logging macros
 
-#ifdef _DEBUG
+#ifndef NDEBUG
 
 #define LOG_FATAL(...)	{::Log::GetAppLogger()->critical(__VA_ARGS__); throw;}
 #define LOG_ERROR(...)	::Log::GetAppLogger()->error(__VA_ARGS__);

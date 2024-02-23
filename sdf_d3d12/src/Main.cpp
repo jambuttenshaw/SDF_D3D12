@@ -6,7 +6,7 @@
 // Different subsystems are used for debug vs release
 // This is to enable a console window for logging purposes on debug mode
 
-#ifdef _DEBUG
+#ifndef NDEBUG
 int main()
 #else
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
