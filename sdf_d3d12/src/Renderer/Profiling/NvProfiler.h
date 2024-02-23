@@ -48,7 +48,7 @@ private:
 
     bool m_InCollection = false;
 
-    static constexpr double s_NVPerfWarmupTime = 0.5; // Wait 0.5s to allow the clock to stabilize before beginning to profile.
+    static constexpr double s_NVPerfWarmupTime = 2.0; // Wait 2s to allow the clock to stabilize before beginning to profile.
     static constexpr size_t s_MaxNumRanges = 3;
     static constexpr uint16_t s_NumNestingLevels = 2;
 

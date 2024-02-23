@@ -11,7 +11,9 @@
 
 
 const char* Metrics[] = {
-	"LTS.TriageSCG.lts__average_t_sector_hit_rate_realtime.pct",
+	"sm__throughput.avg.pct_of_peak_sustained_elapsed",
+	"lts__average_t_sector_hit_rate_realtime.pct",
+	"tpc__sm_rf_registers_allocated_shader_cs_realtime.avg.pct_of_peak_sustained_elapsed",
 };
 
 
