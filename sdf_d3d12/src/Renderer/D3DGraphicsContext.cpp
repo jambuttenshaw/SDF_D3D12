@@ -48,11 +48,6 @@ D3DGraphicsContext::D3DGraphicsContext(HWND window, UINT width, UINT height, con
 	// Create m_Device resources
 	CreateDevice();
 	CreateCommandQueues();
-
-#ifdef ENABLE_INSTRUMENTATION
-	m_Profiler = Profiler::Create(m_Device.Get(), m_DirectQueue.get());
-#endif
-
 	CreateSwapChain();
 	CreateDescriptorHeaps();
 	CreateCommandAllocator();

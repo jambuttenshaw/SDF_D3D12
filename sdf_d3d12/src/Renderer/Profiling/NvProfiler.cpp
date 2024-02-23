@@ -1,13 +1,11 @@
 #include "pch.h"
 #include "NvProfiler.h"
 
+#include "Renderer/D3DQueue.h"
 
 #ifdef NV_PERF_ENABLE_INSTRUMENTATION
 
 #include <nvperf_host_impl.h>
-#include <NvPerfD3D12.h>
-
-#include "Renderer/D3DQueue.h"
 
 
 const char* Metrics[] = {
@@ -95,19 +93,78 @@ NvProfiler::~NvProfiler()
 }
 
 
-void NvProfiler::BeginPass()
+void NvProfiler::CaptureNextFrame()
 {
-	if (!m_Profiler.AllPassesSubmitted())
+	LARGE_INTEGER currentFrameTimeStamp;
+	LARGE_INTEGER elapsedTime;
+	QueryPerformanceCounter(&currentFrameTimeStamp);
+	elapsedTime.QuadPart = currentFrameTimeStamp.QuadPart - m_StartTimestamp.QuadPart;
+	m_CurrentRunTime = static_cast<double>(elapsedTime.QuadPart) / static_cast<double>(m_ClockFreq.QuadPart);
+
+	if (s_NVPerfWarmupTime < m_CurrentRunTime)
+	{
+		m_InCollection = true;
+		THROW_IF_FALSE(m_Profiler.EnqueueCounterCollection(m_CounterConfiguration, s_NumNestingLevels), "Failed to enqueue counter collection.");
+	}
+	else
+	{
+		LOG_WARN("Capture not initiated: GPU is warming up...");
+	}
+}
+
+
+void NvProfiler::BeginPass(const char* name)
+{
+	if (m_InCollection && !m_Profiler.AllPassesSubmitted())
 	{
 		THROW_IF_FALSE(m_Profiler.BeginPass(), "Failed to begin a pass.");
+		PushRange(name);
 	}
 }
 
 void NvProfiler::EndPass()
 {
-	if (!m_Profiler.AllPassesSubmitted() && m_Profiler.IsInPass())
+	if (m_InCollection && !m_Profiler.AllPassesSubmitted() && m_Profiler.IsInPass())
 	{
+		PopRange(); // Frame
 		THROW_IF_FALSE(m_Profiler.EndPass(), "Failed to end a pass.");
+
+		// Decode counters
+		nv::perf::profiler::DecodeResult decodeResult;
+		THROW_IF_FALSE(m_Profiler.DecodeCounters(decodeResult), "Failed to decode counters.");
+		if (decodeResult.allStatisticalSamplesCollected)
+		{
+			THROW_IF_FALSE(nv::perf::MetricsEvaluatorSetDeviceAttributes(m_MetricsEvaluator, decodeResult.counterDataImage.data(), decodeResult.counterDataImage.size()), "Failed MetricsEvaluatorSetDeviceAttributes.");
+
+			const size_t numRanges = nv::perf::CounterDataGetNumRanges(decodeResult.counterDataImage.data());
+			std::vector<double> metricValues(m_MetricEvalRequests.size());
+
+			for (size_t rangeIndex = 0; rangeIndex < numRanges; rangeIndex++)
+			{
+				const char* pRangeLeafName = nullptr;
+				const std::string rangeFullName = nv::perf::profiler::CounterDataGetRangeName(
+					decodeResult.counterDataImage.data(),
+					rangeIndex,
+					'/',
+					&pRangeLeafName
+				);
+
+				THROW_IF_FALSE(nv::perf::EvaluateToGpuValues(
+					m_MetricsEvaluator,
+					decodeResult.counterDataImage.data(),
+					decodeResult.counterDataImage.size(),
+					rangeIndex,
+					m_MetricEvalRequests.size(),
+					m_MetricEvalRequests.data(),
+					metricValues.data()),
+					"Failed EvaluateToGpuValues.");
+
+				// Output data
+				LOG_INFO("{}: {}", rangeFullName, metricValues[0]);
+			}
+
+			m_InCollection = false;
+		}
 	}
 }
 
@@ -116,10 +173,19 @@ void NvProfiler::PushRange(const char* name)
 	THROW_IF_FALSE(m_Profiler.PushRange(name), "Failed to push a range");
 }
 
+void NvProfiler::PushRange(const char* name, ID3D12GraphicsCommandList* commandList)
+{
+	THROW_IF_FALSE(nv::perf::profiler::D3D12PushRange(commandList, name), "Failed to push a range");
+}
+
 void NvProfiler::PopRange()
 {
 	THROW_IF_FALSE(m_Profiler.PopRange(), "Failed to pop a range");
 }
 
+void NvProfiler::PopRange(ID3D12GraphicsCommandList* commandList)
+{
+	THROW_IF_FALSE(nv::perf::profiler::D3D12PopRange(commandList), "Failed to pop a range");
+}
 
 #endif

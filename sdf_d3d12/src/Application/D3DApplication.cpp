@@ -6,6 +6,8 @@
 #include "backends/imgui_impl_win32.h"
 #include "backends/imgui_impl_dx12.h"
 
+#include "Renderer/Profiling/Profiler.h"
+
 #include <args.hxx>
 #include "pix3.h"
 
@@ -89,6 +91,10 @@ void D3DApplication::OnInit()
 	// Create graphics context
 	m_GraphicsContext = std::make_unique<D3DGraphicsContext>(Win32Application::GetHwnd(), GetWidth(), GetHeight(), m_GraphicsContextFlags);
 
+#ifdef ENABLE_INSTRUMENTATION
+	Profiler::Create(m_GraphicsContext->GetDevice(), m_GraphicsContext->GetDirectCommandQueue());
+#endif
+
 	InitImGui();
 
 	// Setup camera
@@ -159,6 +165,7 @@ void D3DApplication::OnRender()
 	m_GraphicsContext->UpdatePassCB(&m_Timer, &m_Camera, m_RenderFlags, m_HeatmapQuantization, m_HeatmapHueRange);
 
 	// Begin drawing
+	PROFILER_BEGIN_PASS("Frame");
 	m_GraphicsContext->StartDraw();
 
 	// Tell the scene that render is happening
@@ -174,6 +181,7 @@ void D3DApplication::OnRender()
 
 	// End draw
 	m_GraphicsContext->EndDraw();
+	PROFILER_END_PASS();
 
 	// For multiple ImGui viewports
 	const ImGuiIO& io = ImGui::GetIO();
@@ -193,6 +201,10 @@ void D3DApplication::OnDestroy()
 
 	m_Scene.reset();
 	m_Raytracer.reset();
+
+#ifdef ENABLE_INSTRUMENTATION
+	Profiler::Destroy();
+#endif
 
 	// Release graphics context
 	m_GraphicsContext.reset();
@@ -365,8 +377,21 @@ bool D3DApplication::ImGuiApplicationInfo()
 		}
 		ImGui::SliderFloat("Hue Range", &m_HeatmapHueRange, 0.0f, 1.0f);
 
-		ImGui::End();
+		ImGui::Separator();
+
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
+		ImGui::Text("Profiler");
+		ImGui::PopStyleColor();
+
+		ImGui::Separator();
+
+		if (ImGui::Button("Capture Next Frame"))
+		{
+			PROFILER_CAPTURE_NEXT_FRAME();
+		}
+
 	}
+	ImGui::End();
 	return open;
 }
 

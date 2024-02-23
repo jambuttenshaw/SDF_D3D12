@@ -4,6 +4,7 @@
 #include "SDF/SDFObject.h"
 
 #include "pix3.h"
+#include "Renderer/Profiling/Profiler.h"
 
 
 void AccelerationStructure::AllocateResource()
@@ -331,6 +332,7 @@ void RaytracingAccelerationStructureManager::Build(bool forceBuild)
 	const auto frame = g_D3DGraphicsContext->GetCurrentBackBuffer();
 
 	PIXBeginEvent(commandList, PIX_COLOR_INDEX(62), "Build Acceleration Structure");
+	PROFILER_PUSH_CMD_LIST_RANGE("Build AS", commandList);
 
 	// Copy staging buffer to GPU
 	m_BottomLevelInstanceDescs.at(frame).CopyElements(0, m_NumBottomLevelInstances, m_BottomLevelInstanceDescsStaging.data());
@@ -365,6 +367,7 @@ void RaytracingAccelerationStructureManager::Build(bool forceBuild)
 		commandList->ResourceBarrier(1, &barrier);
 	}
 
+	PROFILER_POP_CMD_LIST_RANGE(commandList);
 	PIXEndEvent(commandList);
 }
 

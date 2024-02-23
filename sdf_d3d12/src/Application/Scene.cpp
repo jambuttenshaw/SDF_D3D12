@@ -199,8 +199,8 @@ bool Scene::ImGuiSceneInfo()
 		DisplayAccelerationStructureDebugInfo();
 
 
-		ImGui::End();
 	}
+	ImGui::End();
 
 	if (m_DisplayDemoGui)
 	{

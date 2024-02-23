@@ -90,8 +90,8 @@ bool DropsDemo::DisplayGUI()
 		ImGui::SliderFloat("Blending", &m_SphereBlend, 0.0f, 1.0f);
 
 		ImGui::Separator();
-		ImGui::End();
 	}
+	ImGui::End();
 
 	return true;
 }
