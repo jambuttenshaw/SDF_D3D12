@@ -6,15 +6,13 @@
 #include "SDF/Factory/SDFFactoryHierarchicalAsync.h"
 #include "SDF/SDFObject.h"
 
-#include "ProfileConfig.h"
-
-
 class BaseDemo;
+
 
 class Scene
 {
 public:
-	Scene(DemoConfig demoConfig);
+	Scene(const std::string& demoName, float brickSize);
 	~Scene();
 
 	DISALLOW_COPY(Scene)
@@ -43,7 +41,6 @@ private:
 	void DisplayAccelerationStructureDebugInfo() const;
 
 private:
-	DemoConfig m_DemoConfig;
 	BaseDemo* m_CurrentDemo = nullptr;
 
 	// A description of all the different types of geometry in the scene

@@ -23,10 +23,9 @@ static std::string wstring_to_utf8(const std::wstring& str)
 #pragma warning( pop ) 
 
 
-Scene::Scene(DemoConfig demoConfig)
-	: m_DemoConfig(std::move(demoConfig))
+Scene::Scene(const std::string& demoName, float brickSize)
 {
-	m_CurrentDemo = BaseDemo::GetDemoFromName(m_DemoConfig.DemoName);
+	m_CurrentDemo = BaseDemo::GetDemoFromName(demoName);
 	ASSERT(m_CurrentDemo, "Failed to load current demo.");
 		
 	m_CurrentPipelineName = m_EnableEditCulling ? L"Default" : L"NoEditCulling";
@@ -37,7 +36,7 @@ Scene::Scene(DemoConfig demoConfig)
 		m_Factory = std::make_unique<SDFFactoryHierarchicalAsync>();
 
 		// Create SDF objects
-		m_Object = std::make_unique<SDFObject>(m_DemoConfig.InitialBrickSize, 200'000);
+		m_Object = std::make_unique<SDFObject>(brickSize, 200'000);
 
 		BuildEditList(0.0f, false);
 	}
@@ -184,6 +183,16 @@ bool Scene::ImGuiSceneInfo()
 				m_Factory->SetMaxBrickBuildIterations(maxIterations);
 			}
 		}
+
+
+		ImGui::Separator();
+
+		float brickSize = m_Object->GetNextRebuildBrickSize();
+		if (ImGui::SliderFloat("Brick Size", &brickSize, 0.1f, 1.0f))
+		{
+			m_Object->SetNextRebuildBrickSize(brickSize);
+		}
+
 		ImGui::Separator();
 
 		if (ImGui::Checkbox("Edit Culling", &m_EnableEditCulling))

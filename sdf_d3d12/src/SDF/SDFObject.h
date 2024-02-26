@@ -31,7 +31,7 @@ public:
 	};
 
 public:
-	SDFObject(float minBrickSize, UINT brickCapacity, D3D12_RAYTRACING_GEOMETRY_FLAGS geometryFlags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE);
+	SDFObject(float brickSize, UINT brickCapacity, D3D12_RAYTRACING_GEOMETRY_FLAGS geometryFlags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE);
 	~SDFObject();
 
 	DISALLOW_COPY(SDFObject)
@@ -41,10 +41,11 @@ public:
 	void AllocateOptimalResources(UINT brickCount, float brickSize, UINT64 indexCount, ResourceGroup res);
 	inline ID3D12Resource* GetBrickPool(ResourceGroup res) const { return GetResources(res).BrickPool.Get(); }
 
-	inline float GetMinBrickSize() const { return m_MinBrickSize; }
 	inline float GetBrickSize(ResourceGroup res) const { return GetResources(res).BrickSize; }
-
 	inline UINT GetBrickBufferCapacity() const { return m_BrickCapacity; }
+
+	inline float GetNextRebuildBrickSize() const { return m_NextRebuildBrickSize; }
+	inline void SetNextRebuildBrickSize(float size) { m_NextRebuildBrickSize = size; }
 
 	inline UINT GetBrickCount(ResourceGroup res) const { return GetResources(res).BrickCount; }
 	const XMUINT3& GetBrickPoolDimensions(ResourceGroup res) const;
@@ -147,6 +148,7 @@ private:
 		// Brick count/pool related properties are only pertinent to a specific set
 		UINT BrickCount = 0; // The number of bricks that actually make up this object
 		XMUINT3 BrickPoolDimensions = { 0, 0, 0 }; // The dimensions of the brick pool in number of bricks
+
 		float BrickSize = 0.0f;
 	};
 	std::array<Resources, 2> m_Resources;
@@ -155,7 +157,7 @@ private:
 	std::atomic<size_t> m_ReadIndex = 0;
 	std::array<std::atomic<ResourceState>, 2> m_ResourcesStates = { READY_COMPUTE, READY_COMPUTE };
 
-	float m_MinBrickSize = 0.0f;
+	float m_NextRebuildBrickSize = 0.0f;
 	UINT m_BrickCapacity = 0; // The maximum possible number of bricks
 
 	// For raytracing acceleration structure

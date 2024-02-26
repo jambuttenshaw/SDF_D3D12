@@ -431,7 +431,7 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(const std::wstring& pipe
 		// Determine eval space size
 		// It should be a multiple of the smallest brick size
 		// Therefore the final iteration will build bricks of the desired size
-		float evalSpaceSize = object->GetMinBrickSize();
+		float evalSpaceSize = object->GetNextRebuildBrickSize();
 		while (evalSpaceSize < editList.GetEvaluationRange())
 		{
 			evalSpaceSize *= 4.0f;
@@ -463,7 +463,7 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(const std::wstring& pipe
 	{
 		// Read counter value
 
-		// It is only save to read the counter value after the GPU has finished its work
+		// It is only safe to read the counter value after the GPU has finished its work
 		const UINT brickCount = m_Resources.GetBrickCounterReadbackBuffer().ReadElement(0);
 		const float brickSize = m_Resources.GetBrickBuildParams().BrickSize;
 		const UINT64 indexCount = m_Resources.GetIndexCounterReadbackBuffer().ReadElement(0);
@@ -611,7 +611,7 @@ void SDFFactoryHierarchical::BuildCommandList_HierarchicalBrickBuilding(const Pi
 
 	// Multiple iterations will be made until the brick size is small enough
 	UINT iterations = 0;
-	while (resources.GetBrickBuildParams().SubBrickSize >= object->GetMinBrickSize() && iterations++ < maxIterations)
+	while (resources.GetBrickBuildParams().SubBrickSize >= object->GetNextRebuildBrickSize() && iterations++ < maxIterations)
 	{
 		PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(45), L"Brick Building Iteration");
 

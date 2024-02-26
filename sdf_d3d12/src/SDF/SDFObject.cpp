@@ -4,19 +4,22 @@
 #include "Renderer/D3DGraphicsContext.h"
 #include "HlslCompat/ComputeHlslCompat.h"
 
-SDFObject::SDFObject(float minBrickSize, UINT brickCapacity, D3D12_RAYTRACING_GEOMETRY_FLAGS geometryFlags)
+SDFObject::SDFObject(float brickSize, UINT brickCapacity, D3D12_RAYTRACING_GEOMETRY_FLAGS geometryFlags)
 	: m_GeometryFlags(geometryFlags)
 {
-	ASSERT(minBrickSize > 0.0f, "Invalid brick size!");
+	ASSERT(brickSize > 0.0f, "Invalid brick size!");
 	ASSERT(brickCapacity > 0, "Invalid brick capacity!");
 
-	m_MinBrickSize = minBrickSize;
 	m_BrickCapacity = brickCapacity;
+
+	m_NextRebuildBrickSize = brickSize;
 
 	const auto descriptorHeap = g_D3DGraphicsContext->GetSRVHeap();
 
 	for (auto& resources : m_Resources)
 	{
+		resources.BrickSize = brickSize;
+
 		resources.ResourceViews = descriptorHeap->Allocate(2);
 		ASSERT(resources.ResourceViews.IsValid(), "Descriptor allocation failed!");
 	}
@@ -32,9 +35,7 @@ void SDFObject::AllocateOptimalResources(UINT brickCount, float brickSize, UINT6
 {
 	ASSERT(brickCount > 0, "SDF Object does not have any bricks!");
 
-	auto& resources = GetResources(res);
-
-	resources.BrickSize = brickSize;
+	GetResources(res).BrickSize = brickSize;
 
 	AllocateOptimalAABBBuffer(brickCount, res);
 	AllocateOptimalBrickBuffer(brickCount, res);

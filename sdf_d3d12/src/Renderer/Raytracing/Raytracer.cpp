@@ -357,7 +357,7 @@ void Raytracer::BuildShaderTables()
 				shaderIDSize,
 				&rootArgs,
 				sizeof(rootArgs)
-				});
+			});
 
 			geometryInstance->ResetLocalArgsDirty();
 		}

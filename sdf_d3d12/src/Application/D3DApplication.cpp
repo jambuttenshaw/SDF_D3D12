@@ -145,15 +145,13 @@ void D3DApplication::OnInit()
 	if (m_LoadDefaultProfilingConfig)
 	{
 		// Load default config
-		DemoConfig demoConfig;
-		demoConfig.DemoName = "cubes";
-		demoConfig.InitialBrickSize = 0.1f;
-		m_Scene = std::make_unique<Scene>(demoConfig);
+		m_Scene = std::make_unique<Scene>("drops", 0.1f);
 	}
 	else
 	{
 		// Load config from command line
-		m_Scene = std::make_unique<Scene>(m_ProfileConfig.DemoConfigs[0]);
+		const auto& demo = m_ProfileConfig.DemoConfigs[0];
+		m_Scene = std::make_unique<Scene>(demo.DemoName, demo.InitialBrickSize);
 	}
 
 	m_Raytracer = std::make_unique<Raytracer>();
