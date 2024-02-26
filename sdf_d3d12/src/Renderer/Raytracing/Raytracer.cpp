@@ -67,7 +67,7 @@ void Raytracer::DoRaytracing() const
 	const auto dxrCommandList = g_D3DGraphicsContext->GetDXRCommandList();
 
 	PIXBeginEvent(commandList, PIX_COLOR_INDEX(7), "Do Raytracing");
-	PROFILER_PUSH_CMD_LIST_RANGE("Do Raytracing", commandList);
+	PROFILE_DIRECT_PUSH_RANGE("Do Raytracing", commandList);
 
 	// Perform raytracing commands 
 	commandList->SetComputeRootSignature(m_RaytracingGlobalRootSignature.Get());
@@ -98,7 +98,7 @@ void Raytracer::DoRaytracing() const
 
 	dxrCommandList->DispatchRays(&dispatchDesc);
 
-	PROFILER_POP_CMD_LIST_RANGE(commandList);
+	PROFILE_DIRECT_POP_RANGE(commandList);
 	PIXEndEvent(commandList);
 }
 

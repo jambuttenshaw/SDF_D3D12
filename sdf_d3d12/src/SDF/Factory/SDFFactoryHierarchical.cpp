@@ -16,6 +16,7 @@
 #include <pix3.h>
 
 #include "SDFConstructionResources.h"
+#include "Renderer/Profiling/Profiler.h"
 
 
 namespace EditDependencySignature
@@ -420,7 +421,8 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(const std::wstring& pipe
 		m_CommandList->SetDescriptorHeaps(_countof(ppDescriptorHeaps), ppDescriptorHeaps);
 	}
 
-	PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(40), L"SDF Bake Hierarchical");
+	PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(40), L"SDF Bake");
+	PROFILE_COMPUTE_BEGIN_PASS("SDF Bake");
 
 	PIXBeginEvent(PIX_COLOR_INDEX(51), L"Set up resources");
 	{
@@ -477,10 +479,10 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(const std::wstring& pipe
 
 	BuildCommandList_BrickEvaluation(pipelineSet, object, m_Resources);
 
+	PROFILE_COMPUTE_END_PASS();
+	PIXEndEvent(m_CommandList.Get()); // SDF Bake
 	{
 		// Execute command list
-		PIXEndEvent(m_CommandList.Get());
-
 		THROW_IF_FAIL(m_CommandList->Close());
 		ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
 		m_PreviousWorkFence = computeQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
@@ -492,6 +494,7 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(const std::wstring& pipe
 void SDFFactoryHierarchical::BuildCommandList_Setup(const PipelineSet& pipeline, SDFObject* object, SDFConstructionResources& resources) const
 {
 	PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(41), L"Data upload");
+	PROFILE_COMPUTE_PUSH_RANGE("Setup", m_CommandList.Get());
 
 	// Copy edits into default heap
 	resources.GetEditBuffer().CopyFromUpload(m_CommandList.Get());
@@ -592,12 +595,15 @@ void SDFFactoryHierarchical::BuildCommandList_Setup(const PipelineSet& pipeline,
 		m_CommandList->ResourceBarrier(ARRAYSIZE(barriers), barriers);
 	}
 
+	PROFILE_COMPUTE_POP_RANGE(m_CommandList.Get());
 	PIXEndEvent(m_CommandList.Get());
 }
 
 void SDFFactoryHierarchical::BuildCommandList_HierarchicalBrickBuilding(const PipelineSet& pipeline, SDFObject* object, SDFConstructionResources& resources, UINT maxIterations) const
 {
 	PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(42), L"Hierarchical brick building");
+	PROFILE_COMPUTE_PUSH_RANGE("Brick Building", m_CommandList.Get());
+
 
 	// Multiple iterations will be made until the brick size is small enough
 	UINT iterations = 0;
@@ -810,11 +816,13 @@ void SDFFactoryHierarchical::BuildCommandList_HierarchicalBrickBuilding(const Pi
 	resources.GetIndexCounter().ReadValue(m_CommandList.Get(), resources.GetIndexCounterReadbackBuffer().GetResource(), 
 		D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
+	PROFILE_COMPUTE_POP_RANGE(m_CommandList.Get());
 	PIXEndEvent(m_CommandList.Get());
 }
 
 void SDFFactoryHierarchical::BuildCommandList_BrickEvaluation(const PipelineSet& pipeline, SDFObject* object, SDFConstructionResources& resources) const
 {
+	PROFILE_COMPUTE_PUSH_RANGE("AABB Building", m_CommandList.Get());
 	{
 		PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(43), L"Build AABBs");
 
@@ -838,6 +846,7 @@ void SDFFactoryHierarchical::BuildCommandList_BrickEvaluation(const PipelineSet&
 
 		PIXEndEvent(m_CommandList.Get());
 	}
+	PROFILE_COMPUTE_POP_RANGE(m_CommandList.Get());
 
 	{
 		PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(52), L"Copy Brick Data");
@@ -865,6 +874,7 @@ void SDFFactoryHierarchical::BuildCommandList_BrickEvaluation(const PipelineSet&
 		PIXEndEvent(m_CommandList.Get());
 	}
 
+	PROFILE_COMPUTE_PUSH_RANGE("Brick Evaluation", m_CommandList.Get());
 	{
 		// Evaluate bricks
 
@@ -926,4 +936,5 @@ void SDFFactoryHierarchical::BuildCommandList_BrickEvaluation(const PipelineSet&
 
 		PIXEndEvent(m_CommandList.Get());
 	}
+	PROFILE_COMPUTE_POP_RANGE(m_CommandList.Get());
 }

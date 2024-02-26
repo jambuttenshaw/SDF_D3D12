@@ -17,9 +17,21 @@ const char* Metrics[] = {
 };
 
 
-NvProfiler::NvProfiler(ID3D12Device* device, const D3DQueue* queue)
-	: m_Device(device)
+NvProfiler::NvProfiler(ProfilerQueue queue)
+	: Profiler(queue)
 {
+}
+
+NvProfiler::~NvProfiler()
+{
+	THROW_IF_FALSE(m_Profiler.EndSession(), "Failed to end a session");
+	nv::perf::D3D12SetDeviceClockState(m_Device, m_ClockStatus);
+}
+
+void NvProfiler::Init(ID3D12Device* device, ID3D12CommandQueue* queue)
+{
+	m_Device = device;
+
 	LOG_INFO("Creating NV Perf Profiler.");
 
 	THROW_IF_FALSE(nv::perf::InitializeNvPerf(), "Failed to init NvPerf.");
@@ -81,56 +93,36 @@ NvProfiler::NvProfiler(ID3D12Device* device, const D3DQueue* queue)
 	{
 		nv::perf::profiler::SessionOptions sessionOptions{};
 		sessionOptions.maxNumRanges = s_MaxNumRanges;
-		THROW_IF_FALSE(m_Profiler.BeginSession(queue->GetCommandQueue(), sessionOptions), "Failed to begin session.");
+		THROW_IF_FALSE(m_Profiler.BeginSession(queue, sessionOptions), "Failed to begin session.");
 	}
 
-	QueryPerformanceFrequency(&m_ClockFreq);
-	QueryPerformanceCounter(&m_StartTimestamp);
+	THROW_IF_FALSE(m_Profiler.EnqueueCounterCollection(m_CounterConfiguration, s_NumNestingLevels), "Failed to enqueue counter collection.");
 
 	LOG_INFO("NV Perf Profiler created successfully");
 }
 
-NvProfiler::~NvProfiler()
+
+
+void NvProfiler::CaptureNextFrameImpl()
 {
-	THROW_IF_FALSE(m_Profiler.EndSession(), "Failed to end a session");
-	nv::perf::D3D12SetDeviceClockState(m_Device, m_ClockStatus);
+	THROW_IF_FALSE(m_Profiler.EnqueueCounterCollection(m_CounterConfiguration, s_NumNestingLevels), "Failed to enqueue counter collection.");
 }
 
 
-void NvProfiler::CaptureNextFrame()
+void NvProfiler::BeginPassImpl(const char* name)
 {
-	LARGE_INTEGER currentFrameTimeStamp;
-	LARGE_INTEGER elapsedTime;
-	QueryPerformanceCounter(&currentFrameTimeStamp);
-	elapsedTime.QuadPart = currentFrameTimeStamp.QuadPart - m_StartTimestamp.QuadPart;
-	m_CurrentRunTime = static_cast<double>(elapsedTime.QuadPart) / static_cast<double>(m_ClockFreq.QuadPart);
-
-	if (s_NVPerfWarmupTime < m_CurrentRunTime)
-	{
-		m_InCollection = true;
-		THROW_IF_FALSE(m_Profiler.EnqueueCounterCollection(m_CounterConfiguration, s_NumNestingLevels), "Failed to enqueue counter collection.");
-	}
-	else
-	{
-		LOG_WARN("Capture not initiated: GPU is warming up...");
-	}
-}
-
-
-void NvProfiler::BeginPass(const char* name)
-{
-	if (m_InCollection && !m_Profiler.AllPassesSubmitted())
+	if (!m_Profiler.AllPassesSubmitted())
 	{
 		THROW_IF_FALSE(m_Profiler.BeginPass(), "Failed to begin a pass.");
-		PushRange(name);
+		PushRangeImpl(name);
 	}
 }
 
-void NvProfiler::EndPass()
+void NvProfiler::EndPassImpl()
 {
-	if (m_InCollection && !m_Profiler.AllPassesSubmitted() && m_Profiler.IsInPass())
+	if (!m_Profiler.AllPassesSubmitted() && m_Profiler.IsInPass())
 	{
-		PopRange(); // Frame
+		PopRangeImpl(); // Frame
 		THROW_IF_FALSE(m_Profiler.EndPass(), "Failed to end a pass.");
 
 		// Decode counters
@@ -178,22 +170,22 @@ void NvProfiler::EndPass()
 	}
 }
 
-void NvProfiler::PushRange(const char* name)
+void NvProfiler::PushRangeImpl(const char* name)
 {
 	THROW_IF_FALSE(m_Profiler.PushRange(name), "Failed to push a range");
 }
 
-void NvProfiler::PushRange(const char* name, ID3D12GraphicsCommandList* commandList)
+void NvProfiler::PushRangeImpl(const char* name, ID3D12GraphicsCommandList* commandList)
 {
 	THROW_IF_FALSE(nv::perf::profiler::D3D12PushRange(commandList, name), "Failed to push a range");
 }
 
-void NvProfiler::PopRange()
+void NvProfiler::PopRangeImpl()
 {
 	THROW_IF_FALSE(m_Profiler.PopRange(), "Failed to pop a range");
 }
 
-void NvProfiler::PopRange(ID3D12GraphicsCommandList* commandList)
+void NvProfiler::PopRangeImpl(ID3D12GraphicsCommandList* commandList)
 {
 	THROW_IF_FALSE(nv::perf::profiler::D3D12PopRange(commandList), "Failed to pop a range");
 }

@@ -92,7 +92,7 @@ void D3DApplication::OnInit()
 	m_GraphicsContext = std::make_unique<D3DGraphicsContext>(Win32Application::GetHwnd(), GetWidth(), GetHeight(), m_GraphicsContextFlags);
 
 #ifdef ENABLE_INSTRUMENTATION
-	Profiler::Create(m_GraphicsContext->GetDevice(), m_GraphicsContext->GetDirectCommandQueue());
+	Profiler::Create(Profiler::ProfilerQueue::Direct);
 #endif
 
 	InitImGui();
@@ -165,7 +165,7 @@ void D3DApplication::OnRender()
 	m_GraphicsContext->UpdatePassCB(&m_Timer, &m_Camera, m_RenderFlags, m_HeatmapQuantization, m_HeatmapHueRange);
 
 	// Begin drawing
-	PROFILER_BEGIN_PASS("Frame");
+	PROFILE_DIRECT_BEGIN_PASS("Frame");
 	m_GraphicsContext->StartDraw();
 
 	// Tell the scene that render is happening
@@ -181,7 +181,7 @@ void D3DApplication::OnRender()
 
 	// End draw
 	m_GraphicsContext->EndDraw();
-	PROFILER_END_PASS();
+	PROFILE_DIRECT_END_PASS();
 
 	// For multiple ImGui viewports
 	const ImGuiIO& io = ImGui::GetIO();
@@ -385,7 +385,7 @@ bool D3DApplication::ImGuiApplicationInfo()
 
 		if (ImGui::Button("Capture Next Frame"))
 		{
-			PROFILER_CAPTURE_NEXT_FRAME();
+			PROFILE_CAPTURE_NEXT_FRAME();
 		}
 
 	}
