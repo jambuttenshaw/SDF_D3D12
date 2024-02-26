@@ -5,10 +5,17 @@
 
       "initial_brick_size": 1,
       "linear_increment": false,
-      "brick_size_multiplier": 0.5,
-      "iteration_count": 4
+      "brick_size_multiplier": 0.5
+    },
+    {
+      "name": "cubes",
+
+      "initial_brick_size": 1,
+      "linear_increment": false,
+      "brick_size_multiplier": 0.5
     }
   ],
-  "num_captures": 500,
+  "num_captures": 100,
+  "num_iterations": 4,
   "output_file": "captures/profile.csv"
 }

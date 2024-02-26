@@ -2,7 +2,7 @@
   "queue": "compute",
   "metrics": [
     "sm__throughput.avg.pct_of_peak_sustained_elapsed",
-    "lts__average_t_sector_hit_rate_realtime.pct",
+    "lts__average_t_sector_hit_rate_realtime.pct"
   ],
   "headers": [
     "SM Throughput",

@@ -82,14 +82,13 @@ bool ParseProfileConfigFromJSON(const std::string& path, ProfileConfig& profileC
 			JSON_CHECK_CONTAINS(demoJSON, "brick_size_multiplier");
 			profileConfig.DemoConfigs[demo].BrickSizeMultiplier = demoJSON["brick_size_multiplier"];
 		}
-
-		JSON_CHECK_CONTAINS(demoJSON, "iteration_count");
-		profileConfig.DemoConfigs[demo].IterationCount = demoJSON["iteration_count"];
 	}
 
 	// Load run parameters
 	JSON_CHECK_CONTAINS(docJSON, "num_captures");
 	profileConfig.NumCaptures = docJSON["num_captures"];
+	JSON_CHECK_CONTAINS(docJSON, "num_iterations");
+	profileConfig.IterationCount = docJSON["num_iterations"];
 
 	// Load output info
 	JSON_CHECK_CONTAINS(docJSON, "output_file");

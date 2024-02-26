@@ -153,7 +153,7 @@ void NvGPUProfiler::EndPassImpl()
 				{
 					stream << ", " << metricValue;
 				}
-				LOG_INFO("{}", stream.str());
+				//LOG_INFO("{}", stream.str());
 			}
 
 			m_InCollection = false;

@@ -51,6 +51,9 @@ public:
 	void PopRange(GPUProfilerQueue queue);
 	void PopRange(GPUProfilerQueue queue, ID3D12GraphicsCommandList* commandList);
 
+	inline bool IsInCollection() const { return m_InCollection; }
+	inline static float GetWarmupTime() { return s_WarmupTime; }
+
 protected:
 	virtual void Init(ID3D12Device* device, ID3D12CommandQueue* queue, const GPUProfilerArgs& args) = 0;
 

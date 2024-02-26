@@ -42,6 +42,8 @@ private:
 	void BeginUpdate();
 	void EndUpdate();
 
+	void UpdateProfiling();
+
 	// ImGui Windows
 	bool ImGuiApplicationInfo();
 
@@ -73,8 +75,14 @@ private:
 	D3DGraphicsContextFlags m_GraphicsContextFlags;
 
 	// Profiling configuration
-	bool m_LoadDefaultProfilingConfig = true;		// If no config was specified in the command line args, default config will be loaded
+	bool m_ProfilingMode = false;		
 	ProfileConfig m_ProfileConfig;
+
+	UINT m_CapturesRemaining = 0;
+	bool m_BegunCapture = false;
+
+	UINT m_DemoIterationsRemaining = 0;
+	UINT m_DemoConfigIndex = 0;
 
 	bool m_LoadDefaultGPUProfilerArgs = true;		// If no config was specified in the command line args, default config will be loaded
 	GPUProfilerArgs m_GPUProfilerArgs;

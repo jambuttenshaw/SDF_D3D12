@@ -51,9 +51,12 @@ bool D3DApplication::ParseCommandLineArgs(LPWSTR argv[], int argc)
 	args::Flag enablePIX(graphicsContextFlags, "Enable GPU Captures", "Enable PIX GPU Captures", { "enable-gpu-capture" });
 	args::Flag enableDRED(graphicsContextFlags, "Enable DRED", "Enable Device Removal Extended Data", { "enable-dred" });
 
+#ifdef ENABLE_INSTRUMENTATION
+	// These settings won't do anything in a non-instrumented build
 	args::Group profilingGroup(parser, "Profiling Options");
 	args::ValueFlag<std::string> profileConfig(profilingGroup, "Profile Config", "Path to profiling config file", { "profile-config" });
 	args::ValueFlag<std::string> gpuProfileConfig(profilingGroup, "GPU Profiler Config", "Path to GPU profiler config file", { "gpu-profiler-config" });
+#endif
 
 	try
 	{
@@ -90,12 +93,18 @@ bool D3DApplication::ParseCommandLineArgs(LPWSTR argv[], int argc)
 	if (enableDRED)
 		m_GraphicsContextFlags.EnableDRED = true;
 
+#ifdef ENABLE_INSTRUMENTATION
+	// These settings aren't relevant otherwise
 	if (profileConfig)
 	{
 		// Parse config
 		if (ParseProfileConfigFromJSON(profileConfig.Get(), m_ProfileConfig))
 		{
-			m_LoadDefaultProfilingConfig = false;
+			m_ProfilingMode = true;
+
+			m_CapturesRemaining = m_ProfileConfig.NumCaptures;
+			m_DemoIterationsRemaining = m_ProfileConfig.IterationCount;
+			m_DemoConfigIndex = 0;
 		}
 	}
 
@@ -108,6 +117,7 @@ bool D3DApplication::ParseCommandLineArgs(LPWSTR argv[], int argc)
 			m_LoadDefaultGPUProfilerArgs = false;
 		}
 	}
+#endif
 
 	return true;
 }
@@ -121,7 +131,6 @@ void D3DApplication::OnInit()
 	m_GraphicsContext = std::make_unique<D3DGraphicsContext>(Win32Application::GetHwnd(), GetWidth(), GetHeight(), m_GraphicsContextFlags);
 
 #ifdef ENABLE_INSTRUMENTATION
-
 	if (m_LoadDefaultGPUProfilerArgs)
 	{
 		m_GPUProfilerArgs.Queue = GPUProfilerQueue::Direct;
@@ -129,7 +138,6 @@ void D3DApplication::OnInit()
 	}
 
 	GPUProfiler::Create(m_GPUProfilerArgs);
-
 #endif
 
 	InitImGui();
@@ -142,16 +150,16 @@ void D3DApplication::OnInit()
 	m_CameraController = CameraController{ m_InputManager.get(), &m_Camera };
 
 	BaseDemo::CreateAllDemos();
-	if (m_LoadDefaultProfilingConfig)
-	{
-		// Load default config
-		m_Scene = std::make_unique<Scene>("drops", 0.1f);
-	}
-	else
+	if (m_ProfilingMode)
 	{
 		// Load config from command line
 		const auto& demo = m_ProfileConfig.DemoConfigs[0];
 		m_Scene = std::make_unique<Scene>(demo.DemoName, demo.InitialBrickSize);
+	}
+	else
+	{
+		// Load default demo
+		m_Scene = std::make_unique<Scene>("drops", 0.1f);
 	}
 
 	m_Raytracer = std::make_unique<Raytracer>();
@@ -170,6 +178,11 @@ void D3DApplication::OnUpdate()
 
 	PIXBeginEvent(PIX_COLOR_INDEX(0), L"App Update");
 	BeginUpdate();
+
+#ifdef ENABLE_INSTRUMENTATION
+	// Update profiling before updating the scene, as this may modify the current scene
+	UpdateProfiling();
+#endif
 
 	m_Scene->OnUpdate(m_Timer.GetDeltaTime());
 
@@ -327,6 +340,81 @@ void D3DApplication::EndUpdate()
 	ImGui::Render();
 	m_InputManager->EndFrame();
 }
+
+
+void D3DApplication::UpdateProfiling()
+{
+	// This function keeps track of gathering profiling data as specified by the config
+	// If no config was given, then no profiling will take place and the application will run in demo mode as normal
+	if (!m_ProfilingMode)
+		return;
+
+	if (m_Timer.GetTimeSinceReset() < GPUProfiler::GetWarmupTime())
+		return;
+
+	// Still performing runs to gather data
+	if (m_CapturesRemaining > 0)
+	{
+		// It is safe to access profiler within this function - it will only be called if instrumentation is enabled
+		if (!GPUProfiler::Get().IsInCollection())
+		{
+			if (m_BegunCapture)
+			{
+				// Run has completed - collect data from profiler
+				m_BegunCapture = false;
+				m_CapturesRemaining--;
+			}
+			else
+			{
+				// Data from previous capture has been collected
+				// Begin a new capture
+				PROFILE_CAPTURE_NEXT_FRAME();
+				m_BegunCapture = true;
+			}
+		}
+	}
+	// Check if there are still variations of this demo to perform
+	else if (--m_DemoIterationsRemaining > 0)
+	{
+		// Setup demo for capture
+		const DemoConfig& demoConfig = m_ProfileConfig.DemoConfigs[m_DemoConfigIndex];
+
+		// Get current brick size
+		float currentBrickSize = 0.0f;
+		const UINT iterationsCompleted = m_ProfileConfig.IterationCount - m_DemoIterationsRemaining;
+		if (demoConfig.IsLinearIncrement)
+		{
+			currentBrickSize = demoConfig.InitialBrickSize + demoConfig.BrickSizeIncrement * static_cast<float>(iterationsCompleted);
+		}
+		else
+		{
+			currentBrickSize = demoConfig.InitialBrickSize * std::pow(demoConfig.BrickSizeMultiplier, static_cast<float>(iterationsCompleted));
+		}
+		m_Scene->Reset(demoConfig.DemoName, currentBrickSize);
+
+		m_CapturesRemaining = m_ProfileConfig.NumCaptures;
+	}
+	// Current demo config has been completed - progress to the next one
+	else if (++m_DemoConfigIndex == m_ProfileConfig.DemoConfigs.size())
+	{
+		// All demo configs have been captured
+		// Process final data
+		LOG_INFO("All config profiling completed.");
+
+		// Quit application
+		Win32Application::ForceQuit();
+	}
+	else
+	{
+		// Progress to next demo
+		const DemoConfig& demoConfig = m_ProfileConfig.DemoConfigs[m_DemoConfigIndex];
+		m_Scene->Reset(demoConfig.DemoName, demoConfig.InitialBrickSize);
+
+		m_CapturesRemaining = m_ProfileConfig.NumCaptures;
+		m_DemoIterationsRemaining = m_ProfileConfig.IterationCount;
+	}
+}
+
 
 
 bool D3DApplication::ImGuiApplicationInfo()

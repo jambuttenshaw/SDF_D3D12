@@ -16,7 +16,6 @@ struct DemoConfig
 		float BrickSizeIncrement;
 		float BrickSizeMultiplier;
 	};
-	UINT IterationCount;
 };
 
 
@@ -28,6 +27,8 @@ struct ProfileConfig
 	// Run info
 	// The number of times to run each configuration to gather an average
 	UINT NumCaptures;
+	// The number of iterations of each configuration, where variables can change between iterations
+	UINT IterationCount;
 
 	// Output info
 	std::string OutputFile;

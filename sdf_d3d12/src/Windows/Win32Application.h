@@ -25,6 +25,8 @@ public:
 
     static void ToggleFullscreenWindow(IDXGISwapChain* swapChain = nullptr);
 
+    static void ForceQuit() { m_ForceQuit = true; }
+
 protected:
     static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
@@ -33,4 +35,6 @@ private:
     static bool m_fullscreenMode;
     static const UINT m_windowStyle = WS_OVERLAPPEDWINDOW;
     static RECT m_windowRect;
+
+    static bool m_ForceQuit;
 };

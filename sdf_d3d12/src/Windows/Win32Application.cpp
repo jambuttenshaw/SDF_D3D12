@@ -19,6 +19,8 @@
 HWND Win32Application::m_hwnd = nullptr;
 bool Win32Application::m_fullscreenMode = false;
 RECT Win32Application::m_windowRect;
+bool Win32Application::m_ForceQuit = false;
+
 using Microsoft::WRL::ComPtr;
 
 // Forward declare message handler from imgui_impl_win32.cpp
@@ -77,7 +79,7 @@ int Win32Application::Run(BaseApplication* pApp)
 
     // Main sample loop.
     MSG msg = {};
-    while (msg.message != WM_QUIT)
+    while (msg.message != WM_QUIT && !m_ForceQuit)
     {
         // Process any messages in the queue.
         if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
