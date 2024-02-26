@@ -3,26 +3,28 @@
 #include "Core.h"
 
 
-class D3DQueue;
+enum class ProfilerQueue
+{
+	Direct,
+	Compute,
+	Count
+};
+
+struct ProfilerArgs
+{
+	ProfilerQueue Queue;
+};
 
 
 class Profiler
 {
-public:
-	enum class ProfilerQueue
-	{
-		Direct,
-		Compute,
-		Count
-	};
-
 protected:
-	Profiler(ProfilerQueue queue);
+	Profiler(const ProfilerArgs& args);
 
 	static std::unique_ptr<Profiler> s_Profiler;
 public:
 	// Factory
-	static void Create(ProfilerQueue queue);
+	static void Create(const ProfilerArgs& args);
 	static void Destroy();
 
 	static Profiler& Get();
@@ -44,7 +46,7 @@ public:
 	void PopRange(ProfilerQueue queue, ID3D12GraphicsCommandList* commandList);
 
 protected:
-	virtual void Init(ID3D12Device* device, ID3D12CommandQueue* queue) = 0;
+	virtual void Init(ID3D12Device* device, ID3D12CommandQueue* queue, const ProfilerArgs& args) = 0;
 
 	virtual void CaptureNextFrameImpl() = 0;
 
@@ -61,7 +63,7 @@ protected:
 
 	bool m_InCollection = false;
 
-	static constexpr double s_NVPerfWarmupTime = 2.0; // Wait 2s to allow the clock to stabilize before beginning to profile.
+	static constexpr double s_WarmupTime = 2.0; // Wait 2s to allow the clock to stabilize before beginning to profile.
 	static constexpr size_t s_MaxNumRanges = 8;
 	static constexpr uint16_t s_NumNestingLevels = 2;
 
@@ -77,18 +79,18 @@ protected:
 #define PROFILE_CAPTURE_NEXT_FRAME()			::Profiler::Get().CaptureNextFrame()
 
 // Direct Queue profiling
-#define PROFILE_DIRECT_BEGIN_PASS(name)			::Profiler::Get().BeginPass(Profiler::ProfilerQueue::Direct, name)
-#define PROFILE_DIRECT_END_PASS()				::Profiler::Get().EndPass(Profiler::ProfilerQueue::Direct)
+#define PROFILE_DIRECT_BEGIN_PASS(name)			::Profiler::Get().BeginPass(ProfilerQueue::Direct, name)
+#define PROFILE_DIRECT_END_PASS()				::Profiler::Get().EndPass(ProfilerQueue::Direct)
 
-#define PROFILE_DIRECT_PUSH_RANGE(...)			::Profiler::Get().PushRange(Profiler::ProfilerQueue::Direct, __VA_ARGS__)
-#define PROFILE_DIRECT_POP_RANGE(...)			::Profiler::Get().PopRange(Profiler::ProfilerQueue::Direct, __VA_ARGS__)
+#define PROFILE_DIRECT_PUSH_RANGE(...)			::Profiler::Get().PushRange(ProfilerQueue::Direct, __VA_ARGS__)
+#define PROFILE_DIRECT_POP_RANGE(...)			::Profiler::Get().PopRange(ProfilerQueue::Direct, __VA_ARGS__)
 
 // Compute Queue
-#define PROFILE_COMPUTE_BEGIN_PASS(name)		::Profiler::Get().BeginPass(Profiler::ProfilerQueue::Compute, name)
-#define PROFILE_COMPUTE_END_PASS()				::Profiler::Get().EndPass(Profiler::ProfilerQueue::Compute)
+#define PROFILE_COMPUTE_BEGIN_PASS(name)		::Profiler::Get().BeginPass(ProfilerQueue::Compute, name)
+#define PROFILE_COMPUTE_END_PASS()				::Profiler::Get().EndPass(ProfilerQueue::Compute)
 
-#define PROFILE_COMPUTE_PUSH_RANGE(...)			::Profiler::Get().PushRange(Profiler::ProfilerQueue::Compute, __VA_ARGS__)
-#define PROFILE_COMPUTE_POP_RANGE(...)			::Profiler::Get().PopRange(Profiler::ProfilerQueue::Compute, __VA_ARGS__)
+#define PROFILE_COMPUTE_PUSH_RANGE(...)			::Profiler::Get().PushRange(ProfilerQueue::Compute, __VA_ARGS__)
+#define PROFILE_COMPUTE_POP_RANGE(...)			::Profiler::Get().PopRange(ProfilerQueue::Compute, __VA_ARGS__)
 
 #else
 

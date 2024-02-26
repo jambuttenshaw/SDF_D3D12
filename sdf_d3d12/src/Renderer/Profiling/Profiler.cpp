@@ -12,17 +12,17 @@
 std::unique_ptr<Profiler> Profiler::s_Profiler;
 
 
-void Profiler::Create(ProfilerQueue queue)
+void Profiler::Create(const ProfilerArgs& args)
 {
 	ASSERT(!s_Profiler, "Cannot create multiple profilers!");
 	LOG_INFO("Creating profiler...");
 
 #ifdef NV_PERF_ENABLE_INSTRUMENTATION
-	s_Profiler = std::make_unique<NvProfiler>(queue);
+	s_Profiler = std::make_unique<NvProfiler>(args);
 #endif
 
 	ID3D12CommandQueue* pQueue = nullptr;
-	switch (queue)
+	switch (args.Queue)
 	{
 	case ProfilerQueue::Direct: pQueue = g_D3DGraphicsContext->GetDirectCommandQueue()->GetCommandQueue(); break;
 	case ProfilerQueue::Compute: pQueue = g_D3DGraphicsContext->GetComputeCommandQueue()->GetCommandQueue(); break;
@@ -31,7 +31,7 @@ void Profiler::Create(ProfilerQueue queue)
 
 	ASSERT(pQueue, "Failed to get queue!");
 
-	s_Profiler->Init(g_D3DGraphicsContext->GetDevice(), pQueue);
+	s_Profiler->Init(g_D3DGraphicsContext->GetDevice(), pQueue, args);
 }
 
 
@@ -49,8 +49,8 @@ Profiler& Profiler::Get()
 }
 
 
-Profiler::Profiler(ProfilerQueue queue)
-	: m_Queue(queue)
+Profiler::Profiler(const ProfilerArgs& args)
+	: m_Queue(args.Queue)
 {
 	QueryPerformanceFrequency(&m_ClockFreq);
 	QueryPerformanceCounter(&m_StartTimestamp);
@@ -68,7 +68,7 @@ void Profiler::CaptureNextFrame()
 	elapsedTime.QuadPart = currentFrameTimeStamp.QuadPart - m_StartTimestamp.QuadPart;
 	m_CurrentRunTime = static_cast<double>(elapsedTime.QuadPart) / static_cast<double>(m_ClockFreq.QuadPart);
 
-	if (s_NVPerfWarmupTime < m_CurrentRunTime)
+	if (s_WarmupTime < m_CurrentRunTime)
 	{
 		m_InCollection = true;
 		CaptureNextFrameImpl();

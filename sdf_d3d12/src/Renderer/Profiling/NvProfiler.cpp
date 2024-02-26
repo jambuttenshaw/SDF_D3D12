@@ -17,8 +17,8 @@ const char* Metrics[] = {
 };
 
 
-NvProfiler::NvProfiler(ProfilerQueue queue)
-	: Profiler(queue)
+NvProfiler::NvProfiler(const ProfilerArgs& args)
+	: Profiler(args)
 {
 }
 
@@ -28,7 +28,7 @@ NvProfiler::~NvProfiler()
 	nv::perf::D3D12SetDeviceClockState(m_Device, m_ClockStatus);
 }
 
-void NvProfiler::Init(ID3D12Device* device, ID3D12CommandQueue* queue)
+void NvProfiler::Init(ID3D12Device* device, ID3D12CommandQueue* queue, const ProfilerArgs& args)
 {
 	m_Device = device;
 

@@ -92,7 +92,7 @@ void D3DApplication::OnInit()
 	m_GraphicsContext = std::make_unique<D3DGraphicsContext>(Win32Application::GetHwnd(), GetWidth(), GetHeight(), m_GraphicsContextFlags);
 
 #ifdef ENABLE_INSTRUMENTATION
-	Profiler::Create(Profiler::ProfilerQueue::Direct);
+	Profiler::Create({ ProfilerQueue::Direct });
 #endif
 
 	InitImGui();

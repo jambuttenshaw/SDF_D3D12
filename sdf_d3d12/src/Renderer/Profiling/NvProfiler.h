@@ -18,14 +18,14 @@ class D3DQueue;
 class NvProfiler : public Profiler
 {
 public:
-	NvProfiler(ProfilerQueue queue);
+	NvProfiler(const ProfilerArgs& args);
 	virtual ~NvProfiler() override;
 
     DISALLOW_COPY(NvProfiler)
 	DISALLOW_MOVE(NvProfiler)
 
 protected:
-    virtual void Init(ID3D12Device* device, ID3D12CommandQueue* queue) override;
+    virtual void Init(ID3D12Device* device, ID3D12CommandQueue* queue, const ProfilerArgs& args) override;
 
 	virtual void CaptureNextFrameImpl() override;
 
