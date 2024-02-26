@@ -1,31 +1,33 @@
 #include "pch.h"
-#include "Profiler.h"
+#include "GPUProfiler.h"
 
 #include "Renderer/D3DGraphicsContext.h"
 
 
 #ifdef NV_PERF_ENABLE_INSTRUMENTATION
-#include "NvProfiler.h"
+#include "NvGPUProfiler.h"
 #endif
 
 
-std::unique_ptr<Profiler> Profiler::s_Profiler;
+std::unique_ptr<GPUProfiler> GPUProfiler::s_Profiler;
 
 
-void Profiler::Create(const ProfilerArgs& args)
+void GPUProfiler::Create(const GPUProfilerArgs& args)
 {
 	ASSERT(!s_Profiler, "Cannot create multiple profilers!");
 	LOG_INFO("Creating profiler...");
 
 #ifdef NV_PERF_ENABLE_INSTRUMENTATION
-	s_Profiler = std::make_unique<NvProfiler>(args);
+	s_Profiler = std::make_unique<NvGPUProfiler>(args);
 #endif
+
+	ASSERT(s_Profiler, "No profiler was created!");
 
 	ID3D12CommandQueue* pQueue = nullptr;
 	switch (args.Queue)
 	{
-	case ProfilerQueue::Direct: pQueue = g_D3DGraphicsContext->GetDirectCommandQueue()->GetCommandQueue(); break;
-	case ProfilerQueue::Compute: pQueue = g_D3DGraphicsContext->GetComputeCommandQueue()->GetCommandQueue(); break;
+	case GPUProfilerQueue::Direct: pQueue = g_D3DGraphicsContext->GetDirectCommandQueue()->GetCommandQueue(); break;
+	case GPUProfilerQueue::Compute: pQueue = g_D3DGraphicsContext->GetComputeCommandQueue()->GetCommandQueue(); break;
 	default: break;
 	}
 
@@ -35,21 +37,21 @@ void Profiler::Create(const ProfilerArgs& args)
 }
 
 
-void Profiler::Destroy()
+void GPUProfiler::Destroy()
 {
 	ASSERT(s_Profiler, "No profiler has been created.");
 	LOG_INFO("Destroying profiler...");
 	s_Profiler.reset();
 }
 
-Profiler& Profiler::Get()
+GPUProfiler& GPUProfiler::Get()
 {
 	ASSERT(s_Profiler, "No profiler has been created.");
 	return *s_Profiler;
 }
 
 
-Profiler::Profiler(const ProfilerArgs& args)
+GPUProfiler::GPUProfiler(const GPUProfilerArgs& args)
 	: m_Queue(args.Queue)
 {
 	QueryPerformanceFrequency(&m_ClockFreq);
@@ -57,7 +59,7 @@ Profiler::Profiler(const ProfilerArgs& args)
 }
 
 
-void Profiler::CaptureNextFrame()
+void GPUProfiler::CaptureNextFrame()
 {
 	if (m_InCollection)
 		return;
@@ -79,7 +81,7 @@ void Profiler::CaptureNextFrame()
 	}
 }
 
-void Profiler::BeginPass(ProfilerQueue queue, const char* name)
+void GPUProfiler::BeginPass(GPUProfilerQueue queue, const char* name)
 {
 	if (queue != m_Queue)
 		return;
@@ -90,7 +92,7 @@ void Profiler::BeginPass(ProfilerQueue queue, const char* name)
 	}
 
 }
-void Profiler::EndPass(ProfilerQueue queue)
+void GPUProfiler::EndPass(GPUProfilerQueue queue)
 {
 	if (queue != m_Queue)
 		return;
@@ -101,28 +103,28 @@ void Profiler::EndPass(ProfilerQueue queue)
 	}
 }
 
-void Profiler::PushRange(ProfilerQueue queue, const char* name)
+void GPUProfiler::PushRange(GPUProfilerQueue queue, const char* name)
 {
 	if (queue != m_Queue)
 		return;
 
 	PushRangeImpl(name);
 }
-void Profiler::PushRange(ProfilerQueue queue, const char* name, ID3D12GraphicsCommandList* commandList)
+void GPUProfiler::PushRange(GPUProfilerQueue queue, const char* name, ID3D12GraphicsCommandList* commandList)
 {
 	if (queue != m_Queue)
 		return;
 
 	PushRangeImpl(name, commandList);
 }
-void Profiler::PopRange(ProfilerQueue queue)
+void GPUProfiler::PopRange(GPUProfilerQueue queue)
 {
 	if (queue != m_Queue)
 		return;
 
 	PopRangeImpl();
 }
-void Profiler::PopRange(ProfilerQueue queue, ID3D12GraphicsCommandList* commandList)
+void GPUProfiler::PopRange(GPUProfilerQueue queue, ID3D12GraphicsCommandList* commandList)
 {
 	if (queue != m_Queue)
 		return;

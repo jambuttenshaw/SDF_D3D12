@@ -7,3 +7,6 @@
 [submodule "sdf_d3d12/vendor/args"]
 	path = sdf_d3d12/vendor/args
 	url = https://github.com/Taywee/args
+[submodule "sdf_d3d12/vendor/json"]
+	path = sdf_d3d12/vendor/json
+	url = https://github.com/nlohmann/json

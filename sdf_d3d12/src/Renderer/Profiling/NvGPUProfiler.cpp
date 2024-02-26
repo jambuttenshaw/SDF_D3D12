@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "NvProfiler.h"
+#include "NvGPUProfiler.h"
 
 
 #ifdef NV_PERF_ENABLE_INSTRUMENTATION
@@ -10,29 +10,22 @@
 #include <iomanip>
 
 
-const char* Metrics[] = {
-	"sm__throughput.avg.pct_of_peak_sustained_elapsed",
-	"lts__average_t_sector_hit_rate_realtime.pct",
-	"tpc__sm_rf_registers_allocated_shader_cs_realtime.avg.pct_of_peak_sustained_elapsed",
-};
-
-
-NvProfiler::NvProfiler(const ProfilerArgs& args)
-	: Profiler(args)
+NvGPUProfiler::NvGPUProfiler(const GPUProfilerArgs& args)
+	: GPUProfiler(args)
 {
 }
 
-NvProfiler::~NvProfiler()
+NvGPUProfiler::~NvGPUProfiler()
 {
 	THROW_IF_FALSE(m_Profiler.EndSession(), "Failed to end a session");
 	nv::perf::D3D12SetDeviceClockState(m_Device, m_ClockStatus);
 }
 
-void NvProfiler::Init(ID3D12Device* device, ID3D12CommandQueue* queue, const ProfilerArgs& args)
+void NvGPUProfiler::Init(ID3D12Device* device, ID3D12CommandQueue* queue, const GPUProfilerArgs& args)
 {
 	m_Device = device;
 
-	LOG_INFO("Creating NV Perf Profiler.");
+	LOG_INFO("Creating NV Perf GPUProfiler.");
 
 	THROW_IF_FALSE(nv::perf::InitializeNvPerf(), "Failed to init NvPerf.");
 	THROW_IF_FALSE(nv::perf::D3D12LoadDriver(), "Failed to load D3D12 driver.");
@@ -73,12 +66,10 @@ void NvProfiler::Init(ID3D12Device* device, ID3D12CommandQueue* queue, const Pro
 	}
 
 	// Add metrics into config builder
-	for (size_t i = 0; i < std::size(Metrics); i++)
+	for (const auto& metric : args.Metrics)
 	{
-		const char* const pMetric = Metrics[i];
-
 		NVPW_MetricEvalRequest request{};
-		THROW_IF_FALSE(nv::perf::ToMetricEvalRequest(m_MetricsEvaluator, pMetric, request), "Failed to convert metric to metric request.");
+		THROW_IF_FALSE(nv::perf::ToMetricEvalRequest(m_MetricsEvaluator, metric.c_str(), request), "Failed to convert metric to metric request.");
 		THROW_IF_FALSE(configBuilder.AddMetrics(&request, 1), "Failed to add metric to config.");
 
 		m_MetricEvalRequests.emplace_back(std::move(request));
@@ -98,18 +89,18 @@ void NvProfiler::Init(ID3D12Device* device, ID3D12CommandQueue* queue, const Pro
 
 	THROW_IF_FALSE(m_Profiler.EnqueueCounterCollection(m_CounterConfiguration, s_NumNestingLevels), "Failed to enqueue counter collection.");
 
-	LOG_INFO("NV Perf Profiler created successfully");
+	LOG_INFO("NV Perf GPUProfiler created successfully");
 }
 
 
 
-void NvProfiler::CaptureNextFrameImpl()
+void NvGPUProfiler::CaptureNextFrameImpl()
 {
 	THROW_IF_FALSE(m_Profiler.EnqueueCounterCollection(m_CounterConfiguration, s_NumNestingLevels), "Failed to enqueue counter collection.");
 }
 
 
-void NvProfiler::BeginPassImpl(const char* name)
+void NvGPUProfiler::BeginPassImpl(const char* name)
 {
 	if (!m_Profiler.AllPassesSubmitted())
 	{
@@ -118,7 +109,7 @@ void NvProfiler::BeginPassImpl(const char* name)
 	}
 }
 
-void NvProfiler::EndPassImpl()
+void NvGPUProfiler::EndPassImpl()
 {
 	if (!m_Profiler.AllPassesSubmitted() && m_Profiler.IsInPass())
 	{
@@ -170,22 +161,22 @@ void NvProfiler::EndPassImpl()
 	}
 }
 
-void NvProfiler::PushRangeImpl(const char* name)
+void NvGPUProfiler::PushRangeImpl(const char* name)
 {
 	THROW_IF_FALSE(m_Profiler.PushRange(name), "Failed to push a range");
 }
 
-void NvProfiler::PushRangeImpl(const char* name, ID3D12GraphicsCommandList* commandList)
+void NvGPUProfiler::PushRangeImpl(const char* name, ID3D12GraphicsCommandList* commandList)
 {
 	THROW_IF_FALSE(nv::perf::profiler::D3D12PushRange(commandList, name), "Failed to push a range");
 }
 
-void NvProfiler::PopRangeImpl()
+void NvGPUProfiler::PopRangeImpl()
 {
 	THROW_IF_FALSE(m_Profiler.PopRange(), "Failed to pop a range");
 }
 
-void NvProfiler::PopRangeImpl(ID3D12GraphicsCommandList* commandList)
+void NvGPUProfiler::PopRangeImpl(ID3D12GraphicsCommandList* commandList)
 {
 	THROW_IF_FALSE(nv::perf::profiler::D3D12PopRange(commandList), "Failed to pop a range");
 }

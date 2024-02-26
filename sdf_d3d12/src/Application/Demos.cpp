@@ -38,7 +38,7 @@ SDFEditList DropsDemo::BuildEditList(float deltaTime)
 {
 	m_Time += deltaTime;
 
-	SDFEditList editList(m_SphereCount + 2, 8.0f);
+	SDFEditList editList(m_SphereCount + 2, 12.0f);
 
 	// Create base
 	editList.AddEdit(SDFEdit::CreateBox({}, { 6.0f, 0.05f, 6.0f }));

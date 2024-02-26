@@ -6,7 +6,7 @@
 #include "backends/imgui_impl_win32.h"
 #include "backends/imgui_impl_dx12.h"
 
-#include "Renderer/Profiling/Profiler.h"
+#include "Renderer/Profiling/GPUProfiler.h"
 
 #include <args.hxx>
 #include "pix3.h"
@@ -42,14 +42,16 @@ bool D3DApplication::ParseCommandLineArgs(LPWSTR argv[], int argc)
 	args::HelpFlag help(parser, "help", "Display this help menu", { "help" });
 
 	args::Group windowFlags(parser, "Window Flags");
-	args::ValueFlag<int> width(windowFlags, "Width", "Set the window width", { 'w' });
-	args::ValueFlag<int> height(windowFlags, "Height", "Set the window height", { 'h' });
 	args::Flag fullscreen(windowFlags, "Fullscreen", "Start application in fullscreen", { 'f', "fullscreen" });
 	args::Flag noGUI(windowFlags, "No GUI", "Disable GUI", { "no-gui" });
 
 	args::Group graphicsContextFlags(parser, "Graphics Context Flags");
 	args::Flag enablePIX(graphicsContextFlags, "Enable GPU Captures", "Enable PIX GPU Captures", { "enable-gpu-capture" });
 	args::Flag enableDRED(graphicsContextFlags, "Enable DRED", "Enable Device Removal Extended Data", { "enable-dred" });
+
+	args::Group profilingGroup(parser, "Profiling Options", args::Group::Validators::AllOrNone);
+	args::ValueFlag<std::string> profileConfig(profilingGroup, "Profile Config", "Path to profiling config file", { "profile-config" });
+	args::ValueFlag<std::string> gpuProfileConfig(profilingGroup, "GPU Profiler Config", "Path to GPU profiler config file", { "gpu-profiler-config" });
 
 	try
 	{
@@ -66,10 +68,6 @@ bool D3DApplication::ParseCommandLineArgs(LPWSTR argv[], int argc)
 		return false;
 	}
 
-	if (width)
-		m_Width = width.Get();
-	if (height)
-		m_Height = height.Get();
 	if (fullscreen)
 		m_ToggleFullscreen = true;
 	if (noGUI)
@@ -79,6 +77,25 @@ bool D3DApplication::ParseCommandLineArgs(LPWSTR argv[], int argc)
 		m_GraphicsContextFlags.EnableGPUCaptures = true;
 	if (enableDRED)
 		m_GraphicsContextFlags.EnableDRED = true;
+
+	if (profileConfig)
+	{
+		// Parse config
+		if (ParseProfileConfigFromJSON(profileConfig.Get(), m_ProfileConfig))
+		{
+			m_UseProfilingConfig = true;
+		}
+	}
+
+	if (gpuProfileConfig)
+	{
+		// Parse gpu profiler args
+		if (ParseGPUProfilerArgsFromJSON(gpuProfileConfig.Get(), m_GPUProfilerArgs))
+		{
+			// Don't load defaults - args have been supplied
+			m_LoadDefaultGPUProfilerArgs = false;
+		}
+	}
 
 	return true;
 }
@@ -92,7 +109,18 @@ void D3DApplication::OnInit()
 	m_GraphicsContext = std::make_unique<D3DGraphicsContext>(Win32Application::GetHwnd(), GetWidth(), GetHeight(), m_GraphicsContextFlags);
 
 #ifdef ENABLE_INSTRUMENTATION
-	Profiler::Create({ ProfilerQueue::Direct });
+
+	if (m_LoadDefaultGPUProfilerArgs)
+	{
+		m_GPUProfilerArgs.Queue = GPUProfilerQueue::Direct;
+
+		m_GPUProfilerArgs.Metrics.push_back("sm__throughput.avg.pct_of_peak_sustained_elapsed");
+		m_GPUProfilerArgs.Metrics.push_back("lts__average_t_sector_hit_rate_realtime.pct");
+		m_GPUProfilerArgs.Metrics.push_back("tpc__sm_rf_registers_allocated_shader_cs_realtime.avg.pct_of_peak_sustained_elapsed");
+	}
+
+	GPUProfiler::Create(m_GPUProfilerArgs);
+
 #endif
 
 	InitImGui();
@@ -203,7 +231,7 @@ void D3DApplication::OnDestroy()
 	m_Raytracer.reset();
 
 #ifdef ENABLE_INSTRUMENTATION
-	Profiler::Destroy();
+	GPUProfiler::Destroy();
 #endif
 
 	// Release graphics context
@@ -378,7 +406,7 @@ bool D3DApplication::ImGuiApplicationInfo()
 		ImGui::Separator();
 
 		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
-		ImGui::Text("Profiler");
+		ImGui::Text("GPUProfiler");
 		ImGui::PopStyleColor();
 
 		ImGui::Separator();

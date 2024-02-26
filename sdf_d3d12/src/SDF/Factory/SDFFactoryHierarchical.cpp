@@ -16,7 +16,7 @@
 #include <pix3.h>
 
 #include "SDFConstructionResources.h"
-#include "Renderer/Profiling/Profiler.h"
+#include "Renderer/Profiling/GPUProfiler.h"
 
 
 namespace EditDependencySignature

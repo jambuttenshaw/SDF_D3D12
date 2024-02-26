@@ -9,7 +9,7 @@
 #include "Renderer/ShaderTable.h"
 
 #include "pix3.h"
-#include "Renderer/Profiling/Profiler.h"
+#include "Renderer/Profiling/GPUProfiler.h"
 
 
 const wchar_t* Raytracer::c_HitGroupName = L"MyHitGroup";

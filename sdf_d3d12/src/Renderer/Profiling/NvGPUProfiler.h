@@ -2,7 +2,7 @@
 
 #include "Core.h"
 
-#include "Profiler.h"
+#include "GPUProfiler.h"
 
 
 #ifdef NV_PERF_ENABLE_INSTRUMENTATION
@@ -15,17 +15,17 @@
 class D3DQueue;
 
 
-class NvProfiler : public Profiler
+class NvGPUProfiler : public GPUProfiler
 {
 public:
-	NvProfiler(const ProfilerArgs& args);
-	virtual ~NvProfiler() override;
+	NvGPUProfiler(const GPUProfilerArgs& args);
+	virtual ~NvGPUProfiler() override;
 
-    DISALLOW_COPY(NvProfiler)
-	DISALLOW_MOVE(NvProfiler)
+    DISALLOW_COPY(NvGPUProfiler)
+	DISALLOW_MOVE(NvGPUProfiler)
 
 protected:
-    virtual void Init(ID3D12Device* device, ID3D12CommandQueue* queue, const ProfilerArgs& args) override;
+    virtual void Init(ID3D12Device* device, ID3D12CommandQueue* queue, const GPUProfilerArgs& args) override;
 
 	virtual void CaptureNextFrameImpl() override;
 

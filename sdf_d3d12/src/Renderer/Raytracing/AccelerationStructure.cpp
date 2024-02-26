@@ -4,7 +4,7 @@
 #include "SDF/SDFObject.h"
 
 #include "pix3.h"
-#include "Renderer/Profiling/Profiler.h"
+#include "Renderer/Profiling/GPUProfiler.h"
 
 
 void AccelerationStructure::AllocateResource()

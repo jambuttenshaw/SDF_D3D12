@@ -1,0 +1,15 @@
+{
+  // GPU Profiling Arguments
+  "demos": [
+    {
+      "name": "drops",
+
+      "initial_brick_size": 1,
+      "linear_increment": false,
+      "brick_size_multiplier": 0.5,
+      "iteration_count": 4
+    }
+  ],
+  "num_captures": 500,
+  "output_file": "captures/profile.csv"
+}

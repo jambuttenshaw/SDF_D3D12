@@ -1,6 +1,7 @@
 #pragma once
 
 #include "BaseApplication.h"
+#include "ProfileConfig.h"
 #include "Scene.h"
 
 #include "Renderer/D3DGraphicsContext.h"
@@ -70,4 +71,11 @@ private:
 	// Should the application toggle fullscreen on the next update
 	bool m_ToggleFullscreen = false;
 	D3DGraphicsContextFlags m_GraphicsContextFlags;
+
+	// Profiling configuration
+	bool m_UseProfilingConfig = false;
+	ProfileConfig m_ProfileConfig;
+
+	bool m_LoadDefaultGPUProfilerArgs = true;		// If no config was specified in the command line args, default config will be loaded
+	GPUProfilerArgs m_GPUProfilerArgs;
 };
