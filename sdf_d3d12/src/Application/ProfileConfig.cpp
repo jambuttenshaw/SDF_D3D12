@@ -134,5 +134,22 @@ bool ParseGPUProfilerArgsFromJSON(const std::string& path, GPUProfilerArgs& gpuP
 		gpuProfilerArgs.Metrics.emplace_back(std::move(metric));
 	}
 
+	if (docJSON.contains("headers"))
+	{
+		const json& headersJSON = docJSON["headers"];
+		if (headersJSON.size() != metricsJSON.size())
+			JSON_ERROR("Headers and metrics do not match.");
+
+		gpuProfilerArgs.Headers.reserve(headersJSON.size());
+		for (std::string header : headersJSON)
+		{
+			gpuProfilerArgs.Headers.emplace_back(std::move(header));
+		}
+	}
+	else
+	{
+		gpuProfilerArgs.Headers = gpuProfilerArgs.Metrics;
+	}
+
 	return true;
 }

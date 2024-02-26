@@ -17,6 +17,8 @@ struct GPUProfilerArgs
 
 	// Which metrics to record
 	std::vector<std::string> Metrics;
+	// Column headers with descriptive names for the metrics
+	std::vector<std::string> Headers;
 };
 
 

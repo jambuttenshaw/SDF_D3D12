@@ -79,39 +79,32 @@ SDFEditList DropsDemo::BuildEditList(float deltaTime)
 	return editList;
 }
 
-bool DropsDemo::DisplayGUI()
+void DropsDemo::DisplayGUI()
 {
-	bool open = true;
-	if (ImGui::Begin("Drops Demo", &open))
+	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
+	ImGui::Text("Stats");
+	ImGui::PopStyleColor();
+
+	ImGui::Separator();
+
+	ImGui::Text("Edit Count: %d", m_SphereCount + 2);
+
+	ImGui::Separator();
+
+	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
+	ImGui::Text("Controls");
+	ImGui::PopStyleColor();
+
+	ImGui::Separator();
+
+	int sphereCount = static_cast<int>(m_SphereCount);
+	if (ImGui::SliderInt("Spheres", &sphereCount, 1, 1022))
 	{
-		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
-		ImGui::Text("Stats");
-		ImGui::PopStyleColor();
-
-		ImGui::Separator();
-
-		ImGui::Text("Edit Count: %d", m_SphereCount + 2);
-
-		ImGui::Separator();
-
-		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
-		ImGui::Text("Controls");
-		ImGui::PopStyleColor();
-
-		ImGui::Separator();
-
-		int sphereCount = static_cast<int>(m_SphereCount);
-		if (ImGui::SliderInt("Spheres", &sphereCount, 1, 1022))
-		{
-			m_SphereCount = sphereCount;
-		}
-		ImGui::SliderFloat("Blending", &m_SphereBlend, 0.0f, 1.0f);
-
-		ImGui::Separator();
+		m_SphereCount = sphereCount;
 	}
-	ImGui::End();
+	ImGui::SliderFloat("Blending", &m_SphereBlend, 0.0f, 1.0f);
 
-	return true;
+	ImGui::Separator();
 }
 
 
@@ -189,39 +182,31 @@ SDFEditList CubesDemo::BuildEditList(float deltaTime)
 }
 
 
-bool CubesDemo::DisplayGUI()
+void CubesDemo::DisplayGUI()
 {
-	bool open = true;
-	if (ImGui::Begin("Drops Demo", &open))
+	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
+	ImGui::Text("Stats");
+	ImGui::PopStyleColor();
+
+	ImGui::Separator();
+
+	const UINT numCubes = m_CubeGridSize * m_CubeGridSize * m_CubeGridSize;
+	ImGui::Text("Edit Count: %d", numCubes);
+
+	ImGui::Separator();
+
+	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
+	ImGui::Text("Controls");
+	ImGui::PopStyleColor();
+
+	ImGui::Separator();
+
+	int cubeCount = static_cast<int>(m_CubeGridSize);
+	if (ImGui::SliderInt("Cubes", &cubeCount, 1, static_cast<int>(m_MaxCubeGridSize)))
 	{
-		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
-		ImGui::Text("Stats");
-		ImGui::PopStyleColor();
-
-		ImGui::Separator();
-
-		const UINT numCubes = m_CubeGridSize * m_CubeGridSize * m_CubeGridSize;
-		ImGui::Text("Edit Count: %d", numCubes);
-
-		ImGui::Separator();
-
-		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
-		ImGui::Text("Controls");
-		ImGui::PopStyleColor();
-
-		ImGui::Separator();
-
-		int cubeCount = static_cast<int>(m_CubeGridSize);
-		if (ImGui::SliderInt("Cubes", &cubeCount, 1, static_cast<int>(m_MaxCubeGridSize)))
-		{
-			m_CubeGridSize = cubeCount;
-		}
-		ImGui::SliderFloat("Blending", &m_CubeBlend, 0.0f, 1.0f);
-
-		ImGui::Separator();
+		m_CubeGridSize = cubeCount;
 	}
-	ImGui::End();
+	ImGui::SliderFloat("Blending", &m_CubeBlend, 0.0f, 1.0f);
 
-	return true;
+	ImGui::Separator();
 }
-

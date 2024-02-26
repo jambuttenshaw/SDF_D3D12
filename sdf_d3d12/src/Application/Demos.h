@@ -13,11 +13,14 @@ public:
 	DISALLOW_MOVE(BaseDemo);
 
 	virtual SDFEditList BuildEditList(float deltaTime) = 0;
-	virtual bool DisplayGUI() = 0;
+	virtual void DisplayGUI() = 0;
 
 public:
 	static void CreateAllDemos();
+
 	static BaseDemo* GetDemoFromName(const std::string& demoName);
+	static const std::map<std::string, BaseDemo*>& GetAllDemos() { return s_Demos; }
+
 private:
 	static std::map<std::string, BaseDemo*> s_Demos;
 };
@@ -34,7 +37,7 @@ public:
 	}
 
 	virtual SDFEditList BuildEditList(float deltaTime) override;
-	virtual bool DisplayGUI() override;
+	virtual void DisplayGUI() override;
 
 private:
 	struct SphereData
@@ -65,7 +68,7 @@ public:
 	}
 
 	virtual SDFEditList BuildEditList(float deltaTime) override;
-	virtual bool DisplayGUI() override;
+	virtual void DisplayGUI() override;
 
 private:
 	struct CubeData

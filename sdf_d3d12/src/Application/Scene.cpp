@@ -84,6 +84,16 @@ Scene::~Scene()
 }
 
 
+void Scene::Reset(const std::string& demoName, float brickSize)
+{
+	m_CurrentDemo = BaseDemo::GetDemoFromName(demoName);
+	ASSERT(m_CurrentDemo, "Failed to load current demo.");
+
+	m_Object->SetNextRebuildBrickSize(brickSize);
+	m_Rebuild = true;
+}
+
+
 void Scene::OnUpdate(float deltaTime)
 {
 	PIXBeginEvent(PIX_COLOR_INDEX(9), L"Scene Update");
@@ -184,7 +194,6 @@ bool Scene::ImGuiSceneInfo()
 			}
 		}
 
-
 		ImGui::Separator();
 
 		float brickSize = m_Object->GetNextRebuildBrickSize();
@@ -215,10 +224,11 @@ bool Scene::ImGuiSceneInfo()
 	}
 	ImGui::End();
 
-	if (m_DisplayDemoGui)
+	if (ImGui::Begin("Demo", &m_DisplayDemoGui))
 	{
-		m_DisplayDemoGui = m_CurrentDemo->DisplayGUI();
+		m_CurrentDemo->DisplayGUI();
 	}
+	ImGui::End();
 
 	return open;
 }

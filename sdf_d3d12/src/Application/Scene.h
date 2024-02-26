@@ -18,6 +18,8 @@ public:
 	DISALLOW_COPY(Scene)
 	DISALLOW_MOVE(Scene)
 
+	void Reset(const std::string& demoName, float brickSize);
+
 	void OnUpdate(float deltaTime);
 	void PreRender();
 
