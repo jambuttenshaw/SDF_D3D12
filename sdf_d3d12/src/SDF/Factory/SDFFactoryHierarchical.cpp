@@ -522,22 +522,26 @@ void SDFFactoryHierarchical::BuildCommandList_Setup(const PipelineSet& pipeline,
 			m_CommandList->ResourceBarrier(ARRAYSIZE(barriers), barriers);
 		}
 
-		pipeline[SDFFactoryPipeline::EditDependency]->Bind(m_CommandList.Get());
-
 		const UINT editCount = resources.GetBrickBuildParams().SDFEditCount;
 
 		EditDependencyParameters params;
 		params.SDFEditCount = editCount;
 		params.DependencyPairsCount = editCount * (editCount - 1) / 2;
 
-		m_CommandList->SetComputeRoot32BitConstants(EditDependencySignature::ParametersSlot, SizeOfInUint32(EditDependencyParameters), &params, 0);
-		m_CommandList->SetComputeRootUnorderedAccessView(EditDependencySignature::EditListSlot, resources.GetEditBuffer().GetAddress());
-		m_CommandList->SetComputeRootUnorderedAccessView(EditDependencySignature::DependencyIndicesSlot, resources.GetEditDependencyBuffer().GetAddress());
+		if (params.DependencyPairsCount > 0)
+		{
+			pipeline[SDFFactoryPipeline::EditDependency]->Bind(m_CommandList.Get());
+			
 
-		// Calculate thread groups
-		// One thread for each pair
-		const UINT threadGroupX = (params.DependencyPairsCount + EDIT_DEPENDENCY_THREAD_COUNT - 1) / EDIT_DEPENDENCY_THREAD_COUNT;
-		m_CommandList->Dispatch(threadGroupX, 1, 1);
+			m_CommandList->SetComputeRoot32BitConstants(EditDependencySignature::ParametersSlot, SizeOfInUint32(EditDependencyParameters), &params, 0);
+			m_CommandList->SetComputeRootUnorderedAccessView(EditDependencySignature::EditListSlot, resources.GetEditBuffer().GetAddress());
+			m_CommandList->SetComputeRootUnorderedAccessView(EditDependencySignature::DependencyIndicesSlot, resources.GetEditDependencyBuffer().GetAddress());
+
+			// Calculate thread groups
+			// One thread for each pair
+			const UINT threadGroupX = (params.DependencyPairsCount + EDIT_DEPENDENCY_THREAD_COUNT - 1) / EDIT_DEPENDENCY_THREAD_COUNT;
+			m_CommandList->Dispatch(threadGroupX, 1, 1);
+		}
 			
 		{
 			// Transition brick buffer for reading

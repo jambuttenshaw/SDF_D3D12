@@ -98,15 +98,13 @@ protected:
 
 #else
 
-#define PROFILE_DIRECT_CAPTURE_NEXT_FRAME()			
+#define PROFILE_CAPTURE_NEXT_FRAME()			
 
 #define PROFILE_DIRECT_BEGIN_PASS(name)				
 #define PROFILE_DIRECT_END_PASS()					
 
 #define PROFILE_DIRECT_PUSH_RANGE(...)				
 #define PROFILE_DIRECT_POP_RANGE(...)				
-
-#define PROFILE_COMPUTE_CAPTURE_NEXT_FRAME()		
 
 #define PROFILE_COMPUTE_BEGIN_PASS(name)			
 #define PROFILE_COMPUTE_END_PASS()					

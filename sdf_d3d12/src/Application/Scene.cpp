@@ -89,7 +89,7 @@ void Scene::OnUpdate(float deltaTime)
 {
 	PIXBeginEvent(PIX_COLOR_INDEX(9), L"Scene Update");
 
-	deltaTime *= !m_Paused;
+	deltaTime *= static_cast<float>(!m_Paused);
 
 	// Manipulate objects in the scene
 	if (m_RotateInstances)

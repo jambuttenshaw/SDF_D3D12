@@ -417,7 +417,7 @@ void D3DGraphicsContext::CreateDevice()
 	{
 		// Set up message callback
 		THROW_IF_FAIL(m_InfoQueue->RegisterMessageCallback(D3DDebugTools::D3DMessageHandler, D3D12_MESSAGE_CALLBACK_FLAG_NONE, nullptr, &m_MessageCallbackCookie));
-		THROW_IF_FAIL(m_InfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, true));
+		THROW_IF_FAIL(m_InfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, true));
 		LOG_INFO("D3D Info Queue message callback created.");
 	}
 	else

@@ -10,6 +10,7 @@ std::map<std::string, BaseDemo*> BaseDemo::s_Demos;
 void BaseDemo::CreateAllDemos()
 {
 	s_Demos["drops"] = &DropsDemo::Get();
+	s_Demos["cubes"] = &CubesDemo::Get();
 }
 
 BaseDemo* BaseDemo::GetDemoFromName(const std::string& demoName)
@@ -140,3 +141,87 @@ SDFEditList Demos::IceCreamDemo(float deltaTime)
 	return editList;
 }
 */
+
+
+CubesDemo::CubesDemo()
+{
+	Random::Seed(0);
+
+	const UINT numCubes = m_MaxCubeGridSize * m_MaxCubeGridSize * m_MaxCubeGridSize;
+	m_CubeScales.resize(numCubes);
+	for (auto& data : m_CubeScales)
+	{
+		data.Scale = Random::Float(0.75f, 1.25f);
+		data.DeltaScale = Random::Float(-0.25f, 0.25f);
+	}
+}
+
+
+SDFEditList CubesDemo::BuildEditList(float deltaTime)
+{
+	m_Time += deltaTime;
+
+	const UINT numCubes = m_CubeGridSize * m_CubeGridSize * m_CubeGridSize;
+	SDFEditList editList(numCubes, 12.0f);
+
+	for (UINT z = 0; z < m_CubeGridSize; z++)
+	for (UINT y = 0; y < m_CubeGridSize; y++)
+	for (UINT x = 0; x < m_CubeGridSize; x++)
+	{
+		const UINT i = (z * m_CubeGridSize + y) * m_CubeGridSize + x;
+		const auto fx = static_cast<float>(x);
+		const auto fy = static_cast<float>(y);
+		const auto fz = static_cast<float>(z);
+		const auto fCount = static_cast<float>(m_CubeGridSize);
+
+		Transform transform;
+		transform.SetTranslation({ 
+			fx - 0.5f * fCount,
+			fy - 0.5f * fCount,
+			fz - 0.5f * fCount
+		});
+		transform.SetScale(m_CubeScales.at(i).Scale + m_CubeScales.at(i).DeltaScale * sinf(4.0f * m_Time));
+
+		editList.AddEdit(SDFEdit::CreateBoxFrame(transform, { 0.4f, 0.4f, 0.4f }, 0.02f, SDF_OP_SMOOTH_UNION, m_CubeBlend));
+	}
+
+	return editList;
+}
+
+
+bool CubesDemo::DisplayGUI()
+{
+	bool open = true;
+	if (ImGui::Begin("Drops Demo", &open))
+	{
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
+		ImGui::Text("Stats");
+		ImGui::PopStyleColor();
+
+		ImGui::Separator();
+
+		const UINT numCubes = m_CubeGridSize * m_CubeGridSize * m_CubeGridSize;
+		ImGui::Text("Edit Count: %d", numCubes);
+
+		ImGui::Separator();
+
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
+		ImGui::Text("Controls");
+		ImGui::PopStyleColor();
+
+		ImGui::Separator();
+
+		int cubeCount = static_cast<int>(m_CubeGridSize);
+		if (ImGui::SliderInt("Cubes", &cubeCount, 1, static_cast<int>(m_MaxCubeGridSize)))
+		{
+			m_CubeGridSize = cubeCount;
+		}
+		ImGui::SliderFloat("Blending", &m_CubeBlend, 0.0f, 1.0f);
+
+		ImGui::Separator();
+	}
+	ImGui::End();
+
+	return true;
+}
+

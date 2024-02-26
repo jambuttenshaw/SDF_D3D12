@@ -146,7 +146,7 @@ void D3DApplication::OnInit()
 	{
 		// Load default config
 		DemoConfig demoConfig;
-		demoConfig.DemoName = "drops";
+		demoConfig.DemoName = "cubes";
 		demoConfig.InitialBrickSize = 0.1f;
 		m_Scene = std::make_unique<Scene>(demoConfig);
 	}
