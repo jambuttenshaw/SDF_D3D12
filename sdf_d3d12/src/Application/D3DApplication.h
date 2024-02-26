@@ -73,7 +73,7 @@ private:
 	D3DGraphicsContextFlags m_GraphicsContextFlags;
 
 	// Profiling configuration
-	bool m_UseProfilingConfig = false;
+	bool m_LoadDefaultProfilingConfig = true;		// If no config was specified in the command line args, default config will be loaded
 	ProfileConfig m_ProfileConfig;
 
 	bool m_LoadDefaultGPUProfilerArgs = true;		// If no config was specified in the command line args, default config will be loaded

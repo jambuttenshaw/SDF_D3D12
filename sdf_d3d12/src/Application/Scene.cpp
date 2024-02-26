@@ -23,8 +23,12 @@ static std::string wstring_to_utf8(const std::wstring& str)
 #pragma warning( pop ) 
 
 
-Scene::Scene()
+Scene::Scene(DemoConfig demoConfig)
+	: m_DemoConfig(std::move(demoConfig))
 {
+	m_CurrentDemo = BaseDemo::GetDemoFromName(m_DemoConfig.DemoName);
+	ASSERT(m_CurrentDemo, "Failed to load current demo.");
+		
 	m_CurrentPipelineName = m_EnableEditCulling ? L"Default" : L"NoEditCulling";
 
 	// Build SDF Object
@@ -33,14 +37,14 @@ Scene::Scene()
 		m_Factory = std::make_unique<SDFFactoryHierarchicalAsync>();
 
 		// Create SDF objects
-		m_BlobObject = std::make_unique<SDFObject>(0.1f, 200'000);
+		m_Object = std::make_unique<SDFObject>(m_DemoConfig.InitialBrickSize, 200'000);
 
 		BuildEditList(0.0f, false);
 	}
 
 	{
 		// Construct scene geometry
-		m_SceneGeometry.push_back({ L"Blobs", m_BlobObject.get()});
+		m_SceneGeometry.push_back({ L"Blobs", m_Object.get()});
 
 		CheckSDFGeometryUpdates();
 	}
@@ -204,7 +208,7 @@ bool Scene::ImGuiSceneInfo()
 
 	if (m_DisplayDemoGui)
 	{
-		m_DisplayDemoGui = DropsDemo::Get().DisplayGUI();
+		m_DisplayDemoGui = m_CurrentDemo->DisplayGUI();
 	}
 
 	return open;
@@ -213,15 +217,15 @@ bool Scene::ImGuiSceneInfo()
 
 void Scene::BuildEditList(float deltaTime, bool async)
 {
-	const SDFEditList editList = DropsDemo::Get().BuildEditList(deltaTime);
+	const SDFEditList editList = m_CurrentDemo->BuildEditList(deltaTime);
 
 	if (async)
 	{
-		m_Factory->BakeSDFAsync(m_CurrentPipelineName, m_BlobObject.get(), editList);
+		m_Factory->BakeSDFAsync(m_CurrentPipelineName, m_Object.get(), editList);
 	}
 	else
 	{
-		m_Factory->BakeSDFSync(m_CurrentPipelineName, m_BlobObject.get(), editList);
+		m_Factory->BakeSDFSync(m_CurrentPipelineName, m_Object.get(), editList);
 	}
 }
 

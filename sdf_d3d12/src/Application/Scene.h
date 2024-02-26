@@ -6,11 +6,15 @@
 #include "SDF/Factory/SDFFactoryHierarchicalAsync.h"
 #include "SDF/SDFObject.h"
 
+#include "ProfileConfig.h"
+
+
+class BaseDemo;
 
 class Scene
 {
 public:
-	Scene();
+	Scene(DemoConfig demoConfig);
 	~Scene();
 
 	DISALLOW_COPY(Scene)
@@ -39,16 +43,20 @@ private:
 	void DisplayAccelerationStructureDebugInfo() const;
 
 private:
+	DemoConfig m_DemoConfig;
+	BaseDemo* m_CurrentDemo = nullptr;
+
 	// A description of all the different types of geometry in the scene
 	std::vector<BottomLevelAccelerationStructureGeometry> m_SceneGeometry;
 
 	std::unique_ptr<RaytracingAccelerationStructureManager> m_AccelerationStructure;
 
-	// SDF Objects
+	// Factory
 	std::unique_ptr<SDFFactoryHierarchicalAsync> m_Factory;
 	std::wstring m_CurrentPipelineName = L"Default";
 
-	std::unique_ptr<SDFObject> m_BlobObject;
+	// SDF Objects
+	std::unique_ptr<SDFObject> m_Object;
 
 	// Demo Scene
 	XMMATRIX m_InstanceRotation;

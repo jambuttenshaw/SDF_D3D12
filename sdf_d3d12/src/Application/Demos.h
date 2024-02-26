@@ -14,6 +14,12 @@ public:
 
 	virtual SDFEditList BuildEditList(float deltaTime) = 0;
 	virtual bool DisplayGUI() = 0;
+
+public:
+	static void CreateAllDemos();
+	static BaseDemo* GetDemoFromName(const std::string& demoName);
+private:
+	static std::map<std::string, BaseDemo*> s_Demos;
 };
 
 

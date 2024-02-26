@@ -5,6 +5,23 @@
 #include "Framework/Math.h"
 
 
+std::map<std::string, BaseDemo*> BaseDemo::s_Demos;
+
+void BaseDemo::CreateAllDemos()
+{
+	s_Demos["drops"] = &DropsDemo::Get();
+}
+
+BaseDemo* BaseDemo::GetDemoFromName(const std::string& demoName)
+{
+	if (s_Demos.find(demoName) != s_Demos.end())
+	{
+		return s_Demos.at(demoName);
+	}
+
+	return nullptr;
+}
+
 
 DropsDemo::DropsDemo()
 {

@@ -9,6 +9,8 @@
 #include "Renderer/Profiling/GPUProfiler.h"
 
 #include <args.hxx>
+
+#include "Demos.h"
 #include "pix3.h"
 
 
@@ -49,7 +51,7 @@ bool D3DApplication::ParseCommandLineArgs(LPWSTR argv[], int argc)
 	args::Flag enablePIX(graphicsContextFlags, "Enable GPU Captures", "Enable PIX GPU Captures", { "enable-gpu-capture" });
 	args::Flag enableDRED(graphicsContextFlags, "Enable DRED", "Enable Device Removal Extended Data", { "enable-dred" });
 
-	args::Group profilingGroup(parser, "Profiling Options", args::Group::Validators::AllOrNone);
+	args::Group profilingGroup(parser, "Profiling Options");
 	args::ValueFlag<std::string> profileConfig(profilingGroup, "Profile Config", "Path to profiling config file", { "profile-config" });
 	args::ValueFlag<std::string> gpuProfileConfig(profilingGroup, "GPU Profiler Config", "Path to GPU profiler config file", { "gpu-profiler-config" });
 
@@ -63,6 +65,16 @@ bool D3DApplication::ParseCommandLineArgs(LPWSTR argv[], int argc)
 		return false;
 	}
 	catch (const args::ParseError& e)
+	{
+		LOG_ERROR(e.what());
+		return false;
+	}
+	catch (const args::ValidationError& e)
+	{
+		LOG_ERROR(e.what());
+		return false;
+	}
+	catch (const std::exception& e)
 	{
 		LOG_ERROR(e.what());
 		return false;
@@ -83,7 +95,7 @@ bool D3DApplication::ParseCommandLineArgs(LPWSTR argv[], int argc)
 		// Parse config
 		if (ParseProfileConfigFromJSON(profileConfig.Get(), m_ProfileConfig))
 		{
-			m_UseProfilingConfig = true;
+			m_LoadDefaultProfilingConfig = false;
 		}
 	}
 
@@ -113,10 +125,7 @@ void D3DApplication::OnInit()
 	if (m_LoadDefaultGPUProfilerArgs)
 	{
 		m_GPUProfilerArgs.Queue = GPUProfilerQueue::Direct;
-
-		m_GPUProfilerArgs.Metrics.push_back("sm__throughput.avg.pct_of_peak_sustained_elapsed");
-		m_GPUProfilerArgs.Metrics.push_back("lts__average_t_sector_hit_rate_realtime.pct");
-		m_GPUProfilerArgs.Metrics.push_back("tpc__sm_rf_registers_allocated_shader_cs_realtime.avg.pct_of_peak_sustained_elapsed");
+		m_GPUProfilerArgs.Metrics.push_back("gpu__time_duration.sum");
 	}
 
 	GPUProfiler::Create(m_GPUProfilerArgs);
@@ -132,7 +141,20 @@ void D3DApplication::OnInit()
 
 	m_CameraController = CameraController{ m_InputManager.get(), &m_Camera };
 
-	m_Scene = std::make_unique<Scene>();
+	BaseDemo::CreateAllDemos();
+	if (m_LoadDefaultProfilingConfig)
+	{
+		// Load default config
+		DemoConfig demoConfig;
+		demoConfig.DemoName = "drops";
+		demoConfig.InitialBrickSize = 0.1f;
+		m_Scene = std::make_unique<Scene>(demoConfig);
+	}
+	else
+	{
+		// Load config from command line
+		m_Scene = std::make_unique<Scene>(m_ProfileConfig.DemoConfigs[0]);
+	}
 
 	m_Raytracer = std::make_unique<Raytracer>();
 	m_Raytracer->Setup(*m_Scene);

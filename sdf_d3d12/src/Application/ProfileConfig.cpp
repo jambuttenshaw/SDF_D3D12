@@ -11,6 +11,32 @@ using json = nlohmann::json;
 #define JSON_CHECK_CONTAINS(json, name) if (!(json).contains(name)) JSON_ERROR("Missing field: {}", name)
 
 
+bool ParseJSON(json& doc, std::ifstream& file)
+{
+	try
+	{
+		doc = json::parse(file);
+	}
+	catch (const json::parse_error& e)
+	{
+		LOG_ERROR(e.what());
+		return false;
+	}
+	catch (const json::type_error& e)
+	{
+		LOG_ERROR(e.what());
+		return false;
+	}
+	catch (const json::other_error& e)
+	{
+		LOG_ERROR(e.what());
+		return false;
+	}
+
+	return true;
+}
+
+
 bool ParseProfileConfigFromJSON(const std::string& path, ProfileConfig& profileConfig)
 {
 	// Attempt to read supplied config path
@@ -21,7 +47,9 @@ bool ParseProfileConfigFromJSON(const std::string& path, ProfileConfig& profileC
 		return false;
 	}
 
-	const json docJSON = json::parse(file);
+	json docJSON;
+	if (!ParseJSON(docJSON, file))
+		return false;
 
 	// Load all demos
 	if (!docJSON.contains("demos"))
@@ -47,12 +75,12 @@ bool ParseProfileConfigFromJSON(const std::string& path, ProfileConfig& profileC
 		if (linearIncrement)
 		{
 			JSON_CHECK_CONTAINS(demoJSON, "brick_size_increment");
-			profileConfig.DemoConfigs[demo].IsLinearIncrement = demoJSON["brick_size_increment"];
+			profileConfig.DemoConfigs[demo].BrickSizeIncrement = demoJSON["brick_size_increment"];
 		}
 		else
 		{
 			JSON_CHECK_CONTAINS(demoJSON, "brick_size_multiplier");
-			profileConfig.DemoConfigs[demo].IsLinearIncrement = demoJSON["brick_size_multiplier"];
+			profileConfig.DemoConfigs[demo].BrickSizeMultiplier = demoJSON["brick_size_multiplier"];
 		}
 
 		JSON_CHECK_CONTAINS(demoJSON, "iteration_count");
@@ -81,7 +109,9 @@ bool ParseGPUProfilerArgsFromJSON(const std::string& path, GPUProfilerArgs& gpuP
 		return false;
 	}
 
-	const json docJSON = json::parse(file);
+	json docJSON;
+	if (!ParseJSON(docJSON, file))
+		return false;
 
 	JSON_CHECK_CONTAINS(docJSON, "queue");
 	const std::string& queue = docJSON["queue"];
