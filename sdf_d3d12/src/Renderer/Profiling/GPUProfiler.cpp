@@ -44,6 +44,28 @@ void GPUProfiler::Destroy()
 	s_Profiler.reset();
 }
 
+
+void GPUProfiler::GetAvailableMetrics(const std::string& outfilePath)
+{
+	bool destroy = false;
+	if (!s_Profiler)
+	{
+		destroy = true;
+		// args are not relevant in this case
+		const GPUProfilerArgs args = { GPUProfilerQueue::Direct };
+		Create(args);
+	}
+
+	s_Profiler->LogAllMetrics(outfilePath);
+
+	if (destroy)
+	{
+		Destroy();
+	}
+}
+
+
+
 GPUProfiler& GPUProfiler::Get()
 {
 	ASSERT(s_Profiler, "No profiler has been created.");

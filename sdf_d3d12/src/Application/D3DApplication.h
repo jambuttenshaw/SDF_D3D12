@@ -88,4 +88,7 @@ private:
 
 	bool m_LoadDefaultGPUProfilerArgs = true;		// If no config was specified in the command line args, default config will be loaded
 	GPUProfilerArgs m_GPUProfilerArgs;
+
+	bool m_OutputAvailableMetrics = false;
+	std::string m_AvailableMetricsOutfile;
 };

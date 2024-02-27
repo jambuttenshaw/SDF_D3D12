@@ -39,6 +39,8 @@ protected:
     virtual void PopRangeImpl() override;
     virtual void PopRangeImpl(ID3D12GraphicsCommandList* commandList) override;
 
+    virtual void LogAllMetrics(const std::string& outfilePath) const override;
+
 private:
     ID3D12Device* m_Device = nullptr;
 

@@ -59,6 +59,8 @@ bool D3DApplication::ParseCommandLineArgs(LPWSTR argv[], int argc)
 	args::Group profilingGroup(parser, "Profiling Options");
 	args::ValueFlag<std::string> profileConfig(profilingGroup, "Profile Config", "Path to profiling config file", { "profile-config" });
 	args::ValueFlag<std::string> gpuProfileConfig(profilingGroup, "GPU Profiler Config", "Path to GPU profiler config file", { "gpu-profiler-config" });
+
+	args::ValueFlag<std::string> outputAvailableMetrics(profilingGroup, "output-available-metrics", "Output file for available GPU metrics", { "output-available-metrics" });
 #endif
 
 	try
@@ -129,6 +131,12 @@ bool D3DApplication::ParseCommandLineArgs(LPWSTR argv[], int argc)
 			m_LoadDefaultGPUProfilerArgs = false;
 		}
 	}
+
+	if (outputAvailableMetrics)
+	{
+		m_OutputAvailableMetrics = true;
+		m_AvailableMetricsOutfile = outputAvailableMetrics.Get();
+	}
 #endif
 
 	return true;
@@ -152,6 +160,10 @@ void D3DApplication::OnInit()
 
 	GPUProfiler::Create(m_GPUProfilerArgs);
 
+	if (m_OutputAvailableMetrics)
+	{
+		GPUProfiler::GetAvailableMetrics(m_AvailableMetricsOutfile);
+	}
 
 	if (m_ProfilingMode)
 	{

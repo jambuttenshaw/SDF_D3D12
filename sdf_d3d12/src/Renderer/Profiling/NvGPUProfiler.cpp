@@ -7,6 +7,7 @@
 #include "Renderer/D3DQueue.h"
 #include <nvperf_host_impl.h>
 
+#include <fstream>
 #include <iomanip>
 
 
@@ -68,6 +69,7 @@ void NvGPUProfiler::Init(ID3D12Device* device, ID3D12CommandQueue* queue, const 
 	// Add metrics into config builder
 	for (const auto& metric : args.Metrics)
 	{
+
 		NVPW_MetricEvalRequest request{};
 		THROW_IF_FALSE(nv::perf::ToMetricEvalRequest(m_MetricsEvaluator, metric.c_str(), request), "Failed to convert metric to metric request.");
 		THROW_IF_FALSE(configBuilder.AddMetrics(&request, 1), "Failed to add metric to config.");
@@ -195,5 +197,30 @@ bool NvGPUProfiler::DecodeData(std::vector<std::stringstream>& outMetrics)
 
 	return false;
 }
+
+
+void NvGPUProfiler::LogAllMetrics(const std::string& outfilePath) const
+{
+	// Try open outfile
+	std::ofstream outfile(outfilePath);
+	if (!outfile.good())
+		return;
+
+	for (size_t type = 0; type < NVPW_METRIC_TYPE__COUNT; type++)
+	{
+		const auto metricType = static_cast<NVPW_MetricType>(type);
+		for (const char* m : EnumerateMetrics(m_MetricsEvaluator, metricType))
+		{
+			NVPW_MetricType _;
+			size_t metricIndex;
+			GetMetricTypeAndIndex(m_MetricsEvaluator, m, _, metricIndex);
+
+			const char* desc = GetMetricDescription(m_MetricsEvaluator, metricType, metricIndex);
+
+			outfile << m << "," << desc << std::endl;
+		}
+	}
+}
+
 
 #endif

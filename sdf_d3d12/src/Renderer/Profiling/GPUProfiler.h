@@ -33,6 +33,8 @@ public:
 	static void Create(const GPUProfilerArgs& args);
 	static void Destroy();
 
+	static void GetAvailableMetrics(const std::string& outfile);
+
 	static GPUProfiler& Get();
 
 public:
@@ -72,6 +74,8 @@ protected:
 	virtual void PushRangeImpl(const char* name, ID3D12GraphicsCommandList* commandList) = 0;
 	virtual void PopRangeImpl() = 0;
 	virtual void PopRangeImpl(ID3D12GraphicsCommandList* commandList) = 0;
+
+	virtual void LogAllMetrics(const std::string& outfilePath) const = 0;
 
 protected:
 	GPUProfilerQueue m_Queue;
