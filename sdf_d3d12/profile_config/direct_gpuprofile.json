@@ -1,21 +1,12 @@
 {
   "queue": "direct",
   "metrics": [
-    "gpu__time_duration.sum",
-    "rtcore__rays_cast_api.sum",
-    "rtcore__throughput.avg.pct_of_peak_sustained_elapsed",
-    "sm__throughput.avg.pct_of_peak_sustained_elapsed",
-    "l1tex__throughput.avg.pct_of_peak_sustained_elapsed",
-    "lts__t_sector_throughput.avg.pct_of_peak_sustained_elapsed",
-    "lts__average_t_sector_hit_rate_realtime.pct"
-  ],
-  "headers": [
-    "Duration",
-    "Rays Cast",
-    "RT Throughput",
-    "SM Throughput",
-    "L1 Throughput",
-    "L2 Throughput",
-    "L2 Hit Rate"
+    [ "Duration",         "gpu__time_duration.sum" ],
+    [ "Rays Cast",        "rtcore__rays_cast_api.sum" ],
+    [ "RT Throughput",    "rtcore__throughput.avg.pct_of_peak_sustained_elapsed" ],
+    [ "SM Throughput",    "sm__throughput.avg.pct_of_peak_sustained_elapsed" ],
+    [ "L1 Throughput",    "l1tex__throughput.avg.pct_of_peak_sustained_elapsed" ],
+    [ "L2 Throughput",    "lts__t_sector_throughput.avg.pct_of_peak_sustained_elapsed" ],
+    [ "L2 Hit Rate",      "lts__average_t_sector_hit_rate_realtime.pct" ]
   ]
 }

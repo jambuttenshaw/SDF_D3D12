@@ -127,27 +127,14 @@ bool ParseGPUProfilerArgsFromJSON(const std::string& path, GPUProfilerArgs& gpuP
 	JSON_CHECK_CONTAINS(docJSON, "metrics");
 	const json& metricsJSON = docJSON["metrics"];
 
+	gpuProfilerArgs.Headers.reserve(metricsJSON.size());
 	gpuProfilerArgs.Metrics.reserve(metricsJSON.size());
-	for (std::string metric : metricsJSON)
+	for (const json& metric : metricsJSON)
 	{
-		gpuProfilerArgs.Metrics.emplace_back(std::move(metric));
-	}
-
-	if (docJSON.contains("headers"))
-	{
-		const json& headersJSON = docJSON["headers"];
-		if (headersJSON.size() != metricsJSON.size())
-			JSON_ERROR("Headers and metrics do not match.");
-
-		gpuProfilerArgs.Headers.reserve(headersJSON.size());
-		for (std::string header : headersJSON)
-		{
-			gpuProfilerArgs.Headers.emplace_back(std::move(header));
-		}
-	}
-	else
-	{
-		gpuProfilerArgs.Headers = gpuProfilerArgs.Metrics;
+		if (metric.size() != 2)
+			JSON_ERROR("Metrics should be 2 elemenet arrays: [header, metric name].")
+		gpuProfilerArgs.Headers.push_back(metric[0]);
+		gpuProfilerArgs.Metrics.push_back(metric[1]);
 	}
 
 	return true;
