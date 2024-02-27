@@ -116,6 +116,36 @@ void NvGPUProfiler::EndPassImpl()
 		PopRangeImpl(); // Frame
 		THROW_IF_FALSE(m_Profiler.EndPass(), "Failed to end a pass.");
 
+		m_DataReady = true;
+	}
+}
+
+void NvGPUProfiler::PushRangeImpl(const char* name)
+{
+	THROW_IF_FALSE(m_Profiler.PushRange(name), "Failed to push a range");
+}
+
+void NvGPUProfiler::PushRangeImpl(const char* name, ID3D12GraphicsCommandList* commandList)
+{
+	THROW_IF_FALSE(nv::perf::profiler::D3D12PushRange(commandList, name), "Failed to push a range");
+}
+
+void NvGPUProfiler::PopRangeImpl()
+{
+	THROW_IF_FALSE(m_Profiler.PopRange(), "Failed to pop a range");
+}
+
+void NvGPUProfiler::PopRangeImpl(ID3D12GraphicsCommandList* commandList)
+{
+	THROW_IF_FALSE(nv::perf::profiler::D3D12PopRange(commandList), "Failed to pop a range");
+}
+
+
+bool NvGPUProfiler::DecodeData()
+{
+	// Only decode data once profiling has completed
+	if (m_InCollection && m_DataReady)
+	{
 		// Decode counters
 		nv::perf::profiler::DecodeResult decodeResult;
 		THROW_IF_FALSE(m_Profiler.DecodeCounters(decodeResult), "Failed to decode counters.");
@@ -153,32 +183,16 @@ void NvGPUProfiler::EndPassImpl()
 				{
 					stream << ", " << metricValue;
 				}
-				//LOG_INFO("{}", stream.str());
-			}
+				LOG_INFO(stream.str());
+			} 
 
+			m_DataReady = false;
 			m_InCollection = false;
+			return true;
 		}
 	}
-}
 
-void NvGPUProfiler::PushRangeImpl(const char* name)
-{
-	THROW_IF_FALSE(m_Profiler.PushRange(name), "Failed to push a range");
-}
-
-void NvGPUProfiler::PushRangeImpl(const char* name, ID3D12GraphicsCommandList* commandList)
-{
-	THROW_IF_FALSE(nv::perf::profiler::D3D12PushRange(commandList, name), "Failed to push a range");
-}
-
-void NvGPUProfiler::PopRangeImpl()
-{
-	THROW_IF_FALSE(m_Profiler.PopRange(), "Failed to pop a range");
-}
-
-void NvGPUProfiler::PopRangeImpl(ID3D12GraphicsCommandList* commandList)
-{
-	THROW_IF_FALSE(nv::perf::profiler::D3D12PopRange(commandList), "Failed to pop a range");
+	return false;
 }
 
 #endif

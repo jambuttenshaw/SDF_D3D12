@@ -43,6 +43,7 @@ public:
 
 	void CaptureNextFrame();
 
+	// For profiling macros - to be embedded in application source
 	void BeginPass(GPUProfilerQueue queue, const char* name);
 	void EndPass(GPUProfilerQueue queue);
 
@@ -51,8 +52,13 @@ public:
 	void PopRange(GPUProfilerQueue queue);
 	void PopRange(GPUProfilerQueue queue, ID3D12GraphicsCommandList* commandList);
 
+	// For data collection and processing
 	inline bool IsInCollection() const { return m_InCollection; }
 	inline static float GetWarmupTime() { return s_WarmupTime; }
+
+	// Decode profiling data
+	// Returns if collected data was decoded
+	virtual bool DecodeData() = 0;
 
 protected:
 	virtual void Init(ID3D12Device* device, ID3D12CommandQueue* queue, const GPUProfilerArgs& args) = 0;
@@ -70,6 +76,7 @@ protected:
 protected:
 	GPUProfilerQueue m_Queue;
 
+	// Ready to begin collection
 	bool m_InCollection = false;
 
 	static constexpr double s_WarmupTime = 2.0; // Wait 2s to allow the clock to stabilize before beginning to profile.

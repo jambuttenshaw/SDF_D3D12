@@ -24,6 +24,8 @@ public:
     DISALLOW_COPY(NvGPUProfiler)
 	DISALLOW_MOVE(NvGPUProfiler)
 
+	virtual bool DecodeData() override;
+
 protected:
     virtual void Init(ID3D12Device* device, ID3D12CommandQueue* queue, const GPUProfilerArgs& args) override;
 
@@ -49,6 +51,8 @@ private:
     nv::perf::profiler::RangeProfilerD3D12 m_Profiler;
 
     NVPW_Device_ClockStatus m_ClockStatus = NVPW_DEVICE_CLOCK_STATUS_UNKNOWN; // Used to restore clock state when exiting.
+
+    bool m_DataReady = false;
 };
 
 #endif

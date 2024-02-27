@@ -355,23 +355,22 @@ void D3DApplication::UpdateProfiling()
 	// Still performing runs to gather data
 	if (m_CapturesRemaining > 0)
 	{
-		// It is safe to access profiler within this function - it will only be called if instrumentation is enabled
-		if (!GPUProfiler::Get().IsInCollection())
+		// It is safe to access profiler within this function - this will only be called if instrumentation is enabled
+		if (GPUProfiler::Get().IsInCollection())
 		{
-			if (m_BegunCapture)
+			// If it is in collection, check if it has finished collecting data
+			if (GPUProfiler::Get().DecodeData())
 			{
-				// Run has completed - collect data from profiler
-				m_BegunCapture = false;
+				// data can be gathered from profiler
 				m_CapturesRemaining--;
 			}
-			else
-			{
-				// Data from previous capture has been collected
-				// Begin a new capture
-				PROFILE_CAPTURE_NEXT_FRAME();
-				m_BegunCapture = true;
-			}
 		}
+		else
+		{
+			// Begin a new capture
+			PROFILE_CAPTURE_NEXT_FRAME();
+		}
+
 	}
 	// Check if there are still variations of this demo to perform
 	else if (--m_DemoIterationsRemaining > 0)
