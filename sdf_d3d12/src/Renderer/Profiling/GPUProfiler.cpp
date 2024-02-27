@@ -75,6 +75,7 @@ GPUProfiler& GPUProfiler::Get()
 
 GPUProfiler::GPUProfiler(const GPUProfilerArgs& args)
 	: m_Queue(args.Queue)
+	, m_CombineSharedNameRanges(args.CombineSharedNameRanges)
 {
 	QueryPerformanceFrequency(&m_ClockFreq);
 	QueryPerformanceCounter(&m_StartTimestamp);
@@ -125,19 +126,26 @@ void GPUProfiler::EndPass(GPUProfilerQueue queue)
 	}
 }
 
-void GPUProfiler::PushRange(GPUProfilerQueue queue, const char* name)
+void GPUProfiler::PushRange(GPUProfilerQueue queue, const char* name, UINT index)
 {
 	if (queue != m_Queue)
 		return;
 
-	PushRangeImpl(name);
+	if (index == 0 || m_CombineSharedNameRanges)
+		PushRangeImpl(name);
+	else
+		PushRangeImpl((std::string(name) + std::to_string(index)).c_str());
 }
-void GPUProfiler::PushRange(GPUProfilerQueue queue, const char* name, ID3D12GraphicsCommandList* commandList)
+void GPUProfiler::PushRange(GPUProfilerQueue queue, const char* name, ID3D12GraphicsCommandList* commandList, UINT index)
 {
 	if (queue != m_Queue)
 		return;
-
 	PushRangeImpl(name, commandList);
+
+	if (index == 0 || m_CombineSharedNameRanges)
+		PushRangeImpl(name, commandList);
+	else
+		PushRangeImpl((std::string(name) + std::to_string(index)).c_str(), commandList);
 }
 void GPUProfiler::PopRange(GPUProfilerQueue queue)
 {

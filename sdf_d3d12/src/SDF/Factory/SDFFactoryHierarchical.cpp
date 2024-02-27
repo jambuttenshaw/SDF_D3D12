@@ -494,7 +494,6 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(const std::wstring& pipe
 void SDFFactoryHierarchical::BuildCommandList_Setup(const PipelineSet& pipeline, SDFObject* object, SDFConstructionResources& resources) const
 {
 	PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(41), L"Data upload");
-	PROFILE_COMPUTE_PUSH_RANGE("Setup", m_CommandList.Get());
 
 	// Copy edits into default heap
 	resources.GetEditBuffer().CopyFromUpload(m_CommandList.Get());
@@ -528,6 +527,7 @@ void SDFFactoryHierarchical::BuildCommandList_Setup(const PipelineSet& pipeline,
 		params.SDFEditCount = editCount;
 		params.DependencyPairsCount = editCount * (editCount - 1) / 2;
 
+		PROFILE_COMPUTE_PUSH_RANGE("Edit Dependencies", m_CommandList.Get());
 		if (params.DependencyPairsCount > 0)
 		{
 			pipeline[SDFFactoryPipeline::EditDependency]->Bind(m_CommandList.Get());
@@ -542,6 +542,7 @@ void SDFFactoryHierarchical::BuildCommandList_Setup(const PipelineSet& pipeline,
 			const UINT threadGroupX = (params.DependencyPairsCount + EDIT_DEPENDENCY_THREAD_COUNT - 1) / EDIT_DEPENDENCY_THREAD_COUNT;
 			m_CommandList->Dispatch(threadGroupX, 1, 1);
 		}
+		PROFILE_COMPUTE_POP_RANGE(m_CommandList.Get());
 			
 		{
 			// Transition brick buffer for reading
@@ -599,14 +600,13 @@ void SDFFactoryHierarchical::BuildCommandList_Setup(const PipelineSet& pipeline,
 		m_CommandList->ResourceBarrier(ARRAYSIZE(barriers), barriers);
 	}
 
-	PROFILE_COMPUTE_POP_RANGE(m_CommandList.Get());
 	PIXEndEvent(m_CommandList.Get());
 }
 
 void SDFFactoryHierarchical::BuildCommandList_HierarchicalBrickBuilding(const PipelineSet& pipeline, SDFObject* object, SDFConstructionResources& resources, UINT maxIterations) const
 {
 	PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(42), L"Hierarchical brick building");
-	PROFILE_COMPUTE_PUSH_RANGE("Brick Building", m_CommandList.Get());
+	PROFILE_COMPUTE_PUSH_RANGE("Hierarchical Brick Building", m_CommandList.Get());
 
 
 	// Multiple iterations will be made until the brick size is small enough
@@ -627,11 +627,12 @@ void SDFFactoryHierarchical::BuildCommandList_HierarchicalBrickBuilding(const Pi
 		m_CommandList->SetComputeRootUnorderedAccessView(BrickCounterSignature::BricksSlot, resources.GetReadBrickBuffer().GetAddress());
 		m_CommandList->SetComputeRootUnorderedAccessView(BrickCounterSignature::CountTableSlot, resources.GetSubBrickCountBuffer().GetAddress());
 
+		PROFILE_COMPUTE_PUSH_RANGE("Brick Counting", m_CommandList.Get(), iterations);
 		// Indirectly dispatch compute shader
 		// The number of groups to dispatch is contained in the processed command buffer
 		// The contents of this buffer will be updated after each iteration to dispatch the correct number of groups
 		m_CommandList->ExecuteIndirect(m_CommandSignature.Get(), 1, resources.GetCommandBuffer().GetResource(), 0, nullptr, 0);
-
+		PROFILE_COMPUTE_POP_RANGE(m_CommandList.Get());
 
 		{
 			// Insert UAV barriers to make sure the first dispatch has finished writing to the brick buffer
@@ -678,6 +679,8 @@ void SDFFactoryHierarchical::BuildCommandList_HierarchicalBrickBuilding(const Pi
 
 		// Step 3.2: Calculate prefix sums. This is done with 3 dispatches
 		{
+			PROFILE_COMPUTE_PUSH_RANGE("Prefix Sum", m_CommandList.Get(), iterations);
+
 			pipeline[SDFFactoryPipeline::ScanBlocks]->Bind(m_CommandList.Get());
 			m_CommandList->SetComputeRootShaderResourceView(BrickScanSignature::CountTableSlot, resources.GetSubBrickCountBuffer().GetAddress());
 			m_CommandList->SetComputeRootShaderResourceView(BrickScanSignature::NumberOfCountsSlot, resources.GetReadBrickCounter().GetAddress());
@@ -720,6 +723,8 @@ void SDFFactoryHierarchical::BuildCommandList_HierarchicalBrickBuilding(const Pi
 				const auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(resources.GetPrefixSumsBuffer().GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 				m_CommandList->ResourceBarrier(1, &barrier);
 			}
+
+			PROFILE_COMPUTE_POP_RANGE(m_CommandList.Get());
 		}
 
 		PIXEndEvent(m_CommandList.Get());
@@ -737,10 +742,13 @@ void SDFFactoryHierarchical::BuildCommandList_HierarchicalBrickBuilding(const Pi
 		m_CommandList->SetComputeRootUnorderedAccessView(BrickBuilderSignature::OutBrickCounterSlot, resources.GetWriteBrickCounter().GetAddress());
 		m_CommandList->SetComputeRootUnorderedAccessView(BrickBuilderSignature::OutBricksSlot, resources.GetWriteBrickBuffer().GetAddress());
 
+		PROFILE_COMPUTE_PUSH_RANGE("Brick Building", m_CommandList.Get(), iterations);
 		// Indirectly dispatch compute shader
 		// The number of groups to dispatch is contained in the processed command buffer
 		// The contents of this buffer will be updated after each iteration to dispatch the correct number of groups
 		m_CommandList->ExecuteIndirect(m_CommandSignature.Get(), 1, resources.GetCommandBuffer().GetResource(), 0, nullptr, 0);
+
+		PROFILE_COMPUTE_POP_RANGE(m_CommandList.Get());
 
 		{
 			// Insert UAV barriers to make sure the first dispatch has finished writing to the brick buffer
@@ -789,9 +797,12 @@ void SDFFactoryHierarchical::BuildCommandList_HierarchicalBrickBuilding(const Pi
 		m_CommandList->SetComputeRootUnorderedAccessView(EditTesterSignature::OutIndexBufferSlot, resources.GetWriteIndexBuffer().GetAddress());
 		m_CommandList->SetComputeRootUnorderedAccessView(EditTesterSignature::OutIndexCounterSlot, resources.GetIndexCounter().GetAddress());
 
+		PROFILE_COMPUTE_PUSH_RANGE("Edit Culling", m_CommandList.Get(), iterations);
 		// Dispatch edit tester
 		// Execute for the number of groups that were just written
 		m_CommandList->ExecuteIndirect(m_CommandSignature.Get(), 1, resources.GetCommandBuffer().GetResource(), 0, nullptr, 0);
+
+		PROFILE_COMPUTE_POP_RANGE(m_CommandList.Get());
 
 		// Barriers to wait for work to complete
 		{
@@ -826,7 +837,6 @@ void SDFFactoryHierarchical::BuildCommandList_HierarchicalBrickBuilding(const Pi
 
 void SDFFactoryHierarchical::BuildCommandList_BrickEvaluation(const PipelineSet& pipeline, SDFObject* object, SDFConstructionResources& resources) const
 {
-	PROFILE_COMPUTE_PUSH_RANGE("AABB Building", m_CommandList.Get());
 	{
 		PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(43), L"Build AABBs");
 
@@ -844,13 +854,15 @@ void SDFFactoryHierarchical::BuildCommandList_BrickEvaluation(const PipelineSet&
 		m_CommandList->SetComputeRootShaderResourceView(AABBBuilderSignature::BricksSlot, resources.GetReadBrickBuffer().GetAddress());
 		m_CommandList->SetComputeRootUnorderedAccessView(AABBBuilderSignature::AABBsSlot, object->GetAABBBufferAddress(SDFObject::RESOURCES_WRITE));
 
+		PROFILE_COMPUTE_PUSH_RANGE("AABB Building", m_CommandList.Get());
+
 		// Calculate number of thread groups and dispatch
 		const UINT threadGroupX = (resources.GetBrickEvalParams().BrickCount + AABB_BUILDING_THREADS - 1) / AABB_BUILDING_THREADS;
 		m_CommandList->Dispatch(threadGroupX, 1, 1);
+		PROFILE_COMPUTE_POP_RANGE(m_CommandList.Get());
 
 		PIXEndEvent(m_CommandList.Get());
 	}
-	PROFILE_COMPUTE_POP_RANGE(m_CommandList.Get());
 
 	{
 		PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(52), L"Copy Brick Data");
@@ -878,7 +890,6 @@ void SDFFactoryHierarchical::BuildCommandList_BrickEvaluation(const PipelineSet&
 		PIXEndEvent(m_CommandList.Get());
 	}
 
-	PROFILE_COMPUTE_PUSH_RANGE("Brick Evaluation", m_CommandList.Get());
 	{
 		// Evaluate bricks
 
@@ -906,6 +917,8 @@ void SDFFactoryHierarchical::BuildCommandList_BrickEvaluation(const PipelineSet&
 		m_CommandList->SetComputeRootShaderResourceView(BrickEvaluatorSignature::BrickBufferSlot, object->GetBrickBufferAddress(SDFObject::RESOURCES_WRITE));
 		m_CommandList->SetComputeRootDescriptorTable(BrickEvaluatorSignature::BrickPoolSlot, object->GetBrickPoolUAV(SDFObject::RESOURCES_WRITE));
 
+		PROFILE_COMPUTE_PUSH_RANGE("Brick Evaluation", m_CommandList.Get());
+
 		// Calculate number of thread groups and dispatch
 		// Execute one group for each brick
 		INT brickCount = static_cast<INT>(resources.GetBrickEvalParams().BrickCount);
@@ -929,7 +942,7 @@ void SDFFactoryHierarchical::BuildCommandList_BrickEvaluation(const PipelineSet&
 			const UINT threadGroupX = brickCount;
 			m_CommandList->Dispatch(threadGroupX, 1, 1);
 		}
-		
+		PROFILE_COMPUTE_POP_RANGE(m_CommandList.Get());
 
 		// Brick pool resource will now be read from in the subsequent stages
 		{
@@ -940,5 +953,4 @@ void SDFFactoryHierarchical::BuildCommandList_BrickEvaluation(const PipelineSet&
 
 		PIXEndEvent(m_CommandList.Get());
 	}
-	PROFILE_COMPUTE_POP_RANGE(m_CommandList.Get());
 }

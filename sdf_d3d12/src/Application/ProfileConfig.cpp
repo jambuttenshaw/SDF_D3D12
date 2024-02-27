@@ -160,5 +160,14 @@ bool ParseGPUProfilerArgsFromJSON(const std::string& path, GPUProfilerArgs& gpuP
 		gpuProfilerArgs.Metrics.push_back(metric[1]);
 	}
 
+	if (docJSON.contains("combine_shared_name_ranges"))
+	{
+		gpuProfilerArgs.CombineSharedNameRanges = docJSON["combine_shared_name_ranges"];
+	}
+	else
+	{
+		gpuProfilerArgs.CombineSharedNameRanges = false;
+	}
+
 	return true;
 }

@@ -19,6 +19,9 @@ struct GPUProfilerArgs
 	std::vector<std::string> Metrics;
 	// Column headers with descriptive names for the metrics
 	std::vector<std::string> Headers;
+
+	// Should ranges with the same name be accumulated or measured separately
+	bool CombineSharedNameRanges = false;
 };
 
 
@@ -49,8 +52,10 @@ public:
 	void BeginPass(GPUProfilerQueue queue, const char* name);
 	void EndPass(GPUProfilerQueue queue);
 
-	void PushRange(GPUProfilerQueue queue, const char* name);
-	void PushRange(GPUProfilerQueue queue, const char* name, ID3D12GraphicsCommandList* commandList);
+	// Index is an optional integer to place at the end of the range name
+	// in the case where a range may be called in a loop but should be profiled separately
+	void PushRange(GPUProfilerQueue queue, const char* name, UINT index = 0);
+	void PushRange(GPUProfilerQueue queue, const char* name, ID3D12GraphicsCommandList* commandList, UINT index = 0);
 	void PopRange(GPUProfilerQueue queue);
 	void PopRange(GPUProfilerQueue queue, ID3D12GraphicsCommandList* commandList);
 
@@ -83,14 +88,16 @@ protected:
 	// Ready to begin collection
 	bool m_InCollection = false;
 
-	static constexpr double s_WarmupTime = 2.0; // Wait 2s to allow the clock to stabilize before beginning to profile.
-	static constexpr size_t s_MaxNumRanges = 8;
-	static constexpr uint16_t s_NumNestingLevels = 2;
+	static constexpr double s_WarmupTime = 5.0; // Wait 5s to allow the clock to stabilize before beginning to profile.
+	static constexpr size_t s_MaxNumRanges = 32;
+	static constexpr uint16_t s_NumNestingLevels = 4;
 
 	LARGE_INTEGER m_ClockFreq;
 	LARGE_INTEGER m_StartTimestamp;
 
 	double m_CurrentRunTime = 0.0;
+
+	bool m_CombineSharedNameRanges = false;
 };
 
 
