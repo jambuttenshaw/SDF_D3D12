@@ -7,7 +7,7 @@
 #include "D3DFrameResources.h"
 
 #include "Framework/GameTimer.h"
-#include "Framework/Camera.h"
+#include "Framework/Camera/Camera.h"
 
 #include "pix3.h"
 

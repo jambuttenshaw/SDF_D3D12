@@ -5,8 +5,8 @@
 #include "Scene.h"
 
 #include "Renderer/D3DGraphicsContext.h"
-#include "Framework/Camera.h"
-#include "Framework/CameraController.h"
+#include "Framework/Camera/Camera.h"
+#include "Framework/Camera/OrbitalCameraController.h"
 #include "Framework/GameTimer.h"
 #include "Renderer/Raytracing/Raytracer.h"
 
@@ -52,7 +52,7 @@ private:
 
 	GameTimer m_Timer;
 	Camera m_Camera;
-	CameraController m_CameraController;
+	OrbitalCameraController m_CameraController;
 
 	std::unique_ptr<Scene> m_Scene;
 	std::unique_ptr<Raytracer> m_Raytracer;

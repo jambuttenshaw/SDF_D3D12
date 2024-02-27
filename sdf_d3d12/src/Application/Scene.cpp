@@ -58,19 +58,8 @@ Scene::Scene(const std::string& demoName, float brickSize)
 			m_AccelerationStructure->AddBottomLevelAS(buildFlags, geometry, true, true);
 		}
 
-		m_InstanceRotation = XMMatrixRotationRollPitchYaw(
-			XMConvertToRadians(Random::Float(-10.0f, 10.0f)),
-			XMConvertToRadians(Random::Float(360.0f)),
-			0.0f
-		);
-		m_InstanceRotationDelta = {
-			0.0f,
-			0.2f,
-			0.0f
-		};
-
 		const auto& geoName = m_SceneGeometry.at(0).Name;
-		m_AccelerationStructure->AddBottomLevelASInstance(geoName, m_InstanceRotation, 1);
+		m_AccelerationStructure->AddBottomLevelASInstance(geoName, XMMatrixIdentity(), 1);
 
 		// Init top level AS
 		m_AccelerationStructure->InitializeTopLevelAS(buildFlags, true, true, L"Top Level Acceleration Structure");
@@ -99,18 +88,6 @@ void Scene::OnUpdate(float deltaTime)
 	PIXBeginEvent(PIX_COLOR_INDEX(9), L"Scene Update");
 
 	deltaTime *= static_cast<float>(!m_Paused);
-
-	// Manipulate objects in the scene
-	if (m_RotateInstances)
-	{
-		// Update rotation
-		m_InstanceRotation = m_InstanceRotation * XMMatrixRotationRollPitchYaw(
-			m_InstanceRotationDelta.x * deltaTime,
-			m_InstanceRotationDelta.y * deltaTime, 
-			m_InstanceRotationDelta.z * deltaTime);
-
-		m_AccelerationStructure->SetInstanceTransform(0, m_InstanceRotation);
-	}
 
 	if (m_Rebuild)
 	{
@@ -171,9 +148,6 @@ bool Scene::ImGuiSceneInfo()
 			D3DDebugTools::PIXGPUCaptureFrame(1);
 		}
 
-		ImGui::Separator();
-
-		ImGui::Checkbox("Rotate Instances", &m_RotateInstances);
 		ImGui::Separator();
 
 		{

@@ -57,12 +57,7 @@ private:
 	// SDF Objects
 	std::unique_ptr<SDFObject> m_Object;
 
-	// Demo Scene
-	XMMATRIX m_InstanceRotation;
-	XMFLOAT3 m_InstanceRotationDelta;
-
 	// GUI controls
-	bool m_RotateInstances = true;
 	bool m_Rebuild = true;
 	bool m_AsyncConstruction = false;
 	bool m_EnableEditCulling = true;

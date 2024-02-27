@@ -193,7 +193,7 @@ void D3DApplication::OnInit()
 	m_Camera.SetPosition(XMVECTOR{ 0.0f, 3.0f, -8.0f });
 	m_Timer.Reset();
 
-	m_CameraController = CameraController{ m_InputManager.get(), &m_Camera };
+	m_CameraController = OrbitalCameraController{ m_InputManager.get(), &m_Camera };
 
 	BaseDemo::CreateAllDemos();
 	if (m_ProfilingMode)

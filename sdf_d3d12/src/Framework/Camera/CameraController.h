@@ -1,4 +1,5 @@
 #pragma once
+#include "Core.h"
 
 class InputManager;
 class Camera;
@@ -9,11 +10,15 @@ class CameraController
 public:
 	CameraController() = default;
 	CameraController(InputManager* inputManager, Camera* camera);
+	virtual ~CameraController() = default;
 
-	void Update(float deltaTime);
-	void Gui();
+	DEFAULT_COPY(CameraController)
+	DEFAULT_MOVE(CameraController)
 
-private:
+	virtual void Update(float deltaTime);
+	virtual void Gui();
+
+protected:
 	InputManager* m_InputManager = nullptr;
 	Camera* m_Camera = nullptr;
 

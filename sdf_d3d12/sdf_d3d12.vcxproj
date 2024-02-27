@@ -407,8 +407,8 @@
     <ClCompile Include="src\Application\Demos.cpp" />
     <ClCompile Include="src\Application\ProfileConfig.cpp" />
     <ClCompile Include="src\Application\Scene.cpp" />
-    <ClCompile Include="src\Framework\Camera.cpp" />
-    <ClCompile Include="src\Framework\CameraController.cpp" />
+    <ClCompile Include="src\Framework\Camera\Camera.cpp" />
+    <ClCompile Include="src\Framework\Camera\CameraController.cpp" />
     <ClCompile Include="src\Framework\GameTimer.cpp" />
     <ClCompile Include="src\Framework\Log.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
@@ -418,6 +418,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Profile_Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="src\Framework\Math.cpp" />
+    <ClCompile Include="src\Framework\Camera\OrbitalCameraController.cpp" />
     <ClCompile Include="src\Framework\Transform.cpp" />
     <ClCompile Include="src\Input\InputManager.cpp" />
     <ClCompile Include="src\Main.cpp" />
@@ -506,11 +507,12 @@
     <ClInclude Include="src\Application\Demos.h" />
     <ClInclude Include="src\Application\ProfileConfig.h" />
     <ClInclude Include="src\Application\Scene.h" />
-    <ClInclude Include="src\Framework\Camera.h" />
-    <ClInclude Include="src\Framework\CameraController.h" />
+    <ClInclude Include="src\Framework\Camera\Camera.h" />
+    <ClInclude Include="src\Framework\Camera\CameraController.h" />
     <ClInclude Include="src\Framework\Exception.h" />
     <ClInclude Include="src\Framework\GameTimer.h" />
     <ClInclude Include="src\Framework\Math.h" />
+    <ClInclude Include="src\Framework\Camera\OrbitalCameraController.h" />
     <ClInclude Include="src\Framework\Transform.h" />
     <ClInclude Include="src\Input\InputManager.h" />
     <ClInclude Include="src\Input\KeyCodes.h" />
