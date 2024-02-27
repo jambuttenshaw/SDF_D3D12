@@ -141,7 +141,7 @@ void NvGPUProfiler::PopRangeImpl(ID3D12GraphicsCommandList* commandList)
 }
 
 
-bool NvGPUProfiler::DecodeData()
+bool NvGPUProfiler::DecodeData(std::vector<std::stringstream>& outMetrics)
 {
 	// Only decode data once profiling has completed
 	if (m_InCollection && m_DataReady)
@@ -154,6 +154,7 @@ bool NvGPUProfiler::DecodeData()
 			THROW_IF_FALSE(nv::perf::MetricsEvaluatorSetDeviceAttributes(m_MetricsEvaluator, decodeResult.counterDataImage.data(), decodeResult.counterDataImage.size()), "Failed MetricsEvaluatorSetDeviceAttributes.");
 
 			const size_t numRanges = nv::perf::CounterDataGetNumRanges(decodeResult.counterDataImage.data());
+			outMetrics.resize(numRanges);
 			std::vector<double> metricValues(m_MetricEvalRequests.size());
 
 			for (size_t rangeIndex = 0; rangeIndex < numRanges; rangeIndex++)
@@ -177,13 +178,13 @@ bool NvGPUProfiler::DecodeData()
 					"Failed EvaluateToGpuValues.");
 
 				// Output data
-				std::stringstream stream;
+				std::stringstream& stream = outMetrics.at(rangeIndex);
 				stream << std::fixed << std::setprecision(0) << rangeFullName;
 				for (const auto& metricValue : metricValues)
 				{
 					stream << ", " << metricValue;
 				}
-				LOG_INFO(stream.str());
+				stream << std::endl;
 			} 
 
 			m_DataReady = false;

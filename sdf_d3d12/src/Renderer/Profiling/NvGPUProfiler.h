@@ -24,7 +24,7 @@ public:
     DISALLOW_COPY(NvGPUProfiler)
 	DISALLOW_MOVE(NvGPUProfiler)
 
-	virtual bool DecodeData() override;
+	virtual bool DecodeData(std::vector<std::stringstream>& outMetrics) override;
 
 protected:
     virtual void Init(ID3D12Device* device, ID3D12CommandQueue* queue, const GPUProfilerArgs& args) override;

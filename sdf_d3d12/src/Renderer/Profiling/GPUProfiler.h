@@ -58,7 +58,7 @@ public:
 
 	// Decode profiling data
 	// Returns if collected data was decoded
-	virtual bool DecodeData() = 0;
+	virtual bool DecodeData(std::vector<std::stringstream>& outMetrics) = 0;
 
 protected:
 	virtual void Init(ID3D12Device* device, ID3D12CommandQueue* queue, const GPUProfilerArgs& args) = 0;

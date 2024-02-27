@@ -84,6 +84,8 @@ private:
 	UINT m_DemoIterationsRemaining = 0;
 	UINT m_DemoConfigIndex = 0;
 
+	std::string m_ConfigData;
+
 	bool m_LoadDefaultGPUProfilerArgs = true;		// If no config was specified in the command line args, default config will be loaded
 	GPUProfilerArgs m_GPUProfilerArgs;
 };

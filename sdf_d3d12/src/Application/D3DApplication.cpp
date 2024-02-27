@@ -13,6 +13,9 @@
 #include "Demos.h"
 #include "pix3.h"
 
+#include <fstream>
+#include <iomanip>
+
 
 D3DApplication::D3DApplication(UINT width, UINT height, const std::wstring& name)
 	: BaseApplication(width, height, name)
@@ -105,6 +108,15 @@ bool D3DApplication::ParseCommandLineArgs(LPWSTR argv[], int argc)
 			m_CapturesRemaining = m_ProfileConfig.NumCaptures;
 			m_DemoIterationsRemaining = m_ProfileConfig.IterationCount;
 			m_DemoConfigIndex = 0;
+
+			{
+				const auto& demoConfig = m_ProfileConfig.DemoConfigs[0];
+
+				// Build iteration data string
+				std::stringstream stream;
+				stream << std::fixed << std::setprecision(4) << demoConfig.DemoName << "," << demoConfig.InitialBrickSize << ",";
+				m_ConfigData = std::move(stream.str());
+			}
 		}
 	}
 
@@ -135,9 +147,31 @@ void D3DApplication::OnInit()
 	{
 		m_GPUProfilerArgs.Queue = GPUProfilerQueue::Direct;
 		m_GPUProfilerArgs.Metrics.push_back("gpu__time_duration.sum");
+		m_GPUProfilerArgs.Headers.push_back("Duration");
 	}
 
 	GPUProfiler::Create(m_GPUProfilerArgs);
+
+
+	if (m_ProfilingMode)
+	{
+		// Write headers into outfile
+		std::ofstream outFile(m_ProfileConfig.OutputFile);
+		if (outFile.good())
+		{
+			outFile << "Demo Name,Brick Size,Range Name";
+			for (const auto& header : m_GPUProfilerArgs.Headers)
+			{
+				outFile << "," << header;
+			}
+			outFile << std::endl;
+		}
+		else
+		{
+			LOG_ERROR("Failed to open outfile '{}'", m_ProfileConfig.OutputFile.c_str());
+		}
+	}
+
 #endif
 
 	InitImGui();
@@ -359,10 +393,28 @@ void D3DApplication::UpdateProfiling()
 		if (GPUProfiler::Get().IsInCollection())
 		{
 			// If it is in collection, check if it has finished collecting data
-			if (GPUProfiler::Get().DecodeData())
+			std::vector<std::stringstream> metrics;
+			if (GPUProfiler::Get().DecodeData(metrics))
 			{
 				// data can be gathered from profiler
 				m_CapturesRemaining--;
+
+				{
+					std::ofstream outFile(m_ProfileConfig.OutputFile, std::ofstream::app);
+
+					if (outFile.good())
+					{
+						for (const auto& metric : metrics)
+						{
+							outFile << m_ConfigData << metric.str();
+						}
+					}
+					else
+					{
+						LOG_ERROR("Failed to open outfile '{}'", m_ProfileConfig.OutputFile.c_str());
+					}
+				}
+				
 			}
 		}
 		else
@@ -391,6 +443,13 @@ void D3DApplication::UpdateProfiling()
 		}
 		m_Scene->Reset(demoConfig.DemoName, currentBrickSize);
 
+		{
+			// Build iteration data string
+			std::stringstream stream;
+			stream << std::fixed << std::setprecision(4) << demoConfig.DemoName << "," << currentBrickSize << ",";
+			m_ConfigData = std::move(stream.str());
+		}
+
 		m_CapturesRemaining = m_ProfileConfig.NumCaptures;
 	}
 	// Current demo config has been completed - progress to the next one
@@ -408,6 +467,13 @@ void D3DApplication::UpdateProfiling()
 		// Progress to next demo
 		const DemoConfig& demoConfig = m_ProfileConfig.DemoConfigs[m_DemoConfigIndex];
 		m_Scene->Reset(demoConfig.DemoName, demoConfig.InitialBrickSize);
+
+		{
+			// Build iteration data string
+			std::stringstream stream;
+			stream << std::fixed << std::setprecision(4) << demoConfig.DemoName << "," << demoConfig.InitialBrickSize << ",";
+			m_ConfigData = std::move(stream.str());
+		}
 
 		m_CapturesRemaining = m_ProfileConfig.NumCaptures;
 		m_DemoIterationsRemaining = m_ProfileConfig.IterationCount;
