@@ -3,9 +3,10 @@
     {
       "name": "drops",
 
-      "initial_brick_size": 0.5,
+      "initial_brick_size": 1.0,
       "linear_increment": false,
       "brick_size_multiplier": 0.5,
+      "num_iterations": 4,
 
       "camera": {
         "focal_point": [ 0, 5, 0 ],
@@ -17,10 +18,14 @@
 
       "initial_brick_size": 0.5,
       "linear_increment": false,
-      "brick_size_multiplier": 0.5
+      "brick_size_multiplier": 0.5,
+      "num_iterations": 3,
+
+      "camera": {
+        "orbit_radius": 15.0
+      }
     }
   ],
   "num_captures": 3,
-  "num_iterations": 3,
   "output_file": "captures/profile.csv"
 }

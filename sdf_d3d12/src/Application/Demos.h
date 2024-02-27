@@ -79,7 +79,7 @@ private:
 	std::vector<CubeData> m_CubeScales;
 
 	UINT m_MaxCubeGridSize = 10;
-	UINT m_CubeGridSize = 4;
+	UINT m_CubeGridSize = 8;
 
 	float m_CubeBlend = 0.0f;
 

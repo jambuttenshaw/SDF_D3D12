@@ -114,13 +114,13 @@ bool D3DApplication::ParseCommandLineArgs(LPWSTR argv[], int argc)
 			m_ProfilingMode = true;
 			m_UseOrbitalCamera = true;
 
+			const auto& demoConfig = m_ProfileConfig.DemoConfigs[0];
+
 			m_CapturesRemaining = m_ProfileConfig.NumCaptures;
-			m_DemoIterationsRemaining = m_ProfileConfig.IterationCount;
+			m_DemoIterationsRemaining = demoConfig.IterationCount;
 			m_DemoConfigIndex = 0;
 
 			{
-				const auto& demoConfig = m_ProfileConfig.DemoConfigs[0];
-
 				// Build iteration data string
 				std::stringstream stream;
 				stream << std::fixed << std::setprecision(4) << demoConfig.DemoName << "," << demoConfig.InitialBrickSize << ",";
@@ -220,7 +220,7 @@ void D3DApplication::OnInit()
 	else
 	{
 		// Load default demo
-		m_Scene = std::make_unique<Scene>("drops", 0.1f);
+		m_Scene = std::make_unique<Scene>("cubes", 0.1f);
 	}
 
 	m_Raytracer = std::make_unique<Raytracer>();
@@ -459,7 +459,7 @@ void D3DApplication::UpdateProfiling()
 
 		// Get current brick size
 		float currentBrickSize = 0.0f;
-		const UINT iterationsCompleted = m_ProfileConfig.IterationCount - m_DemoIterationsRemaining;
+		const UINT iterationsCompleted = demoConfig.IterationCount - m_DemoIterationsRemaining;
 		if (demoConfig.IsLinearIncrement)
 		{
 			currentBrickSize = demoConfig.InitialBrickSize + demoConfig.BrickSizeIncrement * static_cast<float>(iterationsCompleted);
@@ -508,7 +508,7 @@ void D3DApplication::UpdateProfiling()
 		}
 
 		m_CapturesRemaining = m_ProfileConfig.NumCaptures;
-		m_DemoIterationsRemaining = m_ProfileConfig.IterationCount;
+		m_DemoIterationsRemaining = demoConfig.IterationCount;
 	}
 }
 

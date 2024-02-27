@@ -83,6 +83,8 @@ bool ParseProfileConfigFromJSON(const std::string& path, ProfileConfig& profileC
 			JSON_CHECK_CONTAINS(demoJSON, "brick_size_multiplier");
 			demoConfig.BrickSizeMultiplier = demoJSON["brick_size_multiplier"];
 		}
+		JSON_CHECK_CONTAINS(demoJSON, "num_iterations");
+		demoConfig.IterationCount = demoJSON["num_iterations"];
 
 		// Camera properties are optional
 		// Init them with defaults in case they are not specified
@@ -110,8 +112,6 @@ bool ParseProfileConfigFromJSON(const std::string& path, ProfileConfig& profileC
 	// Load run parameters
 	JSON_CHECK_CONTAINS(docJSON, "num_captures");
 	profileConfig.NumCaptures = docJSON["num_captures"];
-	JSON_CHECK_CONTAINS(docJSON, "num_iterations");
-	profileConfig.IterationCount = docJSON["num_iterations"];
 
 	// Load output info
 	JSON_CHECK_CONTAINS(docJSON, "output_file");

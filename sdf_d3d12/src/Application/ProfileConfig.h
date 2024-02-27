@@ -18,6 +18,8 @@ struct DemoConfig
 		float BrickSizeIncrement;
 		float BrickSizeMultiplier;
 	};
+	// The number of iterations of this demo config, where variables can change between iterations
+	UINT IterationCount;
 
 	// Camera config
 	struct
@@ -36,8 +38,6 @@ struct ProfileConfig
 	// Run info
 	// The number of times to run each configuration to gather an average
 	UINT NumCaptures;
-	// The number of iterations of each configuration, where variables can change between iterations
-	UINT IterationCount;
 
 	// Output info
 	std::string OutputFile;

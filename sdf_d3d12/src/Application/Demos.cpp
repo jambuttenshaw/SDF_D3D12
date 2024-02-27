@@ -169,9 +169,9 @@ SDFEditList CubesDemo::BuildEditList(float deltaTime)
 
 		Transform transform;
 		transform.SetTranslation({ 
-			fx - 0.5f * fCount,
-			fy - 0.5f * fCount,
-			fz - 0.5f * fCount
+			fx - 0.5f * fCount + 0.5f,
+			fy - 0.5f * fCount + 0.5f,
+			fz - 0.5f * fCount + 0.5f
 		});
 		transform.SetScale(m_CubeScales.at(i).Scale + m_CubeScales.at(i).DeltaScale * sinf(4.0f * m_Time));
 
