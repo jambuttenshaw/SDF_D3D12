@@ -5,7 +5,12 @@
 
       "initial_brick_size": 0.5,
       "linear_increment": false,
-      "brick_size_multiplier": 0.5
+      "brick_size_multiplier": 0.5,
+
+      "camera": {
+        "focal_point": [ 0, 5, 0 ],
+        "orbit_radius": 15.0
+      }
     },
     {
       "name": "cubes",

@@ -52,7 +52,9 @@ private:
 
 	GameTimer m_Timer;
 	Camera m_Camera;
-	OrbitalCameraController m_CameraController;
+
+	bool m_UseOrbitalCamera = false;
+	std::unique_ptr<CameraController> m_CameraController;
 
 	std::unique_ptr<Scene> m_Scene;
 	std::unique_ptr<Raytracer> m_Raytracer;

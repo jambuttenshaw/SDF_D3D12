@@ -61,26 +61,49 @@ bool ParseProfileConfigFromJSON(const std::string& path, ProfileConfig& profileC
 	for (size_t demo = 0; demo < demos.size(); demo++)
 	{
 		const json& demoJSON = demos[demo];
+		auto& demoConfig = profileConfig.DemoConfigs[demo];
 
 		// Load demo
 		JSON_CHECK_CONTAINS(demoJSON, "name");
-		profileConfig.DemoConfigs[demo].DemoName = demoJSON["name"];
+		demoConfig.DemoName = demoJSON["name"];
 
 		JSON_CHECK_CONTAINS(demoJSON, "initial_brick_size");
-		profileConfig.DemoConfigs[demo].InitialBrickSize = demoJSON["initial_brick_size"];
+		demoConfig.InitialBrickSize = demoJSON["initial_brick_size"];
 
 		JSON_CHECK_CONTAINS(demoJSON, "linear_increment");
 		const bool linearIncrement = demoJSON["linear_increment"];
-		profileConfig.DemoConfigs[demo].IsLinearIncrement = linearIncrement;
+		demoConfig.IsLinearIncrement = linearIncrement;
 		if (linearIncrement)
 		{
 			JSON_CHECK_CONTAINS(demoJSON, "brick_size_increment");
-			profileConfig.DemoConfigs[demo].BrickSizeIncrement = demoJSON["brick_size_increment"];
+			demoConfig.BrickSizeIncrement = demoJSON["brick_size_increment"];
 		}
 		else
 		{
 			JSON_CHECK_CONTAINS(demoJSON, "brick_size_multiplier");
-			profileConfig.DemoConfigs[demo].BrickSizeMultiplier = demoJSON["brick_size_multiplier"];
+			demoConfig.BrickSizeMultiplier = demoJSON["brick_size_multiplier"];
+		}
+
+		// Camera properties are optional
+		// Init them with defaults in case they are not specified
+		demoConfig.CameraConfig.FocalPoint = { 0.0f, 0.0f, 0.0f };
+		demoConfig.CameraConfig.OrbitRadius = 10.0f;
+		if (demoJSON.contains("camera"))
+		{
+			const json& cameraJSON = demoJSON["camera"];
+			if (cameraJSON.contains("focal_point"))
+			{
+				if (cameraJSON["focal_point"].size() != 3)
+					JSON_ERROR("Focal point is invalid - it should be a 3 element vector.");
+				demoConfig.CameraConfig.FocalPoint.x = cameraJSON["focal_point"][0];
+				demoConfig.CameraConfig.FocalPoint.y = cameraJSON["focal_point"][1];
+				demoConfig.CameraConfig.FocalPoint.z = cameraJSON["focal_point"][2];
+			}
+			if (cameraJSON.contains("orbit_radius"))
+			{
+				demoConfig.CameraConfig.OrbitRadius = cameraJSON["orbit_radius"];
+			}
+
 		}
 	}
 

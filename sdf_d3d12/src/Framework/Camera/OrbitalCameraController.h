@@ -19,6 +19,9 @@ public:
 	virtual void Update(float deltaTime) override;
 	virtual void Gui() override;
 
+	inline void SetOrbitPoint(const XMVECTOR& p) { m_OrbitPoint = p; }
+	inline void SetOrbitRadius(float radius) { m_OrbitRadius = radius; }
+
 protected:
 	// Manipulable parameters
 	XMVECTOR m_OrbitPoint{ 0.0f, 0.0f, 0.0f };

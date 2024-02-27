@@ -1,6 +1,8 @@
 #pragma once
 #include "Renderer/Profiling/GPUProfiler.h"
 
+using namespace DirectX;
+
 
 // Application-specific arguments
 struct DemoConfig
@@ -16,6 +18,13 @@ struct DemoConfig
 		float BrickSizeIncrement;
 		float BrickSizeMultiplier;
 	};
+
+	// Camera config
+	struct
+	{
+		XMFLOAT3 FocalPoint;
+		float OrbitRadius;
+	} CameraConfig;
 };
 
 

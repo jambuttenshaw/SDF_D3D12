@@ -54,6 +54,9 @@ bool D3DApplication::ParseCommandLineArgs(LPWSTR argv[], int argc)
 	args::Flag enablePIX(graphicsContextFlags, "Enable GPU Captures", "Enable PIX GPU Captures", { "enable-gpu-capture" });
 	args::Flag enableDRED(graphicsContextFlags, "Enable DRED", "Enable Device Removal Extended Data", { "enable-dred" });
 
+	args::Group applicationFlags(parser, "Application Flags");
+	args::Flag orbitalCamera(applicationFlags, "Orbital Camera", "Enable an orbital camera", { "orbital-camera" });
+
 #ifdef ENABLE_INSTRUMENTATION
 	// These settings won't do anything in a non-instrumented build
 	args::Group profilingGroup(parser, "Profiling Options");
@@ -98,6 +101,9 @@ bool D3DApplication::ParseCommandLineArgs(LPWSTR argv[], int argc)
 	if (enableDRED)
 		m_GraphicsContextFlags.EnableDRED = true;
 
+	if (orbitalCamera)
+		m_UseOrbitalCamera = true;
+
 #ifdef ENABLE_INSTRUMENTATION
 	// These settings aren't relevant otherwise
 	if (profileConfig)
@@ -106,6 +112,7 @@ bool D3DApplication::ParseCommandLineArgs(LPWSTR argv[], int argc)
 		if (ParseProfileConfigFromJSON(profileConfig.Get(), m_ProfileConfig))
 		{
 			m_ProfilingMode = true;
+			m_UseOrbitalCamera = true;
 
 			m_CapturesRemaining = m_ProfileConfig.NumCaptures;
 			m_DemoIterationsRemaining = m_ProfileConfig.IterationCount;
@@ -193,7 +200,10 @@ void D3DApplication::OnInit()
 	m_Camera.SetPosition(XMVECTOR{ 0.0f, 3.0f, -8.0f });
 	m_Timer.Reset();
 
-	m_CameraController = OrbitalCameraController{ m_InputManager.get(), &m_Camera };
+	if (m_UseOrbitalCamera)
+		m_CameraController = std::make_unique<OrbitalCameraController>(m_InputManager.get(), &m_Camera);
+	else
+		m_CameraController = std::make_unique<CameraController>(m_InputManager.get(), &m_Camera);
 
 	BaseDemo::CreateAllDemos();
 	if (m_ProfilingMode)
@@ -201,6 +211,11 @@ void D3DApplication::OnInit()
 		// Load config from command line
 		const auto& demo = m_ProfileConfig.DemoConfigs[0];
 		m_Scene = std::make_unique<Scene>(demo.DemoName, demo.InitialBrickSize);
+
+		// Setup camera
+		const auto orbitalCamera = static_cast<OrbitalCameraController*>(m_CameraController.get());
+		orbitalCamera->SetOrbitPoint(XMLoadFloat3(&demo.CameraConfig.FocalPoint));
+		orbitalCamera->SetOrbitRadius(demo.CameraConfig.OrbitRadius);
 	}
 	else
 	{
@@ -370,7 +385,7 @@ void D3DApplication::BeginUpdate()
 		m_ShowMainMenuBar = true;
 
 	// Update camera
-	m_CameraController.Update(deltaTime);
+	m_CameraController->Update(deltaTime);
 
 	// Begin new ImGui frame
 	ImGui_ImplDX12_NewFrame();
@@ -478,7 +493,12 @@ void D3DApplication::UpdateProfiling()
 	{
 		// Progress to next demo
 		const DemoConfig& demoConfig = m_ProfileConfig.DemoConfigs[m_DemoConfigIndex];
+
 		m_Scene->Reset(demoConfig.DemoName, demoConfig.InitialBrickSize);
+
+		const auto orbitalCamera = static_cast<OrbitalCameraController*>(m_CameraController.get());
+		orbitalCamera->SetOrbitPoint(XMLoadFloat3(&demoConfig.CameraConfig.FocalPoint));
+		orbitalCamera->SetOrbitRadius(demoConfig.CameraConfig.OrbitRadius);
 
 		{
 			// Build iteration data string
@@ -528,7 +548,7 @@ bool D3DApplication::ImGuiApplicationInfo()
 
 			ImGui::Separator();
 
-			m_CameraController.Gui();
+			m_CameraController->Gui();
 		}
 		ImGui::Separator();
 
