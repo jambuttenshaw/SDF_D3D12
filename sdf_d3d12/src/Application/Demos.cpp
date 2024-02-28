@@ -11,6 +11,7 @@ void BaseDemo::CreateAllDemos()
 {
 	s_Demos["drops"] = &DropsDemo::Get();
 	s_Demos["cubes"] = &CubesDemo::Get();
+	s_Demos["rain"] = &RainDemo::Get();
 }
 
 BaseDemo* BaseDemo::GetDemoFromName(const std::string& demoName)
@@ -207,6 +208,112 @@ void CubesDemo::DisplayGUI()
 		m_CubeGridSize = cubeCount;
 	}
 	ImGui::SliderFloat("Blending", &m_CubeBlend, 0.0f, 1.0f);
+
+	ImGui::Separator();
+}
+
+
+
+RainDemo::RainDemo()
+{
+	// Init drops array
+	m_RainDrops.resize(m_RainDropCount);
+	for (auto& drop : m_RainDrops)
+	{
+		drop.Mass = Random::Float(0.1f, 0.3f);
+		drop.Radius = 0.01f;
+		drop.BlendFactor = 0.0f;
+
+		drop.Position = {
+			Random::Float(1.0f - m_Dimensions, m_Dimensions - 1.0f),
+			m_CloudHeight,
+			Random::Float(1.0f - m_Dimensions, m_Dimensions - 1.0f)
+		};
+		drop.Velocity = Random::Float(-7.5f, 0.0f);
+	}
+
+	m_Clouds.resize(m_CloudCount);
+	for (auto& cloud : m_Clouds)
+	{
+		cloud.Position = {
+			Random::Float(-m_Dimensions, m_Dimensions),
+			m_CloudHeight + Random::Float(-0.25f, 1.5f),
+			Random::Float(-m_Dimensions, m_Dimensions)
+		};
+		cloud.Radius = Random::Float(0.3f, 0.8f);
+
+		cloud.Frequency = Random::Float(0.7f, 1.2f);
+		cloud.Scale = Random::Float(0.1f, 0.3f);
+		cloud.Offset = Random::Float(2.0f * XM_PI);
+	}
+}
+
+
+SDFEditList RainDemo::BuildEditList(float deltaTime)
+{
+	m_Time += deltaTime;
+
+	// 4 extra edits for floor ceiling, and subtractions
+	// above ceiling and below floor to stop leaking through
+	SDFEditList editList(m_RainDropCount + m_CloudCount + 1, 10.0f);
+
+	// Create floor
+	editList.AddEdit(SDFEdit::CreateBox({ 0.0f, m_FloorHeight, 0.0f }, { m_Dimensions, 0.5f, m_Dimensions }, SDF_OP_SMOOTH_UNION, 0.0f));
+
+	// Create clouds
+	for (const auto& cloud : m_Clouds)
+	{
+		const float r = cloud.Radius + cloud.Scale * sinf(cloud.Frequency * m_Time + cloud.Offset);
+		editList.AddEdit(SDFEdit::CreateSphere(cloud.Position, r, SDF_OP_SMOOTH_UNION, m_CloudBlend));
+	}
+
+	// Each rain drop should move under gravity
+	for (auto& drop : m_RainDrops)
+	{
+		drop.Radius = min(m_MaxRadius, drop.Radius + 0.5f * drop.Mass * deltaTime);
+		drop.BlendFactor = min(1.0f, drop.BlendFactor + deltaTime);
+
+		drop.Velocity -= drop.Mass * m_Gravity * deltaTime;
+		drop.Position.y -= drop.Velocity * deltaTime;
+
+		// Wrap around
+		if (drop.Position.y < m_FloorHeight)
+		{
+			drop.Velocity = 0.0f;
+			drop.Position.y = m_CloudHeight;
+
+			drop.Radius = 0.01f;
+			drop.BlendFactor = 0.0f;
+		}
+
+		// Create the drop
+		editList.AddEdit(SDFEdit::CreateSphere(drop.Position, drop.Radius, SDF_OP_SMOOTH_UNION, m_RainDropBlend * drop.BlendFactor));
+	}
+
+	return editList;
+}
+
+void RainDemo::DisplayGUI()
+{
+	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
+	ImGui::Text("Stats");
+	ImGui::PopStyleColor();
+
+	ImGui::Separator();
+
+	ImGui::Text("Edit Count: %d", m_RainDropCount + m_CloudCount + 1);
+
+	ImGui::Separator();
+
+	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
+	ImGui::Text("Controls");
+	ImGui::PopStyleColor();
+
+	ImGui::Separator();
+
+	ImGui::SliderFloat("Gravity", &m_Gravity, -75.0f, -5.0f);
+	ImGui::SliderFloat("Rain Blending", &m_RainDropBlend, 0.0f, 1.0f);
+	ImGui::SliderFloat("Cloud Blending", &m_CloudBlend, 0.0f, 1.0f);
 
 	ImGui::Separator();
 }

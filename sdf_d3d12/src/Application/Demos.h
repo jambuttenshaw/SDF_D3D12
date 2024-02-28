@@ -85,3 +85,56 @@ private:
 
 	float m_Time = 0.0f;
 };
+
+
+class RainDemo : public BaseDemo
+{
+	RainDemo();
+public:
+	static RainDemo& Get()
+	{
+		static RainDemo instance;
+		return instance;
+	}
+
+	virtual SDFEditList BuildEditList(float deltaTime) override;
+	virtual void DisplayGUI() override;
+
+private:
+	struct RainDropData
+	{
+		float Mass;
+		float Radius;
+		float BlendFactor; // To stop drops from instantly affecting blend when they appear
+
+		XMFLOAT3 Position;
+		float Velocity; // drops move vertically only
+	};
+	std::vector<RainDropData> m_RainDrops;
+
+	struct CloudData
+	{
+		XMFLOAT3 Position;
+		float Radius;
+		// For animation
+		float Frequency;
+		float Scale;
+		float Offset;
+	};
+	std::vector<CloudData> m_Clouds;
+
+	float m_Gravity = -40.0f;
+	float m_MaxRadius = 0.3f;
+
+	UINT m_CloudCount = 256;
+	UINT m_RainDropCount = 256;
+
+	float m_Dimensions = 4.0f;
+	float m_CloudHeight = 3.0f;
+	float m_FloorHeight = -3.0f;
+	
+	float m_RainDropBlend = 0.2f;
+	float m_CloudBlend = 0.4f;
+
+	float m_Time = 0.0f;
+};

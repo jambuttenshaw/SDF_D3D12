@@ -1,10 +1,11 @@
 {
   "queue": "compute",
   "metrics": [
-    [ "Duration",         "gpu__time_duration.sum" ],
-    [ "SM Throughput",    "sm__throughput.avg.pct_of_peak_sustained_elapsed" ],
-    [ "L1 Throughput",    "l1tex__throughput.avg.pct_of_peak_sustained_elapsed" ],
-    [ "L2 Throughput",    "lts__t_sector_throughput.avg.pct_of_peak_sustained_elapsed" ],
-    [ "L2 Hit Rate",      "lts__average_t_sector_hit_rate_realtime.pct" ]
+    [ "Duration", "gpu__time_duration.sum" ],
+    [ "SM Throughput", "sm__throughput.avg.pct_of_peak_sustained_elapsed" ],
+    [ "L1 Throughput", "l1tex__throughput.avg.pct_of_peak_sustained_elapsed" ],
+    [ "L2 Throughput", "lts__t_sector_throughput.avg.pct_of_peak_sustained_elapsed" ],
+    [ "L2 Hit Rate", "lts__average_t_sector_hit_rate_realtime.pct" ],
+    [ "Warps waiting at barriers", "smsp__average_warp_latency_issue_stalled_barrier.pct" ]
   ]
 }
