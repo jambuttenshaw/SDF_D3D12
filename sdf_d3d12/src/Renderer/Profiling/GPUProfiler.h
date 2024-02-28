@@ -88,7 +88,7 @@ protected:
 	// Ready to begin collection
 	bool m_InCollection = false;
 
-	static constexpr double s_WarmupTime = 5.0; // Wait 5s to allow the clock to stabilize before beginning to profile.
+	static constexpr double s_WarmupTime = 1.0; // Wait 1s to allow the clock to stabilize before beginning to profile.
 	static constexpr size_t s_MaxNumRanges = 32;
 	static constexpr uint16_t s_NumNestingLevels = 4;
 

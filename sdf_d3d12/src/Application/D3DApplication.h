@@ -59,6 +59,8 @@ private:
 	std::unique_ptr<Scene> m_Scene;
 	std::unique_ptr<Raytracer> m_Raytracer;
 
+	std::string m_DefaultDemo = "cubes";
+
 	// Flags to pass to the renderer
 	UINT m_RenderFlags = RENDER_FLAG_DISPLAY_NORMALS;
 

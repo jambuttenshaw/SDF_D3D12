@@ -81,7 +81,7 @@ private:
 	UINT m_MaxCubeGridSize = 10;
 	UINT m_CubeGridSize = 8;
 
-	float m_CubeBlend = 0.0f;
+	float m_CubeBlend = 0.1f;
 
 	float m_Time = 0.0f;
 };

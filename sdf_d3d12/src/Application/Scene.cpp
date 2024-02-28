@@ -36,7 +36,7 @@ Scene::Scene(const std::string& demoName, float brickSize)
 		m_Factory = std::make_unique<SDFFactoryHierarchicalAsync>();
 
 		// Create SDF objects
-		m_Object = std::make_unique<SDFObject>(brickSize, 200'000);
+		m_Object = std::make_unique<SDFObject>(brickSize, 250'000);
 
 		BuildEditList(0.0f, false);
 	}
@@ -206,6 +206,13 @@ bool Scene::ImGuiSceneInfo()
 
 	return open;
 }
+
+
+UINT Scene::GetCurrentBrickCount() const
+{
+	return m_Object->GetBrickCount(SDFObject::RESOURCES_READ);
+}
+
 
 
 void Scene::BuildEditList(float deltaTime, bool async)

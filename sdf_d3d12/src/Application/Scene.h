@@ -31,6 +31,10 @@ public:
 	void ImGuiSceneMenu();
 	bool ImGuiSceneInfo();
 
+
+	// For collecting info
+	UINT GetCurrentBrickCount() const;
+
 private:
 	void BuildEditList(float deltaTime, bool async);
 

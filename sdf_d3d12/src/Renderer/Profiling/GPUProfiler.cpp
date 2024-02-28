@@ -140,7 +140,6 @@ void GPUProfiler::PushRange(GPUProfilerQueue queue, const char* name, ID3D12Grap
 {
 	if (queue != m_Queue)
 		return;
-	PushRangeImpl(name, commandList);
 
 	if (index == 0 || m_CombineSharedNameRanges)
 		PushRangeImpl(name, commandList);

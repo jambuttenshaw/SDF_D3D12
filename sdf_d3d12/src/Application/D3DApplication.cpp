@@ -178,7 +178,7 @@ void D3DApplication::OnInit()
 		std::ofstream outFile(m_ProfileConfig.OutputFile);
 		if (outFile.good())
 		{
-			outFile << "Demo Name,Brick Size,Range Name";
+			outFile << "Demo Name,Brick Size,BrickCount,Range Name";
 			for (const auto& header : m_GPUProfilerArgs.Headers)
 			{
 				outFile << "," << header;
@@ -220,7 +220,7 @@ void D3DApplication::OnInit()
 	else
 	{
 		// Load default demo
-		m_Scene = std::make_unique<Scene>("rain", 0.1f);
+		m_Scene = std::make_unique<Scene>(m_DefaultDemo, 0.1f);
 	}
 
 	m_Raytracer = std::make_unique<Raytracer>();
@@ -431,9 +431,13 @@ void D3DApplication::UpdateProfiling()
 
 					if (outFile.good())
 					{
+						// Build all non gpu profiler data that should also be output
+						std::stringstream otherData;
+						otherData << m_Scene->GetCurrentBrickCount() << ",";
+
 						for (const auto& metric : metrics)
 						{
-							outFile << m_ConfigData << metric.str();
+							outFile << m_ConfigData << otherData.str() << metric.str();
 						}
 					}
 					else
@@ -484,7 +488,7 @@ void D3DApplication::UpdateProfiling()
 	{
 		// All demo configs have been captured
 		// Process final data
-		LOG_INFO("All config profiling completed.");
+		LOG_INFO("All config profiling completed in {} seconds.", m_Timer.GetTimeSinceReset());
 
 		// Quit application
 		Win32Application::ForceQuit();

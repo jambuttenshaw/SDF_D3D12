@@ -24,6 +24,19 @@
       "camera": {
         "orbit_radius": 15.0
       }
+    },
+    {
+      "name": "rain",
+
+      "initial_brick_size": 1.0,
+      "linear_increment": false,
+      "brick_size_multiplier": 0.5,
+      "num_iterations": 4,
+
+      "camera": {
+        "focal_point": [ 0, -2, 0 ],
+        "orbit_radius": 18.0
+      }
     }
   ],
   "num_captures": 1,

@@ -229,7 +229,7 @@ RainDemo::RainDemo()
 			m_CloudHeight,
 			Random::Float(1.0f - m_Dimensions, m_Dimensions - 1.0f)
 		};
-		drop.Velocity = Random::Float(-7.5f, 0.0f);
+		drop.Velocity = Random::Float(-5.0f, 0.0f);
 	}
 
 	m_Clouds.resize(m_CloudCount);
@@ -273,8 +273,8 @@ SDFEditList RainDemo::BuildEditList(float deltaTime)
 		drop.Radius = min(m_MaxRadius, drop.Radius + 0.5f * drop.Mass * deltaTime);
 		drop.BlendFactor = min(1.0f, drop.BlendFactor + deltaTime);
 
-		drop.Velocity -= drop.Mass * m_Gravity * deltaTime;
-		drop.Position.y -= drop.Velocity * deltaTime;
+		drop.Velocity += drop.Mass * m_Gravity * deltaTime;
+		drop.Position.y += drop.Velocity * deltaTime;
 
 		// Wrap around
 		if (drop.Position.y < m_FloorHeight)
