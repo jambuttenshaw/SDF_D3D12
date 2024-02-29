@@ -258,7 +258,7 @@ SDFEditList RainDemo::BuildEditList(float deltaTime)
 	SDFEditList editList(m_RainDropCount + m_CloudCount + 1, 10.0f);
 
 	// Create floor
-	editList.AddEdit(SDFEdit::CreateBox({ 0.0f, m_FloorHeight, 0.0f }, { m_Dimensions, 0.5f, m_Dimensions }, SDF_OP_SMOOTH_UNION, 0.0f));
+	editList.AddEdit(SDFEdit::CreateBox({ 0.0f, m_FloorHeight, 0.0f }, { m_Dimensions, 0.5f, m_Dimensions }));
 
 	// Create clouds
 	for (const auto& cloud : m_Clouds)

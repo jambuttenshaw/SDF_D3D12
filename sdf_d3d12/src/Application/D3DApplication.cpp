@@ -112,7 +112,10 @@ bool D3DApplication::ParseCommandLineArgs(LPWSTR argv[], int argc)
 		if (ParseProfileConfigFromJSON(profileConfig.Get(), m_ProfileConfig))
 		{
 			m_ProfilingMode = true;
+			// Force various modes for profiling
 			m_UseOrbitalCamera = true;
+			m_DisableGUI = true;
+			m_ToggleFullscreen = true;
 
 			const auto& demoConfig = m_ProfileConfig.DemoConfigs[0];
 
