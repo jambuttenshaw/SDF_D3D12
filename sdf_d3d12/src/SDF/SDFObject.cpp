@@ -55,41 +55,67 @@ UINT SDFObject::GetBrickPoolCapacity(ResourceGroup res) const
 }
 
 
-UINT64 SDFObject::GetBrickPoolSizeBytes(ResourceGroup res) const
+UINT64 SDFObject::GetBrickPoolSizeBytes() const
 {
-	auto& brickPool = GetResources(res).BrickPool;
-	if (!brickPool)
-		return 0;
+	UINT64 totalSize = 0;
+	for (UINT i = 0; i < RESOURCES_COUNT; i++)
+	{
+		auto& brickPool = GetResources(static_cast<ResourceGroup>(i)).BrickPool;
+		if (!brickPool)
+			continue;
 
-	const auto desc = brickPool->GetDesc();
-	const auto elements = desc.Width * desc.Height * desc.DepthOrArraySize;
-	constexpr auto elementSize = sizeof(BYTE); // R8_SNORM one byte per element
-	return elements * elementSize;
+		const auto desc = brickPool->GetDesc();
+		const auto elements = desc.Width * desc.Height * desc.DepthOrArraySize;
+		constexpr auto elementSize = sizeof(BYTE); // R8_SNORM one byte per element
+		totalSize += elements * elementSize;
+	}
+	return totalSize;
+
 }
 
-UINT64 SDFObject::GetAABBBufferSizeBytes(ResourceGroup res) const
+UINT64 SDFObject::GetAABBBufferSizeBytes() const
 {
-	auto& aabbBuffer = GetResources(res).AABBBuffer;
-	return aabbBuffer.GetElementCount() * aabbBuffer.GetElementStride();
+	UINT64 totalSize = 0;
+	for (UINT i = 0; i < RESOURCES_COUNT; i++)
+	{
+		auto& aabbBuffer = GetResources(static_cast<ResourceGroup>(i)).AABBBuffer;
+		totalSize += aabbBuffer.GetElementCount() * aabbBuffer.GetElementStride();
+	}
+	return totalSize;
 }
 
-UINT64 SDFObject::GetBrickBufferSizeBytes(ResourceGroup res) const
+UINT64 SDFObject::GetBrickBufferSizeBytes() const
 {
-	auto& brickBuffer = GetResources(res).BrickBuffer;
-	return brickBuffer.GetElementCount() * brickBuffer.GetElementStride();
+	UINT64 totalSize = 0;
+	for (UINT i = 0; i < RESOURCES_COUNT; i++)
+	{
+		auto& brickBuffer = GetResources(static_cast<ResourceGroup>(i)).BrickBuffer;
+		totalSize += brickBuffer.GetElementCount() * brickBuffer.GetElementStride();
+	}
+	return totalSize;
+}
+
+UINT64 SDFObject::GetIndexBufferSizeBytes() const
+{
+	UINT64 totalSize = 0;
+	for (UINT i = 0; i < RESOURCES_COUNT; i++)
+	{
+		auto& indexBuffer = GetResources(static_cast<ResourceGroup>(i)).IndexBuffer;
+		if (!indexBuffer.GetResource())
+			return 0;
+		totalSize += indexBuffer.GetResource()->GetDesc().Width;
+	}
+	return totalSize;
 }
 
 
 UINT64 SDFObject::GetTotalMemoryUsageBytes() const
 {
 	UINT64 totalSize = 0;
-	for (UINT i = 0; i < RESOURCES_COUNT; i++)
-	{
-		const auto res = static_cast<ResourceGroup>(i);
-		totalSize += GetBrickPoolSizeBytes(res);
-		totalSize += GetAABBBufferSizeBytes(res);
-		totalSize += GetBrickBufferSizeBytes(res);
-	}
+	totalSize += GetBrickPoolSizeBytes();
+	totalSize += GetAABBBufferSizeBytes();
+	totalSize += GetBrickBufferSizeBytes();
+	totalSize += GetIndexBufferSizeBytes();
 
 	return totalSize;
 }

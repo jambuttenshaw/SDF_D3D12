@@ -290,16 +290,24 @@ void Scene::DisplaySDFObjectDebugInfo(const wchar_t* name, const SDFObject* obje
 
 	const auto brickPoolSize = object->GetBrickPoolDimensions(SDFObject::RESOURCES_READ);
 	ImGui::Text("Brick Pool Size (bricks): %d, %d, %d", brickPoolSize.x, brickPoolSize.y, brickPoolSize.z);
-	ImGui::Text("Brick Pool Size (KB): %d", object->GetBrickPoolSizeBytes(SDFObject::RESOURCES_READ) / 1024);
-
 	const float poolUsage = 100.0f * (static_cast<float>(object->GetBrickCount(SDFObject::RESOURCES_READ)) / static_cast<float>(object->GetBrickPoolCapacity(SDFObject::RESOURCES_READ)));
 	ImGui::Text("Brick Pool Usage: %.1f", poolUsage);
 
-	const auto sizeKB = object->GetTotalMemoryUsageBytes() / 1024;
-	if (sizeKB > 10'000)
-		ImGui::Text("Total Size (MB): %d", sizeKB / 1024);
-	else
-		ImGui::Text("Total Size (KB): %d", sizeKB);
+
+	// Memory usage
+	auto DisplaySize = [](UINT64 sizeKB)
+	{
+			if (sizeKB > 10'000)
+				ImGui::Text("Total Size (MB): %d", sizeKB / 1024);
+			else
+				ImGui::Text("Total Size (KB): %d", sizeKB);
+	};
+
+	DisplaySize(object->GetBrickPoolSizeBytes() / 1024);
+	DisplaySize(object->GetBrickBufferSizeBytes() / 1024);
+	DisplaySize(object->GetAABBBufferSizeBytes() / 1024);
+	DisplaySize(object->GetIndexBufferSizeBytes() / 1024);
+	DisplaySize(object->GetTotalMemoryUsageBytes() / 1024);
 
 	ImGui::Separator();
 }
