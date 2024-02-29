@@ -61,12 +61,14 @@ public:
 	// Wait for all queues to become idle
 	void WaitForGPUIdle() const;
 
+public:
+	// Getters
+
 	// Vsync
 	inline bool GetVSyncEnabled() const { return m_VSyncEnabled; }
 	inline void SetVSyncEnabled(bool enabled) { m_VSyncEnabled = enabled; }
 
-public:
-	// Getters
+	inline bool IsPIXEnabled() const { return m_PIXCaptureModule != nullptr; }
 
 	inline float GetAspectRatio() const { return static_cast<float>(m_ClientWidth) / static_cast<float>(m_ClientHeight); }
 

@@ -7,7 +7,6 @@
 #include "Framework/Math.h"
 
 #include "pix3.h"
-#include "Renderer/D3DDebugTools.h"
 
 #include "Demos.h"
 
@@ -140,13 +139,6 @@ bool Scene::ImGuiSceneInfo()
 		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
 		ImGui::Text("Controls");
 		ImGui::PopStyleColor();
-
-		ImGui::Separator();
-
-		if (ImGui::Button("PIX Capture"))
-		{
-			D3DDebugTools::PIXGPUCaptureFrame(1);
-		}
 
 		ImGui::Separator();
 
@@ -293,6 +285,7 @@ void Scene::DisplaySDFObjectDebugInfo(const wchar_t* name, const SDFObject* obje
 	const float poolUsage = 100.0f * (static_cast<float>(object->GetBrickCount(SDFObject::RESOURCES_READ)) / static_cast<float>(object->GetBrickPoolCapacity(SDFObject::RESOURCES_READ)));
 	ImGui::Text("Brick Pool Usage: %.1f", poolUsage);
 
+	ImGui::Separator();
 
 	// Memory usage
 	auto DisplaySize = [](UINT64 sizeKB)
@@ -307,6 +300,9 @@ void Scene::DisplaySDFObjectDebugInfo(const wchar_t* name, const SDFObject* obje
 	DisplaySize(object->GetBrickBufferSizeBytes() / 1024);
 	DisplaySize(object->GetAABBBufferSizeBytes() / 1024);
 	DisplaySize(object->GetIndexBufferSizeBytes() / 1024);
+
+	ImGui::Separator();
+
 	DisplaySize(object->GetTotalMemoryUsageBytes() / 1024);
 
 	ImGui::Separator();

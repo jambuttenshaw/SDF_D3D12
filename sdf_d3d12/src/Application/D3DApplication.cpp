@@ -5,6 +5,7 @@
 
 #include "backends/imgui_impl_win32.h"
 #include "backends/imgui_impl_dx12.h"
+#include <imgui_internal.h>
 
 #include "Renderer/Profiling/GPUProfiler.h"
 
@@ -15,6 +16,9 @@
 
 #include <fstream>
 #include <iomanip>
+
+#include "Renderer/D3DDebugTools.h"
+
 
 
 D3DApplication::D3DApplication(UINT width, UINT height, const std::wstring& name)
@@ -618,16 +622,28 @@ bool D3DApplication::ImGuiApplicationInfo()
 		ImGui::Separator();
 
 		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
-		ImGui::Text("GPUProfiler");
+		ImGui::Text("Debug");
 		ImGui::PopStyleColor();
 
 		ImGui::Separator();
 
-		if (ImGui::Button("Capture Next Frame"))
+		const bool pixEnabled = m_GraphicsContext->IsPIXEnabled();
+		if (!pixEnabled)
 		{
-			PROFILE_CAPTURE_NEXT_FRAME();
+			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
 		}
 
+		if (ImGui::Button("GPU Capture"))
+		{
+			D3DDebugTools::PIXGPUCaptureFrame(1);
+		}
+
+		if (!pixEnabled)
+		{
+			ImGui::PopItemFlag();
+			ImGui::PopStyleVar();
+		}
 	}
 	ImGui::End();
 	return open;
