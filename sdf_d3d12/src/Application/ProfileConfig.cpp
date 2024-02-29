@@ -113,10 +113,6 @@ bool ParseProfileConfigFromJSON(const std::string& path, ProfileConfig& profileC
 	JSON_CHECK_CONTAINS(docJSON, "num_captures");
 	profileConfig.NumCaptures = docJSON["num_captures"];
 
-	// Load output info
-	JSON_CHECK_CONTAINS(docJSON, "output_file");
-	profileConfig.OutputFile = docJSON["output_file"];
-
 	return true;
 }
 

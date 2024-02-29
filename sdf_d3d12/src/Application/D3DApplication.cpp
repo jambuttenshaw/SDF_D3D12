@@ -66,6 +66,7 @@ bool D3DApplication::ParseCommandLineArgs(LPWSTR argv[], int argc)
 	args::Group profilingGroup(parser, "Profiling Options");
 	args::ValueFlag<std::string> profileConfig(profilingGroup, "Profile Config", "Path to profiling config file", { "profile-config" });
 	args::ValueFlag<std::string> gpuProfileConfig(profilingGroup, "GPU Profiler Config", "Path to GPU profiler config file", { "gpu-profiler-config" });
+	args::ValueFlag<std::string> profileOutput(profilingGroup, "Output", "Path to output file", { "profile-output" });
 
 	args::ValueFlag<std::string> outputAvailableMetrics(profilingGroup, "output-available-metrics", "Output file for available GPU metrics", { "output-available-metrics" });
 #endif
@@ -144,6 +145,12 @@ bool D3DApplication::ParseCommandLineArgs(LPWSTR argv[], int argc)
 			// Don't load defaults - args have been supplied
 			m_LoadDefaultGPUProfilerArgs = false;
 		}
+	}
+
+	if (m_ProfilingMode)
+	{
+		m_ProfileConfig.OutputFile = profileOutput ? profileOutput.Get() : "captures/profile.csv";
+		LOG_INFO("Using profiling output path: '{}'", m_ProfileConfig.OutputFile);
 	}
 
 	if (outputAvailableMetrics)

@@ -39,6 +39,5 @@
       }
     }
   ],
-  "num_captures": 1,
-  "output_file": "captures/profile.csv"
+  "num_captures": 1
 }
