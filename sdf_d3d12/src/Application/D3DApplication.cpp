@@ -120,7 +120,7 @@ bool D3DApplication::ParseCommandLineArgs(LPWSTR argv[], int argc)
 			// Force various modes for profiling
 			m_UseOrbitalCamera = true;
 			m_DisableGUI = true;
-			m_ToggleFullscreen = true;
+			//m_ToggleFullscreen = true;
 
 			const auto& demoConfig = m_ProfileConfig.DemoConfigs[0];
 
@@ -301,8 +301,8 @@ void D3DApplication::OnRender()
 	m_GraphicsContext->UpdatePassCB(&m_Timer, &m_Camera, m_RenderFlags, m_HeatmapQuantization, m_HeatmapHueRange);
 
 	// Begin drawing
-	PROFILE_DIRECT_BEGIN_PASS("Frame");
 	m_GraphicsContext->StartDraw();
+	PROFILE_DIRECT_BEGIN_PASS("Frame", g_D3DGraphicsContext->GetCommandList());
 
 	// Tell the scene that render is happening
 	// This will update acceleration structures and other things to render the scene
@@ -316,8 +316,8 @@ void D3DApplication::OnRender()
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_GraphicsContext->GetCommandList());
 
 	// End draw
+	PROFILE_DIRECT_END_PASS(g_D3DGraphicsContext->GetCommandList());
 	m_GraphicsContext->EndDraw();
-	PROFILE_DIRECT_END_PASS();
 
 	// For multiple ImGui viewports
 	const ImGuiIO& io = ImGui::GetIO();

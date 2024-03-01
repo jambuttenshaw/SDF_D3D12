@@ -31,8 +31,8 @@ protected:
 
 	virtual void CaptureNextFrameImpl() override;
 
-    virtual void BeginPassImpl(const char* name) override;
-    virtual void EndPassImpl() override;
+    virtual void BeginPassImpl(const char* name, ID3D12GraphicsCommandList* commandList) override;
+    virtual void EndPassImpl(ID3D12GraphicsCommandList* commandList) override;
 
     virtual void PushRangeImpl(const char* name) override;
     virtual void PushRangeImpl(const char* name, ID3D12GraphicsCommandList* commandList) override;
@@ -51,10 +51,12 @@ private:
     size_t m_DeviceIndex = 0;
 
     nv::perf::profiler::RangeProfilerD3D12 m_Profiler;
+    nv::perf::profiler::D3D12RangeCommands m_RangeCommands;
 
     NVPW_Device_ClockStatus m_ClockStatus = NVPW_DEVICE_CLOCK_STATUS_UNKNOWN; // Used to restore clock state when exiting.
 
     bool m_DataReady = false;
+    std::queue<nv::perf::profiler::DecodeResult> m_DecodeResults;
 };
 
 #endif

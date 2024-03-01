@@ -49,8 +49,8 @@ public:
 	void CaptureNextFrame();
 
 	// For profiling macros - to be embedded in application source
-	void BeginPass(GPUProfilerQueue queue, const char* name);
-	void EndPass(GPUProfilerQueue queue);
+	void BeginPass(GPUProfilerQueue queue, const char* name, ID3D12GraphicsCommandList* commandList);
+	void EndPass(GPUProfilerQueue queue, ID3D12GraphicsCommandList* commandList);
 
 	// Index is an optional integer to place at the end of the range name
 	// in the case where a range may be called in a loop but should be profiled separately
@@ -72,8 +72,8 @@ protected:
 
 	virtual void CaptureNextFrameImpl() = 0;
 
-	virtual void BeginPassImpl(const char* name) = 0;
-	virtual void EndPassImpl() = 0;
+	virtual void BeginPassImpl(const char* name, ID3D12GraphicsCommandList* commandList) = 0;
+	virtual void EndPassImpl(ID3D12GraphicsCommandList* commandList) = 0;
 
 	virtual void PushRangeImpl(const char* name) = 0;
 	virtual void PushRangeImpl(const char* name, ID3D12GraphicsCommandList* commandList) = 0;
@@ -89,7 +89,7 @@ protected:
 	bool m_InCollection = false;
 
 	static constexpr double s_WarmupTime = 1.0; // Wait 1s to allow the clock to stabilize before beginning to profile.
-	static constexpr size_t s_MaxNumRanges = 32;
+	static constexpr size_t s_MaxNumRanges = 16;
 	static constexpr uint16_t s_NumNestingLevels = 4;
 
 	LARGE_INTEGER m_ClockFreq;
@@ -106,15 +106,15 @@ protected:
 #define PROFILE_CAPTURE_NEXT_FRAME()			::GPUProfiler::Get().CaptureNextFrame()
 
 // Direct Queue profiling
-#define PROFILE_DIRECT_BEGIN_PASS(name)			::GPUProfiler::Get().BeginPass(GPUProfilerQueue::Direct, name)
-#define PROFILE_DIRECT_END_PASS()				::GPUProfiler::Get().EndPass(GPUProfilerQueue::Direct)
+#define PROFILE_DIRECT_BEGIN_PASS(name, ...)	::GPUProfiler::Get().BeginPass(GPUProfilerQueue::Direct, name, __VA_ARGS__)
+#define PROFILE_DIRECT_END_PASS(...)			::GPUProfiler::Get().EndPass(GPUProfilerQueue::Direct, __VA_ARGS__)
 
 #define PROFILE_DIRECT_PUSH_RANGE(...)			::GPUProfiler::Get().PushRange(GPUProfilerQueue::Direct, __VA_ARGS__)
 #define PROFILE_DIRECT_POP_RANGE(...)			::GPUProfiler::Get().PopRange(GPUProfilerQueue::Direct, __VA_ARGS__)
 
 // Compute Queue
-#define PROFILE_COMPUTE_BEGIN_PASS(name)		::GPUProfiler::Get().BeginPass(GPUProfilerQueue::Compute, name)
-#define PROFILE_COMPUTE_END_PASS()				::GPUProfiler::Get().EndPass(GPUProfilerQueue::Compute)
+#define PROFILE_COMPUTE_BEGIN_PASS(name, ...)	::GPUProfiler::Get().BeginPass(GPUProfilerQueue::Compute, name, __VA_ARGS__)
+#define PROFILE_COMPUTE_END_PASS(...)			::GPUProfiler::Get().EndPass(GPUProfilerQueue::Compute, __VA_ARGS__)
 
 #define PROFILE_COMPUTE_PUSH_RANGE(...)			::GPUProfiler::Get().PushRange(GPUProfilerQueue::Compute, __VA_ARGS__)
 #define PROFILE_COMPUTE_POP_RANGE(...)			::GPUProfiler::Get().PopRange(GPUProfilerQueue::Compute, __VA_ARGS__)
@@ -123,14 +123,14 @@ protected:
 
 #define PROFILE_CAPTURE_NEXT_FRAME()			
 
-#define PROFILE_DIRECT_BEGIN_PASS(name)				
-#define PROFILE_DIRECT_END_PASS()					
+#define PROFILE_DIRECT_BEGIN_PASS(name, ...)				
+#define PROFILE_DIRECT_END_PASS(...)					
 
 #define PROFILE_DIRECT_PUSH_RANGE(...)				
 #define PROFILE_DIRECT_POP_RANGE(...)				
 
-#define PROFILE_COMPUTE_BEGIN_PASS(name)			
-#define PROFILE_COMPUTE_END_PASS()					
+#define PROFILE_COMPUTE_BEGIN_PASS(name, ...)			
+#define PROFILE_COMPUTE_END_PASS(...)					
 
 #define PROFILE_COMPUTE_PUSH_RANGE(...)				
 #define PROFILE_COMPUTE_POP_RANGE(...)				

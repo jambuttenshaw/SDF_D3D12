@@ -220,16 +220,19 @@ RainDemo::RainDemo()
 	m_RainDrops.resize(m_RainDropCount);
 	for (auto& drop : m_RainDrops)
 	{
+		const float initialHeight = Random::Float(m_FloorHeight, m_CloudHeight);
+
 		drop.Mass = Random::Float(0.1f, 0.3f);
 		drop.Radius = 0.01f;
 		drop.BlendFactor = 0.0f;
 
 		drop.Position = {
 			Random::Float(1.0f - m_Dimensions, m_Dimensions - 1.0f),
-			m_CloudHeight,
+			initialHeight,
 			Random::Float(1.0f - m_Dimensions, m_Dimensions - 1.0f)
 		};
-		drop.Velocity = Random::Float(-5.0f, 0.0f);
+		const float v2 = 2.0f * m_Gravity * (initialHeight - m_CloudHeight);
+		drop.Velocity = -sqrtf(fabsf(v2));
 	}
 
 	m_Clouds.resize(m_CloudCount);
