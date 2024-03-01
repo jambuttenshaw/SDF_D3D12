@@ -115,7 +115,7 @@ void Scene::ImGuiSceneMenu()
 {
 	if (ImGui::BeginMenu("Scene"))
 	{
-		ImGui::MenuItem("Drops Demo", nullptr, &m_DisplayDemoGui);
+		ImGui::MenuItem("Display Demo", nullptr, &m_DisplayDemoGui);
 
 		ImGui::EndMenu();
 	}
@@ -192,6 +192,15 @@ bool Scene::ImGuiSceneInfo()
 
 	if (ImGui::Begin("Demo", &m_DisplayDemoGui))
 	{
+		static char demoName[128];
+		ImGui::InputText("Demo", demoName, 128);
+		if (ImGui::Button("Change Demo"))
+		{
+			if (const auto demo = BaseDemo::GetDemoFromName(demoName))
+				m_CurrentDemo = demo;
+		}
+		ImGui::Separator();
+
 		m_CurrentDemo->DisplayGUI();
 	}
 	ImGui::End();
