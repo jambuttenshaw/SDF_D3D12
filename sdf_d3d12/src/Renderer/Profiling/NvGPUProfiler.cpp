@@ -109,7 +109,10 @@ void NvGPUProfiler::BeginPassImpl(const char* name, ID3D12GraphicsCommandList* c
 	if (!m_Profiler.AllPassesSubmitted())
 	{
 		THROW_IF_FALSE(m_Profiler.BeginPass(), "Failed to begin a pass.");
-		PushRangeImpl(name, commandList);
+		if (commandList)
+			PushRangeImpl(name, commandList);
+		else
+			PushRangeImpl(name);
 	}
 }
 
@@ -117,24 +120,15 @@ void NvGPUProfiler::EndPassImpl(ID3D12GraphicsCommandList* commandList)
 {
 	if (!m_Profiler.AllPassesSubmitted() && m_Profiler.IsInPass())
 	{
-		//PopRangeImpl(commandList); // Frame
+		if (commandList)
+			PopRangeImpl(commandList);
+		else
+			PopRangeImpl();
+
 		THROW_IF_FALSE(m_Profiler.EndPass(), "Failed to end a pass.");
 
 		m_DataReady = true;
 	}
-	/*
-	nv::perf::profiler::DecodeResult decodeResult;
-	THROW_IF_FALSE(m_Profiler.DecodeCounters(decodeResult), "Failed to decode counters.");
-	if (decodeResult.allStatisticalSamplesCollected)
-	{
-		THROW_IF_FALSE(nv::perf::MetricsEvaluatorSetDeviceAttributes(m_MetricsEvaluator, decodeResult.counterDataImage.data(), decodeResult.counterDataImage.size()), "Failed MetricsEvaluatorSetDeviceAttributes.");
-
-		const size_t numRanges = nv::perf::CounterDataGetNumRanges(decodeResult.counterDataImage.data());
-		LOG_WARN(numRanges);
-
-		m_InCollection = false;
-	}
-	*/
 }
 
 void NvGPUProfiler::PushRangeImpl(const char* name)
