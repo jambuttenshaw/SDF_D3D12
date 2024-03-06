@@ -6,13 +6,50 @@
       "initial_brick_size": 0.5,
       "linear_increment": false,
       "brick_size_multiplier": 0.5,
-      "num_iterations": 1,
+      "num_iterations": 4,
 
       "camera": {
         "focal_point": [ 0, 5, 0 ],
         "orbit_radius": 15.0
       }
+    },
+    {
+      "name": "cubes",
+
+      "initial_brick_size": 0.5,
+      "linear_increment": false,
+      "brick_size_multiplier": 0.5,
+      "num_iterations": 4,
+
+      "camera": {
+        "orbit_radius": 15.0
+      }
+    },
+    {
+      "name": "rain",
+
+      "initial_brick_size": 1.0,
+      "linear_increment": false,
+      "brick_size_multiplier": 0.5,
+      "num_iterations": 4,
+
+      "camera": {
+        "focal_point": [ 0, -2, 0 ],
+        "orbit_radius": 18.0
+      }
+    },
+    {
+      "name": "fractal",
+
+      "initial_brick_size": 0.5,
+      "linear_increment": false,
+      "brick_size_multiplier": 0.5,
+      "num_iterations": 4,
+
+      "camera": {
+        "orbit_radius": 12.0
+      }
     }
   ],
-  "num_captures": 1
+  "num_captures": 100
 }
