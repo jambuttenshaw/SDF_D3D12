@@ -138,3 +138,31 @@ private:
 
 	float m_Time = 0.0f;
 };
+
+
+class FractalDemo : public BaseDemo
+{
+	FractalDemo();
+public:
+	static FractalDemo& Get()
+	{
+		static FractalDemo instance;
+		return instance;
+	}
+
+	virtual SDFEditList BuildEditList(float deltaTime) override;
+	virtual void DisplayGUI() override;
+
+private:
+	struct FractalData
+	{
+		XMFLOAT3 Rotation;
+		XMFLOAT3 DeltaRotation;
+		XMVECTOR Position;
+	};
+	std::vector<FractalData> m_FractalData;
+
+	UINT m_FractalGridSize = 2;
+	float m_Spacing = 3.0f;
+	float m_Blending = 0.0f;
+};

@@ -55,6 +55,40 @@ float sdBoxFrame(float3 p, float3 b, float e)
       length(max(float3(q.x, q.y, p.z), 0.0)) + min(max(q.x, max(q.y, p.z)), 0.0));
 }
 
+float sdFractal(float3 p)
+{
+	const float3 a1 = float3(1.0f, 1.0f, 1.0f);
+	const float3 a2 = float3(-1.0f, -1.0f, 1.0f);
+	const float3 a3 = float3(1.0f, -1.0f, -1.0f);
+	const float3 a4 = float3(-1.0f, 1.0f, -1.0f);
+	int n = 0;
+	while (n < 15)
+	{
+		float3 c = a1;
+		float dist = length(p - a1);
+		float d = length(p - a2);
+		if (d < dist)
+		{
+			c = a2;
+			dist = d;
+		}
+		d = length(p - a3);
+		if (d < dist)
+		{
+			c = a3;
+			dist = d;
+		}
+		d = length(p - a4);
+		if (d < dist)
+		{
+			c = a4;
+		}
+		p = 2.0f * p - c;
+		n++;
+	}
+
+	return length(p) * pow(2.0f, float(-n)) - 0.005f;
+}
 
 float sdPrimitive(float3 p, SDFShape prim, float4 param)
 {
@@ -70,6 +104,8 @@ float sdPrimitive(float3 p, SDFShape prim, float4 param)
 			return sdOctahedron(p, param.x);
 		case SDF_SHAPE_BOX_FRAME:
 			return sdBoxFrame(p, param.xyz, param.w);
+		case SDF_SHAPE_FRACTAL:
+			return sdFractal(p);
 		default:
 			return 0.0f;
 	}
@@ -152,6 +188,8 @@ float boundingSpherePrimitive(float3 p, SDFShape prim, float4 param)
 			return sdSphere(p, param.x);
 		case SDF_SHAPE_BOX_FRAME:
 			return sdSphere(p, length(param.xyz) + param.w);
+		case SDF_SHAPE_FRACTAL:
+			return sdSphere(p, 1.75f /*sqrt(3)*/);
 		default:
 			return 0.0f;
 	}

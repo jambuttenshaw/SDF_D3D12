@@ -35,7 +35,7 @@ Scene::Scene(const std::string& demoName, float brickSize)
 		m_Factory = std::make_unique<SDFFactoryHierarchicalAsync>();
 
 		// Create SDF objects
-		m_Object = std::make_unique<SDFObject>(brickSize, 250'000);
+		m_Object = std::make_unique<SDFObject>(brickSize, 500'000);
 
 		BuildEditList(0.0f, false);
 	}

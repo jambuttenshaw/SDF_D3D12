@@ -20,7 +20,8 @@ bool SDFEdit::DrawGui()
 		"Plane",
 		"Torus",
 		"Octahedron",
-		"BoxFrame"
+		"BoxFrame",
+		"Fractal"
 	};
 	static const char* opNames[] =
 	{
@@ -29,7 +30,8 @@ bool SDFEdit::DrawGui()
 		"Intersection",
 		"SmoothUnion",
 		"SmoothSubtraction",
-		"SmoothIntersection"
+		"SmoothIntersection",
+		"Fractal"
 	};
 
 	bool changed = false;
@@ -61,6 +63,8 @@ bool SDFEdit::DrawGui()
 	case SDF_SHAPE_BOX_FRAME:
 		changed |= ImGui::DragFloat3("Extents", &ShapeProperties.BoxFrame.Extents.x, 0.01f);
 		changed |= ImGui::DragFloat("Thickness", &ShapeProperties.BoxFrame.Thickness, 0.01f);
+		break;
+	case SDF_SHAPE_FRACTAL:
 		break;
 	}
 
@@ -97,6 +101,8 @@ void SDFEdit::SetShapePropertiesToDefault()
 	case SDF_SHAPE_BOX_FRAME:
 		ShapeProperties.BoxFrame.Extents = { 1.0f, 1.0f, 1.0f };
 		ShapeProperties.BoxFrame.Thickness= 0.1f;
+		break;
+	case SDF_SHAPE_FRACTAL:
 		break;
 	}
 }
@@ -144,6 +150,14 @@ SDFEdit SDFEdit::CreateBoxFrame(const Transform& transform, const XMFLOAT3& exte
 	prim.ShapeProperties.BoxFrame.Thickness = thickness;
 	return prim;
 }
+
+SDFEdit SDFEdit::CreateFractal(const Transform& transform, SDFOperation op, float blend)
+{
+	SDFEdit prim = CreateGeneric(transform, op, blend);
+	prim.Shape = SDF_SHAPE_FRACTAL;
+	return prim;
+}
+
 
 SDFEdit SDFEdit::CreateGeneric(const Transform& transform, SDFOperation op, float blend)
 {

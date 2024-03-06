@@ -12,6 +12,7 @@ void BaseDemo::CreateAllDemos()
 	s_Demos["drops"] = &DropsDemo::Get();
 	s_Demos["cubes"] = &CubesDemo::Get();
 	s_Demos["rain"] = &RainDemo::Get();
+	s_Demos["fractal"] = &FractalDemo::Get();
 }
 
 BaseDemo* BaseDemo::GetDemoFromName(const std::string& demoName)
@@ -319,4 +320,69 @@ void RainDemo::DisplayGUI()
 	ImGui::SliderFloat("Cloud Blending", &m_CloudBlend, 0.0f, 1.0f);
 
 	ImGui::Separator();
+}
+
+
+FractalDemo::FractalDemo()
+{
+	for (UINT x = 0; x < m_FractalGridSize; x++)
+	for (UINT y = 0; y < m_FractalGridSize; y++)
+	for (UINT z = 0; z < m_FractalGridSize; z++)
+	{
+		const auto fx = static_cast<float>(x);
+		const auto fy = static_cast<float>(y);
+		const auto fz = static_cast<float>(z);
+		const auto fGridSize = static_cast<float>(m_FractalGridSize);
+
+		m_FractalData.push_back({});
+		auto& fractalData = m_FractalData.back();
+		fractalData.Rotation = XMFLOAT3{
+			Random::Float(0.0f, 360.0f),
+			Random::Float(0.0f, 360.0f),
+			Random::Float(0.0f, 360.0f)
+		};
+		fractalData.DeltaRotation = XMFLOAT3{
+			Random::Float(-2.0f, 2.0f),
+			Random::Float(-2.0f, 2.0f),
+			Random::Float(-2.0f, 2.0f)
+		};
+		fractalData.Position = XMVECTOR{
+			(fx - 0.5f * fGridSize + 0.5f),
+			(fy - 0.5f * fGridSize + 0.5f),
+			(fz - 0.5f * fGridSize + 0.5f),
+		};
+	}
+}
+
+SDFEditList FractalDemo::BuildEditList(float deltaTime)
+{
+	SDFEditList editList(m_FractalGridSize * m_FractalGridSize * m_FractalGridSize, 12.0f);
+
+	for (UINT x = 0; x < m_FractalGridSize; x++)
+	for (UINT y = 0; y < m_FractalGridSize; y++)
+	for (UINT z = 0; z < m_FractalGridSize; z++)
+	{
+		const UINT i = (z * m_FractalGridSize + y) * m_FractalGridSize + x;
+		auto& data = m_FractalData.at(i);
+
+		data.Rotation.x += deltaTime * data.DeltaRotation.x;
+		data.Rotation.y += deltaTime * data.DeltaRotation.y;
+		data.Rotation.z += deltaTime * data.DeltaRotation.z;
+
+		Transform t;
+		t.SetTranslation(m_Spacing * data.Position);
+		t.SetPitch(data.Rotation.x);
+		t.SetYaw(data.Rotation.y);
+		t.SetRoll(data.Rotation.z);
+
+		editList.AddEdit(SDFEdit::CreateFractal(t, SDF_OP_SMOOTH_UNION, m_Blending));
+	}
+
+	return editList;
+}
+
+void FractalDemo::DisplayGUI()
+{
+	ImGui::DragFloat("Spacing", &m_Spacing, 0.01f);
+	ImGui::SliderFloat("Blending", &m_Blending, 0.0f, 1.0f);
 }
