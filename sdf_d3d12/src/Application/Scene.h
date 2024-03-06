@@ -34,6 +34,7 @@ public:
 
 	// For collecting info
 	UINT GetCurrentBrickCount() const;
+	UINT GetDemoEditCount() const;
 
 private:
 	void BuildEditList(float deltaTime, bool async);

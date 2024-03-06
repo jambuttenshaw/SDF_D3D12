@@ -120,7 +120,7 @@ bool D3DApplication::ParseCommandLineArgs(LPWSTR argv[], int argc)
 			// Force various modes for profiling
 			m_UseOrbitalCamera = true;
 			m_DisableGUI = true;
-			//m_ToggleFullscreen = true;
+			m_ToggleFullscreen = true;
 
 			const auto& demoConfig = m_ProfileConfig.DemoConfigs[0];
 
@@ -192,7 +192,7 @@ void D3DApplication::OnInit()
 		std::ofstream outFile(m_ProfileConfig.OutputFile);
 		if (outFile.good())
 		{
-			outFile << "Demo Name,Brick Size,BrickCount,Range Name";
+			outFile << "Demo Name,Brick Size,BrickCount,EditCount,Range Name";
 			for (const auto& header : m_GPUProfilerArgs.Headers)
 			{
 				outFile << "," << header;
@@ -447,7 +447,7 @@ void D3DApplication::UpdateProfiling()
 					{
 						// Build all non gpu profiler data that should also be output
 						std::stringstream otherData;
-						otherData << m_Scene->GetCurrentBrickCount() << ",";
+						otherData << m_Scene->GetCurrentBrickCount() << "," << m_Scene->GetDemoEditCount() << ",";
 
 						for (const auto& metric : metrics)
 						{

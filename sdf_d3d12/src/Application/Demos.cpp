@@ -89,7 +89,7 @@ void DropsDemo::DisplayGUI()
 
 	ImGui::Separator();
 
-	ImGui::Text("Edit Count: %d", m_SphereCount + 2);
+	ImGui::Text("Edit Count: %d", GetEditCount());
 
 	ImGui::Separator();
 
@@ -192,8 +192,7 @@ void CubesDemo::DisplayGUI()
 
 	ImGui::Separator();
 
-	const UINT numCubes = m_CubeGridSize * m_CubeGridSize * m_CubeGridSize;
-	ImGui::Text("Edit Count: %d", numCubes);
+	ImGui::Text("Edit Count: %d", GetEditCount());
 
 	ImGui::Separator();
 
@@ -305,7 +304,7 @@ void RainDemo::DisplayGUI()
 
 	ImGui::Separator();
 
-	ImGui::Text("Edit Count: %d", m_RainDropCount + m_CloudCount + 1);
+	ImGui::Text("Edit Count: %d", GetEditCount());
 
 	ImGui::Separator();
 

@@ -179,7 +179,6 @@ bool NvGPUProfiler::DecodeData(std::vector<std::stringstream>& outMetrics)
 			const size_t numRanges = nv::perf::CounterDataGetNumRanges(decodeResult.counterDataImage.data());
 			outMetrics.resize(numRanges);
 			std::vector<double> metricValues(m_MetricEvalRequests.size());
-			LOG_WARN(numRanges);
 
 			for (size_t rangeIndex = 0; rangeIndex < numRanges; rangeIndex++)
 			{

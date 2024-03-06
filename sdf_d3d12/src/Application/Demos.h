@@ -15,6 +15,8 @@ public:
 	virtual SDFEditList BuildEditList(float deltaTime) = 0;
 	virtual void DisplayGUI() = 0;
 
+	virtual UINT GetEditCount() const = 0;
+
 public:
 	static void CreateAllDemos();
 
@@ -38,6 +40,8 @@ public:
 
 	virtual SDFEditList BuildEditList(float deltaTime) override;
 	virtual void DisplayGUI() override;
+
+	virtual inline UINT GetEditCount() const override { return m_SphereCount + 2; }
 
 private:
 	struct SphereData
@@ -70,6 +74,8 @@ public:
 	virtual SDFEditList BuildEditList(float deltaTime) override;
 	virtual void DisplayGUI() override;
 
+	virtual inline UINT GetEditCount() const override { return m_CubeGridSize * m_CubeGridSize * m_CubeGridSize; }
+
 private:
 	struct CubeData
 	{
@@ -99,6 +105,8 @@ public:
 
 	virtual SDFEditList BuildEditList(float deltaTime) override;
 	virtual void DisplayGUI() override;
+
+	virtual inline UINT GetEditCount() const override { return m_RainDropCount + m_CloudCount + 1; }
 
 private:
 	struct RainDropData
@@ -152,6 +160,8 @@ public:
 
 	virtual SDFEditList BuildEditList(float deltaTime) override;
 	virtual void DisplayGUI() override;
+
+	virtual inline UINT GetEditCount() const override { return m_FractalGridSize * m_FractalGridSize * m_FractalGridSize; }
 
 private:
 	struct FractalData

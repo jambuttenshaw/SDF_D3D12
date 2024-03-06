@@ -214,6 +214,11 @@ UINT Scene::GetCurrentBrickCount() const
 	return m_Object->GetBrickCount(SDFObject::RESOURCES_READ);
 }
 
+UINT Scene::GetDemoEditCount() const
+{
+	return m_CurrentDemo ? m_CurrentDemo->GetEditCount() : 0;
+}
+
 
 
 void Scene::BuildEditList(float deltaTime, bool async)
