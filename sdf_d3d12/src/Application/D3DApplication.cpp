@@ -427,6 +427,10 @@ void D3DApplication::UpdateProfiling()
 	if (m_Timer.GetTimeSinceReset() < GPUProfiler::GetWarmupTime())
 		return;
 
+	if (m_Timer.GetTimeSinceReset() - m_DemoBeginTime < m_DemoWarmupTime)
+		return;
+	m_Scene->SetPaused(true);
+
 	// Still performing runs to gather data
 	if (m_CapturesRemaining > 0)
 	{
@@ -527,6 +531,9 @@ void D3DApplication::UpdateProfiling()
 
 		m_CapturesRemaining = m_ProfileConfig.NumCaptures;
 		m_DemoIterationsRemaining = demoConfig.IterationCount;
+
+		m_DemoBeginTime = m_Timer.GetTimeSinceReset();
+		m_Scene->SetPaused(false);
 	}
 }
 

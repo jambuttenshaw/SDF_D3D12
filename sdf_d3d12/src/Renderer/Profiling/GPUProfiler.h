@@ -89,8 +89,8 @@ protected:
 	bool m_InCollection = false;
 
 	static constexpr double s_WarmupTime = 1.0; // Wait 1s to allow the clock to stabilize before beginning to profile.
-	static constexpr size_t s_MaxNumRanges = 16;
-	static constexpr uint16_t s_NumNestingLevels = 4;
+	static constexpr size_t s_MaxNumRanges = 17;		// Set these as low as possible to make profiling as fast as possible
+	static constexpr uint16_t s_NumNestingLevels = 3;
 
 	LARGE_INTEGER m_ClockFreq;
 	LARGE_INTEGER m_StartTimestamp;

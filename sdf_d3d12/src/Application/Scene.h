@@ -36,6 +36,8 @@ public:
 	UINT GetCurrentBrickCount() const;
 	UINT GetDemoEditCount() const;
 
+	void SetPaused(bool paused) { m_Paused = paused; }
+
 private:
 	void BuildEditList(float deltaTime, bool async);
 

@@ -88,6 +88,9 @@ private:
 	UINT m_DemoIterationsRemaining = 0;
 	UINT m_DemoConfigIndex = 0;
 
+	float m_DemoBeginTime = 0.0f;
+	float m_DemoWarmupTime = 5.0f;
+
 	std::string m_ConfigData;
 
 	bool m_LoadDefaultGPUProfilerArgs = true;		// If no config was specified in the command line args, default config will be loaded
