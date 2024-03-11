@@ -5,6 +5,7 @@
 #include "../HlslCompat/RaytracingHlslCompat.h"
 
 #include "ray_helper.hlsli"
+#include "lighting.hlsli"
 #include "../include/brick_helper.hlsli"
 
 
@@ -262,8 +263,10 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 	else
 	{
 		// Simple phong lighting with directional light
-		const float irradiance = max(0.0f, dot(attr.normal, LIGHT_DIRECTION));
-		const float3 lightColor = LIGHT_AMBIENT + irradiance * LIGHT_DIFFUSE;
+		//const float irradiance = max(0.0f, dot(attr.normal, LIGHT_DIRECTION));
+		//const float3 lightColor = LIGHT_AMBIENT + irradiance * LIGHT_DIFFUSE;
+
+		const float3 lightColor = calculateLighting(attr.normal, g_PassCB.WorldEyePos);
 
 		payload.color = float4(lightColor, 1.0f);
 	}
