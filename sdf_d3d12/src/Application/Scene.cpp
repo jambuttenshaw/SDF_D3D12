@@ -163,7 +163,7 @@ bool Scene::ImGuiSceneInfo()
 		ImGui::Separator();
 
 		float brickSize = m_Object->GetNextRebuildBrickSize();
-		if (ImGui::SliderFloat("Brick Size", &brickSize, 0.1f, 1.0f))
+		if (ImGui::SliderFloat("Brick Size", &brickSize, 0.025f, 1.0f))
 		{
 			m_Object->SetNextRebuildBrickSize(brickSize);
 		}
