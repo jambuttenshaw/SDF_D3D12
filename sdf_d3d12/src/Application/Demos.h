@@ -53,7 +53,7 @@ private:
 	};
 
 	UINT m_MaxSphereCount = 1022;
-	UINT m_SphereCount = 256;
+	UINT m_SphereCount = 1022;
 
 	std::vector<SphereData> m_Spheres;
 	float m_SphereBlend = 0.4f;
@@ -85,7 +85,7 @@ private:
 	std::vector<CubeData> m_CubeScales;
 
 	UINT m_MaxCubeGridSize = 10;
-	UINT m_CubeGridSize = 8;
+	UINT m_CubeGridSize = 6;
 
 	float m_CubeBlend = 0.1f;
 
@@ -135,7 +135,7 @@ private:
 	float m_MaxRadius = 0.3f;
 
 	UINT m_CloudCount = 256;
-	UINT m_RainDropCount = 256;
+	UINT m_RainDropCount = 255;
 
 	float m_Dimensions = 4.0f;
 	float m_CloudHeight = 3.0f;
@@ -172,7 +172,7 @@ private:
 	};
 	std::vector<FractalData> m_FractalData;
 
-	UINT m_FractalGridSize = 2;
+	UINT m_FractalGridSize = 4;
 	float m_Spacing = 3.0f;
 	float m_Blending = 0.0f;
 };

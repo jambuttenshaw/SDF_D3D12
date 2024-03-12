@@ -28,7 +28,7 @@
     {
       "name": "rain",
 
-      "initial_brick_size": 1.0,
+      "initial_brick_size": 0.5,
       "linear_increment": false,
       "brick_size_multiplier": 0.5,
       "num_iterations": 4,
