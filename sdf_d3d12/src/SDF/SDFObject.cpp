@@ -101,9 +101,8 @@ UINT64 SDFObject::GetIndexBufferSizeBytes() const
 	for (UINT i = 0; i < RESOURCES_COUNT; i++)
 	{
 		auto& indexBuffer = GetResources(static_cast<ResourceGroup>(i)).IndexBuffer;
-		if (!indexBuffer.GetResource())
-			return 0;
-		totalSize += indexBuffer.GetResource()->GetDesc().Width;
+		if (indexBuffer.GetResource())
+			totalSize += indexBuffer.GetResource()->GetDesc().Width;
 	}
 	return totalSize;
 }

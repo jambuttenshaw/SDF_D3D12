@@ -65,7 +65,7 @@ private:
 	std::unique_ptr<SDFObject> m_Object;
 
 	// GUI controls
-	bool m_Rebuild = true;
+	bool m_Rebuild = false;
 	bool m_AsyncConstruction = false;
 	bool m_EnableEditCulling = true;
 

@@ -302,22 +302,22 @@ void Scene::DisplaySDFObjectDebugInfo(const wchar_t* name, const SDFObject* obje
 	ImGui::Separator();
 
 	// Memory usage
-	auto DisplaySize = [](UINT64 sizeKB)
+	auto DisplaySize = [](const char* label, UINT64 sizeKB)
 	{
 			if (sizeKB > 10'000)
-				ImGui::Text("Total Size (MB): %d", sizeKB / 1024);
+				ImGui::Text("%s Size (MB): %d", label, sizeKB / 1024);
 			else
-				ImGui::Text("Total Size (KB): %d", sizeKB);
+				ImGui::Text("%s Size (KB): %d", label, sizeKB);
 	};
 
-	DisplaySize(object->GetBrickPoolSizeBytes() / 1024);
-	DisplaySize(object->GetBrickBufferSizeBytes() / 1024);
-	DisplaySize(object->GetAABBBufferSizeBytes() / 1024);
-	DisplaySize(object->GetIndexBufferSizeBytes() / 1024);
+	DisplaySize("Brick Pool", object->GetBrickPoolSizeBytes() / 1024);
+	DisplaySize("Brick Buffer", object->GetBrickBufferSizeBytes() / 1024);
+	DisplaySize("AABB Buffer", object->GetAABBBufferSizeBytes() / 1024);
+	DisplaySize("Index Buffer", object->GetIndexBufferSizeBytes() / 1024);
 
 	ImGui::Separator();
 
-	DisplaySize(object->GetTotalMemoryUsageBytes() / 1024);
+	DisplaySize("Total", object->GetTotalMemoryUsageBytes() / 1024);
 
 	ImGui::Separator();
 }
@@ -328,16 +328,23 @@ void Scene::DisplayAccelerationStructureDebugInfo() const
 	ImGui::Text("Acceleration Structure");
 	ImGui::PopStyleColor();
 
+	auto DisplaySize = [](const char* label, UINT64 sizeKB)
+	{
+		if (sizeKB > 10'000)
+			ImGui::Text("%s Size (MB): %d", label, sizeKB / 1024);
+		else
+			ImGui::Text("%s Size (KB): %d", label, sizeKB);
+	};
+
 	ImGui::Separator();
 	{
 		const auto& tlas = m_AccelerationStructure->GetTopLevelAccelerationStructure();
-		ImGui::Text("Top Level Size: %d KB", tlas.GetResourcesSize() / 1024);
+		DisplaySize("Top Level AS", tlas.GetResourcesSize() / 1024);
 	}
 
 	for (const auto& blasGeometry : m_SceneGeometry)
 	{
-		auto name = wstring_to_utf8(blasGeometry.Name);
 		const auto& blas = m_AccelerationStructure->GetBottomLevelAccelerationStructure(blasGeometry.Name);
-		ImGui::Text("Bottom Level (%s) Size: %d KB", name.c_str(), blas.GetResourcesSize() / 1024);
+		DisplaySize("Bottom Level AS", blas.GetResourcesSize() / 1024);
 	}
 }

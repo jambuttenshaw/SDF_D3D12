@@ -234,7 +234,7 @@ void D3DApplication::OnInit()
 	else
 	{
 		// Load default demo
-		m_Scene = std::make_unique<Scene>(m_DefaultDemo, 0.1f);
+		m_Scene = std::make_unique<Scene>(m_DefaultDemo, 0.0625f);
 	}
 
 	m_Raytracer = std::make_unique<Raytracer>();
