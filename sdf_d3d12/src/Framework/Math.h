@@ -37,3 +37,14 @@ private:
 	std::mt19937 m_RandomNumberGenerator;
 	std::uniform_real_distribution<float> m_NormalizedFloatDistribution;
 };
+
+
+// Math utility functions
+class Math
+{
+public:
+	template <typename T>
+	inline static int Sign(T val) {
+		return (T(0) < val) - (val < T(0));
+	}
+};

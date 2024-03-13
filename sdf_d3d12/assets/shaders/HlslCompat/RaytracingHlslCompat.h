@@ -36,6 +36,19 @@ struct RayPayload
 };
 
 
+// Lighting structures
+struct LightData
+{
+	XMFLOAT3 Direction;
+
+	float Intensity;
+	XMFLOAT3 Color;
+
+	float Padding;
+
+};
+
+
 // Constant attributes per frame
 struct PassConstantBuffer
 {
@@ -55,6 +68,9 @@ struct PassConstantBuffer
 
 	UINT HeatmapQuantization;
 	float HeatmapHueRange;
+
+	// Lighting
+	LightData Light;
 };
 
 

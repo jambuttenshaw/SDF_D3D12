@@ -240,8 +240,10 @@ void D3DApplication::OnInit()
 	m_Raytracer = std::make_unique<Raytracer>();
 	m_Raytracer->Setup(*m_Scene);
 
+	m_LightManager = std::make_unique<LightManager>();
+
 	// Set default pass buffer values
-	m_PassCB.Flags = RENDER_FLAG_DISPLAY_NORMALS;
+	//m_PassCB.Flags = RENDER_FLAG_DISPLAY_NORMALS;
 	m_PassCB.HeatmapQuantization = 16;
 	m_PassCB.HeatmapHueRange = 0.33f;
 
@@ -383,8 +385,10 @@ void D3DApplication::UpdatePassCB()
 
 	m_PassCB.TotalTime = m_Timer.GetTimeSinceReset();
 	m_PassCB.DeltaTime = m_Timer.GetDeltaTime();
-}
 
+	// Copy lighting data into the pass buffer
+	m_LightManager->CopyLightData(&m_PassCB.Light, 1);
+}
 
 
 void D3DApplication::InitImGui() const
@@ -656,6 +660,11 @@ bool D3DApplication::ImGuiApplicationInfo()
 				m_Raytracer->SetCurrentSampler(static_cast<Raytracer::GlobalSamplerType>(currentSampler));
 			}
 		}
+
+		ImGui::Separator();
+
+		ImGui::Text("Lighting");
+		m_LightManager->DrawGui();
 
 		ImGui::Separator();
 
