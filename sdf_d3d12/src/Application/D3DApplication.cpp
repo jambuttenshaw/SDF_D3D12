@@ -300,10 +300,10 @@ void D3DApplication::OnRender()
 	// Update constant buffer
 	m_GraphicsContext->UpdatePassCB(&m_Timer, &m_Camera, m_RenderFlags, m_HeatmapQuantization, m_HeatmapHueRange);
 
+	PROFILE_DIRECT_BEGIN_PASS("Frame");
+
 	// Begin drawing
 	m_GraphicsContext->StartDraw();
-	PROFILE_DIRECT_END_PASS(g_D3DGraphicsContext->GetCommandList());
-	PROFILE_DIRECT_BEGIN_PASS("Frame", g_D3DGraphicsContext->GetCommandList());
 
 	// Tell the scene that render is happening
 	// This will update acceleration structures and other things to render the scene
@@ -318,6 +318,8 @@ void D3DApplication::OnRender()
 
 	// End draw
 	m_GraphicsContext->EndDraw();
+
+	PROFILE_DIRECT_END_PASS();
 
 	// For multiple ImGui viewports
 	const ImGuiIO& io = ImGui::GetIO();

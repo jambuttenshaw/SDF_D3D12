@@ -414,6 +414,8 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(const std::wstring& pipe
 
 	const auto computeQueue = g_D3DGraphicsContext->GetComputeCommandQueue();
 
+	PROFILE_COMPUTE_BEGIN_PASS("SDF Bake");
+
 	THROW_IF_FAIL(m_CommandAllocator->Reset());
 	THROW_IF_FAIL(m_CommandList->Reset(m_CommandAllocator.Get(), nullptr));
 	{
@@ -439,8 +441,6 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(const std::wstring& pipe
 		m_Resources.AllocateResources(object->GetBrickBufferCapacity(), editList, evalSpaceSize);
 	}
 	PIXEndEvent();
-
-	PROFILE_COMPUTE_BEGIN_PASS("SDF Bake", m_CommandList.Get());
 
 	BuildCommandList_Setup(pipelineSet, object, m_Resources);
 	BuildCommandList_HierarchicalBrickBuilding(pipelineSet, object, m_Resources, maxIterations);
@@ -487,26 +487,9 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(const std::wstring& pipe
 		ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
 		m_PreviousWorkFence = computeQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
+		PROFILE_COMPUTE_END_PASS();
 		computeQueue->WaitForFenceCPUBlocking(m_PreviousWorkFence);
 	}
-
-#ifdef ENABLE_INSTRUMENTATION
-	// For whatever reason, end pass needs to be in a separate command list to receive data from the second command list (brick eval)
-	// But for my purposes I don't need to bother fixing it
-	// The profiling data gathered will still be accurate
-	{
-		THROW_IF_FAIL(m_CommandAllocator->Reset());
-		THROW_IF_FAIL(m_CommandList->Reset(m_CommandAllocator.Get(), nullptr));
-
-		PROFILE_COMPUTE_END_PASS(m_CommandList.Get());
-
-		THROW_IF_FAIL(m_CommandList->Close());
-		ID3D12CommandList* ppCommandLists[] = { m_CommandList.Get() };
-		m_PreviousWorkFence = computeQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
-
-		computeQueue->WaitForFenceCPUBlocking(m_PreviousWorkFence);
-	}
-#endif
 }
 
 void SDFFactoryHierarchical::BuildCommandList_Setup(const PipelineSet& pipeline, SDFObject* object, SDFConstructionResources& resources) const

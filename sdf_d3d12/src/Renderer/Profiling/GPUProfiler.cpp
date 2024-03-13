@@ -104,25 +104,25 @@ void GPUProfiler::CaptureNextFrame()
 	}
 }
 
-void GPUProfiler::BeginPass(GPUProfilerQueue queue, const char* name, ID3D12GraphicsCommandList* commandList)
+void GPUProfiler::BeginPass(GPUProfilerQueue queue, const char* name)
 {
 	if (queue != m_Queue)
 		return;
 
 	if (m_InCollection)
 	{
-		BeginPassImpl(name, commandList);
+		BeginPassImpl(name);
 	}
 
 }
-void GPUProfiler::EndPass(GPUProfilerQueue queue, ID3D12GraphicsCommandList* commandList)
+void GPUProfiler::EndPass(GPUProfilerQueue queue)
 {
 	if (queue != m_Queue)
 		return;
 
 	if (m_InCollection)
 	{
-		EndPassImpl(commandList);
+		EndPassImpl();
 	}
 }
 

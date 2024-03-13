@@ -104,27 +104,20 @@ void NvGPUProfiler::CaptureNextFrameImpl()
 }
 
 
-void NvGPUProfiler::BeginPassImpl(const char* name, ID3D12GraphicsCommandList* commandList)
+void NvGPUProfiler::BeginPassImpl(const char* name)
 {
 	if (!m_Profiler.AllPassesSubmitted())
 	{
 		THROW_IF_FALSE(m_Profiler.BeginPass(), "Failed to begin a pass.");
-		if (commandList)
-			PushRangeImpl(name, commandList);
-		else
-			PushRangeImpl(name);
+		PushRangeImpl(name);
 	}
 }
 
-void NvGPUProfiler::EndPassImpl(ID3D12GraphicsCommandList* commandList)
+void NvGPUProfiler::EndPassImpl()
 {
 	if (!m_Profiler.AllPassesSubmitted() && m_Profiler.IsInPass())
 	{
-		if (commandList)
-			PopRangeImpl(commandList);
-		else
-			PopRangeImpl();
-
+		PopRangeImpl();
 		THROW_IF_FALSE(m_Profiler.EndPass(), "Failed to end a pass.");
 
 		m_DataReady = true;

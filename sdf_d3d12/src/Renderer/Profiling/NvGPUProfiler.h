@@ -31,8 +31,8 @@ protected:
 
 	virtual void CaptureNextFrameImpl() override;
 
-    virtual void BeginPassImpl(const char* name, ID3D12GraphicsCommandList* commandList) override;
-    virtual void EndPassImpl(ID3D12GraphicsCommandList* commandList) override;
+    virtual void BeginPassImpl(const char* name) override;
+    virtual void EndPassImpl() override;
 
     virtual void PushRangeImpl(const char* name) override;
     virtual void PushRangeImpl(const char* name, ID3D12GraphicsCommandList* commandList) override;
