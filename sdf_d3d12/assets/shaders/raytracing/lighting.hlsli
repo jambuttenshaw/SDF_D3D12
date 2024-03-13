@@ -85,12 +85,14 @@ float3 ggx_brdf(float3 v, float3 l, float3 n, float3 albedo, float3 f0, float ro
 
 
 float3 calculateLighting(
-    float3 n, // world space normal
-    float3 v  // world space view direction
+    float3 n,		// world space normal
+    float3 v,		// world space view direction
+	LightData light // the properties of the light
 )
 {
-	const float3 lightDirection = normalize(float3(0.5f, 1.0f, -1.0f));
-	const float3 lightIrradiance = 4.0f * float3(1.0f, 1.0f, 1.0f);
+	// Invert direction - from "the direction the light points" to "the direction towards the light source"
+	const float3 lightDirection = -light.Direction;
+	const float3 lightIrradiance = light.Intensity * light.Color;
 
 	const float3 albedo = float3(1.0f, 0.1f, 0.1f);
 	const float roughness = 0.05f;
