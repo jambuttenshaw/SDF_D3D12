@@ -240,6 +240,12 @@ void D3DApplication::OnInit()
 	m_Raytracer = std::make_unique<Raytracer>();
 	m_Raytracer->Setup(*m_Scene);
 
+	// Set default pass buffer values
+	m_PassCB.Flags = RENDER_FLAG_DISPLAY_NORMALS;
+	m_PassCB.HeatmapQuantization = 16;
+	m_PassCB.HeatmapHueRange = 0.33f;
+
+
 	LOG_INFO("Application startup complete.");
 }
 
@@ -298,10 +304,10 @@ void D3DApplication::OnRender()
 	PIXBeginEvent(PIX_COLOR_INDEX(1), L"App Render");
 
 	// Update constant buffer
-	m_GraphicsContext->UpdatePassCB(&m_Timer, &m_Camera, m_RenderFlags, m_HeatmapQuantization, m_HeatmapHueRange);
+	UpdatePassCB();
 
 	// Begin drawing
-	m_GraphicsContext->StartDraw();
+	m_GraphicsContext->StartDraw(m_PassCB);
 	PROFILE_DIRECT_END_PASS(g_D3DGraphicsContext->GetCommandList());
 	PROFILE_DIRECT_BEGIN_PASS("Frame", g_D3DGraphicsContext->GetCommandList());
 
@@ -350,6 +356,33 @@ void D3DApplication::OnDestroy()
 	ImGui_ImplWin32_Shutdown();
 	ImGui::DestroyContext();
 }
+
+
+void D3DApplication::UpdatePassCB()
+{
+	// Calculate view matrix
+	const XMMATRIX view = m_Camera.GetViewMatrix();
+	const XMMATRIX proj = m_GraphicsContext->GetProjectionMatrix();
+
+	const XMMATRIX viewProj = XMMatrixMultiply(view, proj);
+	const XMMATRIX invView = XMMatrixInverse(nullptr, view);
+	const XMMATRIX invProj = XMMatrixInverse(nullptr, proj);
+	const XMMATRIX invViewProj = XMMatrixInverse(nullptr, viewProj);
+
+	// Update data in main pass constant buffer
+	m_PassCB.View = XMMatrixTranspose(view);
+	m_PassCB.InvView = XMMatrixTranspose(invView);
+	m_PassCB.Proj = XMMatrixTranspose(proj);
+	m_PassCB.InvProj = XMMatrixTranspose(invProj);
+	m_PassCB.ViewProj = XMMatrixTranspose(viewProj);
+	m_PassCB.InvViewProj = XMMatrixTranspose(invViewProj);
+
+	m_PassCB.WorldEyePos = m_Camera.GetPosition();
+
+	m_PassCB.TotalTime = m_Timer.GetTimeSinceReset();
+	m_PassCB.DeltaTime = m_Timer.GetDeltaTime();
+}
+
 
 
 void D3DApplication::InitImGui() const
@@ -585,13 +618,13 @@ bool D3DApplication::ImGuiApplicationInfo()
 		{
 			auto RenderFlagOption = [&](const char* name, UINT value)-> bool
 				{
-					bool flag = m_RenderFlags & value;
+					bool flag = m_PassCB.Flags & value;
 					if (ImGui::Checkbox(name, &flag))
 					{
 						if (flag)
-							m_RenderFlags |= value;
+							m_PassCB.Flags |= value;
 						else
-							m_RenderFlags &= ~value;
+							m_PassCB.Flags &= ~value;
 						return true;
 					}
 					return false;
@@ -599,7 +632,7 @@ bool D3DApplication::ImGuiApplicationInfo()
 
 			ImGui::Text("Display Options");
 			RenderFlagOption("Bounding Box", RENDER_FLAG_DISPLAY_BOUNDING_BOX);
-			if (m_RenderFlags & RENDER_FLAG_DISPLAY_BOUNDING_BOX)
+			if (m_PassCB.Flags & RENDER_FLAG_DISPLAY_BOUNDING_BOX)
 			{
 				RenderFlagOption("Brick Index", RENDER_FLAG_DISPLAY_BRICK_INDEX);
 				RenderFlagOption("Pool UVW", RENDER_FLAG_DISPLAY_POOL_UVW);
@@ -626,12 +659,12 @@ bool D3DApplication::ImGuiApplicationInfo()
 
 		ImGui::Text("Heatmap");
 
-		int heatmap = static_cast<int>(m_HeatmapQuantization);
+		int heatmap = static_cast<int>(m_PassCB.HeatmapQuantization);
 		if (ImGui::InputInt("Quantization", &heatmap))
 		{
-			m_HeatmapQuantization = static_cast<UINT>(heatmap);
+			m_PassCB.HeatmapQuantization = static_cast<UINT>(heatmap);
 		}
-		ImGui::SliderFloat("Hue Range", &m_HeatmapHueRange, 0.0f, 1.0f);
+		ImGui::SliderFloat("Hue Range", &m_PassCB.HeatmapHueRange, 0.0f, 1.0f);
 
 		ImGui::Separator();
 

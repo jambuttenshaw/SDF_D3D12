@@ -50,9 +50,6 @@ struct PassConstantBuffer
 
 	UINT Flags;
 
-	XMFLOAT2 RTSize;
-	XMFLOAT2 InvRTSize;
-
 	float TotalTime;
 	float DeltaTime;
 

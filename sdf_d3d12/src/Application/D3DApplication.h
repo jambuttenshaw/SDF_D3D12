@@ -37,6 +37,8 @@ public:
 	virtual IDXGISwapChain* GetSwapChain() const override;
 private:
 
+	void UpdatePassCB();
+
 	void InitImGui() const;
 
 	void BeginUpdate();
@@ -59,13 +61,10 @@ private:
 	std::unique_ptr<Scene> m_Scene;
 	std::unique_ptr<Raytracer> m_Raytracer;
 
+	PassConstantBuffer m_PassCB;
+
+
 	std::string m_DefaultDemo = "drops";
-
-	// Flags to pass to the renderer
-	UINT m_RenderFlags = RENDER_FLAG_DISPLAY_NORMALS;
-
-	UINT m_HeatmapQuantization = 16;
-	float m_HeatmapHueRange = 0.33f;
 
 	// GUI
 	bool m_DisableGUI = false;
