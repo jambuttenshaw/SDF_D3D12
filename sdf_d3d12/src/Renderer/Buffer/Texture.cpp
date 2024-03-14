@@ -5,6 +5,7 @@
 
 
 Texture::Texture(const D3D12_RESOURCE_DESC* const desc, D3D12_RESOURCE_STATES initialState)
+	: m_Format(desc->Format)
 {
 	const auto defaultHeap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 

@@ -345,7 +345,7 @@ void D3DApplication::OnRender()
 	m_Scene->PreRender();
 
 	// Perform raytracing
-	m_Raytracer->DoRaytracing(m_MaterialManager->GetMaterialBufferAddress());
+	m_Raytracer->DoRaytracing(m_MaterialManager->GetMaterialBufferAddress(), m_LightManager->GetEnvironmentMapSRV());
 	m_GraphicsContext->CopyRaytracingOutput(m_Raytracer->GetRaytracingOutput());
 
 	// ImGui Render

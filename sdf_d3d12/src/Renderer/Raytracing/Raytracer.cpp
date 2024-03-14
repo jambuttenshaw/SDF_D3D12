@@ -53,7 +53,7 @@ void Raytracer::Setup(const Scene& scene)
 }
 
 
-void Raytracer::DoRaytracing(D3D12_GPU_VIRTUAL_ADDRESS materialBuffer) const
+void Raytracer::DoRaytracing(D3D12_GPU_VIRTUAL_ADDRESS materialBuffer, D3D12_GPU_DESCRIPTOR_HANDLE environmentMap) const
 {
 	ASSERT(m_Scene, "No scene to raytrace!");
 
@@ -77,7 +77,9 @@ void Raytracer::DoRaytracing(D3D12_GPU_VIRTUAL_ADDRESS materialBuffer) const
 	commandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::AccelerationStructureSlot, m_Scene->GetRaytracingAccelerationStructure()->GetTopLevelAccelerationStructureAddress());
 	commandList->SetComputeRootConstantBufferView(GlobalRootSignatureParams::PassBufferSlot, g_D3DGraphicsContext->GetPassCBAddress());
 	commandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::MaterialBufferSlot, materialBuffer);
-	commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::SamplerSlot, m_Samplers.GetGPUHandle(m_CurrentSampler));
+	commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::EnvironmentMapSlot, environmentMap);
+	commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::VolumeSamplerSlot, m_Samplers.GetGPUHandle(m_CurrentSampler));
+
 
 	dxrCommandList->SetPipelineState1(m_DXRStateObject.Get());
 
@@ -127,18 +129,36 @@ void Raytracer::CreateRootSignatures()
 	// Global Root Signature
 	// This is a root signature that is shared across all raytracing shaders invoked during a DispatchRays() call.
 	{
-		CD3DX12_DESCRIPTOR_RANGE ranges[2];
+		CD3DX12_DESCRIPTOR_RANGE ranges[3];
 		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
-		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
+		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
+		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 1);
 
 		CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParams::Count];
 		rootParameters[GlobalRootSignatureParams::OutputViewSlot].InitAsDescriptorTable(1, &ranges[0]);
 		rootParameters[GlobalRootSignatureParams::AccelerationStructureSlot].InitAsShaderResourceView(0);
 		rootParameters[GlobalRootSignatureParams::PassBufferSlot].InitAsConstantBufferView(0);
 		rootParameters[GlobalRootSignatureParams::MaterialBufferSlot].InitAsShaderResourceView(1);
-		rootParameters[GlobalRootSignatureParams::SamplerSlot].InitAsDescriptorTable(1, &ranges[1]);
+		rootParameters[GlobalRootSignatureParams::EnvironmentMapSlot].InitAsDescriptorTable(1, &ranges[1]);
+		rootParameters[GlobalRootSignatureParams::VolumeSamplerSlot].InitAsDescriptorTable(1, &ranges[2]);
 
-		CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters, 0, nullptr);
+		// Create static sampler for environment sampling
+		D3D12_STATIC_SAMPLER_DESC staticSampler = {};
+		staticSampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+		staticSampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+		staticSampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+		staticSampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+		staticSampler.MipLODBias = 0;
+		staticSampler.MaxAnisotropy = 0;
+		staticSampler.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+		staticSampler.BorderColor = D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK;
+		staticSampler.MinLOD = 0;
+		staticSampler.MaxLOD = D3D12_FLOAT32_MAX;
+		staticSampler.ShaderRegister = 0;
+		staticSampler.RegisterSpace = 0;
+		staticSampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
+		CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters, 1, &staticSampler);
 		SerializeAndCreateRaytracingRootSignature(globalRootSignatureDesc, &m_RaytracingGlobalRootSignature);
 	}
 

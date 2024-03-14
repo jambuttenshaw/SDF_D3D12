@@ -12,15 +12,16 @@ class LightManager
 {
 public:
 	LightManager();
-	~LightManager() = default;
+	~LightManager();
 
 	DISALLOW_COPY(LightManager);
 	DEFAULT_MOVE(LightManager);
 
 	void CopyLightData(LightGPUData* dest, size_t maxLights) const;
 
+	void SetEnvironmentMap(std::unique_ptr<Texture>&& map);
 	inline Texture* GetEnvironmentMap() const { return m_EnvironmentMap.get(); }
-	inline void SetEnvironmentMap(std::unique_ptr<Texture>&& map) { m_EnvironmentMap = std::move(map); }
+	inline D3D12_GPU_DESCRIPTOR_HANDLE GetEnvironmentMapSRV() const { return m_EnvironmentMapSRV.GetGPUHandle(); }
 
 	void DrawGui();
 
@@ -31,4 +32,5 @@ private:
 
 	// Environmental lighting
 	std::unique_ptr<Texture> m_EnvironmentMap;
+	DescriptorAllocation m_EnvironmentMapSRV; // Cubemap SRV
 };

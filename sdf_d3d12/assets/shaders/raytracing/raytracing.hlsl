@@ -19,7 +19,10 @@ RWTexture2D<float4> g_RenderTarget : register(u0);
 ConstantBuffer<PassConstantBuffer> g_PassCB : register(b0);
 StructuredBuffer<MaterialGPUData> g_Materials : register(t1);
 
-SamplerState g_Sampler : register(s0);
+TextureCube g_EnvironmentMap : register(t2);
+
+SamplerState g_EnvironmentSampler : register(s0);
+SamplerState g_VolumeSampler : register(s1);
 
 
 /////////////////////////
@@ -67,9 +70,9 @@ inline void GenerateCameraRay(uint2 index, out float3 origin, out float3 directi
 float3 ComputeSurfaceNormal(float3 p, float3 delta)
 {
 	return normalize(float3(
-        (l_BrickPool.SampleLevel(g_Sampler, p + float3(delta.x, 0.0f, 0.0f), 0) - l_BrickPool.SampleLevel(g_Sampler, p - float3(delta.x, 0.0f, 0.0f), 0)),
-        (l_BrickPool.SampleLevel(g_Sampler, p + float3(0.0f, delta.y, 0.0f), 0) - l_BrickPool.SampleLevel(g_Sampler, p - float3(0.0f, delta.y, 0.0f), 0)),
-        (l_BrickPool.SampleLevel(g_Sampler, p + float3(0.0f, 0.0f, delta.z), 0) - l_BrickPool.SampleLevel(g_Sampler, p - float3(0.0f, 0.0f, delta.z), 0))
+        (l_BrickPool.SampleLevel(g_VolumeSampler, p + float3(delta.x, 0.0f, 0.0f), 0) - l_BrickPool.SampleLevel(g_VolumeSampler, p - float3(delta.x, 0.0f, 0.0f), 0)),
+        (l_BrickPool.SampleLevel(g_VolumeSampler, p + float3(0.0f, delta.y, 0.0f), 0) - l_BrickPool.SampleLevel(g_VolumeSampler, p - float3(0.0f, delta.y, 0.0f), 0)),
+        (l_BrickPool.SampleLevel(g_VolumeSampler, p + float3(0.0f, 0.0f, delta.z), 0) - l_BrickPool.SampleLevel(g_VolumeSampler, p - float3(0.0f, 0.0f, delta.z), 0))
     ));
 }
 
@@ -202,7 +205,7 @@ void MyIntersectionShader()
 		while (iterationCount < 32) // iteration guard
 		{
 			// Sample the volume
-			const float s = l_BrickPool.SampleLevel(g_Sampler, uvw, 0);
+			const float s = l_BrickPool.SampleLevel(g_VolumeSampler, uvw, 0);
 
 			// 0.0625 was the largest threshold before unacceptable artifacts were produced
 			if (s <= 0.0625f)
@@ -284,7 +287,9 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 [shader("miss")]
 void MyMissShader(inout RayPayload payload)
 {
-	payload.color = float4(0, 0, 0.2f, 1);
+	//payload.color = float4(0, 0, 0.2f, 1);
+
+	payload.color = g_EnvironmentMap.SampleLevel(g_EnvironmentSampler, WorldRayDirection(), 0);
 }
 
 #endif // RAYTRACING_HLSL
