@@ -15,7 +15,6 @@ public:
 		DXGI_FORMAT DesiredFormat;
 		UINT DesiredChannels;
 		UINT BytesPerChannel;
-		UINT MipLevels;
 		D3D12_RESOURCE_STATES ResourceState;
 	};
 
@@ -27,6 +26,7 @@ public:
 	DEFAULT_MOVE(TextureLoader);
 
 	std::unique_ptr<Texture> LoadTextureFromFile(const std::string& filename, const LoadTextureConfig* const config);
+	std::unique_ptr<Texture> LoadTextureCubeFromFile(const std::string& filename, const LoadTextureConfig* const config);
 
 	void PerformUploads();
 
@@ -42,6 +42,10 @@ private:
 	struct UploadJob
 	{
 		unsigned char* pData;
+		// Data could contain many sub-resources to be copied into
+		UINT FirstSubresource;
+		UINT NumSubresources;
+
 		Texture* Destination;
 
 		D3D12_RESOURCE_STATES ResourceState;	// Destination resource state after upload has completed

@@ -171,6 +171,8 @@ void D3DApplication::OnInit()
 	// Create graphics context
 	m_GraphicsContext = std::make_unique<D3DGraphicsContext>(Win32Application::GetHwnd(), GetWidth(), GetHeight(), m_GraphicsContextFlags);
 
+	m_TextureLoader = std::make_unique<TextureLoader>();
+
 #ifdef ENABLE_INSTRUMENTATION
 	if (m_LoadDefaultGPUProfilerArgs)
 	{
@@ -242,6 +244,20 @@ void D3DApplication::OnInit()
 
 	m_LightManager = std::make_unique<LightManager>();
 	m_MaterialManager = std::make_unique<MaterialManager>(1);
+
+
+	// Load environment map
+	{
+		TextureLoader::LoadTextureConfig config = {};
+		config.DesiredFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+		config.DesiredChannels = 4;
+		config.BytesPerChannel = 1;
+		config.ResourceState = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+
+		m_LightManager->SetEnvironmentMap(
+			m_TextureLoader->LoadTextureCubeFromFile("assets/textures/environment.png", &config)
+		);
+	}
 
 	// Populate materials
 	MaterialGPUData& mat = m_MaterialManager->GetMaterial(0);
@@ -358,6 +374,9 @@ void D3DApplication::OnDestroy()
 
 	m_Scene.reset();
 	m_Raytracer.reset();
+
+	m_LightManager.reset();
+	m_MaterialManager.reset();
 
 	m_TextureLoader.reset();
 
