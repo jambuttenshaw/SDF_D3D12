@@ -18,11 +18,11 @@ public:
 	DISALLOW_COPY(LightManager);
 	DEFAULT_MOVE(LightManager);
 
-	void CopyLightData(LightData* dest, size_t maxLights) const;
+	void CopyLightData(LightGPUData* dest, size_t maxLights) const;
 	void DrawGui();
 
 private:
 	inline static constexpr size_t s_MaxLights = 1;
 
-	std::array<LightData, s_MaxLights> m_Lights;
+	std::array<LightGPUData, s_MaxLights> m_Lights;
 };

@@ -9,6 +9,7 @@
 #include "Framework/Camera/OrbitalCameraController.h"
 #include "Framework/GameTimer.h"
 #include "Renderer/Lighting/Light.h"
+#include "Renderer/Lighting/Material.h"
 #include "Renderer/Raytracing/Raytracer.h"
 
 
@@ -61,7 +62,9 @@ private:
 
 	std::unique_ptr<Scene> m_Scene;
 	std::unique_ptr<Raytracer> m_Raytracer;
+
 	std::unique_ptr<LightManager> m_LightManager;
+	std::unique_ptr<MaterialManager> m_MaterialManager;
 
 	PassConstantBuffer m_PassCB;
 

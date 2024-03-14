@@ -85,21 +85,18 @@ float3 ggx_brdf(float3 v, float3 l, float3 n, float3 albedo, float3 f0, float ro
 
 
 float3 calculateLighting(
-    float3 n,		// world space normal
-    float3 v,		// world space view direction
-	LightData light // the properties of the light
+    float3 n,					// world space normal
+    float3 v,					// world space view direction
+	LightGPUData light,			// the properties of the light
+	MaterialGPUData material
 )
 {
 	// Invert direction - from "the direction the light points" to "the direction towards the light source"
 	const float3 lightDirection = -light.Direction;
 	const float3 lightIrradiance = light.Intensity * light.Color;
 
-	const float3 albedo = float3(1.0f, 0.1f, 0.1f);
-	const float roughness = 0.05f;
-	const float metalness = 0.0f;
-
 	float3 f0 = float3(0.04f, 0.04f, 0.04f);
-	f0 = lerp(f0, albedo, metalness);
+	f0 = lerp(f0, material.Albedo, material.Metalness);
     
 	float3 lo = float3(0.0f, 0.0f, 0.0f);
 	
@@ -108,7 +105,7 @@ float3 calculateLighting(
 	const float3 l = lightDirection;
 
 	// evaluate shading equation
-	const float3 brdf = ggx_brdf(v, l, n, albedo, f0, roughness, metalness) * el * saturate(dot(n, l));
+	const float3 brdf = ggx_brdf(v, l, n, material.Albedo, f0, material.Roughness, material.Metalness) * el * saturate(dot(n, l));
 	lo += brdf;
     
 	const float3 ambient = float3(0.0f, 0.0f, 0.0f);

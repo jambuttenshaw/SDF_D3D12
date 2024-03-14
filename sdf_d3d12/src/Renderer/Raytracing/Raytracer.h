@@ -25,7 +25,7 @@ public:
 	~Raytracer();
 
 	void Setup(const Scene& scene);
-	void DoRaytracing() const;
+	void DoRaytracing(D3D12_GPU_VIRTUAL_ADDRESS materialBuffer) const;
 
 	void Resize();
 

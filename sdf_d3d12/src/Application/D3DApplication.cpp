@@ -241,6 +241,13 @@ void D3DApplication::OnInit()
 	m_Raytracer->Setup(*m_Scene);
 
 	m_LightManager = std::make_unique<LightManager>();
+	m_MaterialManager = std::make_unique<MaterialManager>(1);
+
+	// Populate materials
+	MaterialGPUData& mat = m_MaterialManager->GetMaterial(0);
+	mat.Albedo = XMFLOAT3(0.2f, 1.0f, 0.2f);
+	mat.Roughness = 0.1f;
+	mat.Metalness = 0.0f;
 
 	// Set default pass buffer values
 	//m_PassCB.Flags = RENDER_FLAG_DISPLAY_NORMALS;
@@ -307,6 +314,7 @@ void D3DApplication::OnRender()
 
 	// Update constant buffer
 	UpdatePassCB();
+	m_MaterialManager->UploadMaterialData();
 
 	PROFILE_DIRECT_BEGIN_PASS("Frame");
 
@@ -318,7 +326,7 @@ void D3DApplication::OnRender()
 	m_Scene->PreRender();
 
 	// Perform raytracing
-	m_Raytracer->DoRaytracing();
+	m_Raytracer->DoRaytracing(m_MaterialManager->GetMaterialBufferAddress());
 	m_GraphicsContext->CopyRaytracingOutput(m_Raytracer->GetRaytracingOutput());
 
 	// ImGui Render
@@ -662,9 +670,12 @@ bool D3DApplication::ImGuiApplicationInfo()
 		}
 
 		ImGui::Separator();
-
 		ImGui::Text("Lighting");
 		m_LightManager->DrawGui();
+
+		ImGui::Separator();
+		ImGui::Text("Materials");
+		m_MaterialManager->DrawGui();
 
 		ImGui::Separator();
 

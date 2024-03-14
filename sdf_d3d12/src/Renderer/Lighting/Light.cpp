@@ -16,9 +16,9 @@ LightManager::LightManager()
 }
 
 
-void LightManager::CopyLightData(LightData* dest, size_t maxLights) const
+void LightManager::CopyLightData(LightGPUData* dest, size_t maxLights) const
 {
-	const size_t numBytes = sizeof(LightData) * min(maxLights, s_MaxLights);
+	const size_t numBytes = sizeof(LightGPUData) * min(maxLights, s_MaxLights);
 	memcpy(dest, m_Lights.data(), numBytes);
 }
 

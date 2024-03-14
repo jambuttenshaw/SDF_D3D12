@@ -37,7 +37,7 @@ struct RayPayload
 
 
 // Lighting structures
-struct LightData
+struct LightGPUData
 {
 	XMFLOAT3 Direction;
 
@@ -46,6 +46,13 @@ struct LightData
 
 	float Padding;
 
+};
+
+struct MaterialGPUData
+{
+	XMFLOAT3 Albedo;
+	float Roughness;
+	float Metalness;
 };
 
 
@@ -70,7 +77,7 @@ struct PassConstantBuffer
 	float HeatmapHueRange;
 
 	// Lighting
-	LightData Light;
+	LightGPUData Light;
 };
 
 

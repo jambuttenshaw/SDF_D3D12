@@ -17,8 +17,8 @@ RaytracingAccelerationStructure g_Scene : register(t0);
 RWTexture2D<float4> g_RenderTarget : register(u0);
 
 ConstantBuffer<PassConstantBuffer> g_PassCB : register(b0);
+StructuredBuffer<MaterialGPUData> g_Materials : register(t1);
 
-// This is a static bilinear sampler
 SamplerState g_Sampler : register(s0);
 
 
@@ -263,8 +263,11 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 	}
 	else
 	{
+		// Load material
+		const MaterialGPUData mat = g_Materials.Load(0);
+		
 		// Lighting
-		float3 lightColor = calculateLighting(attr.normal, g_PassCB.WorldEyePos, g_PassCB.Light);
+		float3 lightColor = calculateLighting(attr.normal, g_PassCB.WorldEyePos, g_PassCB.Light, mat);
 		lightColor /= 1.0f + lightColor;
 
 		payload.color = float4(lightColor, 1.0f);

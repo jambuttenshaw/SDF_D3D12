@@ -53,7 +53,7 @@ void Raytracer::Setup(const Scene& scene)
 }
 
 
-void Raytracer::DoRaytracing() const
+void Raytracer::DoRaytracing(D3D12_GPU_VIRTUAL_ADDRESS materialBuffer) const
 {
 	ASSERT(m_Scene, "No scene to raytrace!");
 
@@ -76,6 +76,7 @@ void Raytracer::DoRaytracing() const
 	commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, m_RaytracingOutputDescriptor.GetGPUHandle());
 	commandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::AccelerationStructureSlot, m_Scene->GetRaytracingAccelerationStructure()->GetTopLevelAccelerationStructureAddress());
 	commandList->SetComputeRootConstantBufferView(GlobalRootSignatureParams::PassBufferSlot, g_D3DGraphicsContext->GetPassCBAddress());
+	commandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::MaterialBufferSlot, materialBuffer);
 	commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::SamplerSlot, m_Samplers.GetGPUHandle(m_CurrentSampler));
 
 	dxrCommandList->SetPipelineState1(m_DXRStateObject.Get());
@@ -134,6 +135,7 @@ void Raytracer::CreateRootSignatures()
 		rootParameters[GlobalRootSignatureParams::OutputViewSlot].InitAsDescriptorTable(1, &ranges[0]);
 		rootParameters[GlobalRootSignatureParams::AccelerationStructureSlot].InitAsShaderResourceView(0);
 		rootParameters[GlobalRootSignatureParams::PassBufferSlot].InitAsConstantBufferView(0);
+		rootParameters[GlobalRootSignatureParams::MaterialBufferSlot].InitAsShaderResourceView(1);
 		rootParameters[GlobalRootSignatureParams::SamplerSlot].InitAsDescriptorTable(1, &ranges[1]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters, 0, nullptr);

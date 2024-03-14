@@ -436,6 +436,7 @@
     <ClCompile Include="src\Renderer\D3DQueue.cpp" />
     <ClCompile Include="src\Renderer\D3DShaderCompiler.cpp" />
     <ClCompile Include="src\Renderer\Lighting\Light.cpp" />
+    <ClCompile Include="src\Renderer\Lighting\Material.cpp" />
     <ClCompile Include="src\Renderer\Memory\MemoryAllocator.cpp" />
     <ClCompile Include="src\Renderer\Profiling\NvGPUProfiler.cpp" />
     <ClCompile Include="src\Renderer\Profiling\GPUProfiler.cpp" />
@@ -536,6 +537,7 @@
     <ClInclude Include="src\Renderer\Hlsl\HlslDefines.h" />
     <ClInclude Include="src\Renderer\Hlsl\StructureHlslCompat.h" />
     <ClInclude Include="src\Renderer\Lighting\Light.h" />
+    <ClInclude Include="src\Renderer\Lighting\Material.h" />
     <ClInclude Include="src\Renderer\Profiling\NvGPUProfiler.h" />
     <ClInclude Include="src\Renderer\Profiling\GPUProfiler.h" />
     <ClInclude Include="src\Renderer\ShaderTable.h" />
