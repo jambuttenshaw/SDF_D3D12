@@ -45,14 +45,10 @@ public:
 	// Returns true if device is removed
 	bool CheckDeviceRemovedStatus() const;
 
-	void StartDraw() const;
+	void StartDraw(const PassConstantBuffer& passCB) const;
 	void EndDraw() const;
 
 	void CopyRaytracingOutput(ID3D12Resource* raytracingOutput) const;
-
-	// Updating constant buffers
-	void UpdatePassCB(GameTimer* timer, Camera* camera, UINT flags, UINT heatmapQuantization, float heatmapHueRange);
-	D3D12_GPU_VIRTUAL_ADDRESS GetPassCBAddress() const;
 
 	void DeferRelease(const ComPtr<IUnknown>& resource) const;
 
@@ -71,6 +67,7 @@ public:
 	inline bool IsPIXEnabled() const { return m_PIXCaptureModule != nullptr; }
 
 	inline float GetAspectRatio() const { return static_cast<float>(m_ClientWidth) / static_cast<float>(m_ClientHeight); }
+	inline const XMMATRIX& GetProjectionMatrix() const { return m_ProjectionMatrix; }
 
 	inline static constexpr UINT GetBackBufferCount() { return s_FrameCount; }
 	inline DXGI_FORMAT GetBackBufferFormat() const { return m_BackBufferFormat; }
@@ -78,6 +75,10 @@ public:
 
 	inline UINT GetClientWidth() const { return m_ClientWidth; }
 	inline UINT GetClientHeight() const { return m_ClientHeight; }
+
+	// Raytracer needs access to the pass CB to render
+	// Pass CB is accessed through the graphics context as that handles the buffering of the resource
+	D3D12_GPU_VIRTUAL_ADDRESS GetPassCBAddress() const;
 
 	// Descriptor heaps
 	inline DescriptorHeap* GetSRVHeap() const { return m_SRVHeap.get(); }
@@ -175,9 +176,6 @@ private:
 	UINT m_FrameIndex = 0;
 	std::vector<std::unique_ptr<D3DFrameResources>> m_FrameResources;
 	D3DFrameResources* m_CurrentFrameResources = nullptr;
-
-	// Pass CB Data
-	PassConstantBuffer m_MainPassCB;
 
 	// Descriptor heaps
 	std::unique_ptr<DescriptorHeap> m_RTVHeap;

@@ -154,8 +154,11 @@ bool D3DGraphicsContext::CheckDeviceRemovedStatus() const
 }
 
 
-void D3DGraphicsContext::StartDraw() const
+void D3DGraphicsContext::StartDraw(const PassConstantBuffer& passCB) const
 {
+	m_CurrentFrameResources->CopyPassData(passCB);
+
+
 	PIXBeginEvent(PIX_COLOR_INDEX(2), L"Start Draw");
 
 	// Command list allocators can only be reset when the associated
@@ -224,42 +227,6 @@ void D3DGraphicsContext::CopyRaytracingOutput(ID3D12Resource* raytracingOutput) 
 	PIXEndEvent(m_CommandList.Get());
 }
 
-
-void D3DGraphicsContext::UpdatePassCB(GameTimer* timer, Camera* camera, UINT flags, UINT heatmapQuantization, float heatmapHueRange)
-{
-	ASSERT(timer, "Must use a valid timer!");
-	ASSERT(camera, "Must use a valid camera!");
-	// Calculate view matrix
-	const XMMATRIX view = camera->GetViewMatrix();
-
-	const XMMATRIX viewProj = XMMatrixMultiply(view, m_ProjectionMatrix);
-	const XMMATRIX invView = XMMatrixInverse(nullptr, view);
-	const XMMATRIX invProj = XMMatrixInverse(nullptr, m_ProjectionMatrix);
-	const XMMATRIX invViewProj = XMMatrixInverse(nullptr, viewProj);
-
-	// Update data in main pass constant buffer
-	m_MainPassCB.View = XMMatrixTranspose(view);
-	m_MainPassCB.InvView = XMMatrixTranspose(invView);
-	m_MainPassCB.Proj = XMMatrixTranspose(m_ProjectionMatrix);
-	m_MainPassCB.InvProj = XMMatrixTranspose(invProj);
-	m_MainPassCB.ViewProj = XMMatrixTranspose(viewProj);
-	m_MainPassCB.InvViewProj = XMMatrixTranspose(invViewProj);
-
-	m_MainPassCB.WorldEyePos = camera->GetPosition();
-
-	m_MainPassCB.Flags = flags;
-
-	m_MainPassCB.RTSize = { static_cast<float>(m_ClientWidth), static_cast<float>(m_ClientHeight) };
-	m_MainPassCB.InvRTSize = { 1.0f / m_MainPassCB.RTSize.x, 1.0f / m_MainPassCB.RTSize.y };
-
-	m_MainPassCB.TotalTime = timer->GetTimeSinceReset();
-	m_MainPassCB.DeltaTime = timer->GetDeltaTime();
-
-	m_MainPassCB.HeatmapQuantization = heatmapQuantization;
-	m_MainPassCB.HeatmapHueRange = heatmapHueRange;
-
-	m_CurrentFrameResources->CopyPassData(m_MainPassCB);
-}
 
 D3D12_GPU_VIRTUAL_ADDRESS D3DGraphicsContext::GetPassCBAddress() const
 {

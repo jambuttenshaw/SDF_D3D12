@@ -92,7 +92,7 @@ float3 calculateLighting(
 	const float3 lightDirection = normalize(float3(0.5f, 1.0f, -1.0f));
 	const float3 lightIrradiance = 4.0f * float3(1.0f, 1.0f, 1.0f);
 
-	const float3 albedo = float3(0.8f, 0.2f, 0.2f);
+	const float3 albedo = float3(1.0f, 0.1f, 0.1f);
 	const float roughness = 0.05f;
 	const float metalness = 0.0f;
 
