@@ -8,6 +8,7 @@
 #include "Framework/Camera/Camera.h"
 #include "Framework/Camera/OrbitalCameraController.h"
 #include "Framework/GameTimer.h"
+#include "Renderer/Buffer/TextureLoader.h"
 #include "Renderer/Lighting/Light.h"
 #include "Renderer/Lighting/Material.h"
 #include "Renderer/Raytracing/Raytracer.h"
@@ -53,6 +54,7 @@ private:
 
 private:
 	std::unique_ptr<D3DGraphicsContext> m_GraphicsContext;
+	std::unique_ptr<TextureLoader> m_TextureLoader;
 
 	GameTimer m_Timer;
 	Camera m_Camera;

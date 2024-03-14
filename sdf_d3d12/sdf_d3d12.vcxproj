@@ -429,6 +429,8 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Profile_Debug|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\Renderer\Buffer\Texture.cpp" />
+    <ClCompile Include="src\Renderer\Buffer\TextureLoader.cpp" />
     <ClCompile Include="src\Renderer\D3DDebugTools.cpp" />
     <ClCompile Include="src\Renderer\D3DFrameResources.cpp" />
     <ClCompile Include="src\Renderer\D3DGraphicsContext.cpp" />
@@ -527,6 +529,8 @@
     <ClInclude Include="src\Renderer\Buffer\ReadbackBuffer.h" />
     <ClInclude Include="src\Renderer\Buffer\StructuredBuffer.h" />
     <ClInclude Include="src\Renderer\Buffer\DefaultBuffer.h" />
+    <ClInclude Include="src\Renderer\Buffer\Texture.h" />
+    <ClInclude Include="src\Renderer\Buffer\TextureLoader.h" />
     <ClInclude Include="src\Renderer\Buffer\UploadBuffer.h" />
     <ClInclude Include="src\Renderer\D3DDebugTools.h" />
     <ClInclude Include="src\Renderer\D3DFrameResources.h" />

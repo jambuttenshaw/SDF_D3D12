@@ -316,6 +316,9 @@ void D3DApplication::OnRender()
 	UpdatePassCB();
 	m_MaterialManager->UploadMaterialData();
 
+	// Perform all queued uploads
+	m_TextureLoader->PerformUploads();
+
 	PROFILE_DIRECT_BEGIN_PASS("Frame");
 
 	// Begin drawing
@@ -355,6 +358,8 @@ void D3DApplication::OnDestroy()
 
 	m_Scene.reset();
 	m_Raytracer.reset();
+
+	m_TextureLoader.reset();
 
 #ifdef ENABLE_INSTRUMENTATION
 	GPUProfiler::Destroy();
