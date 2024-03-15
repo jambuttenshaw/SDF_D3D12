@@ -25,7 +25,7 @@ public:
 	~Raytracer();
 
 	void Setup(const Scene& scene);
-	void DoRaytracing(D3D12_GPU_VIRTUAL_ADDRESS materialBuffer, D3D12_GPU_DESCRIPTOR_HANDLE environmentMap) const;
+	void DoRaytracing(D3D12_GPU_VIRTUAL_ADDRESS materialBuffer, D3D12_GPU_DESCRIPTOR_HANDLE globalLightingSRVTable, D3D12_GPU_DESCRIPTOR_HANDLE globalLightingSamplerTable) const;
 
 	void Resize();
 

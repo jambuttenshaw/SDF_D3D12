@@ -345,7 +345,7 @@ void D3DApplication::OnRender()
 	m_Scene->PreRender();
 
 	// Perform raytracing
-	m_Raytracer->DoRaytracing(m_MaterialManager->GetMaterialBufferAddress(), m_LightManager->GetEnvironmentMapSRV());
+	m_Raytracer->DoRaytracing(m_MaterialManager->GetMaterialBufferAddress(), m_LightManager->GetSRVTable(), m_LightManager->GetSamplerTable());
 	m_GraphicsContext->CopyRaytracingOutput(m_Raytracer->GetRaytracingOutput());
 
 	// ImGui Render
@@ -681,6 +681,7 @@ bool D3DApplication::ImGuiApplicationInfo()
 				RenderFlagOption("Normals", RENDER_FLAG_DISPLAY_NORMALS);
 			}
 			RenderFlagOption("Edit Count", RENDER_FLAG_DISPLAY_BRICK_EDIT_COUNT);
+			RenderFlagOption("Disable IBL", RENDER_FLAG_DISABLE_IBL);
 		}
 
 		ImGui::Separator();

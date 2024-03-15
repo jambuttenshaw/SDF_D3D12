@@ -9,8 +9,9 @@ namespace GlobalRootSignatureParams
 		AccelerationStructureSlot,	// Scene acceleration structure
 		PassBufferSlot,				// Pass constants
 		MaterialBufferSlot,			// All materials
-		EnvironmentMapSlot,			// Environment map
-		VolumeSamplerSlot,				// Volume sampler (this could be specified in a local root signature if it should be different per object)
+		GlobalLightingSRVSlot,		// Environment map, Irradiance map, etc in a contiguous array of descriptors
+		GlobalLightingSamplerSlot,	// Samplers used for the global lighting map
+		VolumeSamplerSlot,			// Volume sampler (this could be specified in a local root signature if it should be different per object)
 		Count
 	};
 }

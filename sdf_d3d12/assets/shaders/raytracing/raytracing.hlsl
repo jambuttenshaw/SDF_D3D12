@@ -20,9 +20,13 @@ ConstantBuffer<PassConstantBuffer> g_PassCB : register(b0);
 StructuredBuffer<MaterialGPUData> g_Materials : register(t1);
 
 TextureCube g_EnvironmentMap : register(t2);
+TextureCube g_IrradianceMap : register(t3);
+Texture2D g_BRDFMap : register(t4);
+TextureCube g_PrefilterMap : register(t5);
 
 SamplerState g_EnvironmentSampler : register(s0);
-SamplerState g_VolumeSampler : register(s1);
+SamplerState g_BRDFSampler : register(s1);
+SamplerState g_VolumeSampler : register(s2);
 
 
 /////////////////////////
@@ -270,7 +274,18 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 		const MaterialGPUData mat = g_Materials.Load(0);
 		
 		// Lighting
-		float3 lightColor = calculateLighting(attr.normal, g_PassCB.WorldEyePos, g_PassCB.Light, mat);
+		float3 lightColor = calculateLighting(
+			g_PassCB.Flags,
+			attr.normal,
+			g_PassCB.WorldEyePos,
+			g_PassCB.Light,
+			mat,
+			g_IrradianceMap,
+			g_BRDFMap,
+			g_PrefilterMap,
+			g_EnvironmentSampler,
+			g_BRDFSampler);
+
 		lightColor /= 1.0f + lightColor;
 
 		payload.color = float4(lightColor, 1.0f);
