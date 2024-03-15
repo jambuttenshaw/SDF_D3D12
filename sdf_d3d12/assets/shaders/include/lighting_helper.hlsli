@@ -12,19 +12,18 @@ float3 lambertian_diffuse(float3 albedo)
 
 
 // SPECULAR NDF's
-float ggx_ndf(float3 n, float3 h, float a)
+float ggx_ndf(float3 n, float3 h, float roughness)
 {
-    // definition of the GGX normal distribution function
-    // a = roughness
-    
+	float a = roughness * roughness;
 	float a2 = a * a;
-	float NdotH = saturate(dot(n, h));
+	float NdotH = max(dot(n, h), 0.0);
 	float NdotH2 = NdotH * NdotH;
 	
-	float denom = (NdotH2 * (a2 - 1.0f)) + 1.0f;
+	float num = a2;
+	float denom = (NdotH2 * (a2 - 1.0) + 1.0);
 	denom = PI * denom * denom;
 	
-	return a2 / denom;
+	return num / denom;
 }
 
 
@@ -37,17 +36,23 @@ float3 shlick_fresnel_reflectance(float3 f0, float3 v, float3 h)
 
 
 // GEOMETRY/VISIBILITY FUNCTIONS
-float schlickggx_geometry(float NdotV, float k)
+float schlickggx_geometry(float NdotV, float roughness)
 {
-	return NdotV / (NdotV * (1.0f - k) + k);
+	float r = (roughness + 1.0);
+	float k = (r * r) / 8.0;
+
+	float num = NdotV;
+	float denom = NdotV * (1.0 - k) + k;
+	
+	return num / denom;
 }
 
-float smith_geometry(float3 n, float3 v, float3 l, float k)
+float smith_geometry(float3 n, float3 v, float3 l, float roughness)
 {
 	float NdotV = saturate(dot(n, v));
 	float NdotL = saturate(dot(n, l));
-	float ggx1 = schlickggx_geometry(NdotV, k);
-	float ggx2 = schlickggx_geometry(NdotL, k);
+	float ggx1 = schlickggx_geometry(NdotV, roughness);
+	float ggx2 = schlickggx_geometry(NdotL, roughness);
 	
 	return ggx1 * ggx2;
 }
@@ -64,7 +69,7 @@ float3 ggx_brdf(float3 v, float3 l, float3 n, float3 albedo, float3 f0, float ro
 	float3 Rf = shlick_fresnel_reflectance(f0, v, h);
 	float ndf = ggx_ndf(n, h, roughness);
 	float G = smith_geometry(n, v, l, roughness);
-	
+
 	float3 numerator = Rf * ndf * G;
 	float denominator = 4.0f * saturate(dot(n, v)) * saturate(dot(n, l)) + 0.0001f;
 	

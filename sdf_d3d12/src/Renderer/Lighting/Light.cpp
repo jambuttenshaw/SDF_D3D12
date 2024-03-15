@@ -78,7 +78,7 @@ LightManager::LightManager()
 	{
 		light.Direction = { 0.0f, -0.707f, 0.707f };
 		light.Color = { 1.0f, 1.0f, 1.0f };
-		light.Intensity = 0.0f;
+		light.Intensity = 3.0f;
 	}
 
 	// Create API resources

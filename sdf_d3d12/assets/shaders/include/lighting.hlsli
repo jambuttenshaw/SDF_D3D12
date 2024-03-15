@@ -26,7 +26,7 @@ float3 calculateLighting(
 
 	float3 f0 = float3(0.04f, 0.04f, 0.04f);
 	f0 = lerp(f0, material.Albedo, material.Metalness);
-    
+
 	float3 lo = float3(0.0f, 0.0f, 0.0f);
 	
 	// calculate light direction and irradiance
@@ -35,7 +35,7 @@ float3 calculateLighting(
 
 	// evaluate shading equation
 	const float3 brdf = ggx_brdf(v, l, n, material.Albedo, f0, material.Roughness, material.Metalness) * el * saturate(dot(n, l));
-	lo += brdf;
+	lo += max(brdf, 0.0f);
 
 	float3 ambient = float3(0.0f, 0.0f, 0.0f);
 

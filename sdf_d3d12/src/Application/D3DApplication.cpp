@@ -261,9 +261,9 @@ void D3DApplication::OnInit()
 
 	// Populate materials
 	MaterialGPUData& mat = m_MaterialManager->GetMaterial(0);
-	mat.Albedo = XMFLOAT3(0.2f, 1.0f, 0.2f);
-	mat.Roughness = 0.1f;
-	mat.Metalness = 0.0f;
+	mat.Albedo = XMFLOAT3(0.0f, 0.27f, 0.89f);
+	mat.Roughness = 0.3f;
+	mat.Metalness = 1.0f;
 
 	// Set default pass buffer values
 	//m_PassCB.Flags = RENDER_FLAG_DISPLAY_NORMALS;

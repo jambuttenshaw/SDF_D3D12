@@ -33,7 +33,7 @@ void MaterialManager::DrawGui()
 	for (auto& material : m_MaterialStaging)
 	{
 		ImGui::ColorEdit3("Albedo", &material.Albedo.x);
-		ImGui::SliderFloat("Roughness", &material.Roughness, 0.01f, 1.0f);
+		ImGui::SliderFloat("Roughness", &material.Roughness, 0.05f, 1.0f);
 		ImGui::SliderFloat("Metalness", &material.Metalness, 0.0f, 1.0f);
 	}
 }

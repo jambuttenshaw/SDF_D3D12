@@ -14,6 +14,8 @@ RWTexture2D<float2> g_BRDFIntegrationMap : register(u0);
 
 float2 IntegrateBRDF(float NdotV, float roughness)
 {
+	NdotV = min(1.0f, NdotV + 0.001f);
+
 	float3 V;
 	V.x = sqrt(1.0f - NdotV * NdotV);
 	V.y = 0.0f;
