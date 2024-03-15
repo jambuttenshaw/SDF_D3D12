@@ -28,4 +28,26 @@ struct Brick
 	UINT IndexCount;			// The number of indices this brick has
 };
 
+
+// Lighting structures
+struct LightGPUData
+{
+	XMFLOAT3 Direction;
+
+	float Intensity;
+	XMFLOAT3 Color;
+
+	float Padding;
+
+};
+
+struct MaterialGPUData
+{
+	XMFLOAT3 Albedo;
+	float Roughness;
+	float Metalness;
+};
+
+
+
 #endif

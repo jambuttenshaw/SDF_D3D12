@@ -36,26 +36,6 @@ struct RayPayload
 };
 
 
-// Lighting structures
-struct LightGPUData
-{
-	XMFLOAT3 Direction;
-
-	float Intensity;
-	XMFLOAT3 Color;
-
-	float Padding;
-
-};
-
-struct MaterialGPUData
-{
-	XMFLOAT3 Albedo;
-	float Roughness;
-	float Metalness;
-};
-
-
 // Constant attributes per frame
 struct PassConstantBuffer
 {

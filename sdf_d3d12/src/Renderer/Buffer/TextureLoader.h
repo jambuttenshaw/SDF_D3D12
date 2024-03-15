@@ -29,6 +29,7 @@ public:
 	std::unique_ptr<Texture> LoadTextureCubeFromFile(const std::string& filename, const LoadTextureConfig* const config);
 
 	void PerformUploads();
+	void PerformUploadsImmediatelyAndBlock();
 
 private:
 	// For executing upload commands

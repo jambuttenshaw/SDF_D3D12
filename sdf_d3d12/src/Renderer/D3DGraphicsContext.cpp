@@ -435,7 +435,7 @@ void D3DGraphicsContext::CreateDescriptorHeaps()
 	m_RTVHeap = std::make_unique<DescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, s_FrameCount, true);
 
 	// SRV/CBV/UAV heap
-	constexpr UINT Count = 64;
+	constexpr UINT Count = 256;
 	m_SRVHeap = std::make_unique<DescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, Count, false);
 
 	m_SamplerHeap = std::make_unique<DescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 8, false);

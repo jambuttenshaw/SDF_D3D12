@@ -174,3 +174,10 @@ void TextureLoader::PerformUploads()
 		m_LastWorkFence = g_D3DGraphicsContext->GetDirectCommandQueue()->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 	}
 }
+
+
+void TextureLoader::PerformUploadsImmediatelyAndBlock()
+{
+	PerformUploads();
+	g_D3DGraphicsContext->GetDirectCommandQueue()->WaitForFenceCPUBlocking(m_LastWorkFence);
+}

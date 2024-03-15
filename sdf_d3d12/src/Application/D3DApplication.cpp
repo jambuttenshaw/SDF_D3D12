@@ -254,9 +254,9 @@ void D3DApplication::OnInit()
 		config.BytesPerChannel = 1;
 		config.ResourceState = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
 
-		m_LightManager->SetEnvironmentMap(
-			m_TextureLoader->LoadTextureCubeFromFile("assets/textures/environment.png", &config)
-		);
+		auto environmentMap = m_TextureLoader->LoadTextureCubeFromFile("assets/textures/environment.png", &config);
+		m_TextureLoader->PerformUploadsImmediatelyAndBlock();
+		m_LightManager->ProcessEnvironmentMap(std::move(environmentMap));
 	}
 
 	// Populate materials

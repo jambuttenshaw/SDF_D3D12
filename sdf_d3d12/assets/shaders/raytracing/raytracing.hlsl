@@ -5,7 +5,7 @@
 #include "../HlslCompat/RaytracingHlslCompat.h"
 
 #include "ray_helper.hlsli"
-#include "lighting.hlsli"
+#include "../include/lighting.hlsli"
 #include "../include/brick_helper.hlsli"
 
 
