@@ -20,7 +20,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
 	uint2 irradianceMapDims;
 	g_IrradianceMap.GetDimensions(irradianceMapDims.x, irradianceMapDims.y);
     
-	if (DTid.x > irradianceMapDims.x || DTid.y > irradianceMapDims.y)
+	if (DTid.x >= irradianceMapDims.x || DTid.y >= irradianceMapDims.y)
 		return;
     
 	float2 uv = DTid.xy / (float2) (irradianceMapDims - uint2(1, 1));

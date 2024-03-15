@@ -21,7 +21,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
 	uint2 PEMDims;
 	g_PreFilteredEnvironmentMap.GetDimensions(PEMDims.x, PEMDims.y);
     
-	if (DTid.x > PEMDims.x || DTid.y > PEMDims.y)
+	if (DTid.x >= PEMDims.x || DTid.y >= PEMDims.y)
 		return;
     
     // calculate normal (direction from the centre of the cubemap through this fragment

@@ -78,7 +78,7 @@ LightManager::LightManager()
 	{
 		light.Direction = { 0.0f, -0.707f, 0.707f };
 		light.Color = { 1.0f, 1.0f, 1.0f };
-		light.Intensity = 1.0f;
+		light.Intensity = 0.0f;
 	}
 
 	// Create API resources
@@ -315,7 +315,6 @@ void LightManager::CreateResources()
 
 		device->CreateSampler(&samplerDesc, m_SamplerDescriptors.GetCPUHandle(EnvironmentMapSampler));
 
-		samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
 		samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 		samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 		samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;

@@ -59,11 +59,10 @@ void main(uint3 DTid : SV_DispatchThreadID)
 	uint2 BRDFIntegrationDims;
 	g_BRDFIntegrationMap.GetDimensions(BRDFIntegrationDims.x, BRDFIntegrationDims.y);
     
-	if (DTid.x > BRDFIntegrationDims.x || DTid.y > BRDFIntegrationDims.y)
+	if (DTid.x >= BRDFIntegrationDims.x || DTid.y >= BRDFIntegrationDims.y)
 		return;
     
 	float2 uv = DTid.xy / (float2) (BRDFIntegrationDims - uint2(1, 1));
-    
 	const float2 integratedBRDF = IntegrateBRDF(uv.x, uv.y);
     
 	g_BRDFIntegrationMap[DTid.xy] = integratedBRDF;

@@ -251,6 +251,8 @@ void MyIntersectionShader()
 [shader("closesthit")]
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 {
+	float3 hitPos = WorldRayOrigin() + RayTCurrent() * WorldRayDirection();
+
 	// DEBUG MODES
 	if (g_PassCB.Flags & (RENDER_FLAG_DISPLAY_BRICK_EDIT_COUNT | RENDER_FLAG_DISPLAY_HEATMAP | RENDER_FLAG_DISPLAY_BRICK_INDEX))
 	{
@@ -272,12 +274,14 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 	{
 		// Load material
 		const MaterialGPUData mat = g_Materials.Load(0);
-		
+
+		const float3 v = normalize(g_PassCB.WorldEyePos - hitPos);
+
 		// Lighting
 		float3 lightColor = calculateLighting(
 			g_PassCB.Flags,
 			attr.normal,
-			g_PassCB.WorldEyePos,
+			v,
 			g_PassCB.Light,
 			mat,
 			g_IrradianceMap,
