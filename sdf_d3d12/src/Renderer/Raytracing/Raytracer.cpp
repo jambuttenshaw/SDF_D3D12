@@ -79,7 +79,7 @@ void Raytracer::DoRaytracing(D3D12_GPU_VIRTUAL_ADDRESS materialBuffer, D3D12_GPU
 	commandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::MaterialBufferSlot, materialBuffer);
 	commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::GlobalLightingSRVSlot, globalLightingSRVTable);
 	commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::GlobalLightingSamplerSlot, globalLightingSamplerTable);
-	commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::VolumeSamplerSlot, m_Samplers.GetGPUHandle(m_CurrentSampler));
+	commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::VolumeSamplerSlot, m_Samplers.GetGPUHandle(/*m_CurrentSampler*/));
 
 
 	dxrCommandList->SetPipelineState1(m_DXRStateObject.Get());
@@ -134,7 +134,7 @@ void Raytracer::CreateRootSignatures()
 		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
 		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 4, 2);
 		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 2, 0);
-		ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 2);
+		ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 2, 2);
 
 		CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParams::Count];
 		rootParameters[GlobalRootSignatureParams::OutputViewSlot].InitAsDescriptorTable(1, &ranges[0]);

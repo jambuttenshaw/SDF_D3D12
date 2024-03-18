@@ -51,6 +51,9 @@ struct PassConstantBuffer
 
 	UINT Flags;
 
+	float NormalSampleDelta;
+	XMFLOAT3 Padding;
+
 	float TotalTime;
 	float DeltaTime;
 

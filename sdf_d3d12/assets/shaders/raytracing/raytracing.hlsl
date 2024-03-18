@@ -26,7 +26,9 @@ TextureCube g_PrefilterMap : register(t5);
 
 SamplerState g_EnvironmentSampler : register(s0);
 SamplerState g_BRDFSampler : register(s1);
-SamplerState g_VolumeSampler : register(s2);
+
+SamplerState g_VolumePointSampler : register(s2); // Point sampler to sample normals
+SamplerState g_VolumeLinearSampler : register(s3);
 
 
 /////////////////////////
@@ -70,14 +72,38 @@ inline void GenerateCameraRay(uint2 index, out float3 origin, out float3 directi
 	direction = normalize(world.xyz - origin);
 }
 
-
 float3 ComputeSurfaceNormal(float3 p, float3 delta)
 {
-	return normalize(float3(
-        (l_BrickPool.SampleLevel(g_VolumeSampler, p + float3(delta.x, 0.0f, 0.0f), 0) - l_BrickPool.SampleLevel(g_VolumeSampler, p - float3(delta.x, 0.0f, 0.0f), 0)),
-        (l_BrickPool.SampleLevel(g_VolumeSampler, p + float3(0.0f, delta.y, 0.0f), 0) - l_BrickPool.SampleLevel(g_VolumeSampler, p - float3(0.0f, delta.y, 0.0f), 0)),
-        (l_BrickPool.SampleLevel(g_VolumeSampler, p + float3(0.0f, 0.0f, delta.z), 0) - l_BrickPool.SampleLevel(g_VolumeSampler, p - float3(0.0f, 0.0f, delta.z), 0))
-    ));
+	const float2 k = float2(1, -1);
+
+	return normalize(k.xyy * l_BrickPool.SampleLevel(g_VolumeLinearSampler, p + k.xyy * delta, 0) +
+                     k.yyx * l_BrickPool.SampleLevel(g_VolumeLinearSampler, p + k.yyx * delta, 0) +
+                     k.yxy * l_BrickPool.SampleLevel(g_VolumeLinearSampler, p + k.yxy * delta, 0) +
+                     k.xxx * l_BrickPool.SampleLevel(g_VolumeLinearSampler, p + k.xxx * delta, 0));
+}
+
+float3 ComputeSurfaceNormal(float3 p, float3 uvwPerVoxel, float3 brickTopLeft, uint3 poolDims)
+{
+	const float2 k = float2(1, -1);
+	const float3 delta = uvwPerVoxel * g_PassCB.NormalSampleDelta;
+
+	const float3 pMin = BrickVoxelToPoolUVW(0.5f, brickTopLeft, uvwPerVoxel);
+	const float3 pMax = BrickVoxelToPoolUVW(SDF_BRICK_SIZE_VOXELS_ADJACENCY - 0.5f, brickTopLeft, uvwPerVoxel);
+
+	
+	const float3 o0 = clamp(p + k.xyy * delta, pMin, pMax);
+
+	float3 v = PoolUVWToBrickVoxel(o0, brickTopLeft, poolDims);
+	// if v is less than 0.5 or greater than 7.5, we must sample from a different brick to get a correct gradient
+
+	const float3 o1 = clamp(p + k.yyx * delta, pMin, pMax);
+	const float3 o2 = clamp(p + k.yxy * delta, pMin, pMax);
+	const float3 o3 = clamp(p + k.xxx * delta, pMin, pMax);
+
+	return normalize(k.xyy * l_BrickPool.SampleLevel(g_VolumeLinearSampler, o0, 0) +
+                     k.yyx * l_BrickPool.SampleLevel(g_VolumeLinearSampler, o1, 0) +
+                     k.yxy * l_BrickPool.SampleLevel(g_VolumeLinearSampler, o2, 0) +
+                     k.xxx * l_BrickPool.SampleLevel(g_VolumeLinearSampler, o3, 0));
 }
 
 float3 RGBFromHSV(float3 input)
@@ -160,7 +186,7 @@ void MyIntersectionShader()
 
 		// Offset by 1 due to adjacency data
 		// e.g., uvwAABB of (0, 0, 0) actually references the voxel at (1, 1, 1) - not (0, 0, 0)
-		const float3 brickVoxel = (uvwAABB * SDF_BRICK_SIZE_VOXELS) + 1.0f;
+		const float3 brickVoxel = (uvwAABB * (SDF_BRICK_SIZE_VOXELS - 1.0f)) + 1.5f;
 
 
 		// Debug: Display the bounding box directly instead of sphere tracing the contents
@@ -195,8 +221,8 @@ void MyIntersectionShader()
 
 		// Get the pool UVW
 		float3 uvw = BrickVoxelToPoolUVW(brickVoxel, brickTopLeftVoxel, uvwPerVoxel);
-		float3 uvwMin = BrickVoxelToPoolUVW(1.0f, brickTopLeftVoxel, uvwPerVoxel);
-		float3 uvwMax = BrickVoxelToPoolUVW(SDF_BRICK_SIZE_VOXELS + 1.0f, brickTopLeftVoxel, uvwPerVoxel);
+		float3 uvwMin = BrickVoxelToPoolUVW(1.5f, brickTopLeftVoxel, uvwPerVoxel);
+		float3 uvwMax = BrickVoxelToPoolUVW(SDF_BRICK_SIZE_VOXELS + 0.5f, brickTopLeftVoxel, uvwPerVoxel);
 
 		// This is a vector type as uvw range in each direction might not be uniform
 		// This is the case in non-cubic brick pools
@@ -209,10 +235,10 @@ void MyIntersectionShader()
 		while (iterationCount < 32) // iteration guard
 		{
 			// Sample the volume
-			const float s = l_BrickPool.SampleLevel(g_VolumeSampler, uvw, 0);
+			const float s = l_BrickPool.SampleLevel(g_VolumeLinearSampler, uvw, 0);
 
-			// 0.0625 was the largest threshold before unacceptable artifacts were produced
-			if (s <= 0.0625f)
+			// Check for crossing the iso-surface
+			if (s <= 0.0f)
 			{
 				break;
 			}
@@ -220,8 +246,8 @@ void MyIntersectionShader()
 			uvw += (s * SDF_VOLUME_STRIDE * stride_voxelToUVW) // Convert from formatted distance in texture to a distance in the uvw space of the brick pool
 					* ray.direction;
 			 
-			if (uvw.x > uvwMax.x || uvw.y > uvwMax.y || uvw.z > uvwMax.z ||
-				uvw.x < uvwMin.x || uvw.y < uvwMin.y || uvw.z < uvwMin.z)
+			if (uvw.x >= uvwMax.x || uvw.y >= uvwMax.y || uvw.z >= uvwMax.z ||
+				uvw.x <= uvwMin.x || uvw.y <= uvwMin.y || uvw.z <= uvwMin.z)
 			{
 				// Exited box: no intersection
 				return;
@@ -230,14 +256,16 @@ void MyIntersectionShader()
 		}
 
 		// Calculate the hit point as a UVW of the AABB
-		float3 hitUVWAABB = (PoolUVWToBrickVoxel(uvw, brickTopLeftVoxel, poolDims) - float3(1.0f, 1.0f, 1.0f)) / SDF_BRICK_SIZE_VOXELS;
+		const float3 hitVoxel = PoolUVWToBrickVoxel(uvw, brickTopLeftVoxel, poolDims);
+		const float3 hitUVWAABB = (hitVoxel - 1.5f) / (SDF_BRICK_SIZE_VOXELS - 1.0f);
 		// point of intersection in local space
 		const float3 pointOfIntersection = hitUVWAABB * l_BrickProperties.BrickSize;
 		// t is the distance from the ray origin to the point of intersection
 		const float newT = length(ray.origin - pointOfIntersection);
 
 		// Transform from object space to world space
-		attr.normal = normalize(mul(ComputeSurfaceNormal(uvw, 0.5f * uvwPerVoxel), transpose((float3x3) ObjectToWorld())));
+		const float3 n = ComputeSurfaceNormal(uvw, uvwPerVoxel * g_PassCB.NormalSampleDelta);
+		attr.normal = normalize(mul(n, transpose((float3x3) ObjectToWorld())));
 		attr.utility = (g_PassCB.Flags & RENDER_FLAG_DISPLAY_BRICK_EDIT_COUNT) ? brick.IndexCount : iterationCount;
 		ReportHit(newT, 0, attr);
 	}
@@ -251,7 +279,7 @@ void MyIntersectionShader()
 [shader("closesthit")]
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 {
-	float3 hitPos = WorldRayOrigin() + RayTCurrent() * WorldRayDirection();
+	const float3 hitPos = WorldRayOrigin() + RayTCurrent() * WorldRayDirection();
 
 	// DEBUG MODES
 	if (g_PassCB.Flags & (RENDER_FLAG_DISPLAY_BRICK_EDIT_COUNT | RENDER_FLAG_DISPLAY_HEATMAP | RENDER_FLAG_DISPLAY_BRICK_INDEX))

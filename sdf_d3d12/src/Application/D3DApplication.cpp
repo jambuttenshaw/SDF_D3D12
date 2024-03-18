@@ -266,7 +266,8 @@ void D3DApplication::OnInit()
 	mat.Metalness = 1.0f;
 
 	// Set default pass buffer values
-	//m_PassCB.Flags = RENDER_FLAG_DISPLAY_NORMALS;
+	m_PassCB.NormalSampleDelta = 0.5f;
+	m_PassCB.Flags = RENDER_FLAG_DISPLAY_NORMALS;
 	m_PassCB.HeatmapQuantization = 16;
 	m_PassCB.HeatmapHueRange = 0.33f;
 
@@ -697,6 +698,9 @@ bool D3DApplication::ImGuiApplicationInfo()
 		ImGui::Separator();
 		ImGui::Text("Lighting");
 		m_LightManager->DrawGui();
+
+		ImGui::Separator();
+		ImGui::SliderFloat("Normal Sample Delta", &m_PassCB.NormalSampleDelta, 0.01f, 1.0f);
 
 		ImGui::Separator();
 		ImGui::Text("Materials");
