@@ -5,6 +5,7 @@
 #include "imgui.h"
 
 #include "Framework/Math.h"
+#include "Input/InputManager.h"
 
 #include "pix3.h"
 
@@ -22,8 +23,11 @@ static std::string wstring_to_utf8(const std::wstring& str)
 #pragma warning( pop ) 
 
 
-Scene::Scene(const std::string& demoName, float brickSize)
+Scene::Scene(InputManager* inputManager, const std::string& demoName, float brickSize)
+	: m_InputManager(inputManager)
 {
+	ASSERT(m_InputManager, "Invalid input manager.");
+
 	m_CurrentDemo = BaseDemo::GetDemoFromName(demoName);
 	ASSERT(m_CurrentDemo, "Failed to load current demo.");
 		
@@ -86,11 +90,33 @@ void Scene::OnUpdate(float deltaTime)
 {
 	PIXBeginEvent(PIX_COLOR_INDEX(9), L"Scene Update");
 
-	deltaTime *= static_cast<float>(!m_Paused);
 
-	if (m_Rebuild)
+	// Space toggles pausing
+	if (m_InputManager->IsKeyPressed(KEY_SPACE))
 	{
-		BuildEditList(deltaTime * m_TimeScale, m_AsyncConstruction);
+		m_Paused = !m_Paused;
+	}
+
+	bool rebuildOnce = false;
+	float timeDirection = 1.0f;
+	if (m_Paused)
+	{
+		if (m_InputManager->IsKeyPressed(KEY_RIGHT))
+		{
+			rebuildOnce = true;
+		}
+		else if (m_InputManager->IsKeyPressed(KEY_LEFT))
+		{
+			rebuildOnce = true;
+			timeDirection = -1.0f;
+		}
+	}
+
+	deltaTime = deltaTime * m_TimeScale * timeDirection * static_cast<float>(!m_Paused || rebuildOnce);
+
+	if (m_Rebuild || rebuildOnce)
+	{
+		BuildEditList(deltaTime, m_AsyncConstruction);
 	}
 
 	PIXEndEvent();
