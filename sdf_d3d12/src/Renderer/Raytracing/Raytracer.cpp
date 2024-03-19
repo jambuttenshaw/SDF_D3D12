@@ -429,13 +429,14 @@ void Raytracer::UpdateHitGroupShaderTable() const
 			rootArgs.brickPoolSRV = geometryInstance->GetBrickPoolSRV(SDFObject::RESOURCES_READ);
 			rootArgs.brickBuffer = geometryInstance->GetBrickBufferAddress(SDFObject::RESOURCES_READ);
 
-			for (const auto& hitGroupID : hitGroupShaderIdentifiers)
+			for (UINT rayType = 0; rayType < RayType::Count; ++rayType)
 			{
-				m_HitGroupShaderTable->UpdateRecord(geometryInstance->GetShaderRecordOffset(), ShaderRecord{
-					hitGroupID,
-					shaderIDSize,
-					&rootArgs,
-					sizeof(rootArgs)
+				m_HitGroupShaderTable->UpdateRecord(geometryInstance->GetShaderRecordOffset() + rayType, 
+					ShaderRecord{
+						hitGroupShaderIdentifiers[rayType],
+						shaderIDSize,
+						&rootArgs,
+						sizeof(rootArgs)
 					});
 			}
 
