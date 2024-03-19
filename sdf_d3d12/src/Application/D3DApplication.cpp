@@ -263,10 +263,10 @@ void D3DApplication::OnInit()
 	MaterialGPUData& mat = m_MaterialManager->GetMaterial(0);
 	mat.Albedo = XMFLOAT3(0.0f, 0.27f, 0.89f);
 	mat.Roughness = 0.3f;
-	mat.Metalness = 1.0f;
+	mat.Metalness = 0.0f;
 
 	// Set default pass buffer values
-	//m_PassCB.Flags = RENDER_FLAG_DISPLAY_NORMALS;
+	m_PassCB.Flags = RENDER_FLAG_NONE;
 	m_PassCB.HeatmapQuantization = 16;
 	m_PassCB.HeatmapHueRange = 0.33f;
 
@@ -682,6 +682,7 @@ bool D3DApplication::ImGuiApplicationInfo()
 			}
 			RenderFlagOption("Edit Count", RENDER_FLAG_DISPLAY_BRICK_EDIT_COUNT);
 			RenderFlagOption("Disable IBL", RENDER_FLAG_DISABLE_IBL);
+			RenderFlagOption("Disable Skybox", RENDER_FLAG_DISABLE_SKYBOX);
 		}
 
 		ImGui::Separator();

@@ -306,9 +306,9 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 [shader("miss")]
 void MyMissShader(inout RayPayload payload)
 {
-	//payload.color = float4(0, 0, 0.2f, 1);
-
-	payload.color = g_EnvironmentMap.SampleLevel(g_EnvironmentSampler, WorldRayDirection(), 0);
+	payload.color = g_PassCB.Flags & RENDER_FLAG_DISABLE_SKYBOX
+					? float4(0, 0, 0.2f, 1)
+					: g_EnvironmentMap.SampleLevel(g_EnvironmentSampler, WorldRayDirection(), 0);
 }
 
 #endif // RAYTRACING_HLSL
