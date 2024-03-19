@@ -93,7 +93,7 @@ float3 RGBFromHSV(float3 input)
 ////////////////////////
 
 [shader("raygeneration")]
-void MyRaygenShader()
+void PrimaryRaygenShader()
 {
 	float3 rayDir;
 	float3 origin;
@@ -110,7 +110,7 @@ void MyRaygenShader()
     // TMin should be kept small to prevent missing geometry at close contact areas.
 	ray.TMin = 0.001f;
 	ray.TMax = 10000.0f;
-	RayPayload payload = { float4(0, 0, 0, 0) };
+	RadianceRayPayload payload = { float4(0, 0, 0, 0) };
 	TraceRay(g_Scene, RAY_FLAG_NONE, ~0, 0, 1, 0, ray, payload);
 
     // Write the raytraced color to the output texture.
@@ -123,7 +123,7 @@ void MyRaygenShader()
 /////////////////////////////
 
 [shader("intersection")]
-void MyIntersectionShader()
+void SDFIntersectionShader()
 {
 	const Brick brick = l_BrickBuffer[PrimitiveIndex()];
 
@@ -140,7 +140,7 @@ void MyIntersectionShader()
 	if (RayAABBIntersectionTest(ray, aabb, tMin, tMax))
 	{
 		// Intersection attributes to be filled out
-		MyAttributes attr;
+		SDFIntersectAttrib attr;
 		attr.flags = INTERSECTION_FLAG_NONE;
 
 
@@ -249,7 +249,7 @@ void MyIntersectionShader()
 /////////////////////////////
 
 [shader("closesthit")]
-void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
+void SDFClosestHitShader(inout RadianceRayPayload payload, in SDFIntersectAttrib attr)
 {
 	float3 hitPos = WorldRayOrigin() + RayTCurrent() * WorldRayDirection();
 
@@ -304,11 +304,18 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 /////////////////////
 
 [shader("miss")]
-void MyMissShader(inout RayPayload payload)
+void PrimaryMissShader(inout RadianceRayPayload payload)
 {
 	payload.color = g_PassCB.Flags & RENDER_FLAG_DISABLE_SKYBOX
 					? float4(0, 0, 0.2f, 1)
 					: g_EnvironmentMap.SampleLevel(g_EnvironmentSampler, WorldRayDirection(), 0);
+}
+
+
+[shader("miss")]
+void ShadowMissShader(inout ShadowRayPayload payload)
+{
+	payload.hit = false;
 }
 
 #endif // RAYTRACING_HLSL

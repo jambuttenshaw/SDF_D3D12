@@ -12,11 +12,18 @@
 #include "Renderer/Profiling/GPUProfiler.h"
 
 
-const wchar_t* Raytracer::c_HitGroupName = L"MyHitGroup";
-const wchar_t* Raytracer::c_RaygenShaderName = L"MyRaygenShader";
-const wchar_t* Raytracer::c_IntersectionShaderName = L"MyIntersectionShader";
-const wchar_t* Raytracer::c_ClosestHitShaderName = L"MyClosestHitShader";
-const wchar_t* Raytracer::c_MissShaderName = L"MyMissShader";
+const wchar_t* Raytracer::c_HitGroupName[] = {
+	L"SDFHitGroup",
+	L"SDFHitGroup_ShadowRay"
+};
+const wchar_t* Raytracer::c_RaygenShaderName = L"PrimaryRaygenShader";
+const wchar_t* Raytracer::c_IntersectionShaderName = L"SDFIntersectionShader";
+const wchar_t* Raytracer::c_ClosestHitShaderName = L"SDFClosestHitShader";
+const wchar_t* Raytracer::c_MissShaderName[] = 
+{
+	L"PrimaryMissShader",
+	L"ShadowMissShader"
+};
 
 
 Raytracer::Raytracer()
@@ -190,14 +197,21 @@ void Raytracer::CreateRaytracingPipelineStateObject()
 		lib->DefineExport(c_RaygenShaderName);
 		lib->DefineExport(c_IntersectionShaderName);
 		lib->DefineExport(c_ClosestHitShaderName);
-		lib->DefineExport(c_MissShaderName);
+		for (const auto& missShader : c_MissShaderName)
+			lib->DefineExport(missShader);
 	}
 
-	const auto hitGroup = raytracingPipeline.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
-	hitGroup->SetIntersectionShaderImport(c_IntersectionShaderName);
-	hitGroup->SetClosestHitShaderImport(c_ClosestHitShaderName);
-	hitGroup->SetHitGroupExport(c_HitGroupName);
-	hitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_PROCEDURAL_PRIMITIVE);
+	// Create hit groups
+	// There will be separate hit groups for primary and shadow rays
+	for (UINT rayType = 0; rayType < RayType::Count; ++rayType)
+	{
+		const auto hitGroup = raytracingPipeline.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
+		hitGroup->SetIntersectionShaderImport(c_IntersectionShaderName);
+		if (rayType == RayType::Primary)
+			hitGroup->SetClosestHitShaderImport(c_ClosestHitShaderName);
+		hitGroup->SetHitGroupExport(c_HitGroupName[rayType]);
+		hitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_PROCEDURAL_PRIMITIVE);
+	}
 
 
 	// Create and associate a local root signature with the hit group
@@ -206,14 +220,14 @@ void Raytracer::CreateRaytracingPipelineStateObject()
 
 	const auto localRootSigAssociation = raytracingPipeline.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
 	localRootSigAssociation->SetSubobjectToAssociate(*localRootSig);
-	localRootSigAssociation->AddExport(c_HitGroupName);
+	localRootSigAssociation->AddExport(c_HitGroupName[RayType::Primary]);
 
 
 	// Shader config
 	// Defines the maximum sizes in bytes for the ray payload and attribute structure.
 	const auto shaderConfig = raytracingPipeline.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
-	constexpr UINT payloadSize = sizeof(RayPayload);
-	constexpr UINT attributeSize = sizeof(MyAttributes);
+	constexpr UINT payloadSize = max(sizeof(RadianceRayPayload), sizeof(ShadowRayPayload));
+	constexpr UINT attributeSize = sizeof(SDFIntersectAttrib);
 	shaderConfig->Config(payloadSize, attributeSize);
 
 	// Global root signature
@@ -224,7 +238,7 @@ void Raytracer::CreateRaytracingPipelineStateObject()
 	// Pipeline config
 	// Defines the maximum TraceRay() recursion depth.
 	const auto pipelineConfig = raytracingPipeline.CreateSubobject<CD3DX12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT>();
-	constexpr UINT maxRecursionDepth = 1; // ~ primary rays only. 
+	constexpr UINT maxRecursionDepth = MAX_RAY_RECURSION_DEPTH; 
 	pipelineConfig->Config(maxRecursionDepth);
 
 	// Create the state object.
@@ -296,21 +310,30 @@ void Raytracer::BuildShaderTables()
 	const auto device = g_D3DGraphicsContext->GetDevice();
 
 	void* rayGenShaderIdentifier;
-	void* missShaderIdentifier;
-	void* hitGroupShaderIdentifier;
+	void* missShaderIdentifiers[RayType::Count];
+	void* hitGroupShaderIdentifiers[RayType::Count];
 
-	// Get shader identifiers.
-	UINT shaderIDSize;
+	constexpr UINT shaderIDSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
+
 	{
+		// Get shader identifiers.
 		ComPtr<ID3D12StateObjectProperties> stateObjectProperties;
 		THROW_IF_FAIL(m_DXRStateObject.As(&stateObjectProperties));
 
 		rayGenShaderIdentifier = stateObjectProperties->GetShaderIdentifier(c_RaygenShaderName);
-		missShaderIdentifier = stateObjectProperties->GetShaderIdentifier(c_MissShaderName);
-		hitGroupShaderIdentifier = stateObjectProperties->GetShaderIdentifier(c_HitGroupName);
-
-		shaderIDSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
+		for (UINT rayType = 0; rayType < RayType::Count; ++rayType)
+			missShaderIdentifiers[rayType] = stateObjectProperties->GetShaderIdentifier(c_MissShaderName[rayType]);
+		for (UINT rayType = 0; rayType < RayType::Count; ++rayType)
+			hitGroupShaderIdentifiers[rayType] = stateObjectProperties->GetShaderIdentifier(c_HitGroupName[rayType]);
 	}
+
+	/*************--------- Shader table layout -------*******************
+	| --------------------------------------------------------------------
+	| Shader table - HitGroupShaderTable:
+	| [0] : SDFHitGroup
+	| [1] : SDFHitGroup_ShadowRay
+	| --------------------------------------------------------------------
+	**********************************************************************/
 
 	// Ray gen shader table
 	{
@@ -323,11 +346,14 @@ void Raytracer::BuildShaderTables()
 
 	// Miss shader table
 	{
-		UINT numShaderRecords = 1;
+		UINT numShaderRecords = RayType::Count;
 		UINT shaderRecordSize = shaderIDSize;
 
 		m_MissShaderTable = std::make_unique<ShaderTable>(device, numShaderRecords, shaderRecordSize, L"MissShaderTable");
-		m_MissShaderTable->AddRecord(ShaderRecord{ missShaderIdentifier, shaderIDSize });
+		for (const auto& missGroupID : missShaderIdentifiers)
+		{
+			m_MissShaderTable->AddRecord(ShaderRecord{ missGroupID, shaderIDSize});
+		}
 	}
 
 	// Hit group shader table
@@ -341,7 +367,7 @@ void Raytracer::BuildShaderTables()
 		for (auto& bottomLevelASGeometry : bottomLevelASGeometries)
 		{
 			// one type of geometry per BLAS
-			numShaderRecords += 1;
+			numShaderRecords += RayType::Count;
 		}
 
 		UINT shaderRecordSize = shaderIDSize + sizeof(LocalRootSignatureParams::RootArguments);
@@ -361,12 +387,15 @@ void Raytracer::BuildShaderTables()
 			rootArgs.brickPoolSRV = geometryInstance->GetBrickPoolSRV(SDFObject::RESOURCES_READ);
 			rootArgs.brickBuffer = geometryInstance->GetBrickBufferAddress(SDFObject::RESOURCES_READ);
 
-			m_HitGroupShaderTable->AddRecord(ShaderRecord{
-				hitGroupShaderIdentifier,
-				shaderIDSize,
-				&rootArgs,
-				sizeof(rootArgs)
-			});
+			for (const auto& hitGroupID: hitGroupShaderIdentifiers)
+			{
+				m_HitGroupShaderTable->AddRecord(ShaderRecord{
+					hitGroupID,
+					shaderIDSize,
+					&rootArgs,
+					sizeof(rootArgs)
+				});
+			}
 
 			geometryInstance->ResetLocalArgsDirty();
 		}
@@ -377,14 +406,15 @@ void Raytracer::BuildShaderTables()
 
 void Raytracer::UpdateHitGroupShaderTable() const
 {
-	void* hitGroupShaderIdentifier;
-	UINT shaderIDSize;
+	void* hitGroupShaderIdentifiers[RayType::Count];
+	constexpr UINT shaderIDSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
+
 	{
 		ComPtr<ID3D12StateObjectProperties> stateObjectProperties;
 		THROW_IF_FAIL(m_DXRStateObject.As(&stateObjectProperties));
 
-		hitGroupShaderIdentifier = stateObjectProperties->GetShaderIdentifier(c_HitGroupName);
-		shaderIDSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
+		for (UINT rayType = 0; rayType < RayType::Count; ++rayType)
+			hitGroupShaderIdentifiers[rayType] = stateObjectProperties->GetShaderIdentifier(c_HitGroupName[rayType]);
 	}
 
 	// Update the entry for each geometry instance
@@ -399,12 +429,15 @@ void Raytracer::UpdateHitGroupShaderTable() const
 			rootArgs.brickPoolSRV = geometryInstance->GetBrickPoolSRV(SDFObject::RESOURCES_READ);
 			rootArgs.brickBuffer = geometryInstance->GetBrickBufferAddress(SDFObject::RESOURCES_READ);
 
-			m_HitGroupShaderTable->UpdateRecord(geometryInstance->GetShaderRecordOffset(), ShaderRecord{
-				hitGroupShaderIdentifier,
-				shaderIDSize,
-				&rootArgs,
-				sizeof(rootArgs)
-				});
+			for (const auto& hitGroupID : hitGroupShaderIdentifiers)
+			{
+				m_HitGroupShaderTable->UpdateRecord(geometryInstance->GetShaderRecordOffset(), ShaderRecord{
+					hitGroupID,
+					shaderIDSize,
+					&rootArgs,
+					sizeof(rootArgs)
+					});
+			}
 
 			geometryInstance->ResetLocalArgsDirty();
 		}
