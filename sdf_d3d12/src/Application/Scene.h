@@ -6,13 +6,13 @@
 #include "SDF/Factory/SDFFactoryHierarchicalAsync.h"
 #include "SDF/SDFObject.h"
 
+class InputManager;
 class BaseDemo;
-
 
 class Scene
 {
 public:
-	Scene(const std::string& demoName, float brickSize);
+	Scene(InputManager* inputManager, const std::string& demoName, float brickSize);
 	~Scene();
 
 	DISALLOW_COPY(Scene)
@@ -36,7 +36,8 @@ public:
 	UINT GetCurrentBrickCount() const;
 	UINT GetDemoEditCount() const;
 
-	void SetPaused(bool paused) { m_Paused = paused; }
+	inline bool GetPaused() const { return m_Paused; }
+	inline void SetPaused(bool paused) { m_Paused = paused; }
 
 private:
 	void BuildEditList(float deltaTime, bool async);
@@ -50,6 +51,8 @@ private:
 	void DisplayAccelerationStructureDebugInfo() const;
 
 private:
+	InputManager* m_InputManager = nullptr;
+
 	BaseDemo* m_CurrentDemo = nullptr;
 
 	// A description of all the different types of geometry in the scene
