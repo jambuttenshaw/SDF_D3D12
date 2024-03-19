@@ -12,6 +12,7 @@ float3 calculateLighting(
 	UINT flags,
     float3 n,					// world space normal
     float3 v,					// world space view direction
+	bool inShadow,
 	LightGPUData light,			
 	MaterialGPUData material,
 	TextureCube irradianceMap,
@@ -35,7 +36,7 @@ float3 calculateLighting(
 
 	// evaluate shading equation
 	const float3 brdf = ggx_brdf(v, l, n, material.Albedo, f0, material.Roughness, material.Metalness) * el * saturate(dot(n, l));
-	lo += max(brdf, 0.0f);
+	lo += max(brdf, 0.0f) * !inShadow;
 
 	float3 ambient = float3(0.0f, 0.0f, 0.0f);
 

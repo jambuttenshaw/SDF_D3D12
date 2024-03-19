@@ -41,6 +41,7 @@ struct SDFIntersectAttrib
 struct RadianceRayPayload
 {
 	XMFLOAT4 color;
+	UINT recursionDepth;
 };
 struct ShadowRayPayload
 {
