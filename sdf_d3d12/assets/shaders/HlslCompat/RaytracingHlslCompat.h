@@ -21,21 +21,69 @@ using namespace DirectX;
 #define RENDER_FLAG_DISPLAY_BRICK_EDIT_COUNT					32u
 #define RENDER_FLAG_DISABLE_IBL									64u
 #define RENDER_FLAG_DISABLE_SKYBOX								128u
+#define RENDER_FLAG_DISABLE_SHADOW								256u
 
 #define INTERSECTION_FLAG_NONE									0u
 #define INTERSECTION_FLAG_NO_REMAP_NORMALS						1u
 
 
-struct MyAttributes
+// Raytracing Params and structures
+
+#define MAX_RAY_RECURSION_DEPTH 2 // Primary rays + shadow rays
+
+
+struct SDFIntersectAttrib
 {
 	XMFLOAT3 normal;
 	UINT utility;		// general purpose integer to pass through to the closest hit shader for debug visualization purposes
 	UINT flags;
 };
-struct RayPayload
+
+struct RadianceRayPayload
 {
 	XMFLOAT4 color;
+	UINT recursionDepth;
 };
+struct ShadowRayPayload
+{
+	bool hit;
+};
+
+
+namespace RayType
+{
+	enum Value
+	{
+		Primary = 0,
+		Shadow,
+		Count
+	};
+}
+
+namespace TraceRayParameters
+{
+	static const UINT InstanceMask = ~0; // Everything is visible
+
+	namespace HitGroup
+	{
+		static const UINT Offset[RayType::Count] =
+		{
+			0,	// Primary rays
+			1	// Shadow rays
+		};
+		static const UINT GeometryStride = RayType::Count;	// The number of entries in the shader table between each geometry
+	}
+
+	namespace MissShader
+	{
+		static const UINT Offset[RayType::Count] =
+		{
+			0,	// Primary rays
+			1	// Shadow rays
+		};
+	}
+}
+
 
 
 // Constant attributes per frame

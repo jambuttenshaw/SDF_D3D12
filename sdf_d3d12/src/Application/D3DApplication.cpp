@@ -668,7 +668,7 @@ bool D3DApplication::ImGuiApplicationInfo()
 					return false;
 				};
 
-			ImGui::Text("Display Options");
+			ImGui::Text("View Mode");
 			RenderFlagOption("Bounding Box", RENDER_FLAG_DISPLAY_BOUNDING_BOX);
 			if (m_PassCB.Flags & RENDER_FLAG_DISPLAY_BOUNDING_BOX)
 			{
@@ -681,8 +681,11 @@ bool D3DApplication::ImGuiApplicationInfo()
 				RenderFlagOption("Normals", RENDER_FLAG_DISPLAY_NORMALS);
 			}
 			RenderFlagOption("Edit Count", RENDER_FLAG_DISPLAY_BRICK_EDIT_COUNT);
+
+			ImGui::Text("Lighting Options");
 			RenderFlagOption("Disable IBL", RENDER_FLAG_DISABLE_IBL);
 			RenderFlagOption("Disable Skybox", RENDER_FLAG_DISABLE_SKYBOX);
+			RenderFlagOption("Disable Shadow", RENDER_FLAG_DISABLE_SHADOW);
 		}
 
 		ImGui::Separator();

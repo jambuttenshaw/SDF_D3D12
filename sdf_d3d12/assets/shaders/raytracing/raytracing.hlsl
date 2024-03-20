@@ -71,6 +71,39 @@ inline void GenerateCameraRay(uint2 index, out float3 origin, out float3 directi
 }
 
 
+// Trace a shadow ray and return true if it hits any geometry.
+bool TraceShadowRay(in Ray ray, in UINT currentRayRecursionDepth)
+{
+	if (currentRayRecursionDepth >= MAX_RAY_RECURSION_DEPTH)
+	{
+		return false;
+	}
+
+	// Set the ray's extents.
+	RayDesc rayDesc;
+	rayDesc.Origin = ray.origin;
+	rayDesc.Direction = ray.direction;
+	rayDesc.TMin = 0.05f;
+	rayDesc.TMax = 10000;
+
+	// Initialize shadow ray payload.
+	// Set the initial value to true since closest and any hit shaders are skipped. 
+	// Shadow miss shader, if called, will set it to false.
+	ShadowRayPayload shadowPayload = { true };
+	TraceRay(g_Scene,
+		RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH
+		| RAY_FLAG_FORCE_OPAQUE // ~skip any hit shaders
+		| RAY_FLAG_SKIP_CLOSEST_HIT_SHADER, // ~skip closest hit shaders,
+		TraceRayParameters::InstanceMask,
+		TraceRayParameters::HitGroup::Offset[RayType::Shadow],
+		TraceRayParameters::HitGroup::GeometryStride,
+		TraceRayParameters::MissShader::Offset[RayType::Shadow],
+		rayDesc, shadowPayload);
+
+	return shadowPayload.hit;
+}
+
+
 float3 ComputeSurfaceNormal(float3 p, float3 delta)
 {
 	return normalize(float3(
@@ -93,7 +126,7 @@ float3 RGBFromHSV(float3 input)
 ////////////////////////
 
 [shader("raygeneration")]
-void MyRaygenShader()
+void PrimaryRaygenShader()
 {
 	float3 rayDir;
 	float3 origin;
@@ -110,8 +143,10 @@ void MyRaygenShader()
     // TMin should be kept small to prevent missing geometry at close contact areas.
 	ray.TMin = 0.001f;
 	ray.TMax = 10000.0f;
-	RayPayload payload = { float4(0, 0, 0, 0) };
+	RadianceRayPayload payload = { float4(0, 0, 0, 0), 0 };
 	TraceRay(g_Scene, RAY_FLAG_NONE, ~0, 0, 1, 0, ray, payload);
+
+	payload.color.xyz = pow(payload.color.xyz, 0.4545f);
 
     // Write the raytraced color to the output texture.
 	g_RenderTarget[DispatchRaysIndex().xy] = payload.color;
@@ -123,7 +158,7 @@ void MyRaygenShader()
 /////////////////////////////
 
 [shader("intersection")]
-void MyIntersectionShader()
+void SDFIntersectionShader()
 {
 	const Brick brick = l_BrickBuffer[PrimitiveIndex()];
 
@@ -140,7 +175,7 @@ void MyIntersectionShader()
 	if (RayAABBIntersectionTest(ray, aabb, tMin, tMax))
 	{
 		// Intersection attributes to be filled out
-		MyAttributes attr;
+		SDFIntersectAttrib attr;
 		attr.flags = INTERSECTION_FLAG_NONE;
 
 
@@ -249,10 +284,8 @@ void MyIntersectionShader()
 /////////////////////////////
 
 [shader("closesthit")]
-void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
+void SDFClosestHitShader(inout RadianceRayPayload payload, in SDFIntersectAttrib attr)
 {
-	float3 hitPos = WorldRayOrigin() + RayTCurrent() * WorldRayDirection();
-
 	// DEBUG MODES
 	if (g_PassCB.Flags & (RENDER_FLAG_DISPLAY_BRICK_EDIT_COUNT | RENDER_FLAG_DISPLAY_HEATMAP | RENDER_FLAG_DISPLAY_BRICK_INDEX))
 	{
@@ -260,8 +293,9 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 		const float hue = g_PassCB.HeatmapHueRange * (1.0f - i);
 
 		payload.color = float4(RGBFromHSV(float3(hue, 1, 1)), 1.0f);
+		return;
 	}
-	else if (g_PassCB.Flags & (RENDER_FLAG_DISPLAY_NORMALS | RENDER_FLAG_DISPLAY_BOUNDING_BOX))
+	if (g_PassCB.Flags & (RENDER_FLAG_DISPLAY_NORMALS | RENDER_FLAG_DISPLAY_BOUNDING_BOX))
 	{
 		float3 normalColor;
 		if (attr.flags & INTERSECTION_FLAG_NO_REMAP_NORMALS)
@@ -269,33 +303,41 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 		else
 			normalColor = 0.5f + 0.5f * attr.normal;
 		payload.color = float4(normalColor, 1);
-	}
-	else
-	{
-		// Load material
-		const MaterialGPUData mat = g_Materials.Load(0);
-
-		const float3 v = normalize(g_PassCB.WorldEyePos - hitPos);
-
-		// Lighting
-		float3 lightColor = calculateLighting(
-			g_PassCB.Flags,
-			attr.normal,
-			v,
-			g_PassCB.Light,
-			mat,
-			g_IrradianceMap,
-			g_BRDFMap,
-			g_PrefilterMap,
-			g_EnvironmentSampler,
-			g_BRDFSampler);
-
-		lightColor /= 1.0f + lightColor;
-
-		payload.color = float4(lightColor, 1.0f);
+		return;
 	}
 
-	payload.color.xyz = pow(payload.color.xyz, 0.4545f);
+
+	// Load material
+	const MaterialGPUData mat = g_Materials.Load(0);
+
+	const float3 hitPos = WorldRayOrigin() + RayTCurrent() * WorldRayDirection();
+	const float3 v = normalize(g_PassCB.WorldEyePos - hitPos);
+
+	Ray shadowRay;
+	shadowRay.origin = hitPos;
+	shadowRay.direction = -g_PassCB.Light.Direction;
+
+	const bool shadowRayHit = g_PassCB.Flags & RENDER_FLAG_DISABLE_SHADOW
+								? false
+								: TraceShadowRay(shadowRay, payload.recursionDepth);
+
+	// Lighting
+	float3 lightColor = calculateLighting(
+		g_PassCB.Flags,
+		attr.normal,
+		v,
+		shadowRayHit,
+		g_PassCB.Light,
+		mat,
+		g_IrradianceMap,
+		g_BRDFMap,
+		g_PrefilterMap,
+		g_EnvironmentSampler,
+		g_BRDFSampler);
+
+	lightColor /= 1.0f + lightColor;
+
+	payload.color = float4(lightColor, 1.0f);
 }
 
 
@@ -304,11 +346,18 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 /////////////////////
 
 [shader("miss")]
-void MyMissShader(inout RayPayload payload)
+void PrimaryMissShader(inout RadianceRayPayload payload)
 {
 	payload.color = g_PassCB.Flags & RENDER_FLAG_DISABLE_SKYBOX
 					? float4(0, 0, 0.2f, 1)
 					: g_EnvironmentMap.SampleLevel(g_EnvironmentSampler, WorldRayDirection(), 0);
+}
+
+
+[shader("miss")]
+void ShadowMissShader(inout ShadowRayPayload payload)
+{
+	payload.hit = false;
 }
 
 #endif // RAYTRACING_HLSL
