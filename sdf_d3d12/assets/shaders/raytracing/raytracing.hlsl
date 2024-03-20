@@ -317,7 +317,9 @@ void SDFClosestHitShader(inout RadianceRayPayload payload, in SDFIntersectAttrib
 	shadowRay.origin = hitPos;
 	shadowRay.direction = -g_PassCB.Light.Direction;
 
-	const bool shadowRayHit = TraceShadowRay(shadowRay, payload.recursionDepth);
+	const bool shadowRayHit = g_PassCB.Flags & RENDER_FLAG_DISABLE_SHADOW
+								? false
+								: TraceShadowRay(shadowRay, payload.recursionDepth);
 
 	// Lighting
 	float3 lightColor = calculateLighting(

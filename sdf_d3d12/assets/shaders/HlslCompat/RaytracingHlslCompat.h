@@ -21,6 +21,7 @@ using namespace DirectX;
 #define RENDER_FLAG_DISPLAY_BRICK_EDIT_COUNT					32u
 #define RENDER_FLAG_DISABLE_IBL									64u
 #define RENDER_FLAG_DISABLE_SKYBOX								128u
+#define RENDER_FLAG_DISABLE_SHADOW								256u
 
 #define INTERSECTION_FLAG_NONE									0u
 #define INTERSECTION_FLAG_NO_REMAP_NORMALS						1u
