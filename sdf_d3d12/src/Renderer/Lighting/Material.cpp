@@ -5,10 +5,43 @@
 #include "Renderer/D3DGraphicsContext.h"
 
 
-MaterialManager::MaterialManager(size_t capacity)
-	: m_MaterialStaging(capacity)
-	, m_MaterialBuffers(D3DGraphicsContext::GetBackBufferCount())
+Material::Material(UINT materialID)
+	: m_MaterialID(materialID)
+	, m_NumFramesDirty(D3DGraphicsContext::GetBackBufferCount())
 {
+	// Defaults
+	m_Data.Albedo = XMFLOAT3(0.9f, 0.6f, 0.0f);
+	m_Data.Roughness = 0.4f;
+	m_Data.Metalness = 0.0f;
+}
+
+void Material::SetDirty()
+{
+	m_NumFramesDirty = D3DGraphicsContext::GetBackBufferCount();
+}
+
+void Material::DrawGui()
+{
+	bool dirty = false;
+
+	dirty |= ImGui::ColorEdit3("Albedo", &m_Data.Albedo.x);
+	dirty |= ImGui::SliderFloat("Roughness", &m_Data.Roughness, 0.05f, 1.0f);
+	dirty |= ImGui::SliderFloat("Metalness", &m_Data.Metalness, 0.0f, 1.0f);
+
+	if (dirty) 
+		SetDirty();
+}
+
+
+MaterialManager::MaterialManager(size_t capacity)
+	: m_MaterialBuffers(D3DGraphicsContext::GetBackBufferCount())
+{
+	m_Materials.reserve(capacity);
+	for (UINT id = 0; id < static_cast<UINT>(capacity); id++)
+	{
+		m_Materials.emplace_back(Material{ id });
+	}
+
 	const UINT alignment = Align(static_cast<UINT>(sizeof(MaterialGPUData)), 16);
 	for (auto& buffer : m_MaterialBuffers)
 	{
@@ -17,9 +50,18 @@ MaterialManager::MaterialManager(size_t capacity)
 }
 
 
-void MaterialManager::UploadMaterialData() const
+void MaterialManager::UploadMaterialData()
 {
-	m_MaterialBuffers.at(g_D3DGraphicsContext->GetCurrentBackBuffer()).CopyElements(0, static_cast<UINT>(m_MaterialStaging.size()), m_MaterialStaging.data());
+	const auto& matBuffer = m_MaterialBuffers.at(g_D3DGraphicsContext->GetCurrentBackBuffer());
+
+	for (auto& mat : m_Materials)
+	{
+		if (mat.m_NumFramesDirty > 0)
+		{
+			matBuffer.CopyElement(mat.m_MaterialID, mat.m_Data);
+			mat.m_NumFramesDirty--;
+		}
+	}
 }
 
 D3D12_GPU_VIRTUAL_ADDRESS MaterialManager::GetMaterialBufferAddress() const
@@ -30,10 +72,8 @@ D3D12_GPU_VIRTUAL_ADDRESS MaterialManager::GetMaterialBufferAddress() const
 
 void MaterialManager::DrawGui()
 {
-	for (auto& material : m_MaterialStaging)
+	for (auto& material : m_Materials)
 	{
-		ImGui::ColorEdit3("Albedo", &material.Albedo.x);
-		ImGui::SliderFloat("Roughness", &material.Roughness, 0.05f, 1.0f);
-		ImGui::SliderFloat("Metalness", &material.Metalness, 0.0f, 1.0f);
+		material.DrawGui();
 	}
 }

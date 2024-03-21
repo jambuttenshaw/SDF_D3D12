@@ -236,7 +236,7 @@ void D3DApplication::OnInit()
 	else
 	{
 		// Load default demo
-		m_Scene = std::make_unique<Scene>(m_InputManager.get(), m_DefaultDemo, 0.0625f);
+		m_Scene = std::make_unique<Scene>(m_InputManager.get(), m_DefaultDemo, 0.125f);
 	}
 
 	m_Raytracer = std::make_unique<Raytracer>();
@@ -254,16 +254,10 @@ void D3DApplication::OnInit()
 		config.BytesPerChannel = 1;
 		config.ResourceState = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
 
-		auto environmentMap = m_TextureLoader->LoadTextureCubeFromFile("assets/textures/environment2.png", &config);
+		auto environmentMap = m_TextureLoader->LoadTextureCubeFromFile("assets/textures/environment.png", &config);
 		m_TextureLoader->PerformUploadsImmediatelyAndBlock();
 		m_LightManager->ProcessEnvironmentMap(std::move(environmentMap));
 	}
-
-	// Populate materials
-	MaterialGPUData& mat = m_MaterialManager->GetMaterial(0);
-	mat.Albedo = XMFLOAT3(0.0f, 0.27f, 0.89f);
-	mat.Roughness = 0.3f;
-	mat.Metalness = 0.0f;
 
 	// Set default pass buffer values
 	m_PassCB.Flags = RENDER_FLAG_NONE;
