@@ -6,13 +6,13 @@
 #include "SDF/Factory/SDFFactoryHierarchicalAsync.h"
 #include "SDF/SDFObject.h"
 
-class InputManager;
+class D3DApplication;
 class BaseDemo;
 
 class Scene
 {
 public:
-	Scene(InputManager* inputManager, const std::string& demoName, float brickSize);
+	Scene(D3DApplication* application, const std::string& demoName, float brickSize);
 	~Scene();
 
 	DISALLOW_COPY(Scene)
@@ -51,7 +51,7 @@ private:
 	void DisplayAccelerationStructureDebugInfo() const;
 
 private:
-	InputManager* m_InputManager = nullptr;
+	D3DApplication* m_Application = nullptr;
 
 	BaseDemo* m_CurrentDemo = nullptr;
 

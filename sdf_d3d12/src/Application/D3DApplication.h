@@ -38,6 +38,11 @@ public:
 
 	virtual bool GetTearingSupport() const override;
 	virtual IDXGISwapChain* GetSwapChain() const override;
+
+	inline InputManager* GetInputManager() const { return m_InputManager.get(); }
+	inline LightManager* GetLightManager() const { return m_LightManager.get(); }
+	inline MaterialManager* GetMaterialManager() const { return m_MaterialManager.get(); }
+
 private:
 
 	void UpdatePassCB();

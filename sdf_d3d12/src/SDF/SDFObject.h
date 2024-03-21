@@ -9,6 +9,7 @@
 using Microsoft::WRL::ComPtr;
 
 struct SDFEditData;
+class Material;
 
 
 class SDFObject
@@ -69,6 +70,14 @@ public:
 
 	// Acceleration structure properties
 	inline D3D12_RAYTRACING_GEOMETRY_FLAGS GetGeometryFlags() const { return m_GeometryFlags; }
+
+	// Materials
+	UINT GetMaterialID(UINT slot) const;
+	void SetMaterial(const Material* material, UINT slot);
+
+	inline static UINT GetMaxMaterialsPerObject() { return s_MaxMaterialsPerObject; }
+	const UINT* GetMaterialTablePtr() const { return m_MaterialTable.data(); }
+	size_t GetMaterialTableSize() const { return m_MaterialTable.size() * sizeof(m_MaterialTable.at(0)); }
 
 	// Shader record properties
 	inline UINT GetShaderRecordOffset() const { return m_ShaderRecordOffset; }
@@ -160,6 +169,11 @@ private:
 
 	float m_NextRebuildBrickSize = 0.0f;
 	UINT m_BrickCapacity = 0; // The maximum possible number of bricks
+
+	// Materials
+	inline static constexpr UINT s_MaxMaterialsPerObject = 4;
+	// Store a table of material IDs
+	std::array<UINT, s_MaxMaterialsPerObject> m_MaterialTable;
 
 	// For raytracing acceleration structure
 	D3D12_RAYTRACING_GEOMETRY_FLAGS m_GeometryFlags;

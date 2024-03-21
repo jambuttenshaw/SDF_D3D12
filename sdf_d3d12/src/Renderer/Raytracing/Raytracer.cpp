@@ -26,6 +26,17 @@ const wchar_t* Raytracer::c_MissShaderName[] =
 };
 
 
+void PopulateLocalRootParams(const SDFObject* object, LocalRootSignatureParams::RootArguments& rootArgs)
+{
+	rootArgs.brickProperties.BrickSize = object->GetBrickSize(SDFObject::RESOURCES_READ);
+	rootArgs.brickProperties.BrickCount = object->GetBrickCount(SDFObject::RESOURCES_READ);
+	rootArgs.brickPoolSRV = object->GetBrickPoolSRV(SDFObject::RESOURCES_READ);
+	rootArgs.brickBuffer = object->GetBrickBufferAddress(SDFObject::RESOURCES_READ);
+	memcpy(&rootArgs.materialTable, object->GetMaterialTablePtr(), object->GetMaterialTableSize());
+}
+
+
+
 Raytracer::Raytracer()
 {
 	LOG_INFO("Initializing raytracer...");
@@ -168,6 +179,7 @@ void Raytracer::CreateRootSignatures()
 		rootParameters[LocalRootSignatureParams::BrickPropertiesBuffer].InitAsConstants(SizeOfInUint32(BrickPropertiesConstantBuffer), 0, 1);
 		rootParameters[LocalRootSignatureParams::BrickPoolSlot].InitAsDescriptorTable(1, &SRVDescriptor);
 		rootParameters[LocalRootSignatureParams::BrickBufferSlot].InitAsShaderResourceView(1, 1);
+		rootParameters[LocalRootSignatureParams::MaterialTableSlot].InitAsConstants(SizeOfInUint32(XMUINT4), 1, 1);
 
 		CD3DX12_ROOT_SIGNATURE_DESC localRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE);
 		SerializeAndCreateRaytracingRootSignature(localRootSignatureDesc, &m_RaytracingLocalRootSignature);
@@ -203,11 +215,11 @@ void Raytracer::CreateRaytracingPipelineStateObject()
 
 	// Create hit groups
 	// There will be separate hit groups for primary and shadow rays
-	for (UINT rayType = 0; rayType < RayType::Count; ++rayType)
+	for (UINT rayType = 0; rayType < RayType_Count; ++rayType)
 	{
 		const auto hitGroup = raytracingPipeline.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
 		hitGroup->SetIntersectionShaderImport(c_IntersectionShaderName);
-		if (rayType == RayType::Primary)
+		if (rayType == RayType_Primary)
 			hitGroup->SetClosestHitShaderImport(c_ClosestHitShaderName);
 		hitGroup->SetHitGroupExport(c_HitGroupName[rayType]);
 		hitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_PROCEDURAL_PRIMITIVE);
@@ -220,7 +232,7 @@ void Raytracer::CreateRaytracingPipelineStateObject()
 
 	const auto localRootSigAssociation = raytracingPipeline.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
 	localRootSigAssociation->SetSubobjectToAssociate(*localRootSig);
-	localRootSigAssociation->AddExport(c_HitGroupName[RayType::Primary]);
+	localRootSigAssociation->AddExport(c_HitGroupName[RayType_Primary]);
 
 
 	// Shader config
@@ -310,8 +322,8 @@ void Raytracer::BuildShaderTables()
 	const auto device = g_D3DGraphicsContext->GetDevice();
 
 	void* rayGenShaderIdentifier;
-	void* missShaderIdentifiers[RayType::Count];
-	void* hitGroupShaderIdentifiers[RayType::Count];
+	void* missShaderIdentifiers[RayType_Count];
+	void* hitGroupShaderIdentifiers[RayType_Count];
 
 	constexpr UINT shaderIDSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
 
@@ -321,9 +333,9 @@ void Raytracer::BuildShaderTables()
 		THROW_IF_FAIL(m_DXRStateObject.As(&stateObjectProperties));
 
 		rayGenShaderIdentifier = stateObjectProperties->GetShaderIdentifier(c_RaygenShaderName);
-		for (UINT rayType = 0; rayType < RayType::Count; ++rayType)
+		for (UINT rayType = 0; rayType < RayType_Count; ++rayType)
 			missShaderIdentifiers[rayType] = stateObjectProperties->GetShaderIdentifier(c_MissShaderName[rayType]);
-		for (UINT rayType = 0; rayType < RayType::Count; ++rayType)
+		for (UINT rayType = 0; rayType < RayType_Count; ++rayType)
 			hitGroupShaderIdentifiers[rayType] = stateObjectProperties->GetShaderIdentifier(c_HitGroupName[rayType]);
 	}
 
@@ -346,7 +358,7 @@ void Raytracer::BuildShaderTables()
 
 	// Miss shader table
 	{
-		UINT numShaderRecords = RayType::Count;
+		UINT numShaderRecords = RayType_Count;
 		UINT shaderRecordSize = shaderIDSize;
 
 		m_MissShaderTable = std::make_unique<ShaderTable>(device, numShaderRecords, shaderRecordSize, L"MissShaderTable");
@@ -367,7 +379,7 @@ void Raytracer::BuildShaderTables()
 		for (auto& bottomLevelASGeometry : bottomLevelASGeometries)
 		{
 			// one type of geometry per BLAS
-			numShaderRecords += RayType::Count;
+			numShaderRecords += RayType_Count;
 		}
 
 		UINT shaderRecordSize = shaderIDSize + sizeof(LocalRootSignatureParams::RootArguments);
@@ -382,10 +394,7 @@ void Raytracer::BuildShaderTables()
 			geometryInstance->SetShaderRecordOffset(m_HitGroupShaderTable->GetNumRecords());
 
 			LocalRootSignatureParams::RootArguments rootArgs;
-			rootArgs.brickProperties.BrickSize = geometryInstance->GetBrickSize(SDFObject::RESOURCES_READ);
-			rootArgs.brickProperties.BrickCount = geometryInstance->GetBrickCount(SDFObject::RESOURCES_READ);
-			rootArgs.brickPoolSRV = geometryInstance->GetBrickPoolSRV(SDFObject::RESOURCES_READ);
-			rootArgs.brickBuffer = geometryInstance->GetBrickBufferAddress(SDFObject::RESOURCES_READ);
+			PopulateLocalRootParams(geometryInstance, rootArgs);
 
 			for (const auto& hitGroupID: hitGroupShaderIdentifiers)
 			{
@@ -406,14 +415,14 @@ void Raytracer::BuildShaderTables()
 
 void Raytracer::UpdateHitGroupShaderTable() const
 {
-	void* hitGroupShaderIdentifiers[RayType::Count];
+	void* hitGroupShaderIdentifiers[RayType_Count];
 	constexpr UINT shaderIDSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
 
 	{
 		ComPtr<ID3D12StateObjectProperties> stateObjectProperties;
 		THROW_IF_FAIL(m_DXRStateObject.As(&stateObjectProperties));
 
-		for (UINT rayType = 0; rayType < RayType::Count; ++rayType)
+		for (UINT rayType = 0; rayType < RayType_Count; ++rayType)
 			hitGroupShaderIdentifiers[rayType] = stateObjectProperties->GetShaderIdentifier(c_HitGroupName[rayType]);
 	}
 
@@ -424,12 +433,9 @@ void Raytracer::UpdateHitGroupShaderTable() const
 		if (geometryInstance->IsLocalArgsDirty())
 		{
 			LocalRootSignatureParams::RootArguments rootArgs;
-			rootArgs.brickProperties.BrickSize = geometryInstance->GetBrickSize(SDFObject::RESOURCES_READ);
-			rootArgs.brickProperties.BrickCount = geometryInstance->GetBrickCount(SDFObject::RESOURCES_READ);
-			rootArgs.brickPoolSRV = geometryInstance->GetBrickPoolSRV(SDFObject::RESOURCES_READ);
-			rootArgs.brickBuffer = geometryInstance->GetBrickBufferAddress(SDFObject::RESOURCES_READ);
+			PopulateLocalRootParams(geometryInstance, rootArgs);
 
-			for (UINT rayType = 0; rayType < RayType::Count; ++rayType)
+			for (UINT rayType = 0; rayType < RayType_Count; ++rayType)
 			{
 				m_HitGroupShaderTable->UpdateRecord(geometryInstance->GetShaderRecordOffset() + rayType, 
 					ShaderRecord{

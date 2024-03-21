@@ -221,12 +221,16 @@ void D3DApplication::OnInit()
 	else
 		m_CameraController = std::make_unique<CameraController>(m_InputManager.get(), &m_Camera);
 
+	m_Raytracer = std::make_unique<Raytracer>();
+	m_LightManager = std::make_unique<LightManager>();
+	m_MaterialManager = std::make_unique<MaterialManager>(4);
+
 	BaseDemo::CreateAllDemos();
 	if (m_ProfilingMode)
 	{
 		// Load config from command line
 		const auto& demo = m_ProfileConfig.DemoConfigs[0];
-		m_Scene = std::make_unique<Scene>(m_InputManager.get(), demo.DemoName, demo.InitialBrickSize);
+		m_Scene = std::make_unique<Scene>(this, demo.DemoName, demo.InitialBrickSize);
 
 		// Setup camera
 		const auto orbitalCamera = static_cast<OrbitalCameraController*>(m_CameraController.get());
@@ -236,15 +240,10 @@ void D3DApplication::OnInit()
 	else
 	{
 		// Load default demo
-		m_Scene = std::make_unique<Scene>(m_InputManager.get(), m_DefaultDemo, 0.125f);
+		m_Scene = std::make_unique<Scene>(this, m_DefaultDemo, 0.125f);
 	}
 
-	m_Raytracer = std::make_unique<Raytracer>();
 	m_Raytracer->Setup(*m_Scene);
-
-	m_LightManager = std::make_unique<LightManager>();
-	m_MaterialManager = std::make_unique<MaterialManager>(1);
-
 
 	// Load environment map
 	{

@@ -5,6 +5,8 @@
 #include "imgui.h"
 
 #include "Framework/Math.h"
+
+#include "D3DApplication.h"
 #include "Input/InputManager.h"
 
 #include "pix3.h"
@@ -23,10 +25,10 @@ static std::string wstring_to_utf8(const std::wstring& str)
 #pragma warning( pop ) 
 
 
-Scene::Scene(InputManager* inputManager, const std::string& demoName, float brickSize)
-	: m_InputManager(inputManager)
+Scene::Scene(D3DApplication* application, const std::string& demoName, float brickSize)
+	: m_Application(application)
 {
-	ASSERT(m_InputManager, "Invalid input manager.");
+	ASSERT(m_Application, "Invalid app.");
 
 	m_CurrentDemo = BaseDemo::GetDemoFromName(demoName);
 	ASSERT(m_CurrentDemo, "Failed to load current demo.");
@@ -67,6 +69,12 @@ Scene::Scene(InputManager* inputManager, const std::string& demoName, float bric
 		// Init top level AS
 		m_AccelerationStructure->InitializeTopLevelAS(buildFlags, true, true, L"Top Level Acceleration Structure");
 	}
+
+
+	const auto mat = m_Application->GetMaterialManager()->GetMaterial(1);
+	mat->SetAlbedo(XMFLOAT3(0.0f, 0.6f, 0.9f));
+
+	m_Object->SetMaterial(mat, 0);
 }
 
 Scene::~Scene()
@@ -92,7 +100,8 @@ void Scene::OnUpdate(float deltaTime)
 
 
 	// Space toggles pausing
-	if (m_InputManager->IsKeyPressed(KEY_SPACE))
+	const auto inputManager = m_Application->GetInputManager();
+	if (inputManager->IsKeyPressed(KEY_SPACE))
 	{
 		m_Paused = !m_Paused;
 	}
@@ -101,11 +110,11 @@ void Scene::OnUpdate(float deltaTime)
 	float timeDirection = 1.0f;
 	if (m_Paused)
 	{
-		if (m_InputManager->IsKeyPressed(KEY_RIGHT))
+		if (inputManager->IsKeyPressed(KEY_RIGHT))
 		{
 			rebuildOnce = true;
 		}
-		else if (m_InputManager->IsKeyPressed(KEY_LEFT))
+		else if (inputManager->IsKeyPressed(KEY_LEFT))
 		{
 			rebuildOnce = true;
 			timeDirection = -1.0f;

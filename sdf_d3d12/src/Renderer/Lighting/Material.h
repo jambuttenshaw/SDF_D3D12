@@ -17,6 +17,7 @@ public:
 	DEFAULT_MOVE(Material);
 
 	inline UINT GetMaterialID() const { return m_MaterialID; }
+	inline const char* GetName() const { return m_Name.c_str(); }
 
 	inline const XMFLOAT3& GetAlbedo() const { return m_Data.Albedo; }
 	inline float GetRoughness() const { return m_Data.Roughness; }
@@ -34,6 +35,8 @@ private:
 
 private:
 	UINT m_MaterialID;
+	std::string m_Name;
+
 	MaterialGPUData m_Data;
 	UINT m_NumFramesDirty;
 };

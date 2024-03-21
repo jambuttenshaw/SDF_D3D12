@@ -3,6 +3,7 @@
 
 #include "Renderer/D3DGraphicsContext.h"
 #include "HlslCompat/ComputeHlslCompat.h"
+#include "Renderer/Lighting/Material.h"
 
 SDFObject::SDFObject(float brickSize, UINT brickCapacity, D3D12_RAYTRACING_GEOMETRY_FLAGS geometryFlags)
 	: m_GeometryFlags(geometryFlags)
@@ -22,6 +23,11 @@ SDFObject::SDFObject(float brickSize, UINT brickCapacity, D3D12_RAYTRACING_GEOME
 
 		resources.ResourceViews = descriptorHeap->Allocate(2);
 		ASSERT(resources.ResourceViews.IsValid(), "Descriptor allocation failed!");
+	}
+
+	for (auto& mat : m_MaterialTable)
+	{
+		mat = 0;
 	}
 }
 
@@ -52,6 +58,21 @@ UINT SDFObject::GetBrickPoolCapacity(ResourceGroup res) const
 {
 	const auto& dims = GetResources(res).BrickPoolDimensions;
 	return dims.x * dims.y * dims.z;
+}
+
+
+UINT SDFObject::GetMaterialID(UINT slot) const
+{
+	ASSERT(slot < s_MaxMaterialsPerObject, "Invalid material slot.");
+	return m_MaterialTable.at(slot);
+}
+
+void SDFObject::SetMaterial(const Material* material, UINT slot)
+{
+	ASSERT(slot < s_MaxMaterialsPerObject, "Invalid material slot.");
+	m_MaterialTable[slot] = material->GetMaterialID();
+
+	m_IsLocalArgsDirty = true;
 }
 
 

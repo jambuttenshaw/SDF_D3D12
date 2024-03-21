@@ -50,15 +50,13 @@ struct ShadowRayPayload
 };
 
 
-namespace RayType
+enum RayType
 {
-	enum Value
-	{
-		Primary = 0,
-		Shadow,
-		Count
-	};
-}
+	RayType_Primary = 0,
+	RayType_Shadow,
+	RayType_Count
+};
+
 
 namespace TraceRayParameters
 {
@@ -66,17 +64,17 @@ namespace TraceRayParameters
 
 	namespace HitGroup
 	{
-		static const UINT Offset[RayType::Count] =
+		static const UINT Offset[RayType_Count] =
 		{
 			0,	// Primary rays
 			1	// Shadow rays
 		};
-		static const UINT GeometryStride = RayType::Count;	// The number of entries in the shader table between each geometry
+		static const UINT GeometryStride = RayType_Count;	// The number of entries in the shader table between each geometry
 	}
 
 	namespace MissShader
 	{
-		static const UINT Offset[RayType::Count] =
+		static const UINT Offset[RayType_Count] =
 		{
 			0,	// Primary rays
 			1	// Shadow rays

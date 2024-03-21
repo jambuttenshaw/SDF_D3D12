@@ -24,6 +24,7 @@ namespace LocalRootSignatureParams
 		BrickPropertiesBuffer = 0,	// Properties constant among all bricks
 		BrickPoolSlot,				// Brick pool to raymarch
 		BrickBufferSlot,			// Indirection data for brick
+		MaterialTableSlot,			// Indirection table for which materials to apply to the object
 		Count
 	};
 
@@ -32,5 +33,6 @@ namespace LocalRootSignatureParams
 		BrickPropertiesConstantBuffer brickProperties;
 		D3D12_GPU_DESCRIPTOR_HANDLE brickPoolSRV;
 		D3D12_GPU_VIRTUAL_ADDRESS brickBuffer;
+		XMUINT4 materialTable;
 	};
 }

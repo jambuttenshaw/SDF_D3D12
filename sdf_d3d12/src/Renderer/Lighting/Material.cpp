@@ -9,6 +9,8 @@ Material::Material(UINT materialID)
 	: m_MaterialID(materialID)
 	, m_NumFramesDirty(D3DGraphicsContext::GetBackBufferCount())
 {
+	m_Name = std::to_string(m_MaterialID);
+
 	// Defaults
 	m_Data.Albedo = XMFLOAT3(0.9f, 0.6f, 0.0f);
 	m_Data.Roughness = 0.4f;
@@ -42,10 +44,10 @@ MaterialManager::MaterialManager(size_t capacity)
 		m_Materials.emplace_back(Material{ id });
 	}
 
-	const UINT alignment = Align(static_cast<UINT>(sizeof(MaterialGPUData)), 16);
+	// const UINT alignment = Align(static_cast<UINT>(sizeof(MaterialGPUData)), 16);
 	for (auto& buffer : m_MaterialBuffers)
 	{
-		buffer.Allocate(g_D3DGraphicsContext->GetDevice(), static_cast<UINT>(capacity), alignment, L"Material Buffer");
+		buffer.Allocate(g_D3DGraphicsContext->GetDevice(), static_cast<UINT>(capacity), 0, L"Material Buffer");
 	}
 }
 
@@ -72,8 +74,13 @@ D3D12_GPU_VIRTUAL_ADDRESS MaterialManager::GetMaterialBufferAddress() const
 
 void MaterialManager::DrawGui()
 {
-	for (auto& material : m_Materials)
-	{
-		material.DrawGui();
-	}
+	auto matNameGetter = [](void* materials, int index) -> const char*
+		{
+			const Material* m = static_cast<Material*>(materials) + index;
+			return m->GetName();
+		};
+
+	static int selectedMat = 0;
+	ImGui::Combo("Material", &selectedMat, matNameGetter, m_Materials.data(), static_cast<int>(m_Materials.size()));
+	m_Materials.at(selectedMat).DrawGui();
 }

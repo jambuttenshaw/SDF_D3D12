@@ -63,11 +63,11 @@ private:
 	DescriptorAllocation m_RaytracingOutputDescriptor;
 
 	// Shader names and Shader tables
-	static const wchar_t* c_HitGroupName[RayType::Count];
+	static const wchar_t* c_HitGroupName[RayType_Count];
 	static const wchar_t* c_RaygenShaderName;
 	static const wchar_t* c_IntersectionShaderName;
 	static const wchar_t* c_ClosestHitShaderName;
-	static const wchar_t* c_MissShaderName[RayType::Count];
+	static const wchar_t* c_MissShaderName[RayType_Count];
 	std::unique_ptr<ShaderTable> m_MissShaderTable;
 	std::unique_ptr<ShaderTable> m_HitGroupShaderTable;
 	std::unique_ptr<ShaderTable> m_RayGenShaderTable;

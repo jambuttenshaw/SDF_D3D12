@@ -38,6 +38,13 @@ ConstantBuffer<BrickPropertiesConstantBuffer> l_BrickProperties : register(b0, s
 Texture3D<float> l_BrickPool : register(t0, space1);
 StructuredBuffer<Brick> l_BrickBuffer : register(t1, space1);
 
+struct MaterialTable
+{
+	uint4 Table;
+};
+ConstantBuffer<MaterialTable> l_MaterialTable : register(b1, space1);
+
+
 /////////////////
 //// DEFINES ////
 /////////////////
@@ -95,9 +102,9 @@ bool TraceShadowRay(in Ray ray, in UINT currentRayRecursionDepth)
 		| RAY_FLAG_FORCE_OPAQUE // ~skip any hit shaders
 		| RAY_FLAG_SKIP_CLOSEST_HIT_SHADER, // ~skip closest hit shaders,
 		TraceRayParameters::InstanceMask,
-		TraceRayParameters::HitGroup::Offset[RayType::Shadow],
+		TraceRayParameters::HitGroup::Offset[RayType_Shadow],
 		TraceRayParameters::HitGroup::GeometryStride,
-		TraceRayParameters::MissShader::Offset[RayType::Shadow],
+		TraceRayParameters::MissShader::Offset[RayType_Shadow],
 		rayDesc, shadowPayload);
 
 	return shadowPayload.hit;
@@ -308,7 +315,7 @@ void SDFClosestHitShader(inout RadianceRayPayload payload, in SDFIntersectAttrib
 
 
 	// Load material
-	const MaterialGPUData mat = g_Materials.Load(0);
+	const MaterialGPUData mat = g_Materials.Load(l_MaterialTable.Table.x);
 
 	const float3 hitPos = WorldRayOrigin() + RayTCurrent() * WorldRayDirection();
 	const float3 v = normalize(g_PassCB.WorldEyePos - hitPos);
