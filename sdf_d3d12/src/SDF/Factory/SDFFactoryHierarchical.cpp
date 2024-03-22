@@ -383,7 +383,7 @@ void SDFFactoryHierarchical::CreatePipelineSet(const std::wstring& name, const s
 		using namespace BrickEvaluatorSignature;
 
 		CD3DX12_DESCRIPTOR_RANGE1 ranges[1];
-		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1);
+		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
 
 		CD3DX12_ROOT_PARAMETER1 rootParameters[Count];
 		rootParameters[GroupOffsetSlot].InitAsConstants(1, 0);

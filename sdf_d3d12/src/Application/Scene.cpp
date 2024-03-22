@@ -74,7 +74,7 @@ Scene::Scene(D3DApplication* application, const std::string& demoName, float bri
 	const auto mat = m_Application->GetMaterialManager()->GetMaterial(1);
 	mat->SetAlbedo(XMFLOAT3(0.0f, 0.6f, 0.9f));
 
-	m_Object->SetMaterial(mat, 0);
+	m_Object->SetMaterial(mat, 1);
 }
 
 Scene::~Scene()

@@ -27,7 +27,7 @@ StructuredBuffer<uint16_t> g_IndexBuffer : register(t1);
 
 StructuredBuffer<Brick> g_BrickBuffer : register(t2);
 
-RWTexture3D<uint4> g_OutputTexture : register(u1);
+RWTexture3D<float4> g_OutputTexture : register(u0);
 
 
 #define MAX_EDITS_CHUNK 256
@@ -35,7 +35,7 @@ groupshared SDFEditData gs_Edits[MAX_EDITS_CHUNK];
 groupshared Brick gs_Brick;
 
 
-float EvaluateEditList(float3 p, uint GI)
+float4 EvaluateEditList(float3 p, uint GI)
 {
 #ifdef DISABLE_EDIT_CULLING
 	const uint editCount = g_BuildParameters.SDFEditCount;
@@ -44,7 +44,7 @@ float EvaluateEditList(float3 p, uint GI)
 #endif
 
 	// Evaluate SDF list
-	float nearest = FLOAT_MAX;
+	float4 nearest = float4(FLOAT_MAX, 0.0f, 1.0f, 0.0f);
 
 	const uint numChunks = (editCount + MAX_EDITS_CHUNK - 1) / MAX_EDITS_CHUNK;
 	uint editsRemaining = editCount;
@@ -76,7 +76,7 @@ float EvaluateEditList(float3 p, uint GI)
 			dist *= gs_Edits[edit].Scale;
 
 			// combine with scene
-			nearest = opPrimitive(nearest, dist, GetOperation(gs_Edits[edit].EditParams), gs_Edits[edit].BlendingRange);
+			nearest.x = opPrimitive(nearest.x, dist, GetOperation(gs_Edits[edit].EditParams), gs_Edits[edit].BlendingRange);
 		}
 
 		editsRemaining -= MAX_EDITS_CHUNK;
@@ -106,14 +106,14 @@ void main(uint3 GroupID : SV_GroupID, uint3 GTid : SV_GroupThreadID, uint GI : S
 																											// and then map from voxels to eval space units
 
 	// Evaluate SDF volume
-	const float nearest = EvaluateEditList(evaluationPosition, GI);
-	const uint formattedDistance = FormatDistance(nearest, g_BuildParameters.EvalSpace_VoxelsPerUnit);
+	const float4 nearest = EvaluateEditList(evaluationPosition, GI);
+	const float formattedDistance = FormatDistance(nearest.x, g_BuildParameters.EvalSpace_VoxelsPerUnit);
 
 	// Now calculate where to store the voxel in the brick pool
 	const uint3 brickVoxel = CalculateBrickPoolPosition(brickIndex, g_BuildParameters.BrickCount, g_BuildParameters.BrickPool_BrickCapacityPerAxis) + GTid;
 
 	// Store the mapped distance in the volume
-	g_OutputTexture[brickVoxel] = uint4(formattedDistance, 0, 0, 0);
+	g_OutputTexture[brickVoxel] = float4(formattedDistance, nearest.yzw);
 }
 
 #endif

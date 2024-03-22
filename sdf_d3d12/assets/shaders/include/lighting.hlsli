@@ -8,6 +8,25 @@
 #include "lighting_ibl.hlsli"
 
 
+MaterialGPUData blendMaterial(MaterialGPUData a, MaterialGPUData b, float t)
+{
+	MaterialGPUData blended;
+	blended.Albedo = a.Albedo + t * b.Albedo;
+	blended.Roughness = a.Roughness + t * b.Roughness;
+	blended.Metalness = a.Metalness + t * b.Metalness;
+	return blended;
+}
+
+MaterialGPUData blendMaterial(MaterialGPUData a, float t)
+{
+	MaterialGPUData blended;
+	blended.Albedo = t * a.Albedo;
+	blended.Roughness = t * a.Roughness;
+	blended.Metalness = t * a.Metalness;
+	return blended;
+}
+
+
 float3 calculateLighting(
 	UINT flags,
     float3 n,					// world space normal

@@ -37,9 +37,7 @@ SamplerState g_VolumeSampler : register(s2);
 ConstantBuffer<BrickPropertiesConstantBuffer> l_BrickProperties : register(b0, space1);
 
 Texture3D l_BrickPool : register(t0, space1);
-Texture3D<uint4> l_BrickPoolMaterials : register(t1, space1);
-
-StructuredBuffer<Brick> l_BrickBuffer : register(t2, space1);
+StructuredBuffer<Brick> l_BrickBuffer : register(t1, space1);
 
 struct MaterialTable
 {
@@ -250,19 +248,20 @@ void SDFIntersectionShader()
 
 		// step through volume to find surface
 		uint iterationCount = 0;
+		float4 s;
 
 		while (iterationCount < 32) // iteration guard
 		{
 			// Sample the volume
-			const float s = l_BrickPool.SampleLevel(g_VolumeSampler, uvw, 0).x;
+			s = l_BrickPool.SampleLevel(g_VolumeSampler, uvw, 0);
 			
 			// 0.0625 was the largest threshold before unacceptable artifacts were produced
-			if (s <= 0.0625f)
+			if (s.x <= 0.0625f)
 			{
 				break;
 			}
 
-			uvw += (s * SDF_VOLUME_STRIDE * stride_voxelToUVW) // Convert from formatted distance in texture to a distance in the uvw space of the brick pool
+			uvw += (s.x * SDF_VOLUME_STRIDE * stride_voxelToUVW) // Convert from formatted distance in texture to a distance in the uvw space of the brick pool
 					* ray.direction;
 			 
 			if (uvw.x > uvwMax.x || uvw.y > uvwMax.y || uvw.z > uvwMax.z ||
@@ -274,7 +273,7 @@ void SDFIntersectionShader()
 			iterationCount++;
 		}
 
-		attr.materials = l_BrickPoolMaterials.Load(uint4(uvw * poolDims, 0)).yzw;
+		attr.materials = s.yzw;
 
 		// Calculate the hit point as a UVW of the AABB
 		const float3 hitUVWAABB = (PoolUVWToBrickVoxel(uvw, brickTopLeftVoxel, poolDims) - float3(1.0f, 1.0f, 1.0f)) / SDF_BRICK_SIZE_VOXELS;
@@ -319,7 +318,16 @@ void SDFClosestHitShader(inout RadianceRayPayload payload, in SDFIntersectAttrib
 	}
 
 	// Load material
-	const MaterialGPUData mat = g_Materials.Load(l_MaterialTable.Table.x);
+	MaterialGPUData materials[4];
+	materials[0] = g_Materials.Load(l_MaterialTable.Table.x);
+	materials[1] = g_Materials.Load(l_MaterialTable.Table.y);
+	materials[2] = g_Materials.Load(l_MaterialTable.Table.w);
+	materials[3] = g_Materials.Load(l_MaterialTable.Table.z);
+
+	// Get material interpolation parameters
+	float4 t = float4(attr.materials, 1.0f - attr.materials.x - attr.materials.y - attr.materials.z);
+
+	const MaterialGPUData mat = blendMaterial(blendMaterial(blendMaterial(blendMaterial(materials[3], t.w), materials[2], t.z), materials[1], t.y), materials[0], t.x);
 
 	const float3 hitPos = WorldRayOrigin() + RayTCurrent() * WorldRayDirection();
 	const float3 v = normalize(g_PassCB.WorldEyePos - hitPos);

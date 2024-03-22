@@ -68,22 +68,13 @@ uint3 decodeMorton3D(uint v)
 
 // Takes a distance from evaluation space and then maps it to a distance to be stored in a brick
 // Voxels per unit can be calculated from the evaluation range and brick size
-uint FormatDistance(float inDistance, float voxelsPerUnit)
+float FormatDistance(float inDistance, float voxelsPerUnit)
 {
 	// Calculate the distance value in terms of voxels
 	const float voxelDistance = inDistance * voxelsPerUnit;
 
 	// Now map the distance such that 1 = SDF_VOLUME_STRIDE number of voxels
-	const float mappedDistance = clamp(voxelDistance / SDF_VOLUME_STRIDE, -1.0f, 1.0f);
-
-	// Convert to SNORM as per https://learn.microsoft.com/en-us/windows/win32/direct3d10/d3d10-graphics-programming-guide-resources-data-conversion
-	float formatted = 127.0f * mappedDistance;
-	formatted += formatted >= 0.0f ? 0.5f : -0.5f;
-
-	// formatted is now in an integer representation, but I need it in unsigned integer
-	// do some bit twiddling to get it to uint
-	const int i_formatted = int(formatted) & 0xFF;
-	return (i_formatted >= 0) ? i_formatted : ~(int(formatted) & 0xFF) + 1;
+	return clamp(voxelDistance / SDF_VOLUME_STRIDE, -1.0f, 1.0f);
 }
 
 

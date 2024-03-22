@@ -32,8 +32,7 @@ public:
 	};
 	enum SDFObjectDescriptor
 	{
-		POOL_SRV_SNORM = 0,
-		POOL_SRV_UINT,
+		POOL_SRV = 0,
 		POOL_UAV,
 		DESCRIPTOR_COUNT
 	};
