@@ -173,12 +173,12 @@ void Raytracer::CreateRootSignatures()
 	{
 		// brick pool descriptor
 		CD3DX12_DESCRIPTOR_RANGE SRVDescriptor;
-		SRVDescriptor.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 1);
+		SRVDescriptor.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 0, 1);
 
 		CD3DX12_ROOT_PARAMETER rootParameters[LocalRootSignatureParams::Count];
 		rootParameters[LocalRootSignatureParams::BrickPropertiesBuffer].InitAsConstants(SizeOfInUint32(BrickPropertiesConstantBuffer), 0, 1);
 		rootParameters[LocalRootSignatureParams::BrickPoolSlot].InitAsDescriptorTable(1, &SRVDescriptor);
-		rootParameters[LocalRootSignatureParams::BrickBufferSlot].InitAsShaderResourceView(1, 1);
+		rootParameters[LocalRootSignatureParams::BrickBufferSlot].InitAsShaderResourceView(2, 1);
 		rootParameters[LocalRootSignatureParams::MaterialTableSlot].InitAsConstants(SizeOfInUint32(XMUINT4), 1, 1);
 
 		CD3DX12_ROOT_SIGNATURE_DESC localRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE);

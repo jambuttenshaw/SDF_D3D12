@@ -238,16 +238,13 @@ void SDFObject::AllocateOptimalBrickPool(UINT brickCount, ResourceGroup res)
 	}
 	{
 		D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-		uavDesc.Format = DXGI_FORMAT_R8G8B8A8_SNORM;
+		uavDesc.Format = DXGI_FORMAT_R8G8B8A8_UINT;
 		uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
 		uavDesc.Texture3D.MipSlice = 0;
 		uavDesc.Texture3D.FirstWSlice = 0;
 		uavDesc.Texture3D.WSize = -1;		// all depth slices
 
-		device->CreateUnorderedAccessView(resources.BrickPool.Get(), nullptr, &uavDesc, resources.ResourceViews.GetCPUHandle(POOL_UAV_SNORM));
-
-		uavDesc.Format = DXGI_FORMAT_R8G8B8A8_UINT;
-		device->CreateUnorderedAccessView(resources.BrickPool.Get(), nullptr, &uavDesc, resources.ResourceViews.GetCPUHandle(POOL_UAV_UINT));
+		device->CreateUnorderedAccessView(resources.BrickPool.Get(), nullptr, &uavDesc, resources.ResourceViews.GetCPUHandle(POOL_UAV));
 	}
 }
 

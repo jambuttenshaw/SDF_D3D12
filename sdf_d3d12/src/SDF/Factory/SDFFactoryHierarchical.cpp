@@ -916,7 +916,7 @@ void SDFFactoryHierarchical::BuildCommandList_BrickEvaluation(const PipelineSet&
 		m_CommandList->SetComputeRootShaderResourceView(BrickEvaluatorSignature::EditListSlot, resources.GetEditBuffer().GetAddress());
 		m_CommandList->SetComputeRootShaderResourceView(BrickEvaluatorSignature::IndexBufferSlot, object->GetIndexBufferAddress(SDFObject::RESOURCES_WRITE));
 		m_CommandList->SetComputeRootShaderResourceView(BrickEvaluatorSignature::BrickBufferSlot, object->GetBrickBufferAddress(SDFObject::RESOURCES_WRITE));
-		m_CommandList->SetComputeRootDescriptorTable(BrickEvaluatorSignature::BrickPoolSlot, object->GetDescriptor(SDFObject::RESOURCES_WRITE, SDFObject::POOL_UAV_SNORM));
+		m_CommandList->SetComputeRootDescriptorTable(BrickEvaluatorSignature::BrickPoolSlot, object->GetDescriptor(SDFObject::RESOURCES_WRITE, SDFObject::POOL_UAV));
 
 		PROFILE_COMPUTE_PUSH_RANGE("Brick Evaluation", m_CommandList.Get());
 

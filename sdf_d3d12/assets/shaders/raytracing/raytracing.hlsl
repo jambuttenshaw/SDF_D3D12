@@ -35,8 +35,11 @@ SamplerState g_VolumeSampler : register(s2);
 
 // The SDF volume that will be ray-marched in the intersection shader
 ConstantBuffer<BrickPropertiesConstantBuffer> l_BrickProperties : register(b0, space1);
-Texture3D<float4> l_BrickPool : register(t0, space1);
-StructuredBuffer<Brick> l_BrickBuffer : register(t1, space1);
+
+Texture3D l_BrickPool : register(t0, space1);
+Texture3D<uint4> l_BrickPoolMaterials : register(t1, space1);
+
+StructuredBuffer<Brick> l_BrickBuffer : register(t2, space1);
 
 struct MaterialTable
 {
@@ -153,7 +156,7 @@ void PrimaryRaygenShader()
 	RadianceRayPayload payload = { float4(0, 0, 0, 0), 0 };
 	TraceRay(g_Scene, RAY_FLAG_NONE, ~0, 0, 1, 0, ray, payload);
 
-	payload.color.xyz = pow(payload.color.xyz, 0.4545f);
+	//payload.color.xyz = pow(payload.color.xyz, 0.4545f);
 
     // Write the raytraced color to the output texture.
 	g_RenderTarget[DispatchRaysIndex().xy] = payload.color;
@@ -252,7 +255,7 @@ void SDFIntersectionShader()
 		{
 			// Sample the volume
 			const float s = l_BrickPool.SampleLevel(g_VolumeSampler, uvw, 0).x;
-
+			
 			// 0.0625 was the largest threshold before unacceptable artifacts were produced
 			if (s <= 0.0625f)
 			{
@@ -271,8 +274,10 @@ void SDFIntersectionShader()
 			iterationCount++;
 		}
 
+		attr.materials = l_BrickPoolMaterials.Load(uint4(uvw * poolDims, 0)).yzw;
+
 		// Calculate the hit point as a UVW of the AABB
-		float3 hitUVWAABB = (PoolUVWToBrickVoxel(uvw, brickTopLeftVoxel, poolDims) - float3(1.0f, 1.0f, 1.0f)) / SDF_BRICK_SIZE_VOXELS;
+		const float3 hitUVWAABB = (PoolUVWToBrickVoxel(uvw, brickTopLeftVoxel, poolDims) - float3(1.0f, 1.0f, 1.0f)) / SDF_BRICK_SIZE_VOXELS;
 		// point of intersection in local space
 		const float3 pointOfIntersection = hitUVWAABB * l_BrickProperties.BrickSize;
 		// t is the distance from the ray origin to the point of intersection
@@ -312,7 +317,6 @@ void SDFClosestHitShader(inout RadianceRayPayload payload, in SDFIntersectAttrib
 		payload.color = float4(normalColor, 1);
 		return;
 	}
-
 
 	// Load material
 	const MaterialGPUData mat = g_Materials.Load(l_MaterialTable.Table.x);
