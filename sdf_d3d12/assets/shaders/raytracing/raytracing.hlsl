@@ -35,7 +35,7 @@ SamplerState g_VolumeSampler : register(s2);
 
 // The SDF volume that will be ray-marched in the intersection shader
 ConstantBuffer<BrickPropertiesConstantBuffer> l_BrickProperties : register(b0, space1);
-Texture3D<float> l_BrickPool : register(t0, space1);
+Texture3D<float4> l_BrickPool : register(t0, space1);
 StructuredBuffer<Brick> l_BrickBuffer : register(t1, space1);
 
 struct MaterialTable
@@ -114,9 +114,9 @@ bool TraceShadowRay(in Ray ray, in UINT currentRayRecursionDepth)
 float3 ComputeSurfaceNormal(float3 p, float3 delta)
 {
 	return normalize(float3(
-        (l_BrickPool.SampleLevel(g_VolumeSampler, p + float3(delta.x, 0.0f, 0.0f), 0) - l_BrickPool.SampleLevel(g_VolumeSampler, p - float3(delta.x, 0.0f, 0.0f), 0)),
-        (l_BrickPool.SampleLevel(g_VolumeSampler, p + float3(0.0f, delta.y, 0.0f), 0) - l_BrickPool.SampleLevel(g_VolumeSampler, p - float3(0.0f, delta.y, 0.0f), 0)),
-        (l_BrickPool.SampleLevel(g_VolumeSampler, p + float3(0.0f, 0.0f, delta.z), 0) - l_BrickPool.SampleLevel(g_VolumeSampler, p - float3(0.0f, 0.0f, delta.z), 0))
+        (l_BrickPool.SampleLevel(g_VolumeSampler, p + float3(delta.x, 0.0f, 0.0f), 0).x - l_BrickPool.SampleLevel(g_VolumeSampler, p - float3(delta.x, 0.0f, 0.0f), 0).x),
+        (l_BrickPool.SampleLevel(g_VolumeSampler, p + float3(0.0f, delta.y, 0.0f), 0).x - l_BrickPool.SampleLevel(g_VolumeSampler, p - float3(0.0f, delta.y, 0.0f), 0).x),
+        (l_BrickPool.SampleLevel(g_VolumeSampler, p + float3(0.0f, 0.0f, delta.z), 0).x - l_BrickPool.SampleLevel(g_VolumeSampler, p - float3(0.0f, 0.0f, delta.z), 0).x)
     ));
 }
 
@@ -251,7 +251,7 @@ void SDFIntersectionShader()
 		while (iterationCount < 32) // iteration guard
 		{
 			// Sample the volume
-			const float s = l_BrickPool.SampleLevel(g_VolumeSampler, uvw, 0);
+			const float s = l_BrickPool.SampleLevel(g_VolumeSampler, uvw, 0).x;
 
 			// 0.0625 was the largest threshold before unacceptable artifacts were produced
 			if (s <= 0.0625f)

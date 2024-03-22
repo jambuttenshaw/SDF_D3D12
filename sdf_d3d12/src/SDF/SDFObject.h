@@ -30,6 +30,12 @@ public:
 		SWITCHING,
 		RENDERING
 	};
+	enum SDFObjectDescriptor
+	{
+		POOL_SRV = 0,
+		POOL_UAV,
+		DESCRIPTOR_COUNT
+	};
 
 public:
 	SDFObject(float brickSize, UINT brickCapacity, D3D12_RAYTRACING_GEOMETRY_FLAGS geometryFlags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE);
@@ -65,8 +71,7 @@ public:
 	inline D3D12_GPU_VIRTUAL_ADDRESS GetIndexBufferAddress(ResourceGroup res) const { return GetResources(res).IndexBuffer.GetAddress(); }
 
 	// Get Resource Views
-	D3D12_GPU_DESCRIPTOR_HANDLE GetBrickPoolSRV(ResourceGroup res) const { return GetResources(res).ResourceViews.GetGPUHandle(0); }
-	D3D12_GPU_DESCRIPTOR_HANDLE GetBrickPoolUAV(ResourceGroup res) const { return GetResources(res).ResourceViews.GetGPUHandle(1); }
+	inline D3D12_GPU_DESCRIPTOR_HANDLE GetDescriptor(ResourceGroup res, SDFObjectDescriptor descriptor) const { return GetResources(res).ResourceViews.GetGPUHandle(descriptor); }
 
 	// Acceleration structure properties
 	inline D3D12_RAYTRACING_GEOMETRY_FLAGS GetGeometryFlags() const { return m_GeometryFlags; }

@@ -21,7 +21,7 @@ SDFObject::SDFObject(float brickSize, UINT brickCapacity, D3D12_RAYTRACING_GEOME
 	{
 		resources.BrickSize = brickSize;
 
-		resources.ResourceViews = descriptorHeap->Allocate(2);
+		resources.ResourceViews = descriptorHeap->Allocate(DESCRIPTOR_COUNT);
 		ASSERT(resources.ResourceViews.IsValid(), "Descriptor allocation failed!");
 	}
 
@@ -203,7 +203,7 @@ void SDFObject::AllocateOptimalBrickPool(UINT brickCount, ResourceGroup res)
 	{
 		const auto heap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 		const CD3DX12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex3D(
-			DXGI_FORMAT_R8_SNORM,
+			DXGI_FORMAT_R8G8B8A8_UINT,
 			static_cast<UINT64>(resources.BrickPoolDimensions.x) * SDF_BRICK_SIZE_VOXELS_ADJACENCY,
 			resources.BrickPoolDimensions.y * SDF_BRICK_SIZE_VOXELS_ADJACENCY,
 			static_cast<UINT16>(resources.BrickPoolDimensions.z * SDF_BRICK_SIZE_VOXELS_ADJACENCY),
@@ -223,15 +223,32 @@ void SDFObject::AllocateOptimalBrickPool(UINT brickCount, ResourceGroup res)
 
 	// Create resource views for brick pool
 	{
+		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+		srvDesc.Format = DXGI_FORMAT_R8G8B8A8_SNORM;
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
+		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		srvDesc.Texture3D.MostDetailedMip = 0;
+		srvDesc.Texture3D.MipLevels = 1;
+		srvDesc.Texture3D.ResourceMinLODClamp = 0.0f;
+
 		device->CreateShaderResourceView(
 			resources.BrickPool.Get(),
-			nullptr,
-			resources.ResourceViews.GetCPUHandle(0));
+			&srvDesc,
+			resources.ResourceViews.GetCPUHandle(POOL_SRV));
+	}
+	{
+		D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+		uavDesc.Format = DXGI_FORMAT_R8G8B8A8_SNORM;
+		uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
+		uavDesc.Texture3D.MipSlice = 0;
+		uavDesc.Texture3D.FirstWSlice = 0;
+		uavDesc.Texture3D.WSize = -1;		// all depth slices
+
 		device->CreateUnorderedAccessView(
 			resources.BrickPool.Get(),
 			nullptr,
-			nullptr,
-			resources.ResourceViews.GetCPUHandle(1));
+			&uavDesc,
+			resources.ResourceViews.GetCPUHandle(POOL_UAV));
 	}
 }
 

@@ -26,7 +26,7 @@ StructuredBuffer<SDFEditData> g_EditList : register(t0);
 StructuredBuffer<uint16_t> g_IndexBuffer : register(t1);
 
 StructuredBuffer<Brick> g_BrickBuffer : register(t2);
-RWTexture3D<float> g_OutputTexture : register(u1);
+RWTexture3D<float4> g_OutputTexture : register(u1);
 
 
 #define MAX_EDITS_CHUNK 256
@@ -112,7 +112,7 @@ void main(uint3 GroupID : SV_GroupID, uint3 GTid : SV_GroupThreadID, uint GI : S
 	const uint3 brickVoxel = CalculateBrickPoolPosition(brickIndex, g_BuildParameters.BrickCount, g_BuildParameters.BrickPool_BrickCapacityPerAxis) + GTid;
 
 	// Store the mapped distance in the volume
-	g_OutputTexture[brickVoxel] = mappedDistance;
+	g_OutputTexture[brickVoxel] = float4(mappedDistance, 0.0f, 0.0f, 0.0f);
 }
 
 #endif
