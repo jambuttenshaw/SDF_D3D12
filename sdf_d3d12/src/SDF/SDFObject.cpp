@@ -231,10 +231,10 @@ void SDFObject::AllocateOptimalBrickPool(UINT brickCount, ResourceGroup res)
 		srvDesc.Texture3D.MipLevels = 1;
 		srvDesc.Texture3D.ResourceMinLODClamp = 0.0f;
 
-		device->CreateShaderResourceView(
-			resources.BrickPool.Get(),
-			&srvDesc,
-			resources.ResourceViews.GetCPUHandle(POOL_SRV));
+		device->CreateShaderResourceView(resources.BrickPool.Get(), &srvDesc, resources.ResourceViews.GetCPUHandle(POOL_SRV_SNORM));
+
+		srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UINT;
+		device->CreateShaderResourceView(resources.BrickPool.Get(), &srvDesc, resources.ResourceViews.GetCPUHandle(POOL_SRV_UINT));
 	}
 	{
 		D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
@@ -244,11 +244,10 @@ void SDFObject::AllocateOptimalBrickPool(UINT brickCount, ResourceGroup res)
 		uavDesc.Texture3D.FirstWSlice = 0;
 		uavDesc.Texture3D.WSize = -1;		// all depth slices
 
-		device->CreateUnorderedAccessView(
-			resources.BrickPool.Get(),
-			nullptr,
-			&uavDesc,
-			resources.ResourceViews.GetCPUHandle(POOL_UAV));
+		device->CreateUnorderedAccessView(resources.BrickPool.Get(), nullptr, &uavDesc, resources.ResourceViews.GetCPUHandle(POOL_UAV_SNORM));
+
+		uavDesc.Format = DXGI_FORMAT_R8G8B8A8_UINT;
+		device->CreateUnorderedAccessView(resources.BrickPool.Get(), nullptr, &uavDesc, resources.ResourceViews.GetCPUHandle(POOL_UAV_UINT));
 	}
 }
 
