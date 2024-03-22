@@ -200,19 +200,24 @@ float boundingSpherePrimitive(float3 p, SDFShape prim, float4 param)
 // HELPERS
 //
 
-SDFShape GetShape(uint sdfPrimitive)
+SDFShape GetShape(uint editParams)
 {
-	return (SDFShape)(sdfPrimitive & 0x000000FF);
+	return (SDFShape) (editParams & 0x000000FF);
 }
 
-SDFOperation GetOperation(uint sdfPrimitive)
+SDFOperation GetOperation(uint editParams)
 {
-	return (SDFOperation)((sdfPrimitive >> 8) & 0x000000FF);
+	return (SDFOperation) ((editParams >> 8) & 0x00000003);
 }
 
-uint GetDependencyCount(uint sdfPrimitive)
+uint GetMaterialTableIndex(uint editParams)
 {
-	return ((sdfPrimitive >> 16) & 0x0000FFFF);
+	return ((editParams >> 10) & 0x00000003);
+}
+
+uint GetDependencyCount(uint editParams)
+{
+	return ((editParams >> 16) & 0x0000FFFF);
 }
 
 bool IsSmoothOperation(SDFOperation op)
@@ -221,10 +226,10 @@ bool IsSmoothOperation(SDFOperation op)
 	return op & 2;
 }
 
-bool IsSmoothPrimitive(uint sdfPrimitive)
+bool IsSmoothEdit(uint editParams)
 {
 	// smooth if second bit of op is set
-	return sdfPrimitive & 0x00000200;
+	return editParams & 0x00000200;
 }
 
 #endif

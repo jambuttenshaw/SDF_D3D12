@@ -20,11 +20,11 @@ float EvaluateBoundingSphere(SDFEditData edit, float3 p)
 	const float3 p_transformed = opTransform(p, edit.InvRotation, edit.InvTranslation) / edit.Scale;
 		
 	// evaluate primitive
-	float dist = boundingSpherePrimitive(p_transformed, GetShape(edit.PrimitivesAndDependencies), edit.ShapeParams);
+	float dist = boundingSpherePrimitive(p_transformed, GetShape(edit.EditParams), edit.ShapeParams);
 	dist *= edit.Scale;
 
 	// Apply blending range for smooth edits
-	dist -= IsSmoothPrimitive(edit.PrimitivesAndDependencies) * edit.BlendingRange;
+	dist -= IsSmoothEdit(edit.EditParams) * edit.BlendingRange;
 
 	return dist;
 }
@@ -63,7 +63,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
 	// Hard edits will not have dependencies
 	const SDFEditData editA = g_EditList.Load(indexA);
 
-	if (IsSmoothPrimitive(editA.PrimitivesAndDependencies))
+	if (IsSmoothEdit(editA.EditParams))
 	{
 		// get the world-space position of this edit
 		const float3 pA = -editA.InvTranslation;
@@ -77,7 +77,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
 		{
 			uint dependencies;
 			// 0x00010000 is added as dependencies is stored in the upper 16 bits of the variable
-			InterlockedAdd(g_EditList[indexA].PrimitivesAndDependencies, 0x00010000, dependencies);
+			InterlockedAdd(g_EditList[indexA].EditParams, 0x00010000, dependencies);
 
 			const uint dependencyIndex = dependencies >> 16;
 			g_DependencyIndices[indexA + dependencyIndex] = (uint16_t)(indexB);

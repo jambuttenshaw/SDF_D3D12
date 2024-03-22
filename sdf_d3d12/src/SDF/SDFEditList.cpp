@@ -5,6 +5,14 @@
 #include "Renderer/D3DGraphicsContext.h"
 
 
+UINT PackEditParams(SDFShape editShape, SDFOperation editOperation, UINT matIndex)
+{
+	return (editShape & 0x000000FF)				// LSB is edit shape
+		| ((editOperation << 8) & 0x00000300)	// 2nd Byte, first 2 bits are operation
+		| ((matIndex << 10) & 0x00000C00);		// 2nd Byte, next 2 bits are material table index
+}
+
+
 SDFEditList::SDFEditList(UINT maxEdits, float evaluationRange)
 	: m_MaxEdits(maxEdits)
 	, m_EvaluationRange(evaluationRange)
@@ -44,7 +52,7 @@ SDFEditData SDFEditList::BuildEditData(const SDFEdit& edit)
 
 	primitiveData.Scale = edit.PrimitiveTransform.GetScale();
 
-	primitiveData.PrimitivesAndDependencies = (edit.Shape & 0x000000FF) | ((edit.Operation << 8) & 0x0000FF00);
+	primitiveData.EditParams = PackEditParams(edit.Shape, edit.Operation, edit.MatTableIndex);
 	primitiveData.BlendingRange = edit.BlendingRange;
 
 	static_assert(sizeof(SDFShapeProperties) == sizeof(XMFLOAT4));

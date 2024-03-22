@@ -109,62 +109,63 @@ void SDFEdit::SetShapePropertiesToDefault()
 
 
 
-SDFEdit SDFEdit::CreateSphere(const Transform& transform, float radius, SDFOperation op, float blend)
+SDFEdit SDFEdit::CreateSphere(const Transform& transform, float radius, SDFOperation op, float blend, UINT matTableIndex)
 {
-	SDFEdit prim = CreateGeneric(transform, op, blend);
+	SDFEdit prim = CreateGeneric(transform, op, blend, matTableIndex);
 	prim.Shape = SDF_SHAPE_SPHERE;
 	prim.ShapeProperties.Sphere.Radius = radius;
 	return prim;
 }
 
-SDFEdit SDFEdit::CreateBox(const Transform& transform, const XMFLOAT3& extents, SDFOperation op, float blend)
+SDFEdit SDFEdit::CreateBox(const Transform& transform, const XMFLOAT3& extents, SDFOperation op, float blend, UINT matTableIndex)
 {
-	SDFEdit prim = CreateGeneric(transform, op, blend);
+	SDFEdit prim = CreateGeneric(transform, op, blend, matTableIndex);
 	prim.Shape = SDF_SHAPE_BOX;
 	prim.ShapeProperties.Box.Extents = extents;
 	return prim;
 }
 
-SDFEdit SDFEdit::CreateTorus(const Transform& transform, float innerRadius, float torusRadius, SDFOperation op, float blend)
+SDFEdit SDFEdit::CreateTorus(const Transform& transform, float innerRadius, float torusRadius, SDFOperation op, float blend, UINT matTableIndex)
 {
-	SDFEdit prim = CreateGeneric(transform, op, blend);
+	SDFEdit prim = CreateGeneric(transform, op, blend, matTableIndex);
 	prim.Shape = SDF_SHAPE_TORUS;
 	prim.ShapeProperties.Torus.InnerRadius = innerRadius;
 	prim.ShapeProperties.Torus.TorusRadius = torusRadius;
 	return prim;
 }
 
-SDFEdit SDFEdit::CreateOctahedron(const Transform& transform, float scale, SDFOperation op, float blend)
+SDFEdit SDFEdit::CreateOctahedron(const Transform& transform, float scale, SDFOperation op, float blend, UINT matTableIndex)
 {
-	SDFEdit prim = CreateGeneric(transform, op, blend);
+	SDFEdit prim = CreateGeneric(transform, op, blend, matTableIndex);
 	prim.Shape = SDF_SHAPE_OCTAHEDRON;
 	prim.ShapeProperties.Octahedron.Scale = scale;
 	return prim;
 }
 
-SDFEdit SDFEdit::CreateBoxFrame(const Transform& transform, const XMFLOAT3& extents, float thickness, SDFOperation op, float blend)
+SDFEdit SDFEdit::CreateBoxFrame(const Transform& transform, const XMFLOAT3& extents, float thickness, SDFOperation op, float blend, UINT matTableIndex)
 {
-	SDFEdit prim = CreateGeneric(transform, op, blend);
+	SDFEdit prim = CreateGeneric(transform, op, blend, matTableIndex);
 	prim.Shape = SDF_SHAPE_BOX_FRAME;
 	prim.ShapeProperties.BoxFrame.Extents = extents;
 	prim.ShapeProperties.BoxFrame.Thickness = thickness;
 	return prim;
 }
 
-SDFEdit SDFEdit::CreateFractal(const Transform& transform, SDFOperation op, float blend)
+SDFEdit SDFEdit::CreateFractal(const Transform& transform, SDFOperation op, float blend, UINT matTableIndex)
 {
-	SDFEdit prim = CreateGeneric(transform, op, blend);
+	SDFEdit prim = CreateGeneric(transform, op, blend, matTableIndex);
 	prim.Shape = SDF_SHAPE_FRACTAL;
 	return prim;
 }
 
 
-SDFEdit SDFEdit::CreateGeneric(const Transform& transform, SDFOperation op, float blend)
+SDFEdit SDFEdit::CreateGeneric(const Transform& transform, SDFOperation op, float blend, UINT matTableIndex)
 {
 	SDFEdit prim;
 	prim.PrimitiveTransform = transform;
 	prim.Operation = op;
 	prim.BlendingRange = blend;
+	prim.MatTableIndex = matTableIndex;
 
 	if ((prim.Operation & 2u) && prim.BlendingRange <= 0.0f)
 	{

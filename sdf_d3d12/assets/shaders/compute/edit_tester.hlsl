@@ -55,12 +55,12 @@ float EvaluateEdit(SDFEditData edit, float3 p)
 	const float3 p_transformed = opTransform(p, edit.InvRotation, edit.InvTranslation) / edit.Scale;
 		
 	// evaluate primitive
-	float dist = sdPrimitive(p_transformed, GetShape(edit.PrimitivesAndDependencies), edit.ShapeParams);
+	float dist = sdPrimitive(p_transformed, GetShape(edit.EditParams), edit.ShapeParams);
 	dist *= edit.Scale;
 
 	// Apply blending range for smooth edits
 	// 1.74f == sqrt(3) 
-	dist -= 1.74f * IsSmoothPrimitive(edit.PrimitivesAndDependencies) * edit.BlendingRange;
+	dist -= 1.74f * IsSmoothEdit(edit.EditParams) * edit.BlendingRange;
 
 	return dist;
 }
@@ -103,11 +103,11 @@ void main(uint3 GroupID : SV_GroupID, uint GI : SV_GroupIndex)
 		{
 			SetEdit(index);
 
-			if (IsSmoothPrimitive(edit.PrimitivesAndDependencies))
+			if (IsSmoothEdit(edit.EditParams))
 			{
 				// Set all of the smooth edits dependencies too
 				const uint offset = index * (index - 1) / 2;
-				const uint dependencyCount = GetDependencyCount(edit.PrimitivesAndDependencies);
+				const uint dependencyCount = GetDependencyCount(edit.EditParams);
 				for (uint dependency = 0; dependency < dependencyCount; dependency++)
 				{
 					SetEdit(g_EditDependencyIndices.Load(offset + dependency));

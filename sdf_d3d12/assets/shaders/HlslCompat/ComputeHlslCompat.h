@@ -49,11 +49,11 @@ struct SDFEditData
 	// Second byte - Operation (max 4 operations - only 2 bits required)
 	//				 First bit of operation is union/subtraction
 	//				 Second bit is hard/smooth
+	//			   - Material table index (max 4 materials - only 2 bits required)
 	// Third and Fourth byte - Dependencies (max 1023 dependencies - only 10 bits required)
-
 	// Dependencies are other shapes in the edit list that this shape depends on
 	// For smooth blending - the things that this shape will smooth blend into must not be culled
-	UINT PrimitivesAndDependencies;
+	UINT EditParams;
 
 	float BlendingRange;
 };

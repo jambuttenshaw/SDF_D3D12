@@ -61,11 +61,11 @@ float EvaluateEditList(float3 p)
 		const float3 p_transformed = opTransform(p, edit.InvRotation, edit.InvTranslation) / edit.Scale;
 		
 		// evaluate primitive
-		float dist = sdPrimitive(p_transformed, GetShape(edit.PrimitivesAndDependencies), edit.ShapeParams);
+		float dist = sdPrimitive(p_transformed, GetShape(edit.EditParams), edit.ShapeParams);
 		dist *= edit.Scale;
 
 		// combine with scene
-		nearest = opPrimitive(nearest, dist, GetOperation(edit.PrimitivesAndDependencies), edit.BlendingRange);
+		nearest = opPrimitive(nearest, dist, GetOperation(edit.EditParams), edit.BlendingRange);
 	}
 
 	return nearest;
