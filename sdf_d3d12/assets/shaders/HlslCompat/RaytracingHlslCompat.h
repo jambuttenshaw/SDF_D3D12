@@ -35,7 +35,7 @@ using namespace DirectX;
 struct SDFIntersectAttrib
 {
 	XMFLOAT3 normal;
-	XMUINT3 materials;
+	XMFLOAT3 materials;
 	UINT utility;		// general purpose integer to pass through to the closest hit shader for debug visualization purposes
 	UINT flags;
 };

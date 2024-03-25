@@ -321,12 +321,13 @@ void SDFClosestHitShader(inout RadianceRayPayload payload, in SDFIntersectAttrib
 	MaterialGPUData materials[4];
 	materials[0] = g_Materials.Load(l_MaterialTable.Table.x);
 	materials[1] = g_Materials.Load(l_MaterialTable.Table.y);
-	materials[2] = g_Materials.Load(l_MaterialTable.Table.w);
-	materials[3] = g_Materials.Load(l_MaterialTable.Table.z);
+	materials[2] = g_Materials.Load(l_MaterialTable.Table.z);
+	materials[3] = g_Materials.Load(l_MaterialTable.Table.w);
 
 	// Get material interpolation parameters
-	float4 t = float4(attr.materials, 1.0f - attr.materials.x - attr.materials.y - attr.materials.z);
+	float4 t = float4(attr.materials, 1.0f - (attr.materials.x + attr.materials.y + attr.materials.z));
 
+	// Material blending
 	const MaterialGPUData mat = blendMaterial(blendMaterial(blendMaterial(blendMaterial(materials[3], t.w), materials[2], t.z), materials[1], t.y), materials[0], t.x);
 
 	const float3 hitPos = WorldRayOrigin() + RayTCurrent() * WorldRayDirection();

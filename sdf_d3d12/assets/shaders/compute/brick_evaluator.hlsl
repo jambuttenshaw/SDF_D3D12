@@ -35,7 +35,7 @@ groupshared SDFEditData gs_Edits[MAX_EDITS_CHUNK];
 groupshared Brick gs_Brick;
 
 
-float4 EvaluateEditList(float3 p, uint GI)
+float EvaluateEditList(float3 p, uint GI, out float4 materials)
 {
 #ifdef DISABLE_EDIT_CULLING
 	const uint editCount = g_BuildParameters.SDFEditCount;
@@ -44,7 +44,8 @@ float4 EvaluateEditList(float3 p, uint GI)
 #endif
 
 	// Evaluate SDF list
-	float4 nearest = float4(FLOAT_MAX, 0.0f, 1.0f, 0.0f);
+	float nearest = FLOAT_MAX;
+	materials = float4(1.0f, 0.0f, 0.0f, 0.0f);
 
 	const uint numChunks = (editCount + MAX_EDITS_CHUNK - 1) / MAX_EDITS_CHUNK;
 	uint editsRemaining = editCount;
@@ -76,11 +77,16 @@ float4 EvaluateEditList(float3 p, uint GI)
 			dist *= gs_Edits[edit].Scale;
 
 			// combine with scene
-			nearest.x = opPrimitive(nearest.x, dist, GetOperation(gs_Edits[edit].EditParams), gs_Edits[edit].BlendingRange);
+			nearest = opPrimitive(nearest, dist, GetOperation(gs_Edits[edit].EditParams), gs_Edits[edit].BlendingRange);
 		}
 
 		editsRemaining -= MAX_EDITS_CHUNK;
 	}
+
+	if (length(materials) == 0.0f)
+		materials = float4(1.0f, 0.0f, 0.0f, 0.0f);
+	// Make sure the sum of components = 1
+	materials /= (materials.x + materials.y + materials.z + materials.w);
 
 	return nearest;
 }
@@ -105,15 +111,18 @@ void main(uint3 GroupID : SV_GroupID, uint3 GTid : SV_GroupThreadID, uint GI : S
 																											// and (7,7,7) goes to (6.5, 6.5, 6.5)
 																											// and then map from voxels to eval space units
 
+	float4 materials; // This will store the interpolation parameters for the materials of this voxel
+
 	// Evaluate SDF volume
-	const float4 nearest = EvaluateEditList(evaluationPosition, GI);
-	const float formattedDistance = FormatDistance(nearest.x, g_BuildParameters.EvalSpace_VoxelsPerUnit);
+	const float nearest = EvaluateEditList(evaluationPosition, GI, materials);
+	const float formattedDistance = FormatDistance(nearest, g_BuildParameters.EvalSpace_VoxelsPerUnit);
 
 	// Now calculate where to store the voxel in the brick pool
 	const uint3 brickVoxel = CalculateBrickPoolPosition(brickIndex, g_BuildParameters.BrickCount, g_BuildParameters.BrickPool_BrickCapacityPerAxis) + GTid;
 
 	// Store the mapped distance in the volume
-	g_OutputTexture[brickVoxel] = float4(formattedDistance, nearest.yzw);
+	// As the sum of all components of materials == 1, materials.w can be recovered as 1 - materials.xyz
+	g_OutputTexture[brickVoxel] = float4(formattedDistance, materials.xyz);
 }
 
 #endif
