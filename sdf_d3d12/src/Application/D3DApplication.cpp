@@ -679,6 +679,7 @@ bool D3DApplication::ImGuiApplicationInfo()
 			RenderFlagOption("Disable IBL", RENDER_FLAG_DISABLE_IBL);
 			RenderFlagOption("Disable Skybox", RENDER_FLAG_DISABLE_SKYBOX);
 			RenderFlagOption("Disable Shadow", RENDER_FLAG_DISABLE_SHADOW);
+			RenderFlagOption("Disable Reflection", RENDER_FLAG_DISABLE_REFLECTION);
 		}
 
 		ImGui::Separator();

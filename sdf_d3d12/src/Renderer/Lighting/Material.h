@@ -22,10 +22,13 @@ public:
 	inline const XMFLOAT3& GetAlbedo() const { return m_Data.Albedo; }
 	inline float GetRoughness() const { return m_Data.Roughness; }
 	inline float GetMetalness() const { return m_Data.Metalness; }
+	inline float GetReflectance () const { return m_Data.Reflectance; }
 
 	inline void SetAlbedo(const XMFLOAT3& albedo) { m_Data.Albedo = albedo; SetDirty(); }
 	inline void SetRoughness(float roughness) { m_Data.Roughness = roughness; SetDirty(); }
 	inline void SetMetalness(float metalness) { m_Data.Metalness = metalness; SetDirty(); }
+	inline void SetReflectance(float reflectance) { m_Data.Reflectance = reflectance; SetDirty(); }
+
 
 
 	void DrawGui();

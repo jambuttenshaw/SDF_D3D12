@@ -22,11 +22,12 @@ using namespace DirectX;
 #define RENDER_FLAG_DISABLE_IBL									(1 << 6)
 #define RENDER_FLAG_DISABLE_SKYBOX								(1 << 7)
 #define RENDER_FLAG_DISABLE_SHADOW								(1 << 8)
+#define RENDER_FLAG_DISABLE_REFLECTION							(1 << 9)
 
 
 // Raytracing Params and structures
 
-#define MAX_RAY_RECURSION_DEPTH 2 // Primary rays + shadow rays
+#define MAX_RAY_RECURSION_DEPTH 3 // Primary rays + reflection rays + shadow rays
 
 
 struct SDFIntersectAttrib

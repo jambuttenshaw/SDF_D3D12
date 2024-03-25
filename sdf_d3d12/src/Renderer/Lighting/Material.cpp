@@ -15,6 +15,7 @@ Material::Material(UINT materialID)
 	m_Data.Albedo = XMFLOAT3(0.9f, 0.6f, 0.0f);
 	m_Data.Roughness = 0.4f;
 	m_Data.Metalness = 0.0f;
+	m_Data.Reflectance = 0.0f;
 }
 
 void Material::SetDirty()
@@ -29,6 +30,7 @@ void Material::DrawGui()
 	dirty |= ImGui::ColorEdit3("Albedo", &m_Data.Albedo.x);
 	dirty |= ImGui::SliderFloat("Roughness", &m_Data.Roughness, 0.05f, 1.0f);
 	dirty |= ImGui::SliderFloat("Metalness", &m_Data.Metalness, 0.0f, 1.0f);
+	dirty |= ImGui::SliderFloat("Reflectance", &m_Data.Reflectance, 0.0f, 1.0f);
 
 	if (dirty) 
 		SetDirty();

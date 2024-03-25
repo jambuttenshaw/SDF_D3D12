@@ -46,6 +46,7 @@ struct MaterialGPUData
 	XMFLOAT3 Albedo;
 	float Roughness;
 	float Metalness;
+	float Reflectance;
 };
 
 

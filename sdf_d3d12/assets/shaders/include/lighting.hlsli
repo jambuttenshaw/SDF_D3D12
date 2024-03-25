@@ -14,6 +14,7 @@ MaterialGPUData blendMaterial(MaterialGPUData a, MaterialGPUData b, float t)
 	blended.Albedo = a.Albedo + t * b.Albedo;
 	blended.Roughness = a.Roughness + t * b.Roughness;
 	blended.Metalness = a.Metalness + t * b.Metalness;
+	blended.Reflectance = a.Reflectance + t * b.Reflectance;
 	return blended;
 }
 
@@ -23,6 +24,7 @@ MaterialGPUData blendMaterial(MaterialGPUData a, float t)
 	blended.Albedo = t * a.Albedo;
 	blended.Roughness = t * a.Roughness;
 	blended.Metalness = t * a.Metalness;
+	blended.Reflectance = t * a.Reflectance;
 	return blended;
 }
 

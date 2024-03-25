@@ -358,6 +358,21 @@ void SDFClosestHitShader(inout RadianceRayPayload payload, in SDFIntersectAttrib
 								? false
 								: TraceShadowRay(shadowRay, payload.recursionDepth);
 
+	// Reflections
+	float3 reflectedColor = float3(0, 0, 0);
+	if (!(g_PassCB.Flags & RENDER_FLAG_DISABLE_REFLECTION) && mat.Reflectance > 0.01f)
+	{
+		// Trace a reflection ray.
+		const Ray reflectionRay = { hitPos, reflect(WorldRayDirection(), n) };
+		float4 reflectionColor = TraceRadianceRay(reflectionRay, payload.recursionDepth);
+
+		float3 f0 = float3(0.04f, 0.04f, 0.04f);
+		f0 = lerp(f0, mat.Albedo, mat.Metalness);
+
+		const float3 fresnelR = shlick_fresnel_reflectance(f0, WorldRayDirection(), n);
+		reflectedColor = mat.Reflectance * fresnelR * reflectionColor.rgb;
+	}
+
 	// Lighting
 	float3 lightColor = calculateLighting(
 		g_PassCB.Flags,
@@ -371,6 +386,8 @@ void SDFClosestHitShader(inout RadianceRayPayload payload, in SDFIntersectAttrib
 		g_PrefilterMap,
 		g_EnvironmentSampler,
 		g_BRDFSampler);
+
+	lightColor += reflectedColor;
 
 	lightColor /= 1.0f + lightColor;
 
