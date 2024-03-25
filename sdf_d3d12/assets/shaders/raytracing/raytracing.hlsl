@@ -184,8 +184,6 @@ void SDFIntersectionShader()
 	{
 		// Intersection attributes to be filled out
 		SDFIntersectAttrib attr;
-		attr.flags = INTERSECTION_FLAG_NONE;
-
 
 		// The dimensions of the pool texture are required to convert from voxel coordinates to uvw for sampling
 		uint3 poolDims;
@@ -209,7 +207,6 @@ void SDFIntersectionShader()
 		// Debug: Display the bounding box directly instead of sphere tracing the contents
 		if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_BOUNDING_BOX)
 		{ // Display AABB
-			attr.flags |= INTERSECTION_FLAG_NO_REMAP_NORMALS;
 			attr.utility = 0;
 
 			// Debug: Display the brick index that this bounding box would sphere trace
@@ -221,7 +218,7 @@ void SDFIntersectionShader()
 			// Debug: Display the brick pool uvw of the intersection with the surface of the box
 			else if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_POOL_UVW)
 			{
-				attr.normal = BrickVoxelToPoolUVW(brickVoxel, brickTopLeftVoxel, uvwPerVoxel);
+				attr.hitUVW = BrickVoxelToPoolUVW(brickVoxel, brickTopLeftVoxel, uvwPerVoxel);
 			}
 			else if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_BRICK_EDIT_COUNT)
 			{
@@ -229,7 +226,7 @@ void SDFIntersectionShader()
 			}
 			else
 			{
-				attr.normal = uvwAABB;
+				attr.hitUVW = uvwAABB;
 			}
 			
 			ReportHit(max(tMin, RayTMin()), 0, attr);
@@ -273,8 +270,6 @@ void SDFIntersectionShader()
 			iterationCount++;
 		}
 
-		attr.materials = s.yzw;
-
 		// Calculate the hit point as a UVW of the AABB
 		const float3 hitUVWAABB = (PoolUVWToBrickVoxel(uvw, brickTopLeftVoxel, poolDims) - float3(1.0f, 1.0f, 1.0f)) / SDF_BRICK_SIZE_VOXELS;
 		// point of intersection in local space
@@ -283,7 +278,7 @@ void SDFIntersectionShader()
 		const float newT = length(ray.origin - pointOfIntersection);
 
 		// Transform from object space to world space
-		attr.normal = normalize(mul(ComputeSurfaceNormal(uvw, 0.5f * uvwPerVoxel), transpose((float3x3) ObjectToWorld())));
+		attr.hitUVW = uvw;
 		attr.utility = (g_PassCB.Flags & RENDER_FLAG_DISPLAY_BRICK_EDIT_COUNT) ? brick.IndexCount : iterationCount;
 		ReportHit(newT, 0, attr);
 	}
@@ -297,6 +292,11 @@ void SDFIntersectionShader()
 [shader("closesthit")]
 void SDFClosestHitShader(inout RadianceRayPayload payload, in SDFIntersectAttrib attr)
 {
+	uint3 poolDims;
+	l_BrickPool.GetDimensions(poolDims.x, poolDims.y, poolDims.z);
+	const float3 uvwPerVoxel = 1.0f / (float3) poolDims;
+	const float3 n = normalize(mul(ComputeSurfaceNormal(attr.hitUVW, 0.5f * uvwPerVoxel), transpose((float3x3) ObjectToWorld())));
+
 	// DEBUG MODES
 	if (g_PassCB.Flags & (RENDER_FLAG_DISPLAY_BRICK_EDIT_COUNT | RENDER_FLAG_DISPLAY_HEATMAP | RENDER_FLAG_DISPLAY_BRICK_INDEX))
 	{
@@ -306,14 +306,15 @@ void SDFClosestHitShader(inout RadianceRayPayload payload, in SDFIntersectAttrib
 		payload.color = float4(RGBFromHSV(float3(hue, 1, 1)), 1.0f);
 		return;
 	}
-	if (g_PassCB.Flags & (RENDER_FLAG_DISPLAY_NORMALS | RENDER_FLAG_DISPLAY_BOUNDING_BOX))
+	if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_NORMALS)
 	{
-		float3 normalColor;
-		if (attr.flags & INTERSECTION_FLAG_NO_REMAP_NORMALS)
-			normalColor = attr.normal;
-		else
-			normalColor = 0.5f + 0.5f * attr.normal;
+		float3 normalColor = 0.5f + 0.5f * n;
 		payload.color = float4(normalColor, 1);
+		return;
+	}
+	if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_BOUNDING_BOX)
+	{
+		payload.color = float4(attr.hitUVW, 1);
 		return;
 	}
 
@@ -325,7 +326,8 @@ void SDFClosestHitShader(inout RadianceRayPayload payload, in SDFIntersectAttrib
 	materials[3] = g_Materials.Load(l_MaterialTable.Table.w);
 
 	// Get material interpolation parameters
-	float4 t = float4(attr.materials, 1.0f - (attr.materials.x + attr.materials.y + attr.materials.z));
+	float3 t_mat = l_BrickPool.SampleLevel(g_VolumeSampler, attr.hitUVW, 0).yzw;
+	float4 t = float4(t_mat, 1.0f - (t_mat.x + t_mat.y + t_mat.z));
 
 	// Material blending
 	const MaterialGPUData mat = blendMaterial(blendMaterial(blendMaterial(blendMaterial(materials[3], t.w), materials[2], t.z), materials[1], t.y), materials[0], t.x);
@@ -344,7 +346,7 @@ void SDFClosestHitShader(inout RadianceRayPayload payload, in SDFIntersectAttrib
 	// Lighting
 	float3 lightColor = calculateLighting(
 		g_PassCB.Flags,
-		attr.normal,
+		n,
 		v,
 		shadowRayHit,
 		g_PassCB.Light,

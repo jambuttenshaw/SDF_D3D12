@@ -23,9 +23,6 @@ using namespace DirectX;
 #define RENDER_FLAG_DISABLE_SKYBOX								128u
 #define RENDER_FLAG_DISABLE_SHADOW								256u
 
-#define INTERSECTION_FLAG_NONE									0u
-#define INTERSECTION_FLAG_NO_REMAP_NORMALS						1u
-
 
 // Raytracing Params and structures
 
@@ -34,10 +31,8 @@ using namespace DirectX;
 
 struct SDFIntersectAttrib
 {
-	XMFLOAT3 normal;
-	XMFLOAT3 materials;
+	XMFLOAT3 hitUVW;	// The UVW coordinates of the hit-point within the volume texture. This is used to calculate normals and materials
 	UINT utility;		// general purpose integer to pass through to the closest hit shader for debug visualization purposes
-	UINT flags;
 };
 
 struct RadianceRayPayload
