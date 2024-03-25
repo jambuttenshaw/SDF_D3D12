@@ -68,12 +68,12 @@ private:
 	std::unique_ptr<SDFObject> m_Object;
 
 	// GUI controls
-	bool m_Rebuild = false;
+	bool m_Rebuild = true;
 	bool m_AsyncConstruction = false;
 	bool m_EnableEditCulling = true;
 
 	bool m_DisplayDemoGui = true;
 
 	float m_TimeScale = 0.5f;
-	bool m_Paused = false;
+	bool m_Paused = true;
 };

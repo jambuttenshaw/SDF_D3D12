@@ -169,6 +169,32 @@ float opPrimitive(float a, float b, SDFOperation op, float k)
 }
 
 
+// Operations with material interpolation parameters
+float4 opUnion_Material(float a, float b, float4 ta, float4 tb)
+{
+	return a < b ? ta : tb;
+}
+  
+float4 opSmoothUnion_Material(float a, float b, float4 ta, float4 tb, float r)
+{
+	float e = saturate(r - (b - a) / r);
+	return lerp(ta, tb, e);
+}
+
+float4 opPrimitive_Material(float a, float b, float4 ta, float4 tb, SDFOperation op, float k)
+{
+	switch (op)
+	{
+		case SDF_OP_UNION:
+			return opUnion_Material(a, b, ta, tb);
+		case SDF_OP_SMOOTH_UNION:
+			return opSmoothUnion_Material(a, b, ta, tb, k);
+		default:
+			return ta;
+	}
+}
+
+
 //
 // BOUNDING SPHERES
 // Gives the distance to the surface of a bounding sphere for each primitive

@@ -35,6 +35,16 @@ groupshared SDFEditData gs_Edits[MAX_EDITS_CHUNK];
 groupshared Brick gs_Brick;
 
 
+// To convert from an integer [0,3] to the corresponding interpolation parameter. ie a mat table index of 1 corresponds to (0, 1, 0, 0)
+static const float4 s_BaseMatContributions[] =
+{
+	float4(1.0f, 0.0f, 0.0f, 0.0f),
+	float4(0.0f, 1.0f, 0.0f, 0.0f),
+	float4(0.0f, 0.0f, 1.0f, 0.0f),
+	float4(0.0f, 0.0f, 0.0f, 1.0f),
+};
+
+
 float EvaluateEditList(float3 p, uint GI, out float4 materials)
 {
 #ifdef DISABLE_EDIT_CULLING
@@ -45,7 +55,7 @@ float EvaluateEditList(float3 p, uint GI, out float4 materials)
 
 	// Evaluate SDF list
 	float nearest = FLOAT_MAX;
-	materials = float4(1.0f, 0.0f, 0.0f, 0.0f);
+	materials = float4(0.0f, 0.0f, 0.0f, 0.0f);
 
 	const uint numChunks = (editCount + MAX_EDITS_CHUNK - 1) / MAX_EDITS_CHUNK;
 	uint editsRemaining = editCount;
@@ -75,6 +85,10 @@ float EvaluateEditList(float3 p, uint GI, out float4 materials)
 			// evaluate primitive
 			float dist = sdPrimitive(p_transformed, GetShape(gs_Edits[edit].EditParams), gs_Edits[edit].ShapeParams);
 			dist *= gs_Edits[edit].Scale;
+
+			// Blend material
+			const float4 matContribution = s_BaseMatContributions[GetMaterialTableIndex(gs_Edits[edit].EditParams)];
+			materials = opPrimitive_Material(nearest, dist, materials, matContribution, GetOperation(gs_Edits[edit].EditParams), gs_Edits[edit].BlendingRange);
 
 			// combine with scene
 			nearest = opPrimitive(nearest, dist, GetOperation(gs_Edits[edit].EditParams), gs_Edits[edit].BlendingRange);
