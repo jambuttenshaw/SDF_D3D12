@@ -12,16 +12,16 @@ using namespace DirectX;
 
 
 // Flags
-#define RENDER_FLAG_NONE										0u
-#define RENDER_FLAG_DISPLAY_BOUNDING_BOX						1u
-#define RENDER_FLAG_DISPLAY_HEATMAP								2u
-#define RENDER_FLAG_DISPLAY_NORMALS								4u
-#define RENDER_FLAG_DISPLAY_BRICK_INDEX							8u
-#define RENDER_FLAG_DISPLAY_POOL_UVW							16u
-#define RENDER_FLAG_DISPLAY_BRICK_EDIT_COUNT					32u
-#define RENDER_FLAG_DISABLE_IBL									64u
-#define RENDER_FLAG_DISABLE_SKYBOX								128u
-#define RENDER_FLAG_DISABLE_SHADOW								256u
+#define RENDER_FLAG_NONE										(0)
+#define RENDER_FLAG_DISPLAY_BOUNDING_BOX						(1 << 0)
+#define RENDER_FLAG_DISPLAY_HEATMAP								(1 << 1)
+#define RENDER_FLAG_DISPLAY_NORMALS								(1 << 2)
+#define RENDER_FLAG_DISPLAY_BRICK_INDEX							(1 << 3)
+#define RENDER_FLAG_DISPLAY_POOL_UVW							(1 << 4)
+#define RENDER_FLAG_DISPLAY_BRICK_EDIT_COUNT					(1 << 5)
+#define RENDER_FLAG_DISABLE_IBL									(1 << 6)
+#define RENDER_FLAG_DISABLE_SKYBOX								(1 << 7)
+#define RENDER_FLAG_DISABLE_SHADOW								(1 << 8)
 
 
 // Raytracing Params and structures
