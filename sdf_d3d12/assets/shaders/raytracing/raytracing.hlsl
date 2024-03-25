@@ -79,6 +79,33 @@ inline void GenerateCameraRay(uint2 index, out float3 origin, out float3 directi
 }
 
 
+float4 TraceRadianceRay(in Ray ray, in UINT currentRayRecursionDepth)
+{
+	if (currentRayRecursionDepth >= MAX_RAY_RECURSION_DEPTH)
+	{
+		return float4(0, 0, 0, 0);
+	}
+
+    // Set the ray's extents.
+	RayDesc rayDesc;
+	rayDesc.Origin = ray.origin;
+	rayDesc.Direction = ray.direction;
+    // Set TMin to a zero value to avoid aliasing artifacts along contact areas.
+    // Note: make sure to enable face culling so as to avoid surface face fighting.
+	rayDesc.TMin = 0.01f;
+	rayDesc.TMax = 10000;
+	RadianceRayPayload rayPayload = { float4(0, 0, 0, 0), currentRayRecursionDepth + 1 };
+	TraceRay(g_Scene,
+        RAY_FLAG_NONE,
+        TraceRayParameters::InstanceMask,
+        TraceRayParameters::HitGroup::Offset[RayType_Primary],
+        TraceRayParameters::HitGroup::GeometryStride,
+        TraceRayParameters::MissShader::Offset[RayType_Primary],
+        rayDesc, rayPayload);
+
+	return rayPayload.color;
+}
+
 // Trace a shadow ray and return true if it hits any geometry.
 bool TraceShadowRay(in Ray ray, in UINT currentRayRecursionDepth)
 {
@@ -136,28 +163,16 @@ float3 RGBFromHSV(float3 input)
 [shader("raygeneration")]
 void PrimaryRaygenShader()
 {
-	float3 rayDir;
-	float3 origin;
+	Ray ray;
     
     // Generate a ray for a camera pixel corresponding to an index from the dispatched 2D grid.
-	GenerateCameraRay(DispatchRaysIndex().xy, origin, rayDir);
+	GenerateCameraRay(DispatchRaysIndex().xy, ray.origin, ray.direction);
+	float4 color = TraceRadianceRay(ray, 0);
 
-    // Trace the ray.
-    // Set the ray's extents.
-	RayDesc ray;
-	ray.Origin = origin;
-	ray.Direction = rayDir;
-    // Set TMin to a non-zero small value to avoid aliasing issues due to floating - point errors.
-    // TMin should be kept small to prevent missing geometry at close contact areas.
-	ray.TMin = 0.001f;
-	ray.TMax = 10000.0f;
-	RadianceRayPayload payload = { float4(0, 0, 0, 0), 0 };
-	TraceRay(g_Scene, RAY_FLAG_NONE, ~0, 0, 1, 0, ray, payload);
-
-	//payload.color.xyz = pow(payload.color.xyz, 0.4545f);
+	color.xyz = pow(color.xyz, 0.4545f);
 
     // Write the raytraced color to the output texture.
-	g_RenderTarget[DispatchRaysIndex().xy] = payload.color;
+	g_RenderTarget[DispatchRaysIndex().xy] = color;
 }
 
 
