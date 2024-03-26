@@ -38,12 +38,25 @@ struct SDFIntersectAttrib
 	UINT utility;		// general purpose integer to pass through to the closest hit shader for debug visualization purposes
 };
 
+
+// All the information a ray will return if it is designated to 'pick' an object from the scene
+// To allow the mouse to interact with the geometry being rendered
+struct PickingQueryPayload
+{
+	XMFLOAT3 hitLocation;
+	UINT instanceID;
+};
+
+
 struct RadianceRayPayload
 {
-	XMFLOAT4 color;
-	UINT instanceID : 24;
-	UINT recursionDepth : 8;
+	UINT recursionDepth;
+	XMFLOAT3 radiance;
+
+	PickingQueryPayload pickingQuery;
 };
+
+
 struct ShadowRayPayload
 {
 	bool hit;

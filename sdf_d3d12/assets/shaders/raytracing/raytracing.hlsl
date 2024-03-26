@@ -79,11 +79,17 @@ inline void GenerateCameraRay(uint2 index, out float3 origin, out float3 directi
 }
 
 
-float4 TraceRadianceRay(in Ray ray, in UINT currentRayRecursionDepth)
+RadianceRayPayload TraceRadianceRay(in Ray ray, in UINT currentRayRecursionDepth)
 {
+	RadianceRayPayload rayPayload;
+	rayPayload.radiance = float3(0.0f, 0.0f, 0.0f);
+	rayPayload.recursionDepth = currentRayRecursionDepth + 1;
+	rayPayload.pickingQuery.instanceID = INVALID_INSTANCE_ID;
+	rayPayload.pickingQuery.hitLocation = float3(0.0f, 0.0f, 0.0f);
+
 	if (currentRayRecursionDepth >= MAX_RAY_RECURSION_DEPTH)
 	{
-		return float4(0, 0, 0, 0);
+		return rayPayload;
 	}
 
     // Set the ray's extents.
@@ -95,11 +101,6 @@ float4 TraceRadianceRay(in Ray ray, in UINT currentRayRecursionDepth)
 	rayDesc.TMin = 0.01f;
 	rayDesc.TMax = 10000;
 
-	RadianceRayPayload rayPayload;
-	rayPayload.color = float4(0, 0, 0, 0);
-	rayPayload.recursionDepth = currentRayRecursionDepth + 1;
-	rayPayload.instanceID = INVALID_INSTANCE_ID;
-
 	TraceRay(g_Scene,
         RAY_FLAG_NONE,
         TraceRayParameters::InstanceMask,
@@ -108,7 +109,7 @@ float4 TraceRadianceRay(in Ray ray, in UINT currentRayRecursionDepth)
         TraceRayParameters::MissShader::Offset[RayType_Primary],
         rayDesc, rayPayload);
 
-	return rayPayload.color;
+	return rayPayload;
 }
 
 // Trace a shadow ray and return true if it hits any geometry.
@@ -172,12 +173,12 @@ void PrimaryRaygenShader()
     
     // Generate a ray for a camera pixel corresponding to an index from the dispatched 2D grid.
 	GenerateCameraRay(DispatchRaysIndex().xy, ray.origin, ray.direction);
-	float4 color = TraceRadianceRay(ray, 0);
-
-	color.xyz = pow(color.xyz, 0.4545f);
+	RadianceRayPayload payload = TraceRadianceRay(ray, 0);
+	
+	payload.radiance = pow(payload.radiance, 0.4545f);
 
     // Write the raytraced color to the output texture.
-	g_RenderTarget[DispatchRaysIndex().xy] = color;
+	g_RenderTarget[DispatchRaysIndex().xy] = float4(payload.radiance, 1.0f);
 }
 
 
@@ -302,7 +303,10 @@ void SDFIntersectionShader()
 [shader("closesthit")]
 void SDFClosestHitShader(inout RadianceRayPayload payload, in SDFIntersectAttrib attr)
 {
+	// Calculate normal, view direction, and world-space hit location
 	const float3 n = normalize(mul(ComputeSurfaceNormal(attr.hitUVW, 0.5f * l_BrickProperties.UVWPerVoxel), transpose((float3x3) ObjectToWorld())));
+	const float3 hitPos = WorldRayOrigin() + RayTCurrent() * WorldRayDirection();
+	const float3 v = normalize(g_PassCB.WorldEyePos - hitPos);
 
 	// DEBUG MODES
 	if (g_PassCB.Flags & (RENDER_FLAG_DISPLAY_BRICK_EDIT_COUNT | RENDER_FLAG_DISPLAY_HEATMAP | RENDER_FLAG_DISPLAY_BRICK_INDEX))
@@ -310,18 +314,17 @@ void SDFClosestHitShader(inout RadianceRayPayload payload, in SDFIntersectAttrib
 		const float i = saturate((attr.utility - 1.0f) / g_PassCB.HeatmapQuantization);
 		const float hue = g_PassCB.HeatmapHueRange * (1.0f - i);
 
-		payload.color = float4(RGBFromHSV(float3(hue, 1, 1)), 1.0f);
+		payload.radiance = RGBFromHSV(float3(hue, 1, 1));
 		return;
 	}
 	if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_NORMALS)
 	{
-		float3 normalColor = 0.5f + 0.5f * n;
-		payload.color = float4(normalColor, 1);
+		payload.radiance = 0.5f + 0.5f * n;
 		return;
 	}
 	if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_BOUNDING_BOX)
 	{
-		payload.color = float4(attr.hitUVW, 1);
+		payload.radiance = attr.hitUVW;
 		return;
 	}
 
@@ -339,9 +342,6 @@ void SDFClosestHitShader(inout RadianceRayPayload payload, in SDFIntersectAttrib
 	// Material blending
 	const MaterialGPUData mat = blendMaterial(blendMaterial(blendMaterial(blendMaterial(materials[3], t.w), materials[2], t.z), materials[1], t.y), materials[0], t.x);
 
-	const float3 hitPos = WorldRayOrigin() + RayTCurrent() * WorldRayDirection();
-	const float3 v = normalize(g_PassCB.WorldEyePos - hitPos);
-
 	Ray shadowRay;
 	shadowRay.origin = hitPos;
 	shadowRay.direction = -g_PassCB.Light.Direction;
@@ -356,13 +356,13 @@ void SDFClosestHitShader(inout RadianceRayPayload payload, in SDFIntersectAttrib
 	{
 		// Trace a reflection ray.
 		const Ray reflectionRay = { hitPos, reflect(WorldRayDirection(), n) };
-		float4 reflectionColor = TraceRadianceRay(reflectionRay, payload.recursionDepth);
+		const float3 reflectionColor = TraceRadianceRay(reflectionRay, payload.recursionDepth).radiance;
 
 		float3 f0 = float3(0.04f, 0.04f, 0.04f);
 		f0 = lerp(f0, mat.Albedo, mat.Metalness);
 
 		const float3 fresnelR = shlick_fresnel_reflectance(f0, WorldRayDirection(), n);
-		reflectedColor = mat.Reflectance * fresnelR * reflectionColor.rgb;
+		reflectedColor = mat.Reflectance * fresnelR * reflectionColor;
 	}
 
 	// Lighting
@@ -383,8 +383,9 @@ void SDFClosestHitShader(inout RadianceRayPayload payload, in SDFIntersectAttrib
 
 	lightColor /= 1.0f + lightColor;
 
-	payload.color = float4(lightColor, 1.0f);
-	payload.instanceID = InstanceID();
+	payload.radiance = lightColor;
+	payload.pickingQuery.instanceID = InstanceID();
+	payload.pickingQuery.hitLocation = hitPos;
 }
 
 
@@ -395,9 +396,9 @@ void SDFClosestHitShader(inout RadianceRayPayload payload, in SDFIntersectAttrib
 [shader("miss")]
 void PrimaryMissShader(inout RadianceRayPayload payload)
 {
-	payload.color = g_PassCB.Flags & RENDER_FLAG_DISABLE_SKYBOX
-					? float4(0, 0, 0.2f, 1)
-					: g_EnvironmentMap.SampleLevel(g_EnvironmentSampler, WorldRayDirection(), 0);
+	payload.radiance = g_PassCB.Flags & RENDER_FLAG_DISABLE_SKYBOX
+					? float3(0.0f, 0.0f, 0.2f)
+					: g_EnvironmentMap.SampleLevel(g_EnvironmentSampler, WorldRayDirection(), 0).rgb;
 }
 
 
