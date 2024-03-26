@@ -70,19 +70,20 @@ Scene::Scene(D3DApplication* application, const std::string& demoName, float bri
 		m_AccelerationStructure->InitializeTopLevelAS(buildFlags, true, true, L"Top Level Acceleration Structure");
 	}
 
-	auto SetupMaterial = [this](UINT mat, UINT slot, const XMFLOAT3& albedo, float roughness, float metalness)
+	auto SetupMaterial = [this](UINT mat, UINT slot, const XMFLOAT3& albedo, float roughness, float metalness, float reflectance)
 	{
 			const auto pMat = m_Application->GetMaterialManager()->GetMaterial(mat);
 			pMat->SetAlbedo(albedo);
 			pMat->SetRoughness(roughness);
 			pMat->SetMetalness(metalness);
+			pMat->SetReflectance(reflectance);
 			m_Object->SetMaterial(pMat, slot);
 	};
 
-	SetupMaterial(0, 0, { 0.0f, 0.6f, 0.9f }, 0.4f, 0.0f);
-	SetupMaterial(1, 1, { 0.9f, 0.4f, 0.8f }, 0.4f, 0.0f);
-	SetupMaterial(2, 2, { 0.5f, 1.0f, 0.3f }, 0.4f, 0.0f);
-	SetupMaterial(3, 3, { 1.0f, 1.0f, 1.0f }, 0.4f, 0.0f);
+	SetupMaterial(0, 0, { 0.0f, 0.0f, 0.0f }, 0.1f, 0.0f, 0.0f);
+	SetupMaterial(1, 1, { 1.0f, 1.0f, 1.0f }, 0.1f, 0.0f, 0.0f);
+	SetupMaterial(2, 2, { 0.0f, 0.9f, 0.9f }, 0.05f, 1.0f, 1.0f);
+	SetupMaterial(3, 3, { 1.0f, 1.0f, 1.0f }, 0.4f, 0.0f, 0.0f);
 }
 
 Scene::~Scene()
