@@ -82,8 +82,8 @@ Scene::Scene(D3DApplication* application, const std::string& demoName, float bri
 
 	SetupMaterial(0, 0, { 0.0f, 0.0f, 0.0f }, 0.1f, 0.0f, 0.0f);
 	SetupMaterial(1, 1, { 1.0f, 1.0f, 1.0f }, 0.1f, 0.0f, 0.0f);
-	SetupMaterial(2, 2, { 0.0f, 0.9f, 0.9f }, 0.05f, 1.0f, 1.0f);
-	SetupMaterial(3, 3, { 1.0f, 1.0f, 1.0f }, 0.4f, 0.0f, 0.0f);
+	SetupMaterial(2, 2, { 1.0f, 0.5f, 0.0f }, 0.1f, 0.0f, 0.0f);
+	SetupMaterial(3, 3, { 0.0f, 0.9f, 0.9f }, 0.05f, 1.0f, 1.0f);
 }
 
 Scene::~Scene()

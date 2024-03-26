@@ -50,7 +50,7 @@ DropsDemo::DropsDemo()
 			0.0f,
 			Random::Float(-3.0f, 3.0f)
 		};
-		sphereData.material = static_cast<UINT>(Random::Int(0, 1));
+		sphereData.material = static_cast<UINT>(Random::Int(0, 2));
 	}
 }
 
@@ -62,7 +62,7 @@ SDFEditList DropsDemo::BuildEditList(float deltaTime)
 	SDFEditList editList(m_SphereCount + 2, 12.0f);
 
 	// Create base
-	editList.AddEdit(SDFEdit::CreateBox({}, { 6.0f, 0.05f, 6.0f }, SDF_OP_UNION, 0.0f, 2));
+	editList.AddEdit(SDFEdit::CreateBox({}, { 6.0f, 0.05f, 6.0f }, SDF_OP_UNION, 0.0f, 3));
 
 	for (UINT i = 0; i < m_SphereCount; i++)
 	{
