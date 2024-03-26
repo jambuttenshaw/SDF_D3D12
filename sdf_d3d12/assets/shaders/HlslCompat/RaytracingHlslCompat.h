@@ -27,7 +27,7 @@ using namespace DirectX;
 
 // Raytracing Params and structures
 
-#define MAX_RAY_RECURSION_DEPTH 3 // Primary rays + reflection rays + shadow rays
+#define MAX_RAY_RECURSION_DEPTH 2 // Primary rays + reflection rays + shadow rays
 
 
 struct SDFIntersectAttrib
@@ -109,9 +109,10 @@ struct PassConstantBuffer
 // Data that is constant among all bricks in an object
 struct BrickPropertiesConstantBuffer
 {
-	// The brick dimensions
+	// Following CB packing rules
+	XMUINT3 BrickPoolDimensions;
 	float BrickSize;
-	// Total number of bricks in the object
+	XMFLOAT3 UVWPerVoxel;
 	UINT BrickCount;
 };
 

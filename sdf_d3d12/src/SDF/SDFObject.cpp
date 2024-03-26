@@ -54,6 +54,17 @@ const XMUINT3& SDFObject::GetBrickPoolDimensions(ResourceGroup res) const
 {
 	return GetResources(res).BrickPoolDimensions;
 }
+
+
+XMUINT3 SDFObject::GetBrickPoolResolution(ResourceGroup res) const
+{
+	const auto& dims = GetResources(res).BrickPoolDimensions;
+	return XMUINT3{
+		dims.x * SDF_BRICK_SIZE_VOXELS_ADJACENCY,
+		dims.y * SDF_BRICK_SIZE_VOXELS_ADJACENCY,
+		dims.z * SDF_BRICK_SIZE_VOXELS_ADJACENCY
+	};
+}
 UINT SDFObject::GetBrickPoolCapacity(ResourceGroup res) const
 {
 	const auto& dims = GetResources(res).BrickPoolDimensions;

@@ -30,8 +30,14 @@ void PopulateLocalRootParams(const SDFObject* object, LocalRootSignatureParams::
 {
 	rootArgs.brickProperties.BrickSize = object->GetBrickSize(SDFObject::RESOURCES_READ);
 	rootArgs.brickProperties.BrickCount = object->GetBrickCount(SDFObject::RESOURCES_READ);
+
+	rootArgs.brickProperties.BrickPoolDimensions = object->GetBrickPoolResolution(SDFObject::RESOURCES_READ);
+	const XMVECTOR uvwPerBrick = XMVECTOR({ 1.0f, 1.0f, 1.0f, 1.0f }) / XMLoadUInt3(&rootArgs.brickProperties.BrickPoolDimensions);
+	XMStoreFloat3(&rootArgs.brickProperties.UVWPerVoxel, uvwPerBrick);
+
 	rootArgs.brickPoolSRV = object->GetDescriptor(SDFObject::RESOURCES_READ, SDFObject::POOL_SRV);
 	rootArgs.brickBuffer = object->GetBrickBufferAddress(SDFObject::RESOURCES_READ);
+
 	memcpy(&rootArgs.materialTable, object->GetMaterialTablePtr(), object->GetMaterialTableSize());
 }
 

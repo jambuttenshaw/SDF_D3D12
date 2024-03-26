@@ -56,6 +56,7 @@ public:
 
 	inline UINT GetBrickCount(ResourceGroup res) const { return GetResources(res).BrickCount; }
 	const XMUINT3& GetBrickPoolDimensions(ResourceGroup res) const;
+	XMUINT3 GetBrickPoolResolution(ResourceGroup res) const;
 	UINT GetBrickPoolCapacity(ResourceGroup res) const;
 
 	// Geometry buffer
