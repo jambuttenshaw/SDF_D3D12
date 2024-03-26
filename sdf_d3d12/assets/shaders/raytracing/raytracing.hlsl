@@ -254,8 +254,10 @@ void SDFIntersectionShader()
 
 
 		// step through volume to find surface
+		uint iterationCount = 0;
 		while (true)
 		{
+			++iterationCount;
 			// Sample the volume
 			float s = l_BrickPool.SampleLevel(g_VolumeSampler, uvw, 0).x;
 			
@@ -282,7 +284,7 @@ void SDFIntersectionShader()
 
 		// Transform from object space to world space
 		attr.hitUVW = uvw;
-		attr.utility = brick.IndexCount;
+		attr.utility = g_PassCB.Flags & RENDER_FLAG_DISPLAY_BRICK_EDIT_COUNT ? brick.IndexCount : iterationCount;
 		ReportHit(newT, 0, attr);
 	}
 }
