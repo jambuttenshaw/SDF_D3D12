@@ -29,6 +29,8 @@ using namespace DirectX;
 
 #define MAX_RAY_RECURSION_DEPTH 2 // Primary rays + reflection rays + shadow rays
 
+#define INVALID_INSTANCE_ID ((1 << 24) - 1)
+
 
 struct SDFIntersectAttrib
 {
@@ -39,7 +41,8 @@ struct SDFIntersectAttrib
 struct RadianceRayPayload
 {
 	XMFLOAT4 color;
-	UINT recursionDepth;
+	UINT instanceID : 24;
+	UINT recursionDepth : 8;
 };
 struct ShadowRayPayload
 {

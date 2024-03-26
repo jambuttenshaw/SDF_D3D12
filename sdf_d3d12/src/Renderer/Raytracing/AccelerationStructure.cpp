@@ -310,6 +310,7 @@ UINT RaytracingAccelerationStructureManager::AddBottomLevelASInstance(const std:
 
 	// Populate the next element in the staging buffer
 	D3D12_RAYTRACING_INSTANCE_DESC& instanceDesc = m_BottomLevelInstanceDescsStaging.at(instanceIndex);
+	instanceDesc.InstanceID = instanceIndex;
 	instanceDesc.InstanceMask = instanceMask;
 	instanceDesc.InstanceContributionToHitGroupIndex = bottomLevelAS.GetInstanceContributionToHitGroupIndex();
 	instanceDesc.AccelerationStructure = bottomLevelAS.GetResource()->GetGPUVirtualAddress();

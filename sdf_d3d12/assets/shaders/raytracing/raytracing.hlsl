@@ -94,7 +94,12 @@ float4 TraceRadianceRay(in Ray ray, in UINT currentRayRecursionDepth)
     // Note: make sure to enable face culling so as to avoid surface face fighting.
 	rayDesc.TMin = 0.01f;
 	rayDesc.TMax = 10000;
-	RadianceRayPayload rayPayload = { float4(0, 0, 0, 0), currentRayRecursionDepth + 1 };
+
+	RadianceRayPayload rayPayload;
+	rayPayload.color = float4(0, 0, 0, 0);
+	rayPayload.recursionDepth = currentRayRecursionDepth + 1;
+	rayPayload.instanceID = INVALID_INSTANCE_ID;
+
 	TraceRay(g_Scene,
         RAY_FLAG_NONE,
         TraceRayParameters::InstanceMask,
@@ -379,6 +384,7 @@ void SDFClosestHitShader(inout RadianceRayPayload payload, in SDFIntersectAttrib
 	lightColor /= 1.0f + lightColor;
 
 	payload.color = float4(lightColor, 1.0f);
+	payload.instanceID = InstanceID();
 }
 
 
