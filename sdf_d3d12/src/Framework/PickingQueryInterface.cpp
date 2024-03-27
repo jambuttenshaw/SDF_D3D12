@@ -13,7 +13,7 @@ PickingQueryInterface::PickingQueryInterface()
 
 	const auto device = g_D3DGraphicsContext->GetDevice();
 
-	m_PickingParamsBuffer.Allocate(device, D3DGraphicsContext::GetBackBufferCount(), 0, L"Picking Params");
+	m_PickingParamsBuffer.Allocate(device, D3DGraphicsContext::GetBackBufferCount(), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT, L"Picking Params");
 	m_PickingOutputBuffer.Allocate(device, sizeof(PickingQueryPayload), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, L"Picking Output");
 	m_PickingReadbackBuffer.Allocate(device, D3DGraphicsContext::GetBackBufferCount(), 0, L"Picking Readback");
 }
@@ -41,3 +41,11 @@ void PickingQueryInterface::ReadLastPick()
 {
 	m_LastPick = m_PickingReadbackBuffer.ReadElement(g_D3DGraphicsContext->GetCurrentBackBuffer());
 }
+
+
+D3D12_GPU_VIRTUAL_ADDRESS PickingQueryInterface::GetPickingParamsBuffer() const
+{
+	return m_PickingParamsBuffer.GetAddressOfElement(g_D3DGraphicsContext->GetCurrentBackBuffer());
+}
+
+

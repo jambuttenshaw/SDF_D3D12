@@ -5,13 +5,15 @@
 #include "Scene.h"
 
 #include "Renderer/D3DGraphicsContext.h"
-#include "Framework/Camera/Camera.h"
-#include "Framework/Camera/OrbitalCameraController.h"
-#include "Framework/GameTimer.h"
 #include "Renderer/Buffer/TextureLoader.h"
 #include "Renderer/Lighting/Light.h"
 #include "Renderer/Lighting/Material.h"
 #include "Renderer/Raytracing/Raytracer.h"
+
+#include "Framework/PickingQueryInterface.h"
+#include "Framework/GameTimer.h"
+#include "Framework/Camera/Camera.h"
+#include "Framework/Camera/OrbitalCameraController.h"
 
 
 // Forward declarations
@@ -69,12 +71,12 @@ private:
 
 	std::unique_ptr<Scene> m_Scene;
 	std::unique_ptr<Raytracer> m_Raytracer;
+	std::unique_ptr<PickingQueryInterface> m_PickingQueryInterface;
 
 	std::unique_ptr<LightManager> m_LightManager;
 	std::unique_ptr<MaterialManager> m_MaterialManager;
 
 	PassConstantBuffer m_PassCB;
-
 
 	std::string m_DefaultDemo = "drops";
 

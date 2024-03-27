@@ -17,6 +17,7 @@ RaytracingAccelerationStructure g_Scene : register(t0);
 RWTexture2D<float4> g_RenderTarget : register(u0);
 
 ConstantBuffer<PassConstantBuffer> g_PassCB : register(b0);
+
 StructuredBuffer<MaterialGPUData> g_Materials : register(t1);
 
 TextureCube g_EnvironmentMap : register(t2);
@@ -27,6 +28,11 @@ TextureCube g_PrefilterMap : register(t5);
 SamplerState g_EnvironmentSampler : register(s0);
 SamplerState g_BRDFSampler : register(s1);
 SamplerState g_VolumeSampler : register(s2);
+
+
+// Picking
+ConstantBuffer<PickingQueryParameters> g_PickingQueryParams : register(b1);
+RWStructuredBuffer<PickingQueryPayload> g_PickingQueryOutput : register(u1);
 
 
 /////////////////////////
@@ -179,6 +185,12 @@ void PrimaryRaygenShader()
 
     // Write the raytraced color to the output texture.
 	g_RenderTarget[DispatchRaysIndex().xy] = float4(payload.radiance, 1.0f);
+
+	// If this ray has been selected to pick then output whatever it picked at its location
+	if (all(DispatchRaysIndex().xy == g_PickingQueryParams.rayIndex))
+	{
+		g_PickingQueryOutput[0] = payload.pickingQuery;
+	}
 }
 
 

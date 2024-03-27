@@ -17,6 +17,7 @@
 #include <fstream>
 #include <iomanip>
 
+#include "Framework/PickingQueryInterface.h"
 #include "Renderer/D3DDebugTools.h"
 
 
@@ -222,6 +223,8 @@ void D3DApplication::OnInit()
 		m_CameraController = std::make_unique<CameraController>(m_InputManager.get(), &m_Camera);
 
 	m_Raytracer = std::make_unique<Raytracer>();
+	m_PickingQueryInterface = std::make_unique<PickingQueryInterface>();
+
 	m_LightManager = std::make_unique<LightManager>();
 	m_MaterialManager = std::make_unique<MaterialManager>(4);
 
@@ -283,6 +286,9 @@ void D3DApplication::OnUpdate()
 	UpdateProfiling();
 #endif
 
+	m_PickingQueryInterface->ReadLastPick();
+	m_PickingQueryInterface->SetNextPickLocation({ m_InputManager->GetMouseX(), m_InputManager->GetMouseY() });
+
 	m_Scene->OnUpdate(m_Timer.GetDeltaTime());
 
 	if (m_ShowMainMenuBar && !m_DisableGUI)
@@ -324,6 +330,7 @@ void D3DApplication::OnRender()
 	// Update constant buffer
 	UpdatePassCB();
 	m_MaterialManager->UploadMaterialData();
+	m_PickingQueryInterface->UploadPickingParams();
 
 	// Perform all queued uploads
 	m_TextureLoader->PerformUploads();
@@ -338,7 +345,17 @@ void D3DApplication::OnRender()
 	m_Scene->PreRender();
 
 	// Perform raytracing
-	m_Raytracer->DoRaytracing(m_MaterialManager->GetMaterialBufferAddress(), m_LightManager->GetSRVTable(), m_LightManager->GetSamplerTable());
+	{
+		Raytracer::RaytracingParams raytracingParams;
+		raytracingParams.PickingInterface = m_PickingQueryInterface.get();
+		raytracingParams.MaterialBuffer = m_MaterialManager->GetMaterialBufferAddress();
+		raytracingParams.GlobalLightingSRVTable = m_LightManager->GetSRVTable();
+		raytracingParams.GlobalLightingSamplerTable = m_LightManager->GetSamplerTable();
+
+		m_Raytracer->DoRaytracing(raytracingParams);
+	}
+	m_PickingQueryInterface->CopyPickingResult(m_GraphicsContext->GetCommandList());
+
 	m_GraphicsContext->CopyRaytracingOutput(m_Raytracer->GetRaytracingOutput());
 
 	// ImGui Render
@@ -719,22 +736,31 @@ bool D3DApplication::ImGuiApplicationInfo()
 
 		ImGui::Separator();
 
-		const bool pixEnabled = m_GraphicsContext->IsPIXEnabled();
-		if (!pixEnabled)
 		{
-			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+			const bool pixEnabled = m_GraphicsContext->IsPIXEnabled();
+			if (!pixEnabled)
+			{
+				ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+				ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+			}
+
+			if (ImGui::Button("GPU Capture"))
+			{
+				D3DDebugTools::PIXGPUCaptureFrame(1);
+			}
+
+			if (!pixEnabled)
+			{
+				ImGui::PopItemFlag();
+				ImGui::PopStyleVar();
+			}
 		}
 
-		if (ImGui::Button("GPU Capture"))
 		{
-			D3DDebugTools::PIXGPUCaptureFrame(1);
-		}
-
-		if (!pixEnabled)
-		{
-			ImGui::PopItemFlag();
-			ImGui::PopStyleVar();
+			ImGui::Separator();
+			const PickingQueryPayload& pick = m_PickingQueryInterface->GetLastPick();
+			ImGui::Text("Picking ID: %d", pick.instanceID);
+			ImGui::Text("Picking World Pos: %.1f, %.1f, %.1f", pick.hitLocation.x, pick.hitLocation.y, pick.hitLocation.z);
 		}
 	}
 	ImGui::End();

@@ -21,12 +21,22 @@ public:
 		GlobalSamplerCount
 	};
 
+	struct RaytracingParams
+	{
+		class PickingQueryInterface* PickingInterface;
+
+		D3D12_GPU_VIRTUAL_ADDRESS MaterialBuffer;
+
+		D3D12_GPU_DESCRIPTOR_HANDLE GlobalLightingSRVTable;
+		D3D12_GPU_DESCRIPTOR_HANDLE GlobalLightingSamplerTable;
+	};
+
 public:
 	Raytracer();
 	~Raytracer();
 
 	void Setup(const Scene& scene);
-	void DoRaytracing(D3D12_GPU_VIRTUAL_ADDRESS materialBuffer, D3D12_GPU_DESCRIPTOR_HANDLE globalLightingSRVTable, D3D12_GPU_DESCRIPTOR_HANDLE globalLightingSamplerTable) const;
+	void DoRaytracing(const RaytracingParams& params) const;
 
 	void Resize();
 

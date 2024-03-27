@@ -22,6 +22,10 @@ public:
 	void ReadLastPick();
 	const PickingQueryPayload& GetLastPick() const { return m_LastPick; }
 
+	// Getters
+	D3D12_GPU_VIRTUAL_ADDRESS GetPickingParamsBuffer() const;
+	D3D12_GPU_VIRTUAL_ADDRESS GetPickingOutputBuffer() const { return m_PickingOutputBuffer.GetAddress(); }
+
 private:
 	// Resources required for picking
 
