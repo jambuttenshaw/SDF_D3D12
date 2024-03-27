@@ -25,6 +25,7 @@
 D3DApplication::D3DApplication(UINT width, UINT height, const std::wstring& name)
 	: BaseApplication(width, height, name)
 {
+	m_ProfilingDataCollector = std::make_unique<ProfilingDataCollector>();
 }
 
 
@@ -64,12 +65,10 @@ bool D3DApplication::ParseCommandLineArgs(LPWSTR argv[], int argc)
 
 #ifdef ENABLE_INSTRUMENTATION
 	// These settings won't do anything in a non-instrumented build
-	args::Group profilingGroup(parser, "Profiling Options");
-	args::ValueFlag<std::string> profileConfig(profilingGroup, "Profile Config", "Path to profiling config file", { "profile-config" });
-	args::ValueFlag<std::string> gpuProfileConfig(profilingGroup, "GPU Profiler Config", "Path to GPU profiler config file", { "gpu-profiler-config" });
-	args::ValueFlag<std::string> profileOutput(profilingGroup, "Output", "Path to output file", { "profile-output" });
-
-	args::ValueFlag<std::string> outputAvailableMetrics(profilingGroup, "output-available-metrics", "Output file for available GPU metrics", { "output-available-metrics" });
+	args::Command profilingCommand(parser, "profile", "Launch application in profiling mode", [this](args::Subparser& subparser)
+		{
+			this->m_ProfilingDataCollector->ParseCommandLineArgs(subparser);
+		});
 #endif
 
 	try
@@ -110,57 +109,6 @@ bool D3DApplication::ParseCommandLineArgs(LPWSTR argv[], int argc)
 	if (orbitalCamera)
 		m_UseOrbitalCamera = true;
 
-#ifdef ENABLE_INSTRUMENTATION
-	// These settings aren't relevant otherwise
-	if (profileConfig)
-	{
-		// Parse config
-		if (ParseProfileConfigFromJSON(profileConfig.Get(), m_ProfileConfig))
-		{
-			m_ProfilingMode = true;
-			// Force various modes for profiling
-			m_UseOrbitalCamera = true;
-			m_DisableGUI = true;
-			m_ToggleFullscreen = true;
-
-			const auto& demoConfig = m_ProfileConfig.DemoConfigs[0];
-
-			m_CapturesRemaining = m_ProfileConfig.NumCaptures;
-			m_DemoIterationsRemaining = demoConfig.IterationCount;
-			m_DemoConfigIndex = 0;
-
-			{
-				// Build iteration data string
-				std::stringstream stream;
-				stream << std::fixed << std::setprecision(4) << demoConfig.DemoName << "," << demoConfig.InitialBrickSize << ",";
-				m_ConfigData = std::move(stream.str());
-			}
-		}
-	}
-
-	if (gpuProfileConfig)
-	{
-		// Parse gpu profiler args
-		if (ParseGPUProfilerArgsFromJSON(gpuProfileConfig.Get(), m_GPUProfilerArgs))
-		{
-			// Don't load defaults - args have been supplied
-			m_LoadDefaultGPUProfilerArgs = false;
-		}
-	}
-
-	if (m_ProfilingMode)
-	{
-		m_ProfileConfig.OutputFile = profileOutput ? profileOutput.Get() : "captures/profile.csv";
-		LOG_INFO("Using profiling output path: '{}'", m_ProfileConfig.OutputFile);
-	}
-
-	if (outputAvailableMetrics)
-	{
-		m_OutputAvailableMetrics = true;
-		m_AvailableMetricsOutfile = outputAvailableMetrics.Get();
-	}
-#endif
-
 	return true;
 }
 
@@ -174,46 +122,7 @@ void D3DApplication::OnInit()
 
 	m_TextureLoader = std::make_unique<TextureLoader>();
 
-#ifdef ENABLE_INSTRUMENTATION
-	if (m_LoadDefaultGPUProfilerArgs)
-	{
-		m_GPUProfilerArgs.Queue = GPUProfilerQueue::Direct;
-		m_GPUProfilerArgs.Metrics.push_back("gpu__time_duration.sum");
-		m_GPUProfilerArgs.Headers.push_back("Duration");
-	}
-
-	GPUProfiler::Create(m_GPUProfilerArgs);
-
-	if (m_OutputAvailableMetrics)
-	{
-		GPUProfiler::GetAvailableMetrics(m_AvailableMetricsOutfile);
-	}
-
-	if (m_ProfilingMode)
-	{
-		// Write headers into outfile
-		std::ofstream outFile(m_ProfileConfig.OutputFile);
-		if (outFile.good())
-		{
-			outFile << "Demo Name,Brick Size,BrickCount,EditCount,Range Name";
-			for (const auto& header : m_GPUProfilerArgs.Headers)
-			{
-				outFile << "," << header;
-			}
-			outFile << std::endl;
-		}
-		else
-		{
-			LOG_ERROR("Failed to open outfile '{}'", m_ProfileConfig.OutputFile.c_str());
-		}
-	}
-
-#endif
-
-	InitImGui();
-
 	// Setup camera
-
 	m_Camera.SetPosition(XMVECTOR{ 0.0f, 3.0f, -8.0f });
 	m_Timer.Reset();
 
@@ -222,6 +131,8 @@ void D3DApplication::OnInit()
 	else
 		m_CameraController = std::make_unique<CameraController>(m_InputManager.get(), &m_Camera);
 
+	InitImGui();
+
 	m_Raytracer = std::make_unique<Raytracer>();
 	m_PickingQueryInterface = std::make_unique<PickingQueryInterface>();
 
@@ -229,10 +140,19 @@ void D3DApplication::OnInit()
 	m_MaterialManager = std::make_unique<MaterialManager>(4);
 
 	BaseDemo::CreateAllDemos();
-	if (m_ProfilingMode)
+	if (m_ProfilingDataCollector->InitProfiler())
 	{
+		// Force various modes for profiling
+		if (!m_UseOrbitalCamera)
+		{
+			m_UseOrbitalCamera = true;
+			m_CameraController = std::make_unique<OrbitalCameraController>(m_InputManager.get(), &m_Camera);
+		}
+		m_DisableGUI = true;
+		m_ToggleFullscreen = true;
+
 		// Load config from command line
-		const auto& demo = m_ProfileConfig.DemoConfigs[0];
+		const auto& demo = m_ProfilingDataCollector->GetDemoConfig(0);
 		m_Scene = std::make_unique<Scene>(this, demo.DemoName, demo.InitialBrickSize);
 
 		// Setup camera
@@ -283,7 +203,7 @@ void D3DApplication::OnUpdate()
 
 #ifdef ENABLE_INSTRUMENTATION
 	// Update profiling before updating the scene, as this may modify the current scene
-	UpdateProfiling();
+	m_ProfilingDataCollector->UpdateProfiling(m_Scene.get(), &m_Timer, m_CameraController.get());
 #endif
 
 	m_PickingQueryInterface->ReadLastPick();
@@ -496,128 +416,6 @@ void D3DApplication::EndUpdate()
 	ImGui::Render();
 	m_InputManager->EndFrame();
 }
-
-
-void D3DApplication::UpdateProfiling()
-{
-	// This function keeps track of gathering profiling data as specified by the config
-	// If no config was given, then no profiling will take place and the application will run in demo mode as normal
-	if (!m_ProfilingMode)
-		return;
-
-	if (m_Timer.GetTimeSinceReset() < GPUProfiler::GetWarmupTime())
-		return;
-
-	if (m_Timer.GetTimeSinceReset() - m_DemoBeginTime < m_DemoWarmupTime)
-		return;
-	m_Scene->SetPaused(true);
-
-	// Still performing runs to gather data
-	if (m_CapturesRemaining > 0)
-	{
-		// It is safe to access profiler within this function - this will only be called if instrumentation is enabled
-		if (GPUProfiler::Get().IsInCollection())
-		{
-			// If it is in collection, check if it has finished collecting data
-			std::vector<std::stringstream> metrics;
-			if (GPUProfiler::Get().DecodeData(metrics))
-			{
-				// data can be gathered from profiler
-				m_CapturesRemaining--;
-
-				{
-					std::ofstream outFile(m_ProfileConfig.OutputFile, std::ofstream::app);
-
-					if (outFile.good())
-					{
-						// Build all non gpu profiler data that should also be output
-						std::stringstream otherData;
-						otherData << m_Scene->GetCurrentBrickCount() << "," << m_Scene->GetDemoEditCount() << ",";
-
-						for (const auto& metric : metrics)
-						{
-							outFile << m_ConfigData << otherData.str() << metric.str();
-						}
-					}
-					else
-					{
-						LOG_ERROR("Failed to open outfile '{}'", m_ProfileConfig.OutputFile.c_str());
-					}
-				}
-				
-			}
-		}
-		else
-		{
-			// Begin a new capture
-			PROFILE_CAPTURE_NEXT_FRAME();
-		}
-
-	}
-	// Check if there are still variations of this demo to perform
-	else if (--m_DemoIterationsRemaining > 0)
-	{
-		// Setup demo for capture
-		const DemoConfig& demoConfig = m_ProfileConfig.DemoConfigs[m_DemoConfigIndex];
-
-		// Get current brick size
-		float currentBrickSize = 0.0f;
-		const UINT iterationsCompleted = demoConfig.IterationCount - m_DemoIterationsRemaining;
-		if (demoConfig.IsLinearIncrement)
-		{
-			currentBrickSize = demoConfig.InitialBrickSize + demoConfig.BrickSizeIncrement * static_cast<float>(iterationsCompleted);
-		}
-		else
-		{
-			currentBrickSize = demoConfig.InitialBrickSize * std::pow(demoConfig.BrickSizeMultiplier, static_cast<float>(iterationsCompleted));
-		}
-		m_Scene->Reset(demoConfig.DemoName, currentBrickSize);
-
-		{
-			// Build iteration data string
-			std::stringstream stream;
-			stream << std::fixed << std::setprecision(4) << demoConfig.DemoName << "," << currentBrickSize << ",";
-			m_ConfigData = std::move(stream.str());
-		}
-
-		m_CapturesRemaining = m_ProfileConfig.NumCaptures;
-	}
-	// Current demo config has been completed - progress to the next one
-	else if (++m_DemoConfigIndex == m_ProfileConfig.DemoConfigs.size())
-	{
-		// All demo configs have been captured
-		// Process final data
-		LOG_INFO("All config profiling completed in {} seconds.", m_Timer.GetTimeSinceReset());
-
-		// Quit application
-		Win32Application::ForceQuit();
-	}
-	else
-	{
-		// Progress to next demo
-		const DemoConfig& demoConfig = m_ProfileConfig.DemoConfigs[m_DemoConfigIndex];
-
-		m_Scene->Reset(demoConfig.DemoName, demoConfig.InitialBrickSize);
-
-		const auto orbitalCamera = static_cast<OrbitalCameraController*>(m_CameraController.get());
-		orbitalCamera->SetOrbitPoint(XMLoadFloat3(&demoConfig.CameraConfig.FocalPoint));
-		orbitalCamera->SetOrbitRadius(demoConfig.CameraConfig.OrbitRadius);
-
-		{
-			// Build iteration data string
-			std::stringstream stream;
-			stream << std::fixed << std::setprecision(4) << demoConfig.DemoName << "," << demoConfig.InitialBrickSize << ",";
-			m_ConfigData = std::move(stream.str());
-		}
-
-		m_CapturesRemaining = m_ProfileConfig.NumCaptures;
-		m_DemoIterationsRemaining = demoConfig.IterationCount;
-
-		m_DemoBeginTime = m_Timer.GetTimeSinceReset();
-		m_Scene->SetPaused(false);
-	}
-}
-
 
 
 bool D3DApplication::ImGuiApplicationInfo()

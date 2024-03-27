@@ -2,6 +2,7 @@
 
 #include "BaseApplication.h"
 #include "ProfileConfig.h"
+#include "ProfilingDataCollector.h"
 #include "Scene.h"
 
 #include "Renderer/D3DGraphicsContext.h"
@@ -29,6 +30,9 @@ public:
 	D3DApplication(UINT width, UINT height, const std::wstring& name);
 	virtual ~D3DApplication() override = default;
 
+	DISALLOW_COPY(D3DApplication)
+	DISALLOW_MOVE(D3DApplication)
+
 	virtual bool ParseCommandLineArgs(LPWSTR argv[], int argc) override;
 
 	virtual void OnInit() override;
@@ -53,8 +57,6 @@ private:
 
 	void BeginUpdate();
 	void EndUpdate();
-
-	void UpdateProfiling();
 
 	// ImGui Windows
 	bool ImGuiApplicationInfo();
@@ -91,24 +93,5 @@ private:
 	bool m_ToggleFullscreen = false;
 	D3DGraphicsContextFlags m_GraphicsContextFlags;
 
-	// Profiling configuration
-	bool m_ProfilingMode = false;		
-	ProfileConfig m_ProfileConfig;
-
-	UINT m_CapturesRemaining = 0;
-	bool m_BegunCapture = false;
-
-	UINT m_DemoIterationsRemaining = 0;
-	UINT m_DemoConfigIndex = 0;
-
-	float m_DemoBeginTime = 0.0f;
-	float m_DemoWarmupTime = 5.0f;
-
-	std::string m_ConfigData;
-
-	bool m_LoadDefaultGPUProfilerArgs = true;		// If no config was specified in the command line args, default config will be loaded
-	GPUProfilerArgs m_GPUProfilerArgs;
-
-	bool m_OutputAvailableMetrics = false;
-	std::string m_AvailableMetricsOutfile;
+	std::unique_ptr<ProfilingDataCollector> m_ProfilingDataCollector;
 };
