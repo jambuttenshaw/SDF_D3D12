@@ -30,7 +30,7 @@ using namespace DirectX;
 #define MAX_RAY_RECURSION_DEPTH 2 // Primary rays + reflection rays + shadow rays
 
 #define INVALID_INSTANCE_ID ((1 << 24) - 1)
-
+#define INVALID_PICK_INDEX ((UINT)-1)
 
 struct SDFIntersectAttrib
 {
@@ -39,6 +39,12 @@ struct SDFIntersectAttrib
 };
 
 
+// Designates which ray should perform picking, or -1 if no picking should be performed
+struct PickingQueryParameters
+{
+	// The index of the ray that should report what it is picking, in terms of its screen-space pixel position
+	XMUINT2 rayIndex;
+};
 // All the information a ray will return if it is designated to 'pick' an object from the scene
 // To allow the mouse to interact with the geometry being rendered
 struct PickingQueryPayload

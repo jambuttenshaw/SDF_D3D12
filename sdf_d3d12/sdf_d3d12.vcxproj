@@ -419,7 +419,7 @@
     </ClCompile>
     <ClCompile Include="src\Framework\Math.cpp" />
     <ClCompile Include="src\Framework\Camera\OrbitalCameraController.cpp" />
-    <ClCompile Include="src\Framework\PickingInterface.cpp" />
+    <ClCompile Include="src\Framework\PickingQueryInterface.cpp" />
     <ClCompile Include="src\Framework\Transform.cpp" />
     <ClCompile Include="src\Input\InputManager.cpp" />
     <ClCompile Include="src\Main.cpp" />
@@ -519,7 +519,7 @@
     <ClInclude Include="src\Framework\GameTimer.h" />
     <ClInclude Include="src\Framework\Math.h" />
     <ClInclude Include="src\Framework\Camera\OrbitalCameraController.h" />
-    <ClInclude Include="src\Framework\PickingInterface.h" />
+    <ClInclude Include="src\Framework\PickingQueryInterface.h" />
     <ClInclude Include="src\Framework\Transform.h" />
     <ClInclude Include="src\Input\InputManager.h" />
     <ClInclude Include="src\Input\KeyCodes.h" />
