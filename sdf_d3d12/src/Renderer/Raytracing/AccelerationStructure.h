@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core.h"
+#include "GeometryInstance.h"
 #include "Renderer/Buffer/UploadBuffer.h"
 #include "Renderer/D3DGraphicsContext.h"
 #include "Renderer/Buffer/DefaultBuffer.h"
@@ -58,19 +59,6 @@ protected:
 };
 
 
-// A description of all the geometry contained within a bottom level acceleration structure
-// Currently this only describes AABB geometry
-struct BottomLevelAccelerationStructureGeometry
-{
-	~BottomLevelAccelerationStructureGeometry() = default;
-	DISALLOW_COPY(BottomLevelAccelerationStructureGeometry)
-	DEFAULT_MOVE(BottomLevelAccelerationStructureGeometry)
-
-	std::wstring Name;
-	SDFObject* Geometry;
-};
-
-
 class BottomLevelAccelerationStructure : public AccelerationStructure
 {
 public:
@@ -80,19 +68,24 @@ public:
 	DISALLOW_COPY(BottomLevelAccelerationStructure)
 	DEFAULT_MOVE(BottomLevelAccelerationStructure)
 
-	void Initialize(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags, const BottomLevelAccelerationStructureGeometry& geometry,	bool allowUpdate = false, bool updateOnBuild = false);
+	void Initialize(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags, const std::wstring& name, SDFObject* geometry, bool allowUpdate = false, bool updateOnBuild = false);
 	void Build();
 
-	void UpdateGeometry(const BottomLevelAccelerationStructureGeometry& geometry);
+	void UpdateGeometry();
+	void UpdateGeometry(SDFObject* geometry);
+
+	inline SDFObject* GetGeometry() const { return m_Geometry; }
 
 	inline void SetInstanceContributionToHitGroupIndex(UINT index) { m_InstanceContributionToHitGroupIndex = index; }
 	inline UINT GetInstanceContributionToHitGroupIndex() const { return m_InstanceContributionToHitGroupIndex; }
 
 private:
-	void BuildGeometryDescs(const BottomLevelAccelerationStructureGeometry& geometry);
+	void BuildGeometryDescs(const SDFObject* geometry);
 	void ComputePrebuildInfo();
 
 private:
+	SDFObject* m_Geometry;
+
 	D3D12_RAYTRACING_GEOMETRY_DESC m_GeometryDesc;
 	std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> m_CachedGeometryDesc;
 
@@ -120,12 +113,6 @@ private:
 
 class RaytracingAccelerationStructureManager
 {
-	struct BLASInstanceMetadata
-	{
-		// The index into the BLAS vector for the BLAS that this is an instance of
-		size_t BLASIndex;
-	};
-
 public:
 	RaytracingAccelerationStructureManager(UINT numBottomLevelInstances);
 	~RaytracingAccelerationStructureManager() = default;
@@ -133,26 +120,24 @@ public:
 	DISALLOW_COPY(RaytracingAccelerationStructureManager)
 	DEFAULT_MOVE(RaytracingAccelerationStructureManager)
 
-	void AddBottomLevelAS(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags, const BottomLevelAccelerationStructureGeometry& geometry, bool allowUpdate, bool updateOnBuild);
-	void UpdateBottomLevelASGeometry(const BottomLevelAccelerationStructureGeometry& geometry);
-
+	void AddBottomLevelAS(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags, const std::wstring& name, SDFObject* geometry, bool allowUpdate, bool updateOnBuild);
 	UINT AddBottomLevelASInstance(const std::wstring& bottomLevelASName, const XMMATRIX& transform, BYTE instanceMask);
 
 	void InitializeTopLevelAS(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags, bool allowUpdate, bool updateOnBuild, const wchar_t* resourceName);
 
+	void UpdateBottomLevelASGeometry(const SDFObject* geometry);
+	void UpdateInstanceDescs(std::vector<SDFGeometryInstance>& instances);
+
 	void Build(bool forceBuild = false);
 
-
-	// Manipulate acceleration structure instances
-	void SetInstanceTransform(UINT instanceIndex, const XMMATRIX& transform);
-	void SetBLASInstanceContributionToHitGroup(const std::wstring& blas, UINT instanceContributionToHitGroupIndex);
 
 	// Getters
 	inline D3D12_GPU_VIRTUAL_ADDRESS GetTopLevelAccelerationStructureAddress() const { return m_TopLevelAS.GetResource()->GetGPUVirtualAddress(); }
 
+	inline TopLevelAccelerationStructure& GetTopLevelAccelerationStructure() { return m_TopLevelAS; }
 
-	inline const TopLevelAccelerationStructure& GetTopLevelAccelerationStructure() const { return m_TopLevelAS; }
-	inline const BottomLevelAccelerationStructure& GetBottomLevelAccelerationStructure(const std::wstring& name) const { return m_BottomLevelAS.at(m_BottomLevelASNames.at(name)); }
+	inline size_t GetBottomLevelAccelerationStructureIndex(const std::wstring& name) const { return m_BottomLevelASNames.at(name); }
+	BottomLevelAccelerationStructure& GetBottomLevelAccelerationStructure(const SDFObject* geometry);
 
 private:
 	TopLevelAccelerationStructure m_TopLevelAS;
@@ -166,7 +151,5 @@ private:
 	// A staging buffer where instance descs are collected
 	// They are then copied into the upload buffer when the acceleration structure is built
 	std::vector<D3D12_RAYTRACING_INSTANCE_DESC> m_BottomLevelInstanceDescsStaging;
-
-	std::vector<BLASInstanceMetadata> m_InstanceMetadata;
 	UINT m_NumBottomLevelInstances = 0;
 }; 

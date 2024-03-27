@@ -15,6 +15,7 @@
 #include "Framework/GameTimer.h"
 #include "Framework/Camera/Camera.h"
 #include "Framework/Camera/OrbitalCameraController.h"
+#include "SDF/Factory/SDFFactoryHierarchicalAsync.h"
 
 
 // Forward declarations
@@ -51,6 +52,9 @@ public:
 
 private:
 
+	inline bool GetPaused() const { return m_Paused; }
+	inline void SetPaused(bool paused) { m_Paused = paused; }
+
 	void UpdatePassCB();
 
 	void InitImGui() const;
@@ -65,6 +69,8 @@ private:
 	std::unique_ptr<D3DGraphicsContext> m_GraphicsContext;
 	std::unique_ptr<TextureLoader> m_TextureLoader;
 
+	PassConstantBuffer m_PassCB;
+
 	GameTimer m_Timer;
 	Camera m_Camera;
 
@@ -72,15 +78,18 @@ private:
 	std::unique_ptr<CameraController> m_CameraController;
 
 	std::unique_ptr<Scene> m_Scene;
+
 	std::unique_ptr<Raytracer> m_Raytracer;
 	std::unique_ptr<PickingQueryInterface> m_PickingQueryInterface;
 
 	std::unique_ptr<LightManager> m_LightManager;
 	std::unique_ptr<MaterialManager> m_MaterialManager;
 
-	PassConstantBuffer m_PassCB;
+	// Factory
+	std::unique_ptr<SDFFactoryHierarchicalAsync> m_Factory;
+	std::wstring m_CurrentPipelineName = L"Default";
 
-	std::string m_DefaultDemo = "drops";
+	std::unique_ptr<SDFObject> m_Geometry;
 
 	// GUI
 	bool m_DisableGUI = false;
@@ -88,6 +97,15 @@ private:
 	bool m_ShowImGuiDemo = false;
 	bool m_ShowApplicationInfo = true;
 	bool m_ShowSceneInfo = true;
+
+	bool m_Rebuild = true;
+	bool m_AsyncConstruction = false;
+	bool m_EnableEditCulling = true;
+
+	bool m_DisplayDemoGui = true;
+
+	float m_TimeScale = 0.5f;
+	bool m_Paused = true;
 
 	// Should the application toggle fullscreen on the next update
 	bool m_ToggleFullscreen = false;

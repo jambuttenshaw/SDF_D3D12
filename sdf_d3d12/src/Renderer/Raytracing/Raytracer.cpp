@@ -395,31 +395,25 @@ void Raytracer::BuildShaderTables()
 
 	// Hit group shader table
 
-	// Construct an entry for each geometry instance
+	// Construct an entry for each type of geometry
 	{
-		const auto& bottomLevelASGeometries = m_Scene->GetAllGeometries();
 		const auto accelerationStructure = m_Scene->GetRaytracingAccelerationStructure();
+		auto& geometries = m_Scene->GetAllGeometries();
 
-		UINT numShaderRecords = 0;
-		for (auto& bottomLevelASGeometry : bottomLevelASGeometries)
-		{
-			// one type of geometry per BLAS
-			numShaderRecords += RayType_Count;
-		}
+		UINT numShaderRecords = static_cast<UINT>(geometries.size()) * RayType_Count;
 
 		UINT shaderRecordSize = shaderIDSize + sizeof(LocalRootSignatureParams::RootArguments);
 		m_HitGroupShaderTable = std::make_unique<ShaderTable>(device, numShaderRecords, shaderRecordSize, L"HitGroupShaderTable");
 
-		for (auto& bottomLevelASGeometry : bottomLevelASGeometries)
+		for (auto& geometry : geometries)
 		{
 			const UINT shaderRecordOffset = m_HitGroupShaderTable->GetNumRecords();
-			accelerationStructure->SetBLASInstanceContributionToHitGroup(bottomLevelASGeometry.Name, shaderRecordOffset);
+			accelerationStructure->GetBottomLevelAccelerationStructure(geometry).SetInstanceContributionToHitGroupIndex(shaderRecordOffset);
 
-			const auto geometryInstance = bottomLevelASGeometry.Geometry;
-			geometryInstance->SetShaderRecordOffset(m_HitGroupShaderTable->GetNumRecords());
+			geometry->SetShaderRecordOffset(m_HitGroupShaderTable->GetNumRecords());
 
 			LocalRootSignatureParams::RootArguments rootArgs;
-			PopulateLocalRootParams(geometryInstance, rootArgs);
+			PopulateLocalRootParams(geometry, rootArgs);
 
 			for (const auto& hitGroupID: hitGroupShaderIdentifiers)
 			{
@@ -430,8 +424,7 @@ void Raytracer::BuildShaderTables()
 					sizeof(rootArgs)
 				});
 			}
-
-			geometryInstance->ResetLocalArgsDirty();
+			geometry->ResetLocalArgsDirty();
 		}
 	}
 
@@ -452,17 +445,16 @@ void Raytracer::UpdateHitGroupShaderTable() const
 	}
 
 	// Update the entry for each geometry instance
-	for (auto& bottomLevelASGeometry : m_Scene->GetAllGeometries())
+	for (auto& geometry : m_Scene->GetAllGeometries())
 	{
-		const auto geometryInstance = bottomLevelASGeometry.Geometry;
-		if (geometryInstance->IsLocalArgsDirty())
+		if (geometry->IsLocalArgsDirty())
 		{
 			LocalRootSignatureParams::RootArguments rootArgs;
-			PopulateLocalRootParams(geometryInstance, rootArgs);
+			PopulateLocalRootParams(geometry, rootArgs);
 
 			for (UINT rayType = 0; rayType < RayType_Count; ++rayType)
 			{
-				m_HitGroupShaderTable->UpdateRecord(geometryInstance->GetShaderRecordOffset() + rayType, 
+				m_HitGroupShaderTable->UpdateRecord(geometry->GetShaderRecordOffset() + rayType,
 					ShaderRecord{
 						hitGroupShaderIdentifiers[rayType],
 						shaderIDSize,
@@ -471,7 +463,7 @@ void Raytracer::UpdateHitGroupShaderTable() const
 					});
 			}
 
-			geometryInstance->ResetLocalArgsDirty();
+			geometry->ResetLocalArgsDirty();
 		}
 	}
 }

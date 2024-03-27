@@ -25,122 +25,25 @@ static std::string wstring_to_utf8(const std::wstring& str)
 #pragma warning( pop ) 
 
 
-Scene::Scene(D3DApplication* application, const std::string& demoName, float brickSize)
+Scene::Scene(D3DApplication* application, UINT maxGeometryInstances)
 	: m_Application(application)
+	, m_MaxGeometryInstances(maxGeometryInstances)
 {
 	ASSERT(m_Application, "Invalid app.");
-
-	m_CurrentDemo = BaseDemo::GetDemoFromName(demoName);
-	ASSERT(m_CurrentDemo, "Failed to load current demo.");
-		
-	m_CurrentPipelineName = m_EnableEditCulling ? L"Default" : L"NoEditCulling";
-
-	// Build SDF Object
-	{
-		// Create SDF factory 
-		m_Factory = std::make_unique<SDFFactoryHierarchicalAsync>();
-
-		// Create SDF objects
-		m_Object = std::make_unique<SDFObject>(brickSize, 500'000);
-
-		BuildEditList(0.0f, false);
-	}
-
-	{
-		// Construct scene geometry
-		m_SceneGeometry.push_back({ L"Blobs", m_Object.get()});
-
-		CheckSDFGeometryUpdates();
-	}
 
 	{
 		// Set up acceleration structure
 		constexpr D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
-		m_AccelerationStructure = std::make_unique<RaytracingAccelerationStructureManager>(1);
-
-		for (const auto& geometry : m_SceneGeometry)
-		{
-			m_AccelerationStructure->AddBottomLevelAS(buildFlags, geometry, true, true);
-		}
-
-		const auto& geoName = m_SceneGeometry.at(0).Name;
-		m_AccelerationStructure->AddBottomLevelASInstance(geoName, XMMatrixIdentity(), 1);
+		m_AccelerationStructure = std::make_unique<RaytracingAccelerationStructureManager>(m_MaxGeometryInstances);
 
 		// Init top level AS
 		m_AccelerationStructure->InitializeTopLevelAS(buildFlags, true, true, L"Top Level Acceleration Structure");
+
+		// As there is a fixed max of instances, reserving them in advance ensures the vector will never re-allocate
+		m_GeometryInstances.reserve(m_MaxGeometryInstances);
 	}
-
-	auto SetupMaterial = [this](UINT mat, UINT slot, const XMFLOAT3& albedo, float roughness, float metalness, float reflectance)
-	{
-			const auto pMat = m_Application->GetMaterialManager()->GetMaterial(mat);
-			pMat->SetAlbedo(albedo);
-			pMat->SetRoughness(roughness);
-			pMat->SetMetalness(metalness);
-			pMat->SetReflectance(reflectance);
-			m_Object->SetMaterial(pMat, slot);
-	};
-
-	SetupMaterial(0, 0, { 0.0f, 0.0f, 0.0f }, 0.1f, 0.0f, 0.0f);
-	SetupMaterial(1, 1, { 1.0f, 1.0f, 1.0f }, 0.1f, 0.0f, 0.0f);
-	SetupMaterial(2, 2, { 1.0f, 0.5f, 0.0f }, 0.1f, 0.0f, 0.0f);
-	SetupMaterial(3, 3, { 0.0f, 0.9f, 0.9f }, 0.05f, 1.0f, 1.0f);
 }
 
-Scene::~Scene()
-{
-	// SDFFactory should be deleted first
-	m_Factory.reset();
-}
-
-
-void Scene::Reset(const std::string& demoName, float brickSize)
-{
-	m_CurrentDemo = BaseDemo::GetDemoFromName(demoName);
-	ASSERT(m_CurrentDemo, "Failed to load current demo.");
-
-	m_Object->SetNextRebuildBrickSize(brickSize);
-	m_Rebuild = true;
-}
-
-
-void Scene::OnUpdate(float deltaTime)
-{
-	PIXBeginEvent(PIX_COLOR_INDEX(9), L"Scene Update");
-
-
-	// Space toggles pausing
-	const auto inputManager = m_Application->GetInputManager();
-	if (inputManager->IsKeyPressed(KEY_SPACE))
-	{
-		m_Paused = !m_Paused;
-	}
-
-	bool rebuildOnce = false;
-	float timeDirection = 1.0f;
-	if (m_Paused)
-	{
-		if (inputManager->IsKeyPressed(KEY_RIGHT))
-		{
-			rebuildOnce = true;
-		}
-		else if (inputManager->IsKeyPressed(KEY_LEFT))
-		{
-			rebuildOnce = true;
-			timeDirection = -1.0f;
-		}
-	}
-
-	deltaTime = deltaTime * m_TimeScale * timeDirection * static_cast<float>(!m_Paused || rebuildOnce);
-
-	if (m_Rebuild || rebuildOnce)
-	{
-		BuildEditList(deltaTime, m_AsyncConstruction);
-	}
-
-	PIXEndEvent();
-
-	ReportCounters();
-}
 
 void Scene::PreRender()
 {
@@ -155,15 +58,25 @@ void Scene::PreRender()
 }
 
 
-void Scene::ImGuiSceneMenu()
+void Scene::AddGeometry(const std::wstring& name, SDFObject* geometry)
 {
-	if (ImGui::BeginMenu("Scene"))
-	{
-		ImGui::MenuItem("Display Demo", nullptr, &m_DisplayDemoGui);
+	constexpr D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
+	m_AccelerationStructure->AddBottomLevelAS(flags, name, geometry, true, true);
 
-		ImGui::EndMenu();
-	}
+	m_Geometries.push_back(geometry);
 }
+
+
+SDFGeometryInstance* Scene::CreateGeometryInstance(const std::wstring& geometryName)
+{
+	UINT instanceID = m_AccelerationStructure->AddBottomLevelASInstance(geometryName, XMMatrixIdentity(), 1);
+	size_t blasIndex = m_AccelerationStructure->GetBottomLevelAccelerationStructureIndex(geometryName);
+
+	m_GeometryInstances.emplace_back(instanceID, blasIndex);
+
+	return &m_GeometryInstances.back();
+}
+
 
 bool Scene::ImGuiSceneInfo()
 {
@@ -185,7 +98,7 @@ bool Scene::ImGuiSceneInfo()
 		ImGui::PopStyleColor();
 
 		ImGui::Separator();
-
+		/*
 		{
 			static bool checkbox = m_Rebuild;
 			m_Rebuild = ImGui::Button("Rebuild Once");
@@ -218,34 +131,19 @@ bool Scene::ImGuiSceneInfo()
 		{
 			m_CurrentPipelineName = m_EnableEditCulling ? L"Default" : L"NoEditCulling";
 		}
-
 		ImGui::Separator();
 
 		ImGui::DragFloat("Time Scale", &m_TimeScale, 0.01f);
 		ImGui::Checkbox("Paused", &m_Paused);
 
 		ImGui::Separator();
+		*/
 
-		for (auto&[name, geometry] : m_SceneGeometry)
-			DisplaySDFObjectDebugInfo(name.c_str(), geometry);
+		//for (auto& geometry : m_Geometries)
+		//	DisplaySDFObjectDebugInfo(name.c_str(), geometry);
 		DisplayAccelerationStructureDebugInfo();
 
 
-	}
-	ImGui::End();
-
-	if (ImGui::Begin("Demo", &m_DisplayDemoGui))
-	{
-		static char demoName[128];
-		ImGui::InputText("Demo", demoName, 128);
-		if (ImGui::Button("Change Demo"))
-		{
-			if (const auto demo = BaseDemo::GetDemoFromName(demoName))
-				m_CurrentDemo = demo;
-		}
-		ImGui::Separator();
-
-		m_CurrentDemo->DisplayGUI();
 	}
 	ImGui::End();
 
@@ -253,47 +151,9 @@ bool Scene::ImGuiSceneInfo()
 }
 
 
-UINT Scene::GetCurrentBrickCount() const
-{
-	return m_Object->GetBrickCount(SDFObject::RESOURCES_READ);
-}
-
-UINT Scene::GetDemoEditCount() const
-{
-	return m_CurrentDemo ? m_CurrentDemo->GetEditCount() : 0;
-}
-
-
-
-void Scene::BuildEditList(float deltaTime, bool async)
-{
-	const SDFEditList editList = m_CurrentDemo->BuildEditList(deltaTime);
-
-	if (async)
-	{
-		m_Factory->BakeSDFAsync(m_CurrentPipelineName, m_Object.get(), editList);
-	}
-	else
-	{
-		m_Factory->BakeSDFSync(m_CurrentPipelineName, m_Object.get(), editList);
-	}
-}
-
-
-void Scene::ReportCounters() const
-{
-	for (auto& [name, object] : m_SceneGeometry)
-	{
-		// Report object counters
-		std::wstring counterName = name + L" Brick Count";
-		PIXReportCounter(counterName.c_str(), static_cast<float>(object->GetBrickCount(SDFObject::RESOURCES_READ)));
-	}
-}
-
-
 void Scene::CheckSDFGeometryUpdates()
 {
-	for (auto&[name, object] : m_SceneGeometry)
+	for (const auto& object : m_Geometries)
 	{
 		// Check if the new object resources have been computed
 		if (object->GetResourcesState(SDFObject::RESOURCES_WRITE) == SDFObject::COMPUTED)
@@ -305,7 +165,9 @@ void Scene::CheckSDFGeometryUpdates()
 
 			// flip READ and WRITE resources
 			PIXSetMarker(PIX_COLOR_INDEX(23), L"Flip resources");
+
 			object->FlipResources();
+			m_AccelerationStructure->GetBottomLevelAccelerationStructure(object).UpdateGeometry();
 		}
 		else if (object->GetResourcesState(SDFObject::RESOURCES_WRITE) == SDFObject::SWITCHING)
 		{
@@ -322,8 +184,7 @@ void Scene::CheckSDFGeometryUpdates()
 void Scene::UpdateAccelerationStructure()
 {
 	// Update geometry
-	for (const auto& geo : m_SceneGeometry)
-		m_AccelerationStructure->UpdateBottomLevelASGeometry(geo);
+	m_AccelerationStructure->UpdateInstanceDescs(m_GeometryInstances);
 
 	// Rebuild
 	m_AccelerationStructure->Build();
@@ -386,9 +247,9 @@ void Scene::DisplayAccelerationStructureDebugInfo() const
 		DisplaySize("Top Level AS", tlas.GetResourcesSize() / 1024);
 	}
 
-	for (const auto& blasGeometry : m_SceneGeometry)
+	for (const auto& blasGeometry : m_Geometries)
 	{
-		const auto& blas = m_AccelerationStructure->GetBottomLevelAccelerationStructure(blasGeometry.Name);
-		DisplaySize("Bottom Level AS", blas.GetResourcesSize() / 1024);
+		//const auto& blas = m_AccelerationStructure->GetBottomLevelAccelerationStructure(blasGeometry);
+		//DisplaySize("Bottom Level AS", blas.GetResourcesSize() / 1024);
 	}
 }

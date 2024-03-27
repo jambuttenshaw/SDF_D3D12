@@ -139,6 +139,9 @@ void D3DApplication::OnInit()
 	m_LightManager = std::make_unique<LightManager>();
 	m_MaterialManager = std::make_unique<MaterialManager>(4);
 
+	m_Factory = std::make_unique<SDFFactoryHierarchicalAsync>();
+	m_Geometry = std::make_unique<SDFObject>(0.1f, 500'000);
+
 	BaseDemo::CreateAllDemos();
 	if (m_ProfilingDataCollector->InitProfiler())
 	{
@@ -153,7 +156,7 @@ void D3DApplication::OnInit()
 
 		// Load config from command line
 		const auto& demo = m_ProfilingDataCollector->GetDemoConfig(0);
-		m_Scene = std::make_unique<Scene>(this, demo.DemoName, demo.InitialBrickSize);
+		m_Scene = std::make_unique<Scene>(this, 1);
 
 		// Setup camera
 		const auto orbitalCamera = static_cast<OrbitalCameraController*>(m_CameraController.get());
@@ -163,8 +166,18 @@ void D3DApplication::OnInit()
 	else
 	{
 		// Load default demo
-		m_Scene = std::make_unique<Scene>(this, m_DefaultDemo, 0.125f);
+		m_Scene = std::make_unique<Scene>(this, 1);
 	}
+
+	// Populate scene
+	BaseDemo* demo = BaseDemo::GetDemoFromName("drops");
+	const SDFEditList editList = demo->BuildEditList(0);
+
+	m_Factory->BakeSDFSync(m_CurrentPipelineName, m_Geometry.get(), editList);
+	m_Geometry->FlipResources();
+
+	m_Scene->AddGeometry(L"Blobs", m_Geometry.get());
+	m_Scene->CreateGeometryInstance(L"Blobs");
 
 	m_Raytracer->Setup(*m_Scene);
 
@@ -187,6 +200,22 @@ void D3DApplication::OnInit()
 	m_PassCB.HeatmapHueRange = 0.33f;
 
 
+	auto SetupMaterial = [this](UINT mat, UINT slot, const XMFLOAT3& albedo, float roughness, float metalness, float reflectance)
+		{
+			const auto pMat = m_MaterialManager->GetMaterial(mat);
+			pMat->SetAlbedo(albedo);
+			pMat->SetRoughness(roughness);
+			pMat->SetMetalness(metalness);
+			pMat->SetReflectance(reflectance);
+			m_Geometry->SetMaterial(pMat, slot);
+		};
+
+	SetupMaterial(0, 0, { 0.0f, 0.0f, 0.0f }, 0.1f, 0.0f, 0.0f);
+	SetupMaterial(1, 1, { 1.0f, 1.0f, 1.0f }, 0.1f, 0.0f, 0.0f);
+	SetupMaterial(2, 2, { 1.0f, 0.5f, 0.0f }, 0.1f, 0.0f, 0.0f);
+	SetupMaterial(3, 3, { 0.0f, 0.9f, 0.9f }, 0.05f, 1.0f, 1.0f);
+
+
 	LOG_INFO("Application startup complete.");
 }
 
@@ -201,6 +230,8 @@ void D3DApplication::OnUpdate()
 	PIXBeginEvent(PIX_COLOR_INDEX(0), L"App Update");
 	BeginUpdate();
 
+	float deltaTime = m_Timer.GetDeltaTime();
+
 #ifdef ENABLE_INSTRUMENTATION
 	// Update profiling before updating the scene, as this may modify the current scene
 	m_ProfilingDataCollector->UpdateProfiling(m_Scene.get(), &m_Timer, m_CameraController.get());
@@ -209,7 +240,29 @@ void D3DApplication::OnUpdate()
 	m_PickingQueryInterface->ReadLastPick();
 	m_PickingQueryInterface->SetNextPickLocation({ m_InputManager->GetMouseX(), m_InputManager->GetMouseY() });
 
-	m_Scene->OnUpdate(m_Timer.GetDeltaTime());
+	if (m_InputManager->IsKeyPressed(KEY_SPACE))
+	{
+		m_Paused = !m_Paused;
+	}
+
+	bool rebuildOnce = false;
+	float timeDirection = 1.0f;
+	if (m_Paused)
+	{
+		if (m_InputManager->IsKeyPressed(KEY_RIGHT))
+		{
+			rebuildOnce = true;
+		}
+		else if (m_InputManager->IsKeyPressed(KEY_LEFT))
+		{
+			rebuildOnce = true;
+			timeDirection = -1.0f;
+		}
+	}
+
+	deltaTime = deltaTime * m_TimeScale * timeDirection * static_cast<float>(!m_Paused || rebuildOnce);
+
+	m_Scene->OnUpdate(deltaTime);
 
 	if (m_ShowMainMenuBar && !m_DisableGUI)
 	{
@@ -226,8 +279,6 @@ void D3DApplication::OnUpdate()
 	
 				ImGui::EndMenu();
 			}
-
-			m_Scene->ImGuiSceneMenu();
 
 			ImGui::EndMainMenuBar();
 		}
@@ -301,6 +352,9 @@ void D3DApplication::OnRender()
 void D3DApplication::OnDestroy()
 {
 	m_GraphicsContext->WaitForGPUIdle();
+
+	m_Factory.reset();
+	m_Geometry.reset();
 
 	m_Scene.reset();
 	m_Raytracer.reset();

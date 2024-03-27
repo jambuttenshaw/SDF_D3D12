@@ -2,78 +2,57 @@
 
 
 #include "Renderer/Raytracing/AccelerationStructure.h"
+#include "Renderer/Raytracing/GeometryInstance.h"
 
-#include "SDF/Factory/SDFFactoryHierarchicalAsync.h"
 #include "SDF/SDFObject.h"
 
 class D3DApplication;
 class BaseDemo;
 
+
 class Scene
 {
 public:
-	Scene(D3DApplication* application, const std::string& demoName, float brickSize);
-	~Scene();
+	Scene(D3DApplication* application, UINT maxGeometryInstances);
+	virtual ~Scene() = default;
 
 	DISALLOW_COPY(Scene)
-	DISALLOW_MOVE(Scene)
+	DEFAULT_MOVE(Scene)
 
-	void Reset(const std::string& demoName, float brickSize);
-
-	void OnUpdate(float deltaTime);
+	virtual void OnUpdate(float deltaTime) {};
 	void PreRender();
 
+
+	// Manipulate scene objects
+	void AddGeometry(const std::wstring& name, SDFObject* geometry);
+
+	// Create geometry instances
+	SDFGeometryInstance* CreateGeometryInstance(const std::wstring& geometryName);
+
 	// Getters
-	inline const std::vector<BottomLevelAccelerationStructureGeometry>& GetAllGeometries() const { return m_SceneGeometry; }
+	inline const std::vector<SDFObject*>& GetAllGeometries() const { return m_Geometries; }
 	inline RaytracingAccelerationStructureManager* GetRaytracingAccelerationStructure() const { return m_AccelerationStructure.get(); }
 
 	// Draw ImGui Windows
-	void ImGuiSceneMenu();
 	bool ImGuiSceneInfo();
 
-
-	// For collecting info
-	UINT GetCurrentBrickCount() const;
-	UINT GetDemoEditCount() const;
-
-	inline bool GetPaused() const { return m_Paused; }
-	inline void SetPaused(bool paused) { m_Paused = paused; }
-
 private:
-	void BuildEditList(float deltaTime, bool async);
-
-	void ReportCounters() const;
-
+	// Handle changes to geometry and update acceleration structure
 	void CheckSDFGeometryUpdates();
 	void UpdateAccelerationStructure();
 
+	// Debug Info
 	void DisplaySDFObjectDebugInfo(const wchar_t* name, const SDFObject* object) const;
 	void DisplayAccelerationStructureDebugInfo() const;
 
 private:
 	D3DApplication* m_Application = nullptr;
 
-	BaseDemo* m_CurrentDemo = nullptr;
-
 	// A description of all the different types of geometry in the scene
-	std::vector<BottomLevelAccelerationStructureGeometry> m_SceneGeometry;
+	std::vector<SDFObject*> m_Geometries;
+	// A collection of all objects in the scene
+	std::vector<SDFGeometryInstance> m_GeometryInstances;
 
+	UINT m_MaxGeometryInstances = 0;
 	std::unique_ptr<RaytracingAccelerationStructureManager> m_AccelerationStructure;
-
-	// Factory
-	std::unique_ptr<SDFFactoryHierarchicalAsync> m_Factory;
-	std::wstring m_CurrentPipelineName = L"Default";
-
-	// SDF Objects
-	std::unique_ptr<SDFObject> m_Object;
-
-	// GUI controls
-	bool m_Rebuild = true;
-	bool m_AsyncConstruction = false;
-	bool m_EnableEditCulling = true;
-
-	bool m_DisplayDemoGui = true;
-
-	float m_TimeScale = 0.5f;
-	bool m_Paused = true;
 };
