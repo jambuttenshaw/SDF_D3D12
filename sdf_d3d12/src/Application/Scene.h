@@ -22,23 +22,16 @@ public:
 	virtual void OnUpdate(float deltaTime) {};
 	void PreRender();
 
-
-	// Manipulate scene objects
 	void AddGeometry(const std::wstring& name, SDFObject* geometry);
-
-	// Create geometry instances
 	SDFGeometryInstance* CreateGeometryInstance(const std::wstring& geometryName);
 
 	// Getters
 	inline const std::vector<SDFObject*>& GetAllGeometries() const { return m_Geometries; }
 	inline RaytracingAccelerationStructureManager* GetRaytracingAccelerationStructure() const { return m_AccelerationStructure.get(); }
 
-	// Draw ImGui Windows
-	bool ImGuiSceneInfo();
-
 private:
 	// Handle changes to geometry and update acceleration structure
-	void CheckSDFGeometryUpdates();
+	void CheckSDFGeometryUpdates() const;
 	void UpdateAccelerationStructure();
 
 	// Debug Info

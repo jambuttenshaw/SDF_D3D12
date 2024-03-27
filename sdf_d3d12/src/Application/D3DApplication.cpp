@@ -166,7 +166,7 @@ void D3DApplication::OnInit()
 	else
 	{
 		// Load default demo
-		m_Scene = std::make_unique<Scene>(this, 1);
+		m_Scene = std::make_unique<Scene>(this, 2);
 	}
 
 	// Populate scene
@@ -174,10 +174,15 @@ void D3DApplication::OnInit()
 	const SDFEditList editList = demo->BuildEditList(0);
 
 	m_Factory->BakeSDFSync(m_CurrentPipelineName, m_Geometry.get(), editList);
+	// TODO: This is required one first build before passing to Scene::AddGeometry
+	// TODO: Is there a better way to handle this?
 	m_Geometry->FlipResources();
 
 	m_Scene->AddGeometry(L"Blobs", m_Geometry.get());
-	m_Scene->CreateGeometryInstance(L"Blobs");
+
+	SDFGeometryInstance* instance1 = m_Scene->CreateGeometryInstance(L"Blobs");
+	SDFGeometryInstance* instance2 = m_Scene->CreateGeometryInstance(L"Blobs");
+	instance2->SetTransform({ 15.0f, 0.0f, 0.0f });
 
 	m_Raytracer->Setup(*m_Scene);
 
@@ -262,6 +267,9 @@ void D3DApplication::OnUpdate()
 
 	deltaTime = deltaTime * m_TimeScale * timeDirection * static_cast<float>(!m_Paused || rebuildOnce);
 
+	BaseDemo* demo = BaseDemo::GetDemoFromName("drops");
+	m_Factory->BakeSDFSync(m_CurrentPipelineName, m_Geometry.get(), demo->BuildEditList(deltaTime));
+
 	m_Scene->OnUpdate(deltaTime);
 
 	if (m_ShowMainMenuBar && !m_DisableGUI)
@@ -271,9 +279,6 @@ void D3DApplication::OnUpdate()
 			if (ImGui::BeginMenu("Window"))
 			{
 				ImGui::MenuItem("Application Info", nullptr, &m_ShowApplicationInfo);
-				ImGui::MenuItem("Scene Info", nullptr, &m_ShowSceneInfo);
-				ImGui::Separator();
-				ImGui::MenuItem("ImGui Demo", nullptr, &m_ShowImGuiDemo);
 				ImGui::Separator();
 				ImGui::MenuItem("Show Menu", nullptr, &m_ShowMainMenuBar);
 	
@@ -282,12 +287,8 @@ void D3DApplication::OnUpdate()
 
 			ImGui::EndMainMenuBar();
 		}
-		if (m_ShowImGuiDemo)
-			ImGui::ShowDemoWindow(&m_ShowImGuiDemo);
 		if (m_ShowApplicationInfo)
 			m_ShowApplicationInfo = ImGuiApplicationInfo();
-		if (m_ShowSceneInfo)
-			m_ShowSceneInfo = m_Scene->ImGuiSceneInfo();
 	}
 
 	EndUpdate();

@@ -94,9 +94,7 @@ private:
 	// GUI
 	bool m_DisableGUI = false;
 	bool m_ShowMainMenuBar = true;
-	bool m_ShowImGuiDemo = false;
 	bool m_ShowApplicationInfo = true;
-	bool m_ShowSceneInfo = true;
 
 	bool m_Rebuild = true;
 	bool m_AsyncConstruction = false;
@@ -105,7 +103,7 @@ private:
 	bool m_DisplayDemoGui = true;
 
 	float m_TimeScale = 0.5f;
-	bool m_Paused = true;
+	bool m_Paused = false;
 
 	// Should the application toggle fullscreen on the next update
 	bool m_ToggleFullscreen = false;
