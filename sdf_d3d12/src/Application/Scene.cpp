@@ -1,17 +1,13 @@
 #include "pch.h"
 #include "Scene.h"
 
-#include "SDF/SDFEditList.h"
 #include "imgui.h"
 
 #include "Framework/Math.h"
 
 #include "D3DApplication.h"
-#include "Input/InputManager.h"
 
 #include "pix3.h"
-
-#include "Demos.h"
 
 
 // For debug output
@@ -118,40 +114,57 @@ void Scene::UpdateAccelerationStructure()
 }
 
 
-void Scene::DisplaySDFObjectDebugInfo(const wchar_t* name, const SDFObject* object) const
+bool Scene::DisplayGeneralGui() const
 {
-	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
-	ImGui::Text(wstring_to_utf8(name).c_str());
-	ImGui::PopStyleColor();
-
-	ImGui::Text("Brick Count: %d", object->GetBrickCount(SDFObject::RESOURCES_READ));
-
-	const auto brickPoolSize = object->GetBrickPoolDimensions(SDFObject::RESOURCES_READ);
-	ImGui::Text("Brick Pool Size (bricks): %d, %d, %d", brickPoolSize.x, brickPoolSize.y, brickPoolSize.z);
-	const float poolUsage = 100.0f * (static_cast<float>(object->GetBrickCount(SDFObject::RESOURCES_READ)) / static_cast<float>(object->GetBrickPoolCapacity(SDFObject::RESOURCES_READ)));
-	ImGui::Text("Brick Pool Usage: %.1f", poolUsage);
-
-	ImGui::Separator();
-
-	// Memory usage
-	auto DisplaySize = [](const char* label, UINT64 sizeKB)
+	bool open = true;
+	if (ImGui::Begin("Scene", &open))
 	{
-			if (sizeKB > 10'000)
-				ImGui::Text("%s Size (MB): %d", label, sizeKB / 1024);
-			else
-				ImGui::Text("%s Size (KB): %d", label, sizeKB);
-	};
+		DisplaySDFObjectDebugInfo();
+		DisplayAccelerationStructureDebugInfo();
+	}
+	ImGui::End();
+	return open;
+}
 
-	DisplaySize("Brick Pool", object->GetBrickPoolSizeBytes() / 1024);
-	DisplaySize("Brick Buffer", object->GetBrickBufferSizeBytes() / 1024);
-	DisplaySize("AABB Buffer", object->GetAABBBufferSizeBytes() / 1024);
-	DisplaySize("Index Buffer", object->GetIndexBufferSizeBytes() / 1024);
 
-	ImGui::Separator();
+void Scene::DisplaySDFObjectDebugInfo() const
+{
+	UINT geometryNum = 0;
+	for (const auto& geometry : m_Geometries)
+	{
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
+		ImGui::Text("Geometry %d", geometryNum++);
+		ImGui::PopStyleColor();
 
-	DisplaySize("Total", object->GetTotalMemoryUsageBytes() / 1024);
+		ImGui::Text("Brick Count: %d", geometry->GetBrickCount(SDFObject::RESOURCES_READ));
 
-	ImGui::Separator();
+		const auto brickPoolSize = geometry->GetBrickPoolDimensions(SDFObject::RESOURCES_READ);
+		ImGui::Text("Brick Pool Size (bricks): %d, %d, %d", brickPoolSize.x, brickPoolSize.y, brickPoolSize.z);
+		const float poolUsage = 100.0f * (static_cast<float>(geometry->GetBrickCount(SDFObject::RESOURCES_READ)) / static_cast<float>(geometry->GetBrickPoolCapacity(SDFObject::RESOURCES_READ)));
+		ImGui::Text("Brick Pool Usage: %.1f", poolUsage);
+
+		ImGui::Separator();
+
+		// Memory usage
+		auto DisplaySize = [](const char* label, UINT64 sizeKB)
+		{
+				if (sizeKB > 10'000)
+					ImGui::Text("%s Size (MB): %d", label, sizeKB / 1024);
+				else
+					ImGui::Text("%s Size (KB): %d", label, sizeKB);
+		};
+
+		DisplaySize("Brick Pool", geometry->GetBrickPoolSizeBytes() / 1024);
+		DisplaySize("Brick Buffer", geometry->GetBrickBufferSizeBytes() / 1024);
+		DisplaySize("AABB Buffer", geometry->GetAABBBufferSizeBytes() / 1024);
+		DisplaySize("Index Buffer", geometry->GetIndexBufferSizeBytes() / 1024);
+
+		ImGui::Separator();
+
+		DisplaySize("Total", geometry->GetTotalMemoryUsageBytes() / 1024);
+
+		ImGui::Separator();
+	}
 }
 
 void Scene::DisplayAccelerationStructureDebugInfo() const
@@ -176,7 +189,7 @@ void Scene::DisplayAccelerationStructureDebugInfo() const
 
 	for (const auto& blasGeometry : m_Geometries)
 	{
-		//const auto& blas = m_AccelerationStructure->GetBottomLevelAccelerationStructure(blasGeometry);
-		//DisplaySize("Bottom Level AS", blas.GetResourcesSize() / 1024);
+		const auto& blas = m_AccelerationStructure->GetBottomLevelAccelerationStructure(blasGeometry);
+		DisplaySize("Bottom Level AS", blas.GetResourcesSize() / 1024);
 	}
 }

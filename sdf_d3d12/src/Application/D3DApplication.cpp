@@ -8,10 +8,10 @@
 #include <imgui_internal.h>
 
 #include "Renderer/Profiling/GPUProfiler.h"
+#include "Demo/Demos.h"
 
 #include <args.hxx>
 
-#include "Demos.h"
 #include "pix3.h"
 
 #include <fstream>
@@ -19,13 +19,14 @@
 
 #include "Framework/PickingQueryInterface.h"
 #include "Renderer/D3DDebugTools.h"
+#include "Demo/DemoScene.h"
 
 
 
 D3DApplication::D3DApplication(UINT width, UINT height, const std::wstring& name)
 	: BaseApplication(width, height, name)
 {
-	m_ProfilingDataCollector = std::make_unique<ProfilingDataCollector>();
+	m_ProfilingDataCollector = std::make_unique<ProfilingDataCollector>(this);
 }
 
 
@@ -140,11 +141,12 @@ void D3DApplication::OnInit()
 	m_MaterialManager = std::make_unique<MaterialManager>(4);
 
 	m_Factory = std::make_unique<SDFFactoryHierarchicalAsync>();
-	m_Geometry = std::make_unique<SDFObject>(0.1f, 500'000);
 
 	BaseDemo::CreateAllDemos();
 	if (m_ProfilingDataCollector->InitProfiler())
 	{
+		m_Scene = std::make_unique<DemoScene>(this);
+
 		// Force various modes for profiling
 		if (!m_UseOrbitalCamera)
 		{
@@ -156,7 +158,8 @@ void D3DApplication::OnInit()
 
 		// Load config from command line
 		const auto& demo = m_ProfilingDataCollector->GetDemoConfig(0);
-		m_Scene = std::make_unique<Scene>(this, 1);
+		DemoScene* demoScene = static_cast<DemoScene*>(m_Scene.get());
+		demoScene->LoadDemo(demo.DemoName, demo.InitialBrickSize);
 
 		// Setup camera
 		const auto orbitalCamera = static_cast<OrbitalCameraController*>(m_CameraController.get());
@@ -166,23 +169,8 @@ void D3DApplication::OnInit()
 	else
 	{
 		// Load default demo
-		m_Scene = std::make_unique<Scene>(this, 2);
+		m_Scene = std::make_unique<DemoScene>(this);
 	}
-
-	// Populate scene
-	BaseDemo* demo = BaseDemo::GetDemoFromName("drops");
-	const SDFEditList editList = demo->BuildEditList(0);
-
-	m_Factory->BakeSDFSync(m_CurrentPipelineName, m_Geometry.get(), editList);
-	// TODO: This is required one first build before passing to Scene::AddGeometry
-	// TODO: Is there a better way to handle this?
-	m_Geometry->FlipResources();
-
-	m_Scene->AddGeometry(L"Blobs", m_Geometry.get());
-
-	SDFGeometryInstance* instance1 = m_Scene->CreateGeometryInstance(L"Blobs");
-	SDFGeometryInstance* instance2 = m_Scene->CreateGeometryInstance(L"Blobs");
-	instance2->SetTransform({ 15.0f, 0.0f, 0.0f });
 
 	m_Raytracer->Setup(*m_Scene);
 
@@ -203,23 +191,6 @@ void D3DApplication::OnInit()
 	m_PassCB.Flags = RENDER_FLAG_NONE;
 	m_PassCB.HeatmapQuantization = 16;
 	m_PassCB.HeatmapHueRange = 0.33f;
-
-
-	auto SetupMaterial = [this](UINT mat, UINT slot, const XMFLOAT3& albedo, float roughness, float metalness, float reflectance)
-		{
-			const auto pMat = m_MaterialManager->GetMaterial(mat);
-			pMat->SetAlbedo(albedo);
-			pMat->SetRoughness(roughness);
-			pMat->SetMetalness(metalness);
-			pMat->SetReflectance(reflectance);
-			m_Geometry->SetMaterial(pMat, slot);
-		};
-
-	SetupMaterial(0, 0, { 0.0f, 0.0f, 0.0f }, 0.1f, 0.0f, 0.0f);
-	SetupMaterial(1, 1, { 1.0f, 1.0f, 1.0f }, 0.1f, 0.0f, 0.0f);
-	SetupMaterial(2, 2, { 1.0f, 0.5f, 0.0f }, 0.1f, 0.0f, 0.0f);
-	SetupMaterial(3, 3, { 0.0f, 0.9f, 0.9f }, 0.05f, 1.0f, 1.0f);
-
 
 	LOG_INFO("Application startup complete.");
 }
@@ -250,25 +221,22 @@ void D3DApplication::OnUpdate()
 		m_Paused = !m_Paused;
 	}
 
-	bool rebuildOnce = false;
+	bool stepOnce = false;
 	float timeDirection = 1.0f;
 	if (m_Paused)
 	{
 		if (m_InputManager->IsKeyPressed(KEY_RIGHT))
 		{
-			rebuildOnce = true;
+			stepOnce = true;
 		}
 		else if (m_InputManager->IsKeyPressed(KEY_LEFT))
 		{
-			rebuildOnce = true;
+			stepOnce = true;
 			timeDirection = -1.0f;
 		}
 	}
 
-	deltaTime = deltaTime * m_TimeScale * timeDirection * static_cast<float>(!m_Paused || rebuildOnce);
-
-	BaseDemo* demo = BaseDemo::GetDemoFromName("drops");
-	m_Factory->BakeSDFSync(m_CurrentPipelineName, m_Geometry.get(), demo->BuildEditList(deltaTime));
+	deltaTime = deltaTime * m_TimeScale * timeDirection * static_cast<float>(!m_Paused || stepOnce);
 
 	m_Scene->OnUpdate(deltaTime);
 
@@ -289,6 +257,10 @@ void D3DApplication::OnUpdate()
 		}
 		if (m_ShowApplicationInfo)
 			m_ShowApplicationInfo = ImGuiApplicationInfo();
+		if (m_ShowSceneInfo)
+			m_ShowSceneInfo = m_Scene->DisplayGeneralGui();
+		if (m_ShowSceneControls)
+			m_ShowSceneControls = m_Scene->DisplayGui();
 	}
 
 	EndUpdate();
@@ -355,7 +327,6 @@ void D3DApplication::OnDestroy()
 	m_GraphicsContext->WaitForGPUIdle();
 
 	m_Factory.reset();
-	m_Geometry.reset();
 
 	m_Scene.reset();
 	m_Raytracer.reset();

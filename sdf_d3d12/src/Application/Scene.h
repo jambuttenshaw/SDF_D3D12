@@ -19,7 +19,7 @@ public:
 	DISALLOW_COPY(Scene)
 	DEFAULT_MOVE(Scene)
 
-	virtual void OnUpdate(float deltaTime) {};
+	virtual void OnUpdate(float deltaTime) = 0;
 	void PreRender();
 
 	void AddGeometry(const std::wstring& name, SDFObject* geometry);
@@ -29,18 +29,23 @@ public:
 	inline const std::vector<SDFObject*>& GetAllGeometries() const { return m_Geometries; }
 	inline RaytracingAccelerationStructureManager* GetRaytracingAccelerationStructure() const { return m_AccelerationStructure.get(); }
 
+	// Gui
+	virtual bool DisplayGui() { return false; }
+	bool DisplayGeneralGui() const;
+
 private:
 	// Handle changes to geometry and update acceleration structure
 	void CheckSDFGeometryUpdates() const;
 	void UpdateAccelerationStructure();
 
 	// Debug Info
-	void DisplaySDFObjectDebugInfo(const wchar_t* name, const SDFObject* object) const;
+	void DisplaySDFObjectDebugInfo() const;
 	void DisplayAccelerationStructureDebugInfo() const;
 
-private:
+protected:
 	D3DApplication* m_Application = nullptr;
 
+private:
 	// A description of all the different types of geometry in the scene
 	std::vector<SDFObject*> m_Geometries;
 	// A collection of all objects in the scene

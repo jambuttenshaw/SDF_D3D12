@@ -404,9 +404,10 @@
   <ItemGroup>
     <ClCompile Include="src\Application\BaseApplication.cpp" />
     <ClCompile Include="src\Application\D3DApplication.cpp" />
-    <ClCompile Include="src\Application\Demos.cpp" />
-    <ClCompile Include="src\Application\ProfileConfig.cpp" />
-    <ClCompile Include="src\Application\ProfilingDataCollector.cpp" />
+    <ClCompile Include="src\Application\Demo\Demos.cpp" />
+    <ClCompile Include="src\Application\Demo\DemoScene.cpp" />
+    <ClCompile Include="src\Application\Profiling\ProfileConfig.cpp" />
+    <ClCompile Include="src\Application\Profiling\ProfilingDataCollector.cpp" />
     <ClCompile Include="src\Application\Scene.cpp" />
     <ClCompile Include="src\Framework\Camera\Camera.cpp" />
     <ClCompile Include="src\Framework\Camera\CameraController.cpp" />
@@ -511,9 +512,10 @@
     <ClInclude Include="assets\shaders\HlslCompat\LightingHlslCompat.h" />
     <ClInclude Include="assets\shaders\HlslCompat\RaytracingHlslCompat.h" />
     <ClInclude Include="assets\shaders\HlslCompat\StructureHlslCompat.h" />
-    <ClInclude Include="src\Application\Demos.h" />
-    <ClInclude Include="src\Application\ProfileConfig.h" />
-    <ClInclude Include="src\Application\ProfilingDataCollector.h" />
+    <ClInclude Include="src\Application\Demo\Demos.h" />
+    <ClInclude Include="src\Application\Demo\DemoScene.h" />
+    <ClInclude Include="src\Application\Profiling\ProfileConfig.h" />
+    <ClInclude Include="src\Application\Profiling\ProfilingDataCollector.h" />
     <ClInclude Include="src\Application\Scene.h" />
     <ClInclude Include="src\Framework\Camera\Camera.h" />
     <ClInclude Include="src\Framework\Camera\CameraController.h" />

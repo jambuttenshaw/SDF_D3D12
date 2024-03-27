@@ -1,8 +1,7 @@
 #pragma once
 
 #include "BaseApplication.h"
-#include "ProfileConfig.h"
-#include "ProfilingDataCollector.h"
+#include "Profiling/ProfilingDataCollector.h"
 #include "Scene.h"
 
 #include "Renderer/D3DGraphicsContext.h"
@@ -49,11 +48,12 @@ public:
 	inline InputManager* GetInputManager() const { return m_InputManager.get(); }
 	inline LightManager* GetLightManager() const { return m_LightManager.get(); }
 	inline MaterialManager* GetMaterialManager() const { return m_MaterialManager.get(); }
-
-private:
+	inline SDFFactoryHierarchicalAsync* GetSDFFactory() const { return m_Factory.get(); }
 
 	inline bool GetPaused() const { return m_Paused; }
 	inline void SetPaused(bool paused) { m_Paused = paused; }
+
+private:
 
 	void UpdatePassCB();
 
@@ -87,20 +87,14 @@ private:
 
 	// Factory
 	std::unique_ptr<SDFFactoryHierarchicalAsync> m_Factory;
-	std::wstring m_CurrentPipelineName = L"Default";
 
-	std::unique_ptr<SDFObject> m_Geometry;
 
 	// GUI
 	bool m_DisableGUI = false;
 	bool m_ShowMainMenuBar = true;
 	bool m_ShowApplicationInfo = true;
-
-	bool m_Rebuild = true;
-	bool m_AsyncConstruction = false;
-	bool m_EnableEditCulling = true;
-
-	bool m_DisplayDemoGui = true;
+	bool m_ShowSceneInfo = true;
+	bool m_ShowSceneControls = true;
 
 	float m_TimeScale = 0.5f;
 	bool m_Paused = false;

@@ -6,10 +6,13 @@
 #include "Renderer/Profiling/GPUProfiler.h"
 
 
+class D3DApplication;
+
+
 class ProfilingDataCollector
 {
 public:
-	ProfilingDataCollector() = default;
+	ProfilingDataCollector(D3DApplication* application);
 	~ProfilingDataCollector() = default;
 
 	DISALLOW_COPY(ProfilingDataCollector)
@@ -28,6 +31,8 @@ public:
 	inline const DemoConfig& GetDemoConfig(UINT index) const { return m_ProfileConfig.DemoConfigs[index]; }
 
 private:
+	D3DApplication* m_Application = nullptr;
+
 	// Profiling configuration
 	bool m_ProfilingMode = false;
 	ProfileConfig m_ProfileConfig;

@@ -6,9 +6,19 @@
 
 #include "Windows/Win32Application.h"
 
-#include "Scene.h"
+#include "Application/Scene.h"
+#include "Application/D3DApplication.h"
+#include "Application/Demo/DemoScene.h"
+
 #include "Framework/GameTimer.h"
 #include "Framework/Camera/OrbitalCameraController.h"
+
+
+ProfilingDataCollector::ProfilingDataCollector(D3DApplication* application)
+	: m_Application(application)
+{
+}
+
 
 
 void ProfilingDataCollector::ParseCommandLineArgs(args::Subparser& subparser)
@@ -113,10 +123,13 @@ bool ProfilingDataCollector::InitProfiler()
 }
 
 
-
 void ProfilingDataCollector::UpdateProfiling(Scene* scene, GameTimer* timer, CameraController* cameraController)
 {
 #ifdef ENABLE_INSTRUMENTATION
+	DemoScene* demoScene = dynamic_cast<DemoScene*>(scene);
+	if (!demoScene)
+		return;
+
 	// This function keeps track of gathering profiling data as specified by the config
 	// If no config was given, then no profiling will take place and the application will run in demo mode as normal
 	if (!m_ProfilingMode)
@@ -127,7 +140,7 @@ void ProfilingDataCollector::UpdateProfiling(Scene* scene, GameTimer* timer, Cam
 
 	if (timer->GetTimeSinceReset() - m_DemoBeginTime < m_DemoWarmupTime)
 		return;
-	scene->SetPaused(true);
+	m_Application->SetPaused(true);
 
 	// Still performing runs to gather data
 	if (m_CapturesRemaining > 0)
@@ -149,7 +162,7 @@ void ProfilingDataCollector::UpdateProfiling(Scene* scene, GameTimer* timer, Cam
 					{
 						// Build all non gpu profiler data that should also be output
 						std::stringstream otherData;
-						otherData << scene->GetCurrentBrickCount() << "," << scene->GetDemoEditCount() << ",";
+						otherData << demoScene->GetCurrentBrickCount() << "," << demoScene->GetCurrentEditCount() << ",";
 
 						for (const auto& metric : metrics)
 						{
@@ -188,7 +201,7 @@ void ProfilingDataCollector::UpdateProfiling(Scene* scene, GameTimer* timer, Cam
 		{
 			currentBrickSize = demoConfig.InitialBrickSize * std::pow(demoConfig.BrickSizeMultiplier, static_cast<float>(iterationsCompleted));
 		}
-		scene->Reset(demoConfig.DemoName, currentBrickSize);
+		demoScene->LoadDemo(demoConfig.DemoName, currentBrickSize);
 
 		{
 			// Build iteration data string
@@ -214,7 +227,7 @@ void ProfilingDataCollector::UpdateProfiling(Scene* scene, GameTimer* timer, Cam
 		// Progress to next demo
 		const DemoConfig& demoConfig = m_ProfileConfig.DemoConfigs[m_DemoConfigIndex];
 
-		scene->Reset(demoConfig.DemoName, demoConfig.InitialBrickSize);
+		demoScene->LoadDemo(demoConfig.DemoName, demoConfig.InitialBrickSize);
 
 		if (const auto orbitalCamera = dynamic_cast<OrbitalCameraController*>(cameraController))
 		{
@@ -237,7 +250,7 @@ void ProfilingDataCollector::UpdateProfiling(Scene* scene, GameTimer* timer, Cam
 		m_DemoIterationsRemaining = demoConfig.IterationCount;
 
 		m_DemoBeginTime = timer->GetTimeSinceReset();
-		scene->SetPaused(false);
+		m_Application->SetPaused(false);
 	}
 #endif
 }
