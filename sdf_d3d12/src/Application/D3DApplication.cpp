@@ -125,7 +125,7 @@ void D3DApplication::OnInit()
 	m_TextureLoader = std::make_unique<TextureLoader>();
 
 	// Setup camera
-	m_Camera.SetPosition(XMVECTOR{ 0.0f, 3.0f, -8.0f });
+	m_Camera.SetPosition(XMVECTOR{ 0.0f, 0.0f, -10.0f });
 	m_Timer.Reset();
 
 	if (m_UseOrbitalCamera)

@@ -71,7 +71,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
 		const float dB = EvaluateBoundingSphere(editB, pA);
 
 		// Check if they are close enough to be dependent
-		if (dB + dA <= editA.BlendingRange)
+		if (dB + dA <= editA.BlendingRange + editB.BlendingRange)
 		{
 			uint dependencies;
 			// 0x00010000 is added as dependencies are stored in the upper 16 bits of the variable
