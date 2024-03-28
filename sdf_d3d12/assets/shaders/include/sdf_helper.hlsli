@@ -211,7 +211,7 @@ float boundingSpherePrimitive(float3 p, SDFShape prim, float4 param)
 		case SDF_SHAPE_TORUS:
 			return sdSphere(p, param.x + param.y);
 		case SDF_SHAPE_OCTAHEDRON:
-			return sdSphere(p, param.x);
+			return sdSphere(p, 1.75f * param.x);
 		case SDF_SHAPE_BOX_FRAME:
 			return sdSphere(p, length(param.xyz) + param.w);
 		case SDF_SHAPE_FRACTAL:

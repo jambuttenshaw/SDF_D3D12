@@ -60,6 +60,7 @@ public:
 	Material* GetMaterial(size_t index) { return &m_Materials.at(index); }
 
 	void DrawGui();
+	bool DrawMaterialComboGui(const char* label, int& material);
 
 private:
 	std::vector<Material> m_Materials;

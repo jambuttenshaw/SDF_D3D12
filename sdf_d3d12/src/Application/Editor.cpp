@@ -3,6 +3,7 @@
 
 #include "D3DApplication.h"
 #include "imgui.h"
+#include "Framework/GuiHelpers.h"
 #include "Input/InputManager.h"
 
 
@@ -106,10 +107,14 @@ bool Editor::DisplayGui()
 	ImGui::Checkbox("Use Async", &m_UseAsync);
 
 	ImGui::Separator();
-	if (ImGui::Button("Undo", ImVec2(-FLT_MIN, 0)))
 	{
-		m_EditList.PopEdit();
-		m_RebuildNext = true;
+		GuiHelpers::DisableScope disable(m_EditList.GetEditCount() == 0);
+
+		if (ImGui::Button("Undo", ImVec2(-FLT_MIN, 0)))
+		{
+			m_EditList.PopEdit();
+			m_RebuildNext = true;
+		}
 	}
 
 	addTitle("Geometry");
@@ -152,9 +157,10 @@ bool Editor::DisplayGui()
 	auto setMatSlot = [this](const char* slotLabel, UINT slotIndex) -> bool
 		{
 			int mat = static_cast<int>(this->m_Geometry->GetMaterialID(slotIndex));
-			if (ImGui::InputInt(slotLabel, &mat))
+			MaterialManager* materialManager = this->m_Application->GetMaterialManager();
+
+			if (materialManager->DrawMaterialComboGui(slotLabel, mat))
 			{
-				MaterialManager* materialManager = this->m_Application->GetMaterialManager();
 				m_Geometry->SetMaterial(materialManager->GetMaterial(static_cast<UINT>(mat)), slotIndex);
 				return true;
 			}
@@ -173,7 +179,10 @@ bool Editor::DisplayGui()
 	ImGui::Separator();
 
 	ImGui::Checkbox("Continuous Mode", &m_ContinuousMode);
-	ImGui::DragFloat("Continuous Mode Freq", &m_ContinuousModeFrequency, 0.001f);
+	{
+		GuiHelpers::DisableScope disable(!m_ContinuousMode);
+		ImGui::DragFloat("Continuous Mode Freq", &m_ContinuousModeFrequency, 0.001f);
+	}
 
 	ImGui::End();
 

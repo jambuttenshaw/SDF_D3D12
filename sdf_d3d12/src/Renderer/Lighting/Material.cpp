@@ -2,6 +2,8 @@
 #include "Material.h"
 
 #include "imgui.h"
+#include "misc/cpp/imgui_stdlib.h"
+
 #include "Renderer/D3DGraphicsContext.h"
 
 
@@ -26,6 +28,9 @@ void Material::SetDirty()
 void Material::DrawGui()
 {
 	bool dirty = false;
+
+	// Name editing
+	ImGui::InputText("Name", &m_Name);
 
 	dirty |= ImGui::ColorEdit3("Albedo", &m_Data.Albedo.x);
 	dirty |= ImGui::SliderFloat("Roughness", &m_Data.Roughness, 0.05f, 1.0f);
@@ -76,13 +81,18 @@ D3D12_GPU_VIRTUAL_ADDRESS MaterialManager::GetMaterialBufferAddress() const
 
 void MaterialManager::DrawGui()
 {
+	static int selectedMat = 0;
+	DrawMaterialComboGui("Material", selectedMat);
+	m_Materials.at(selectedMat).DrawGui();
+}
+
+
+bool MaterialManager::DrawMaterialComboGui(const char* label, int& material)
+{
 	auto matNameGetter = [](void* materials, int index) -> const char*
 		{
 			const Material* m = static_cast<Material*>(materials) + index;
 			return m->GetName();
 		};
-
-	static int selectedMat = 0;
-	ImGui::Combo("Material", &selectedMat, matNameGetter, m_Materials.data(), static_cast<int>(m_Materials.size()));
-	m_Materials.at(selectedMat).DrawGui();
+	return ImGui::Combo(label, &material, matNameGetter, m_Materials.data(), static_cast<int>(m_Materials.size()));
 }
