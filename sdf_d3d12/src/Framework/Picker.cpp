@@ -1,10 +1,10 @@
 #include "pch.h"
-#include "PickingQueryInterface.h"
+#include "Picker.h"
 
 #include "Renderer/D3DGraphicsContext.h"
 
 
-PickingQueryInterface::PickingQueryInterface()
+Picker::Picker()
 {
 	m_PickingParamsStaging.rayIndex = { INVALID_PICK_INDEX, INVALID_PICK_INDEX };
 
@@ -19,12 +19,12 @@ PickingQueryInterface::PickingQueryInterface()
 }
 
 
-void PickingQueryInterface::UploadPickingParams() const
+void Picker::UploadPickingParams() const
 {
 	m_PickingParamsBuffer.CopyElement(g_D3DGraphicsContext->GetCurrentBackBuffer(), m_PickingParamsStaging);
 }
 
-void PickingQueryInterface::CopyPickingResult(ID3D12GraphicsCommandList* commandList) const
+void Picker::CopyPickingResult(ID3D12GraphicsCommandList* commandList) const
 {
 	auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_PickingOutputBuffer.GetResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
 	commandList->ResourceBarrier(1, &barrier);
@@ -37,13 +37,13 @@ void PickingQueryInterface::CopyPickingResult(ID3D12GraphicsCommandList* command
 }
 
 
-void PickingQueryInterface::ReadLastPick()
+void Picker::ReadLastPick()
 {
 	m_LastPick = m_PickingReadbackBuffer.ReadElement(g_D3DGraphicsContext->GetCurrentBackBuffer());
 }
 
 
-D3D12_GPU_VIRTUAL_ADDRESS PickingQueryInterface::GetPickingParamsBuffer() const
+D3D12_GPU_VIRTUAL_ADDRESS Picker::GetPickingParamsBuffer() const
 {
 	return m_PickingParamsBuffer.GetAddressOfElement(g_D3DGraphicsContext->GetCurrentBackBuffer());
 }

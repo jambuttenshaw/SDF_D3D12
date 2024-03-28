@@ -23,7 +23,7 @@ public:
 
 	struct RaytracingParams
 	{
-		class PickingQueryInterface* PickingInterface;
+		class Picker* PickingInterface;
 
 		D3D12_GPU_VIRTUAL_ADDRESS MaterialBuffer;
 

@@ -27,11 +27,8 @@ bool SDFEdit::DrawGui()
 	{
 		"Union",
 		"Subtraction",
-		"Intersection",
 		"SmoothUnion",
-		"SmoothSubtraction",
-		"SmoothIntersection",
-		"Fractal"
+		"SmoothSubtraction"
 	};
 
 	bool changed = false;

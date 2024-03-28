@@ -10,7 +10,7 @@
 #include "Renderer/Lighting/Material.h"
 #include "Renderer/Raytracing/Raytracer.h"
 
-#include "Framework/PickingQueryInterface.h"
+#include "Framework/Picker.h"
 #include "Framework/GameTimer.h"
 #include "Framework/Camera/Camera.h"
 #include "Framework/Camera/OrbitalCameraController.h"
@@ -45,9 +45,12 @@ public:
 	virtual bool GetTearingSupport() const override;
 	virtual IDXGISwapChain* GetSwapChain() const override;
 
-	inline InputManager* GetInputManager() const { return m_InputManager.get(); }
+	inline const InputManager* GetInputManager() const { return m_InputManager.get(); }
 	inline LightManager* GetLightManager() const { return m_LightManager.get(); }
 	inline MaterialManager* GetMaterialManager() const { return m_MaterialManager.get(); }
+
+	inline const Picker* GetPicker() const { return m_Picker.get(); }
+
 	inline SDFFactoryHierarchicalAsync* GetSDFFactory() const { return m_Factory.get(); }
 
 	inline bool GetPaused() const { return m_Paused; }
@@ -80,7 +83,7 @@ private:
 	std::unique_ptr<Scene> m_Scene;
 
 	std::unique_ptr<Raytracer> m_Raytracer;
-	std::unique_ptr<PickingQueryInterface> m_PickingQueryInterface;
+	std::unique_ptr<Picker> m_Picker;
 
 	std::unique_ptr<LightManager> m_LightManager;
 	std::unique_ptr<MaterialManager> m_MaterialManager;

@@ -30,6 +30,12 @@ void Transform::SetTranslation(const XMVECTOR& translation)
 	BuildWorldMatrix();
 }
 
+void Transform::SetTranslation(const XMFLOAT3& translation)
+{
+	m_Translation = XMLoadFloat3(&translation);
+	BuildWorldMatrix();
+}
+
 void Transform::SetYaw(float yaw)
 {
 	m_Yaw = yaw;

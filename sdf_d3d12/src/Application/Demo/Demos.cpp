@@ -68,7 +68,7 @@ SDFEditList DropsDemo::BuildEditList(float deltaTime)
 	{
 		Transform transform;
 		transform.SetTranslation(
-			{
+			XMVECTOR{
 				m_Spheres.at(i).offset.x + m_Spheres.at(i).scale.x * cosf(m_Spheres.at(i).speed.x * m_Time),
 				m_Spheres.at(i).offset.y + m_Spheres.at(i).scale.y * cosf(m_Spheres.at(i).speed.y * m_Time),
 				m_Spheres.at(i).offset.z + m_Spheres.at(i).scale.z * cosf(m_Spheres.at(i).speed.z * m_Time)
@@ -171,7 +171,7 @@ SDFEditList CubesDemo::BuildEditList(float deltaTime)
 		const auto fCount = static_cast<float>(m_CubeGridSize);
 
 		Transform transform;
-		transform.SetTranslation({ 
+		transform.SetTranslation(XMVECTOR{ 
 			fx - 0.5f * fCount + 0.5f,
 			fy - 0.5f * fCount + 0.5f,
 			fz - 0.5f * fCount + 0.5f

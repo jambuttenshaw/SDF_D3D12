@@ -12,7 +12,7 @@ Material::Material(UINT materialID)
 	m_Name = std::to_string(m_MaterialID);
 
 	// Defaults
-	m_Data.Albedo = XMFLOAT3(0.9f, 0.6f, 0.0f);
+	m_Data.Albedo = XMFLOAT3(1.0f, 1.0f, 1.0f);
 	m_Data.Roughness = 0.4f;
 	m_Data.Metalness = 0.0f;
 	m_Data.Reflectance = 0.0f;

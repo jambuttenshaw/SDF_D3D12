@@ -406,6 +406,7 @@
     <ClCompile Include="src\Application\D3DApplication.cpp" />
     <ClCompile Include="src\Application\Demo\Demos.cpp" />
     <ClCompile Include="src\Application\Demo\DemoScene.cpp" />
+    <ClCompile Include="src\Application\Editor.cpp" />
     <ClCompile Include="src\Application\Profiling\ProfileConfig.cpp" />
     <ClCompile Include="src\Application\Profiling\ProfilingDataCollector.cpp" />
     <ClCompile Include="src\Application\Scene.cpp" />
@@ -421,7 +422,7 @@
     </ClCompile>
     <ClCompile Include="src\Framework\Math.cpp" />
     <ClCompile Include="src\Framework\Camera\OrbitalCameraController.cpp" />
-    <ClCompile Include="src\Framework\PickingQueryInterface.cpp" />
+    <ClCompile Include="src\Framework\Picker.cpp" />
     <ClCompile Include="src\Framework\Transform.cpp" />
     <ClCompile Include="src\Input\InputManager.cpp" />
     <ClCompile Include="src\Main.cpp" />
@@ -514,6 +515,7 @@
     <ClInclude Include="assets\shaders\HlslCompat\StructureHlslCompat.h" />
     <ClInclude Include="src\Application\Demo\Demos.h" />
     <ClInclude Include="src\Application\Demo\DemoScene.h" />
+    <ClInclude Include="src\Application\Editor.h" />
     <ClInclude Include="src\Application\Profiling\ProfileConfig.h" />
     <ClInclude Include="src\Application\Profiling\ProfilingDataCollector.h" />
     <ClInclude Include="src\Application\Scene.h" />
@@ -523,7 +525,7 @@
     <ClInclude Include="src\Framework\GameTimer.h" />
     <ClInclude Include="src\Framework\Math.h" />
     <ClInclude Include="src\Framework\Camera\OrbitalCameraController.h" />
-    <ClInclude Include="src\Framework\PickingQueryInterface.h" />
+    <ClInclude Include="src\Framework\Picker.h" />
     <ClInclude Include="src\Framework\Transform.h" />
     <ClInclude Include="src\Input\InputManager.h" />
     <ClInclude Include="src\Input\KeyCodes.h" />

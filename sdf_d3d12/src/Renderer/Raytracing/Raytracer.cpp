@@ -8,7 +8,7 @@
 #include "Renderer/D3DShaderCompiler.h"
 #include "Renderer/ShaderTable.h"
 
-#include "Framework/PickingQueryInterface.h"
+#include "Framework/Picker.h"
 
 #include "pix3.h"
 #include "Renderer/Profiling/GPUProfiler.h"

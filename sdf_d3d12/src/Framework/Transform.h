@@ -21,6 +21,8 @@ public:
 	inline const XMMATRIX& GetWorldMatrix() const { return m_WorldMat; };
 
 	void SetTranslation(const XMVECTOR& translation);
+	void SetTranslation(const XMFLOAT3& translation);
+
 	void SetYaw(float yaw);
 	void SetPitch(float pitch);
 	void SetRoll(float roll);

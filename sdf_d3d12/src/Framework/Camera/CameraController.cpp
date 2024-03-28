@@ -51,13 +51,13 @@ void CameraController::Update(float deltaTime)
 		m_Camera->Translate(XMVECTOR{ 0.0f, move, 0.0f });
 
 	// Escape key toggles and un-toggles mouse cursor
-	if (m_InputManager->IsKeyPressed(KEY_ESCAPE))
+	if (m_InputManager->IsKeyPressed(KEY_ESCAPE) && m_AllowMouseCapture)
 	{
 		m_InputManager->SetMouseHidden(!m_InputManager->IsMouseHidden());
 	}
 
 	// Don't use mouse input if mouse is not hidden
-	if (m_InputManager->IsMouseHidden() || m_InputManager->IsKeyDown(KEY_RBUTTON))
+	if (m_InputManager->IsMouseHidden() || m_InputManager->IsKeyDown(KEY_MBUTTON))
 	{
 		const float mouseMove = m_RotateSpeed * deltaTime;
 
@@ -76,7 +76,7 @@ void CameraController::Update(float deltaTime)
 	else
 	{
 		// Clicking will re-capture the mouse cursor
-		if (m_InputManager->IsKeyPressed(KEY_LBUTTON))
+		if (m_InputManager->IsKeyPressed(KEY_LBUTTON) && m_AllowMouseCapture)
 		{
 			m_InputManager->SetMouseHidden(true);
 		}

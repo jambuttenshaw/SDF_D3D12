@@ -18,6 +18,8 @@ public:
 	virtual void Update(float deltaTime);
 	virtual void Gui();
 
+	inline void SetAllowMouseCapture(bool allowCapture) { m_AllowMouseCapture = allowCapture; }
+
 protected:
 	InputManager* m_InputManager = nullptr;
 	Camera* m_Camera = nullptr;
@@ -30,4 +32,6 @@ protected:
 
 	static constexpr float s_MinMoveSpeed = 0.1f;
 	static constexpr float s_MaxMoveSpeed = 20.0f;
+
+	bool m_AllowMouseCapture = false;
 };

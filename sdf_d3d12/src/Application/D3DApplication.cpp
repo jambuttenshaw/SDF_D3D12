@@ -17,7 +17,8 @@
 #include <fstream>
 #include <iomanip>
 
-#include "Framework/PickingQueryInterface.h"
+#include "Editor.h"
+#include "Framework/Picker.h"
 #include "Renderer/D3DDebugTools.h"
 #include "Demo/DemoScene.h"
 
@@ -135,7 +136,7 @@ void D3DApplication::OnInit()
 	InitImGui();
 
 	m_Raytracer = std::make_unique<Raytracer>();
-	m_PickingQueryInterface = std::make_unique<PickingQueryInterface>();
+	m_Picker = std::make_unique<Picker>();
 
 	m_LightManager = std::make_unique<LightManager>();
 	m_MaterialManager = std::make_unique<MaterialManager>(4);
@@ -169,7 +170,7 @@ void D3DApplication::OnInit()
 	else
 	{
 		// Load default demo
-		m_Scene = std::make_unique<DemoScene>(this);
+		m_Scene = std::make_unique<Editor>(this);
 	}
 
 	m_Raytracer->Setup(*m_Scene);
@@ -213,8 +214,8 @@ void D3DApplication::OnUpdate()
 	m_ProfilingDataCollector->UpdateProfiling(m_Scene.get(), &m_Timer, m_CameraController.get());
 #endif
 
-	m_PickingQueryInterface->ReadLastPick();
-	m_PickingQueryInterface->SetNextPickLocation({ m_InputManager->GetMouseX(), m_InputManager->GetMouseY() });
+	m_Picker->ReadLastPick();
+	m_Picker->SetNextPickLocation({ m_InputManager->GetMouseX(), m_InputManager->GetMouseY() });
 
 	if (m_InputManager->IsKeyPressed(KEY_SPACE))
 	{
@@ -274,7 +275,7 @@ void D3DApplication::OnRender()
 	// Update constant buffer
 	UpdatePassCB();
 	m_MaterialManager->UploadMaterialData();
-	m_PickingQueryInterface->UploadPickingParams();
+	m_Picker->UploadPickingParams();
 
 	// Perform all queued uploads
 	m_TextureLoader->PerformUploads();
@@ -291,14 +292,14 @@ void D3DApplication::OnRender()
 	// Perform raytracing
 	{
 		Raytracer::RaytracingParams raytracingParams;
-		raytracingParams.PickingInterface = m_PickingQueryInterface.get();
+		raytracingParams.PickingInterface = m_Picker.get();
 		raytracingParams.MaterialBuffer = m_MaterialManager->GetMaterialBufferAddress();
 		raytracingParams.GlobalLightingSRVTable = m_LightManager->GetSRVTable();
 		raytracingParams.GlobalLightingSamplerTable = m_LightManager->GetSamplerTable();
 
 		m_Raytracer->DoRaytracing(raytracingParams);
 	}
-	m_PickingQueryInterface->CopyPickingResult(m_GraphicsContext->GetCommandList());
+	m_Picker->CopyPickingResult(m_GraphicsContext->GetCommandList());
 
 	m_GraphicsContext->CopyRaytracingOutput(m_Raytracer->GetRaytracingOutput());
 
@@ -582,7 +583,7 @@ bool D3DApplication::ImGuiApplicationInfo()
 
 		{
 			ImGui::Separator();
-			const PickingQueryPayload& pick = m_PickingQueryInterface->GetLastPick();
+			const PickingQueryPayload& pick = m_Picker->GetLastPick();
 			ImGui::Text("Picking ID: %d", pick.instanceID);
 			ImGui::Text("Picking World Pos: %.1f, %.1f, %.1f", pick.hitLocation.x, pick.hitLocation.y, pick.hitLocation.z);
 		}

@@ -9,10 +9,10 @@ using namespace DirectX;
 
 
 // Can be attached to the raytracer to query ray intersections
-class PickingQueryInterface
+class Picker
 {
 public:
-	PickingQueryInterface();
+	Picker();
 
 	inline void SetNextPickLocation(const XMUINT2& location) { m_PickingParamsStaging.rayIndex = location; }
 
