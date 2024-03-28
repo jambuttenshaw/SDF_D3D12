@@ -21,6 +21,7 @@ private:
 
 	// If any changes have occurred that should trigger a rebuild
 	bool m_RebuildNext = false;
+	bool m_AlwaysRebuild = true;
 	bool m_UseAsync = false;
 
 	SDFGeometryInstance* m_GeometryInstance = nullptr;

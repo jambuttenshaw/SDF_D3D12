@@ -86,6 +86,15 @@ bool SDFEdit::DrawGui()
 	return changed;
 }
 
+void SDFEdit::Validate()
+{
+	if (IsSmoothOperation(Operation) && BlendingRange <= 0.0f)
+	{
+		Operation = static_cast<SDFOperation>(Operation & ~2u);
+	}
+}
+
+
 
 void SDFEdit::SetShapePropertiesToDefault()
 {

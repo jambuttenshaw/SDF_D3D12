@@ -28,7 +28,7 @@ Editor::Editor(D3DApplication* application)
 
 
 	// Setup brush
-	m_Brush = SDFEdit::CreateSphere({}, 0.25f);
+	m_Brush = SDFEdit::CreateSphere({}, 0.25f, SDF_OP_SMOOTH_UNION, 1.0f);
 }
 
 
@@ -47,13 +47,15 @@ void Editor::OnUpdate(float deltaTime)
 			SDFEdit edit = m_Brush;
 			edit.PrimitiveTransform.SetTranslation(hit.hitLocation);
 
+			edit.Validate();
+
 			m_EditList.AddEdit(edit);
 			m_RebuildNext = true;
 		}
 	}
 
 
-	if (m_RebuildNext)
+	if (m_RebuildNext || m_AlwaysRebuild)
 	{
 		// Don't rebuild with an empty edit list
 		if (m_EditList.GetEditCount() > 0)
@@ -74,6 +76,28 @@ bool Editor::DisplayGui()
 {
 	ImGui::Begin("Editor");
 
+	auto addTitle = [](const char* title)
+	{
+			ImGui::Separator();
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
+			ImGui::Text(title);
+			ImGui::PopStyleColor();
+			ImGui::Separator();
+	};
+
+	addTitle("General");
+
+	ImGui::Checkbox("Always Rebuild", &m_AlwaysRebuild);
+	ImGui::Checkbox("Use Async", &m_UseAsync);
+
+	addTitle("Geometry");
+
+	if (ImGui::SliderFloat("Brick Size", &m_BrickSize, 0.0625f, 1.0f))
+	{
+		m_Geometry->SetNextRebuildBrickSize(m_BrickSize);
+		m_RebuildNext = true;
+	}
+
 	if (ImGui::Button("Clear"))
 	{
 		m_EditList.Reset();
@@ -82,7 +106,7 @@ bool Editor::DisplayGui()
 		m_RebuildNext = true;
 	}
 
-	ImGui::Separator();
+	addTitle("Materials");
 
 	auto setMatSlot = [this](const char* slotLabel, UINT slotIndex) -> bool
 		{
@@ -101,7 +125,7 @@ bool Editor::DisplayGui()
 	m_RebuildNext |= setMatSlot("Slot 2", 2);
 	m_RebuildNext |= setMatSlot("Slot 3", 3);
 
-	ImGui::Separator();
+	addTitle("Brush");
 
 	m_Brush.DrawGui();
 
@@ -110,5 +134,3 @@ bool Editor::DisplayGui()
 	// Don't close GUI
 	return true;
 }
-
-

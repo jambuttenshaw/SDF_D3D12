@@ -320,6 +320,9 @@ void SDFClosestHitShader(inout RadianceRayPayload payload, in SDFIntersectAttrib
 	const float3 hitPos = WorldRayOrigin() + RayTCurrent() * WorldRayDirection();
 	const float3 v = normalize(g_PassCB.WorldEyePos - hitPos);
 
+	payload.pickingQuery.instanceID = InstanceID();
+	payload.pickingQuery.hitLocation = hitPos;
+
 	// DEBUG MODES
 	if (g_PassCB.Flags & (RENDER_FLAG_DISPLAY_BRICK_EDIT_COUNT | RENDER_FLAG_DISPLAY_HEATMAP | RENDER_FLAG_DISPLAY_BRICK_INDEX))
 	{
@@ -396,8 +399,6 @@ void SDFClosestHitShader(inout RadianceRayPayload payload, in SDFIntersectAttrib
 	lightColor /= 1.0f + lightColor;
 
 	payload.radiance = lightColor;
-	payload.pickingQuery.instanceID = InstanceID();
-	payload.pickingQuery.hitLocation = hitPos;
 }
 
 

@@ -23,9 +23,6 @@ float EvaluateBoundingSphere(SDFEditData edit, float3 p)
 	float dist = boundingSpherePrimitive(p_transformed, GetShape(edit.EditParams), edit.ShapeParams);
 	dist *= edit.Scale;
 
-	// Apply blending range for smooth edits
-	dist -= IsSmoothEdit(edit.EditParams) * edit.BlendingRange;
-
 	return dist;
 }
 
@@ -70,13 +67,14 @@ void main(uint3 DTid : SV_DispatchThreadID)
 		const float dA = EvaluateBoundingSphere(editA, pA);
 
 		// evaluate the distance to edit2
-		const SDFEditData edit2 = g_EditList.Load(indexB);
-		const float d2 = EvaluateBoundingSphere(edit2, pA);
+		const SDFEditData editB = g_EditList.Load(indexB);
+		const float dB = EvaluateBoundingSphere(editB, pA);
+
 		// Check if they are close enough to be dependent
-		if (d2 - dA <= editA.BlendingRange)
+		if (dB + dA <= editA.BlendingRange)
 		{
 			uint dependencies;
-			// 0x00010000 is added as dependencies is stored in the upper 16 bits of the variable
+			// 0x00010000 is added as dependencies are stored in the upper 16 bits of the variable
 			InterlockedAdd(g_EditList[indexA].EditParams, 0x00010000, dependencies);
 
 			const uint dependencyIndex = dependencies >> 16;

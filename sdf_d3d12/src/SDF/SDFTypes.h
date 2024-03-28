@@ -56,6 +56,8 @@ struct SDFEdit
 	SDFEdit();
 
 	bool DrawGui();
+	// Ensures all parameters are valid
+	void Validate();
 
 private:
 	// Used by the GUI system
