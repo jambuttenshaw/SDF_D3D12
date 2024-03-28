@@ -523,6 +523,7 @@
     <ClInclude Include="src\Framework\Camera\CameraController.h" />
     <ClInclude Include="src\Framework\Exception.h" />
     <ClInclude Include="src\Framework\GameTimer.h" />
+    <ClInclude Include="src\Framework\GuiHelpers.h" />
     <ClInclude Include="src\Framework\Math.h" />
     <ClInclude Include="src\Framework\Camera\OrbitalCameraController.h" />
     <ClInclude Include="src\Framework\Picker.h" />

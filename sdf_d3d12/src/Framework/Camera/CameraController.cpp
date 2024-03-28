@@ -66,12 +66,6 @@ void CameraController::Update(float deltaTime)
 		const INT dy = m_InputManager->GetMouseDeltaY();
 		m_Camera->RotateYaw(mouseMove * static_cast<float>(dx));
 		m_Camera->RotatePitch(-mouseMove * static_cast<float>(dy));
-
-		// Scroll wheel will change move speed
-		constexpr float d = s_MaxMoveSpeed - s_MinMoveSpeed;
-		m_MoveSpeed += m_ScrollSpeed * (m_MoveSpeed - s_MinMoveSpeed) / d * m_InputManager->GetScrollDelta();
-		if (m_MoveSpeed < s_MinMoveSpeed) m_MoveSpeed = s_MinMoveSpeed;
-		if (m_MoveSpeed > s_MaxMoveSpeed) m_MoveSpeed = s_MaxMoveSpeed;
 	}
 	else
 	{
@@ -81,6 +75,12 @@ void CameraController::Update(float deltaTime)
 			m_InputManager->SetMouseHidden(true);
 		}
 	}
+
+	// Scroll wheel will change move speed
+	constexpr float d = s_MaxMoveSpeed - s_MinMoveSpeed;
+	m_MoveSpeed += m_ScrollSpeed * (m_MoveSpeed - s_MinMoveSpeed) / d * m_InputManager->GetScrollDelta();
+	if (m_MoveSpeed < s_MinMoveSpeed) m_MoveSpeed = s_MinMoveSpeed;
+	if (m_MoveSpeed > s_MaxMoveSpeed) m_MoveSpeed = s_MaxMoveSpeed;
 }
 
 

@@ -2,6 +2,7 @@
 #include "SDFTypes.h"
 
 #include "imgui.h"
+#include "Framework/GuiHelpers.h"
 #include "Framework/Log.h"
 
 
@@ -71,16 +72,21 @@ bool SDFEdit::DrawGui()
 		changed = true;
 	}
 
-	if (IsSmoothOperation(Operation))
 	{
+		GuiHelpers::DisableScope disable(!IsSmoothOperation(Operation));
+
 		changed |= ImGui::SliderFloat("Blending", &BlendingRange, 0.0f, 1.0f);
 	}
 
-	int material = static_cast<int>(MatTableIndex);
-	if (ImGui::SliderInt("Material", &material, 0, 3))
 	{
-		MatTableIndex = static_cast<UINT>(material);
-		changed = true;
+		GuiHelpers::DisableScope disable(IsSubtractionOperation(Operation));
+
+		int material = static_cast<int>(MatTableIndex);
+		if (ImGui::SliderInt("Material", &material, 0, 3))
+		{
+			MatTableIndex = static_cast<UINT>(material);
+			changed = true;
+		}
 	}
 
 	return changed;
@@ -122,6 +128,10 @@ void SDFEdit::SetShapePropertiesToDefault()
 	}
 }
 
+bool SDFEdit::IsSubtractionOperation(SDFOperation op)
+{
+	return op & 1u;
+}
 bool SDFEdit::IsSmoothOperation(SDFOperation op)
 {
 	return op & 2u;

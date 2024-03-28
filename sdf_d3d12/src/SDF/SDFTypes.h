@@ -77,5 +77,6 @@ public:
 private:
 	static SDFEdit CreateGeneric(const Transform& transform, SDFOperation op, float blend, UINT matTableIndex = 0);
 
+	static bool IsSubtractionOperation(SDFOperation op);
 	static bool IsSmoothOperation(SDFOperation op);
 };

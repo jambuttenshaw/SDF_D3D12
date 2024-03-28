@@ -21,7 +21,7 @@
 #include "Framework/Picker.h"
 #include "Renderer/D3DDebugTools.h"
 #include "Demo/DemoScene.h"
-
+#include "Framework/GuiHelpers.h"
 
 
 D3DApplication::D3DApplication(UINT width, UINT height, const std::wstring& name)
@@ -562,22 +562,11 @@ bool D3DApplication::ImGuiApplicationInfo()
 		ImGui::Separator();
 
 		{
-			const bool pixEnabled = m_GraphicsContext->IsPIXEnabled();
-			if (!pixEnabled)
-			{
-				ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-				ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-			}
+			GuiHelpers::DisableScope disable(!m_GraphicsContext->IsPIXEnabled());
 
 			if (ImGui::Button("GPU Capture"))
 			{
 				D3DDebugTools::PIXGPUCaptureFrame(1);
-			}
-
-			if (!pixEnabled)
-			{
-				ImGui::PopItemFlag();
-				ImGui::PopStyleVar();
 			}
 		}
 

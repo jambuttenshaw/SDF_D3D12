@@ -29,6 +29,9 @@ Editor::Editor(D3DApplication* application)
 
 	// Setup brush
 	m_Brush = SDFEdit::CreateSphere({}, 0.25f, SDF_OP_SMOOTH_UNION, 0.1f);
+
+	// Disable mouse capture on the camera controller
+	m_Application->GetCameraController()->SetAllowMouseCapture(false);
 }
 
 
@@ -118,7 +121,7 @@ bool Editor::DisplayGui()
 	}
 
 	float evalRange = m_EditList.GetEvaluationRange();
-	if (ImGui::DragFloat("Evaluation Range", &evalRange, 0.01f))
+	if (ImGui::DragFloat("Eval Range", &evalRange, 0.01f))
 	{
 		if (evalRange < 1.0f)
 			evalRange = 1.0f;

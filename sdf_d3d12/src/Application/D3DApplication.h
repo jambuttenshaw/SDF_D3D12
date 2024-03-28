@@ -46,6 +46,7 @@ public:
 	virtual IDXGISwapChain* GetSwapChain() const override;
 
 	inline const InputManager* GetInputManager() const { return m_InputManager.get(); }
+	inline CameraController* GetCameraController() const { return m_CameraController.get(); }
 	inline LightManager* GetLightManager() const { return m_LightManager.get(); }
 	inline MaterialManager* GetMaterialManager() const { return m_MaterialManager.get(); }
 
