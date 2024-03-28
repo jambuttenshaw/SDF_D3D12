@@ -17,7 +17,6 @@ bool SDFEdit::DrawGui()
 	{
 		"Sphere",
 		"Box",
-		"Plane",
 		"Torus",
 		"Octahedron",
 		"BoxFrame",
@@ -34,7 +33,7 @@ bool SDFEdit::DrawGui()
 	bool changed = false;
 
 	int selectedShape = static_cast<int>(Shape);
-	if (ImGui::Combo("Shape", &selectedShape, shapeNames, _countof(shapeNames)))
+	if (ImGui::Combo("Shape", &selectedShape, shapeNames, ARRAYSIZE(shapeNames)))
 	{
 		Shape = static_cast<SDFShape>(selectedShape);
 		// To avoid UB from reading wrong property of the union
@@ -72,7 +71,17 @@ bool SDFEdit::DrawGui()
 		changed = true;
 	}
 
-	changed |= ImGui::SliderFloat("Blending", &BlendingRange, 0.0f, 3.0f);
+	if (IsSmoothOperation(Operation))
+	{
+		changed |= ImGui::SliderFloat("Blending", &BlendingRange, 0.0f, 1.0f);
+	}
+
+	int material = static_cast<int>(MatTableIndex);
+	if (ImGui::SliderInt("Material", &material, 0, 3))
+	{
+		MatTableIndex = static_cast<UINT>(material);
+		changed = true;
+	}
 
 	return changed;
 }
@@ -103,6 +112,12 @@ void SDFEdit::SetShapePropertiesToDefault()
 		break;
 	}
 }
+
+bool SDFEdit::IsSmoothOperation(SDFOperation op)
+{
+	return op & 2u;
+}
+
 
 
 
@@ -164,7 +179,7 @@ SDFEdit SDFEdit::CreateGeneric(const Transform& transform, SDFOperation op, floa
 	prim.BlendingRange = blend;
 	prim.MatTableIndex = matTableIndex;
 
-	if ((prim.Operation & 2u) && prim.BlendingRange <= 0.0f)
+	if (IsSmoothOperation(prim.Operation) && prim.BlendingRange <= 0.0f)
 	{
 		prim.Operation = static_cast<SDFOperation>(prim.Operation & ~2u);
 	}

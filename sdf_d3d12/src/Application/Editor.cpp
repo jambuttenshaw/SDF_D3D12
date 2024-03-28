@@ -84,6 +84,25 @@ bool Editor::DisplayGui()
 
 	ImGui::Separator();
 
+	auto setMatSlot = [this](const char* slotLabel, UINT slotIndex) -> bool
+		{
+			int mat = static_cast<int>(this->m_Geometry->GetMaterialID(slotIndex));
+			if (ImGui::InputInt(slotLabel, &mat))
+			{
+				MaterialManager* materialManager = this->m_Application->GetMaterialManager();
+				m_Geometry->SetMaterial(materialManager->GetMaterial(static_cast<UINT>(mat)), slotIndex);
+				return true;
+			}
+			return false;
+		};
+
+	m_RebuildNext |= setMatSlot("Slot 0", 0);
+	m_RebuildNext |= setMatSlot("Slot 1", 1);
+	m_RebuildNext |= setMatSlot("Slot 2", 2);
+	m_RebuildNext |= setMatSlot("Slot 3", 3);
+
+	ImGui::Separator();
+
 	m_Brush.DrawGui();
 
 	ImGui::End();

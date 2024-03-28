@@ -61,6 +61,7 @@ private:
 	// Used by the GUI system
 	void SetShapePropertiesToDefault();
 
+
 public:
 
 	// Constructor for each shape type
@@ -74,4 +75,5 @@ public:
 private:
 	static SDFEdit CreateGeneric(const Transform& transform, SDFOperation op, float blend, UINT matTableIndex = 0);
 
+	static bool IsSmoothOperation(SDFOperation op);
 };
