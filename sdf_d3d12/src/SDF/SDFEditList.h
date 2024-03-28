@@ -16,7 +16,9 @@ public:
 	DEFAULT_MOVE(SDFEditList)
 
 	void Reset();
+
 	bool AddEdit(const SDFEdit& edit);
+	bool PopEdit();
 
 	// Getters
 	inline UINT GetEditCount() const { return m_EditCount; }
@@ -24,6 +26,7 @@ public:
 
 	inline const SDFEditData* GetEditData() const { return m_Edits.data(); }
 
+	inline void SetEvaluationRange(float evalRange) { m_EvaluationRange = evalRange; }
 	inline float GetEvaluationRange() const { return m_EvaluationRange; }
 
 private:

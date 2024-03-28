@@ -14,6 +14,8 @@ public:
 
 private:
 	std::unique_ptr<SDFObject> m_Geometry;
+	SDFGeometryInstance* m_GeometryInstance = nullptr;
+
 	float m_BrickSize = 0.125f;
 
 	// The edit list that will be built through user input
@@ -21,12 +23,16 @@ private:
 
 	// If any changes have occurred that should trigger a rebuild
 	bool m_RebuildNext = false;
-	bool m_AlwaysRebuild = true;
-	bool m_UseAsync = false;
-
-	SDFGeometryInstance* m_GeometryInstance = nullptr;
-
+	bool m_AlwaysRebuild = false;
+	bool m_UseAsync = true;
 
 	// Brush parameters
+	bool m_ContinuousMode = false;
+	float m_ContinuousModeFrequency = 0.05f;
+
 	SDFEdit m_Brush;
+
+	// Brush state
+	bool m_UsingBrush = false;
+	float m_ContinuousModeTimer = 0.0f;
 };

@@ -39,6 +39,18 @@ bool SDFEditList::AddEdit(const SDFEdit& edit)
 	return true;
 }
 
+bool SDFEditList::PopEdit()
+{
+	if (m_EditCount == 0)
+	{
+		LOG_WARN("Empty edit list!");
+		return false;
+	}
+	m_EditCount--;
+	return true;
+}
+
+
 SDFEditData SDFEditList::BuildEditData(const SDFEdit& edit)
 {
 	SDFEditData primitiveData;

@@ -28,7 +28,7 @@ Editor::Editor(D3DApplication* application)
 
 
 	// Setup brush
-	m_Brush = SDFEdit::CreateSphere({}, 0.25f, SDF_OP_SMOOTH_UNION, 1.0f);
+	m_Brush = SDFEdit::CreateSphere({}, 0.25f, SDF_OP_SMOOTH_UNION, 0.1f);
 }
 
 
@@ -37,7 +37,12 @@ void Editor::OnUpdate(float deltaTime)
 	const InputManager* inputManager = m_Application->GetInputManager();
 	const Picker* picker = m_Application->GetPicker();
 
-	if (inputManager->IsKeyPressed(KEY_LBUTTON))
+	if (m_UsingBrush && m_ContinuousMode)
+	{
+		m_ContinuousModeTimer += deltaTime;
+	}
+
+	if (inputManager->IsKeyDown(KEY_LBUTTON) && !m_UsingBrush)
 	{
 		// Get brush location
 		const auto& hit = picker->GetLastPick();
@@ -51,9 +56,16 @@ void Editor::OnUpdate(float deltaTime)
 
 			m_EditList.AddEdit(edit);
 			m_RebuildNext = true;
+
+			m_UsingBrush = true;
+			m_ContinuousModeTimer = 0.0f;
 		}
 	}
 
+	if (inputManager->IsKeyReleased(KEY_LBUTTON) || m_ContinuousModeTimer > m_ContinuousModeFrequency)
+	{
+		m_UsingBrush = false;
+	}
 
 	if (m_RebuildNext || m_AlwaysRebuild)
 	{
@@ -90,6 +102,13 @@ bool Editor::DisplayGui()
 	ImGui::Checkbox("Always Rebuild", &m_AlwaysRebuild);
 	ImGui::Checkbox("Use Async", &m_UseAsync);
 
+	ImGui::Separator();
+	if (ImGui::Button("Undo", ImVec2(-FLT_MIN, 0)))
+	{
+		m_EditList.PopEdit();
+		m_RebuildNext = true;
+	}
+
 	addTitle("Geometry");
 
 	if (ImGui::SliderFloat("Brick Size", &m_BrickSize, 0.0625f, 1.0f))
@@ -98,12 +117,31 @@ bool Editor::DisplayGui()
 		m_RebuildNext = true;
 	}
 
-	if (ImGui::Button("Clear"))
+	float evalRange = m_EditList.GetEvaluationRange();
+	if (ImGui::DragFloat("Evaluation Range", &evalRange, 0.01f))
+	{
+		if (evalRange < 1.0f)
+			evalRange = 1.0f;
+
+		m_EditList.SetEvaluationRange(evalRange);
+		m_RebuildNext = true;
+	}
+
+	addTitle("Edits");
+
+	if (ImGui::Button("Clear All", ImVec2(-FLT_MIN, 0.0f)))
 	{
 		m_EditList.Reset();
 		m_EditList.AddEdit(SDFEdit::CreateSphere({}, 0.5f));
 
 		m_RebuildNext = true;
+	}
+
+	{	// Display how many edits have been used
+		const float editsUsed = m_EditList.GetEditCount() / 1024.0f;
+		ImGui::Text("Edits Used:");
+		ImGui::SameLine();
+		ImGui::ProgressBar(editsUsed, ImVec2(-FLT_MIN, 0.0f));
 	}
 
 	addTitle("Materials");
@@ -128,6 +166,11 @@ bool Editor::DisplayGui()
 	addTitle("Brush");
 
 	m_Brush.DrawGui();
+
+	ImGui::Separator();
+
+	ImGui::Checkbox("Continuous Mode", &m_ContinuousMode);
+	ImGui::DragFloat("Continuous Mode Freq", &m_ContinuousModeFrequency, 0.001f);
 
 	ImGui::End();
 

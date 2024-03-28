@@ -136,7 +136,7 @@ float opSmoothUnion(float a, float b, float r)
 float opSmoothSubtraction(float a, float b, float r)
 {
 	float e = max(r - abs(a - b), 0.0f);
-	return max(a, -b) + e * e * 0.125f / r;
+	return max(a, -b) + e * e * 0.25f / r;
 }
 
 
