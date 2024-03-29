@@ -96,8 +96,6 @@ void Editor::OnUpdate(float deltaTime)
 
 bool Editor::DisplayGui()
 {
-	ImGui::ShowDemoWindow();
-
 	ImGui::Begin("Editor");
 
 	auto addTitle = [](const char* title)
