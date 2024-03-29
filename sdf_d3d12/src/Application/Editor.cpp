@@ -2,9 +2,12 @@
 #include "Editor.h"
 
 #include "D3DApplication.h"
-#include "imgui.h"
+
 #include "Framework/GuiHelpers.h"
 #include "Input/InputManager.h"
+
+#include "imgui.h"
+#include "misc/cpp/imgui_stdlib.h"
 
 
 Editor::Editor(D3DApplication* application)
@@ -29,7 +32,10 @@ Editor::Editor(D3DApplication* application)
 
 
 	// Setup brush
-	m_Brush = SDFEdit::CreateSphere({}, 0.25f, SDF_OP_SMOOTH_UNION, 0.1f);
+	m_Brushes.emplace_back();
+	m_Brushes.back().BrushEdit = SDFEdit::CreateSphere({}, 0.25f, SDF_OP_SMOOTH_UNION, 0.1f);
+
+	m_CurrentBrush = 0;
 
 	// Disable mouse capture on the camera controller
 	m_Application->GetCameraController()->SetAllowMouseCapture(false);
@@ -41,7 +47,7 @@ void Editor::OnUpdate(float deltaTime)
 	const InputManager* inputManager = m_Application->GetInputManager();
 	const Picker* picker = m_Application->GetPicker();
 
-	if (m_UsingBrush && m_ContinuousMode)
+	if (m_UsingBrush && GetBrush().ContinuousMode)
 	{
 		m_ContinuousModeTimer += deltaTime;
 	}
@@ -53,7 +59,7 @@ void Editor::OnUpdate(float deltaTime)
 		if (hit.instanceID == m_GeometryInstance->GetInstanceID())
 		{
 			// Hit is valid
-			SDFEdit edit = m_Brush;
+			SDFEdit edit = GetBrush().BrushEdit;
 			edit.PrimitiveTransform.SetTranslation(hit.hitLocation);
 
 			edit.Validate();
@@ -66,7 +72,7 @@ void Editor::OnUpdate(float deltaTime)
 		}
 	}
 
-	if (inputManager->IsKeyReleased(KEY_LBUTTON) || m_ContinuousModeTimer > m_ContinuousModeFrequency)
+	if (inputManager->IsKeyReleased(KEY_LBUTTON) || m_ContinuousModeTimer > GetBrush().ContinuousModeFrequency)
 	{
 		m_UsingBrush = false;
 	}
@@ -90,6 +96,8 @@ void Editor::OnUpdate(float deltaTime)
 
 bool Editor::DisplayGui()
 {
+	ImGui::ShowDemoWindow();
+
 	ImGui::Begin("Editor");
 
 	auto addTitle = [](const char* title)
@@ -172,16 +180,54 @@ bool Editor::DisplayGui()
 	m_RebuildNext |= setMatSlot("Slot 2", 2);
 	m_RebuildNext |= setMatSlot("Slot 3", 3);
 
-	addTitle("Brush");
+	addTitle("Brush Palette");
 
-	m_Brush.DrawGui();
+	if (ImGui::Button("New Brush", ImVec2(-FLT_MIN, 0.0f)))
+	{
+		Brush newBrush = GetBrush();
+
+		UINT i = 0;
+		do
+		{
+			newBrush.Name = "Brush " + std::to_string(i++);
+		} while (BrushExistsWithName(newBrush.Name));
+
+		m_CurrentBrush = m_Brushes.size();
+		m_Brushes.emplace_back(std::move(newBrush));
+	}
+
+	ImGui::Separator();
+	ImGui::Text("Selected Brush");
+	ImGui::Separator();
+
+	for (size_t i = 0; i < m_Brushes.size(); i++)
+	{
+		Brush& brush = GetBrush(i);
+		if (ImGui::Selectable(brush.Name.c_str(), brush.Name == GetBrush().Name))
+		{
+			m_CurrentBrush = i;
+		}
+	}
+
+	addTitle("Brush Settings");
+
+	std::string name = GetBrush().Name;
+	if (ImGui::InputText("Name", &name))
+	{
+		if (!BrushExistsWithName(name) && name.length() > 0)
+		{
+			GetBrush().Name = std::move(name);
+		}
+	}
+
+	GetBrush().BrushEdit.DrawGui();
 
 	ImGui::Separator();
 
-	ImGui::Checkbox("Continuous Mode", &m_ContinuousMode);
+	ImGui::Checkbox("Continuous Mode", &GetBrush().ContinuousMode);
 	{
-		GuiHelpers::DisableScope disable(!m_ContinuousMode);
-		ImGui::DragFloat("Continuous Mode Freq", &m_ContinuousModeFrequency, 0.001f);
+		GuiHelpers::DisableScope disable(!GetBrush().ContinuousMode);
+		ImGui::DragFloat("Continuous Mode Freq", &GetBrush().ContinuousModeFrequency, 0.001f);
 	}
 
 	ImGui::End();
@@ -189,3 +235,15 @@ bool Editor::DisplayGui()
 	// Don't close GUI
 	return true;
 }
+
+
+bool Editor::BrushExistsWithName(const std::string& name) const
+{
+	for (const auto& brush : m_Brushes)
+	{
+		if (brush.Name == name)
+			return true;
+	}
+	return false;
+}
+

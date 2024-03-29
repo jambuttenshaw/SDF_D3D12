@@ -25,9 +25,10 @@ SDFObject::SDFObject(float brickSize, UINT brickCapacity, D3D12_RAYTRACING_GEOME
 		ASSERT(resources.ResourceViews.IsValid(), "Descriptor allocation failed!");
 	}
 
+	UINT matIdx = 0;
 	for (auto& mat : m_MaterialTable)
 	{
-		mat = 0;
+		mat = matIdx++;
 	}
 }
 

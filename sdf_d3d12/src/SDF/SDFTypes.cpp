@@ -41,6 +41,7 @@ bool SDFEdit::DrawGui()
 		SetShapePropertiesToDefault();
 		changed = true;
 	}
+	ImGui::Separator();
 
 	switch (Shape)
 	{
@@ -64,6 +65,7 @@ bool SDFEdit::DrawGui()
 	case SDF_SHAPE_FRACTAL:
 		break;
 	}
+	ImGui::Separator();
 
 	int selectedOp = static_cast<int>(Operation);
 	if (ImGui::Combo("Operation", &selectedOp, opNames, _countof(opNames)))
@@ -77,6 +79,7 @@ bool SDFEdit::DrawGui()
 
 		changed |= ImGui::SliderFloat("Blending", &BlendingRange, 0.0f, 1.0f);
 	}
+	ImGui::Separator();
 
 	{
 		GuiHelpers::DisableScope disable(IsSubtractionOperation(Operation));

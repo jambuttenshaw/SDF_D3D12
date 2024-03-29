@@ -11,7 +11,7 @@ Material::Material(UINT materialID)
 	: m_MaterialID(materialID)
 	, m_NumFramesDirty(D3DGraphicsContext::GetBackBufferCount())
 {
-	m_Name = std::to_string(m_MaterialID);
+	m_Name = "Material " + std::to_string(m_MaterialID);
 
 	// Defaults
 	m_Data.Albedo = XMFLOAT3(1.0f, 1.0f, 1.0f);
