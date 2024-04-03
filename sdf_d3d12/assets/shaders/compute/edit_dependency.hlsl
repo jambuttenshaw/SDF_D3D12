@@ -74,11 +74,23 @@ void main(uint3 DTid : SV_DispatchThreadID)
 		if (dB + dA <= editA.BlendingRange + editB.BlendingRange)
 		{
 			uint dependencies;
-			// 0x00010000 is added as dependencies are stored in the upper 16 bits of the variable
-			InterlockedAdd(g_EditList[indexA].EditParams, 0x00010000, dependencies);
 
-			const uint dependencyIndex = dependencies >> 16;
-			g_DependencyIndices[indexA + dependencyIndex] = (uint16_t)(indexB);
+			{
+				// 0x00010000 is added as dependencies are stored in the upper 16 bits of the variable
+				InterlockedAdd(g_EditList[indexA].EditParams, 0x00010000, dependencies);
+
+				const uint dependencyIndex = dependencies >> 16;
+				g_DependencyIndices[indexA * (g_Parameters.SDFEditCount - 1) + dependencyIndex] = (uint16_t)(indexB);
+			}
+
+			if (IsSmoothEdit(editB.EditParams))
+			{
+				// 0x00010000 is added as dependencies are stored in the upper 16 bits of the variable
+				InterlockedAdd(g_EditList[indexB].EditParams, 0x00010000, dependencies);
+
+				const uint dependencyIndex = dependencies >> 16;
+				g_DependencyIndices[indexB * (g_Parameters.SDFEditCount - 1) + dependencyIndex] = (uint16_t) (indexA);
+			}
 		}
 	}
 }

@@ -106,7 +106,7 @@ void main(uint3 GroupID : SV_GroupID, uint GI : SV_GroupIndex)
 			if (IsSmoothEdit(edit.EditParams))
 			{
 				// Set all of the smooth edits dependencies too
-				const uint offset = index * (index - 1) / 2;
+				const uint offset = index * (g_BuildParameters.SDFEditCount - 1);
 				const uint dependencyCount = GetDependencyCount(edit.EditParams);
 				for (uint dependency = 0; dependency < dependencyCount; dependency++)
 				{
