@@ -69,6 +69,19 @@ private:
 	// ImGui Windows
 	bool ImGuiApplicationInfo();
 
+	template<typename T>
+	void ChangeScene()
+	{
+		static_assert(std::is_base_of_v<Scene, T>);
+
+		m_GraphicsContext->WaitForGPUIdle();
+
+		m_Scene = std::make_unique<T>(this);
+		m_Raytracer->Setup(*m_Scene);
+
+		m_Scene->OnUpdate(0.0f);
+	}
+
 private:
 	std::unique_ptr<D3DGraphicsContext> m_GraphicsContext;
 	std::unique_ptr<TextureLoader> m_TextureLoader;

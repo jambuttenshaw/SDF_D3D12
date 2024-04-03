@@ -285,6 +285,7 @@ void D3DApplication::OnRender()
 	// Begin drawing
 	m_GraphicsContext->StartDraw(m_PassCB);
 
+
 	// Tell the scene that render is happening
 	// This will update acceleration structures and other things to render the scene
 	m_Scene->PreRender();
@@ -302,6 +303,7 @@ void D3DApplication::OnRender()
 	m_Picker->CopyPickingResult(m_GraphicsContext->GetCommandList());
 
 	m_GraphicsContext->CopyRaytracingOutput(m_Raytracer->GetRaytracingOutput());
+
 
 	// ImGui Render
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_GraphicsContext->GetCommandList());
@@ -481,6 +483,19 @@ bool D3DApplication::ImGuiApplicationInfo()
 
 			m_CameraController->Gui();
 		}
+		ImGui::Separator();
+
+		{
+			if (ImGui::Button("Open Editor", ImVec2(-FLT_MIN, 0.0f)))
+			{
+				ChangeScene<Editor>();
+			}
+			if (ImGui::Button("Open Demo", ImVec2(-FLT_MIN, 0.0f)))
+			{
+				ChangeScene<DemoScene>();
+			}
+		}
+
 		ImGui::Separator();
 
 		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 255, 0)));
