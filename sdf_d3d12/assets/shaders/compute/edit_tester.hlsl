@@ -14,7 +14,7 @@ ConstantBuffer<BrickBuildParametersConstantBuffer> g_BuildParameters : register(
 
 StructuredBuffer<SDFEditData> g_EditList : register(t0);
 StructuredBuffer<uint16_t> g_InIndexBuffer : register(t1);
-StructuredBuffer<uint> g_EditDependencyIndices : register(t2);
+StructuredBuffer<uint16_t> g_EditDependencyIndices : register(t2);
 
 RWStructuredBuffer<Brick> g_Bricks : register(u0);
 
@@ -85,6 +85,7 @@ void main(uint3 GroupID : SV_GroupID, uint GI : SV_GroupIndex)
 	const uint editsPerThread = min((gs_Brick.IndexCount + EDIT_TESTING_THREADS - 1) / EDIT_TESTING_THREADS, 32);
 	// Which index of the brick to begin processing edits from
 	const uint threadIndexOffset = editsPerThread * GI;
+	const float3 brickCentre = gs_Brick.TopLeft + 0.5f * g_BuildParameters.SubBrickSize; // This stage is executed AFTER sub-brick building - so bricks are now sub-brick sized
 
 	for (uint i = threadIndexOffset; i < min(threadIndexOffset + editsPerThread, gs_Brick.IndexCount); i++)
 	{
@@ -98,7 +99,6 @@ void main(uint3 GroupID : SV_GroupID, uint GI : SV_GroupIndex)
 		const SDFEditData edit = g_EditList.Load(index);
 
 		// Evaluate edit
-		const float3 brickCentre = gs_Brick.TopLeft + 0.5f * g_BuildParameters.SubBrickSize; // This stage is executed AFTER sub-brick building - so bricks are now sub-brick sized
 		if (EvaluateEdit(edit, brickCentre) < g_BuildParameters.SubBrickSize) // Edit is relevant
 		{
 			SetEdit(index);
