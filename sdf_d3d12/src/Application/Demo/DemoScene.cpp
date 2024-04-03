@@ -73,7 +73,11 @@ bool DemoScene::DisplayGui()
 				m_CurrentDemo = demo;
 		}
 
-		ImGui::Separator();
+		if (ImGui::CollapsingHeader("Demo Controls"))
+		{
+			m_CurrentDemo->DisplayGUI();
+		}
+
 	}
 	ImGui::End();
 

@@ -316,9 +316,7 @@ void SDFIntersectionShader()
 void SDFClosestHitShader(inout RadianceRayPayload payload, in SDFIntersectAttrib attr)
 {
 	// Calculate normal, view direction, and world-space hit location
-	const float3 n = normalize(mul(ComputeSurfaceNormal(attr.hitUVW, 0.5f * l_BrickProperties.UVWPerVoxel), transpose((float3x3) ObjectToWorld())));
 	const float3 hitPos = WorldRayOrigin() + RayTCurrent() * WorldRayDirection();
-	const float3 v = normalize(g_PassCB.WorldEyePos - hitPos);
 
 	payload.pickingQuery.instanceID = InstanceID();
 	payload.pickingQuery.hitLocation = hitPos;
@@ -334,6 +332,8 @@ void SDFClosestHitShader(inout RadianceRayPayload payload, in SDFIntersectAttrib
 	}
 	if (g_PassCB.Flags & RENDER_FLAG_DISPLAY_NORMALS)
 	{
+		const float3 n = normalize(mul(ComputeSurfaceNormal(attr.hitUVW, 0.5f * l_BrickProperties.UVWPerVoxel), transpose((float3x3) ObjectToWorld())));
+
 		payload.radiance = 0.5f + 0.5f * n;
 		return;
 	}
@@ -342,6 +342,10 @@ void SDFClosestHitShader(inout RadianceRayPayload payload, in SDFIntersectAttrib
 		payload.radiance = attr.hitUVW;
 		return;
 	}
+
+	const float3 n = normalize(mul(ComputeSurfaceNormal(attr.hitUVW, 0.5f * l_BrickProperties.UVWPerVoxel), transpose((float3x3) ObjectToWorld())));
+	const float3 v = normalize(g_PassCB.WorldEyePos - hitPos);
+
 
 	// Load material
 	MaterialGPUData materials[4];
