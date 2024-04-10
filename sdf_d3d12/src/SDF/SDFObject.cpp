@@ -88,19 +88,21 @@ void SDFObject::SetMaterial(const Material* material, UINT slot)
 }
 
 
-UINT64 SDFObject::GetBrickPoolSizeBytes() const
+UINT64 SDFObject::GetBrickPoolSizeBytes(bool distOnly) const
 {
 	UINT64 totalSize = 0;
+	const auto device = g_D3DGraphicsContext->GetDevice();
+
 	for (UINT i = 0; i < RESOURCES_COUNT; i++)
 	{
 		auto& brickPool = GetResources(static_cast<ResourceGroup>(i)).BrickPool;
 		if (!brickPool)
 			continue;
 
-		const auto desc = brickPool->GetDesc();
-		const auto elements = desc.Width * desc.Height * desc.DepthOrArraySize;
-		constexpr auto elementSize = sizeof(BYTE); // R8_SNORM one byte per element
-		totalSize += elements * elementSize;
+		const auto desc = brickPool.Get()->GetDesc();
+		UINT64 copyableFootprint;
+		device->GetCopyableFootprints(&desc, 0, 1, 0, nullptr, nullptr, nullptr, &copyableFootprint);
+		totalSize += copyableFootprint / (distOnly ? 4 : 1);
 	}
 	return totalSize;
 
@@ -141,10 +143,10 @@ UINT64 SDFObject::GetIndexBufferSizeBytes() const
 }
 
 
-UINT64 SDFObject::GetTotalMemoryUsageBytes() const
+UINT64 SDFObject::GetTotalMemoryUsageBytes(bool distOnly) const
 {
 	UINT64 totalSize = 0;
-	totalSize += GetBrickPoolSizeBytes();
+	totalSize += GetBrickPoolSizeBytes(distOnly);
 	totalSize += GetAABBBufferSizeBytes();
 	totalSize += GetBrickBufferSizeBytes();
 	totalSize += GetIndexBufferSizeBytes();

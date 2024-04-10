@@ -18,6 +18,7 @@ public:
 	virtual void Update(float deltaTime);
 	virtual void Gui();
 
+	inline void SetLockCamera(bool lock) { m_LockCamera = lock; }
 	inline void SetAllowMouseCapture(bool allowCapture) { m_AllowMouseCapture = allowCapture; }
 
 protected:
@@ -33,5 +34,6 @@ protected:
 	static constexpr float s_MinMoveSpeed = 0.1f;
 	static constexpr float s_MaxMoveSpeed = 20.0f;
 
+	bool m_LockCamera = false;
 	bool m_AllowMouseCapture = true;
 };

@@ -22,6 +22,11 @@ void CameraController::Update(float deltaTime)
 		return;
 	}
 
+	if (m_LockCamera)
+	{
+		return;
+	}
+
 	const float move = m_MoveSpeed * deltaTime;
 	float strafe = 0.0f;	// how much to move l/r
 	float forward = 0.0f;	// how much to move f/b
@@ -59,7 +64,7 @@ void CameraController::Update(float deltaTime)
 	// Don't use mouse input if mouse is not hidden
 	if (m_InputManager->IsMouseHidden() || m_InputManager->IsKeyDown(KEY_MBUTTON))
 	{
-		const float mouseMove = m_RotateSpeed * deltaTime;
+		const float mouseMove = m_RotateSpeed * 0.001f;
 
 		// Rotate from mouse input
 		const INT dx = m_InputManager->GetMouseDeltaX();
@@ -86,6 +91,7 @@ void CameraController::Update(float deltaTime)
 
 void CameraController::Gui()
 {
+	ImGui::Checkbox("Lock Camera", &m_LockCamera);
 	ImGui::SliderFloat("Move Speed", &m_MoveSpeed, s_MinMoveSpeed, s_MaxMoveSpeed);
 	ImGui::SliderFloat("Mouse Sensitivity", &m_RotateSpeed, 0.01f, 1.0f);
 }

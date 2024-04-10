@@ -97,12 +97,12 @@ public:
 	inline void ResetLocalArgsDirty() { m_IsLocalArgsDirty = false; }
 
 	// Memory usage
-	UINT64 GetBrickPoolSizeBytes() const;
+	UINT64 GetBrickPoolSizeBytes(bool distOnly = false) const;
 	UINT64 GetAABBBufferSizeBytes() const;
 	UINT64 GetBrickBufferSizeBytes() const;
 	UINT64 GetIndexBufferSizeBytes() const;
 
-	UINT64 GetTotalMemoryUsageBytes() const;
+	UINT64 GetTotalMemoryUsageBytes(bool distOnly = false) const;
 
 
 	// ASync construction

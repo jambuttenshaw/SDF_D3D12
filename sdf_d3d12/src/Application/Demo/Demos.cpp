@@ -13,6 +13,7 @@ void BaseDemo::CreateAllDemos()
 	s_Demos["cubes"] = &CubesDemo::Get();
 	s_Demos["rain"] = &RainDemo::Get();
 	s_Demos["fractal"] = &FractalDemo::Get();
+	s_Demos["test"] = &TestDemo::Get();
 }
 
 BaseDemo* BaseDemo::GetDemoFromName(const std::string& demoName)
@@ -385,4 +386,25 @@ void FractalDemo::DisplayGUI()
 {
 	ImGui::DragFloat("Spacing", &m_Spacing, 0.01f);
 	ImGui::SliderFloat("Blending", &m_Blending, 0.0f, 1.0f);
+}
+
+
+
+TestDemo::TestDemo()
+{
+	
+}
+
+SDFEditList TestDemo::BuildEditList(float deltaTime)
+{
+	SDFEditList editList(1024, 10.0f);
+
+	editList.AddEdit(SDFEdit::CreateBox({}, { 1.0f, 1.0f, 1.0f }));
+
+	return editList;
+}
+
+void TestDemo::DisplayGUI()
+{
+	
 }

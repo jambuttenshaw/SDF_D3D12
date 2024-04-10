@@ -148,20 +148,20 @@ void Scene::DisplaySDFObjectDebugInfo() const
 		// Memory usage
 		auto DisplaySize = [](const char* label, UINT64 sizeKB)
 		{
-				if (sizeKB > 10'000)
+				if (false && sizeKB > 10'000)
 					ImGui::Text("%s Size (MB): %d", label, sizeKB / 1024);
 				else
 					ImGui::Text("%s Size (KB): %d", label, sizeKB);
 		};
 
-		DisplaySize("Brick Pool", geometry->GetBrickPoolSizeBytes() / 1024);
+		DisplaySize("Brick Pool", geometry->GetBrickPoolSizeBytes(true) / 1024);
 		DisplaySize("Brick Buffer", geometry->GetBrickBufferSizeBytes() / 1024);
 		DisplaySize("AABB Buffer", geometry->GetAABBBufferSizeBytes() / 1024);
 		DisplaySize("Index Buffer", geometry->GetIndexBufferSizeBytes() / 1024);
 
 		ImGui::Separator();
 
-		DisplaySize("Total", geometry->GetTotalMemoryUsageBytes() / 1024);
+		DisplaySize("Total", geometry->GetTotalMemoryUsageBytes(true) / 1024);
 
 		ImGui::Separator();
 	}
@@ -175,7 +175,7 @@ void Scene::DisplayAccelerationStructureDebugInfo() const
 
 	auto DisplaySize = [](const char* label, UINT64 sizeKB)
 	{
-		if (sizeKB > 10'000)
+		if (false && sizeKB > 10'000)
 			ImGui::Text("%s Size (MB): %d", label, sizeKB / 1024);
 		else
 			ImGui::Text("%s Size (KB): %d", label, sizeKB);

@@ -170,7 +170,7 @@ void D3DApplication::OnInit()
 	else
 	{
 		// Load default demo
-		m_Scene = std::make_unique<Editor>(this);
+		m_Scene = std::make_unique<DemoScene>(this);
 	}
 
 	m_Raytracer->Setup(*m_Scene);
@@ -522,6 +522,7 @@ bool D3DApplication::ImGuiApplicationInfo()
 			RenderFlagOption("Bounding Box", RENDER_FLAG_DISPLAY_BOUNDING_BOX);
 			if (m_PassCB.Flags & RENDER_FLAG_DISPLAY_BOUNDING_BOX)
 			{
+				m_PassCB.Flags &= ~RENDER_FLAG_DISPLAY_NORMALS;
 				RenderFlagOption("Brick Index", RENDER_FLAG_DISPLAY_BRICK_INDEX);
 				RenderFlagOption("Pool UVW", RENDER_FLAG_DISPLAY_POOL_UVW);
 			}

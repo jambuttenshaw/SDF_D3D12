@@ -27,10 +27,10 @@ public:
 
 private:
 	BaseDemo* m_CurrentDemo = nullptr;
-	float m_BrickSize = 0.1f;
+	float m_BrickSize = 0.125f;
 
 	std::unique_ptr<SDFObject> m_Geometry;
 
 	bool m_Rebuild = true;
-	bool m_AsyncConstruction = false;
+	bool m_AsyncConstruction = true;
 };

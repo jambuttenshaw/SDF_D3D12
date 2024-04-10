@@ -8,9 +8,8 @@
 DemoScene::DemoScene(D3DApplication* application)
 	: Scene(application, 1)
 {
-	LoadDemo("drops", 0.1f);
-
 	m_Geometry = std::make_unique<SDFObject>(m_BrickSize, 500'000);
+	LoadDemo("test", m_BrickSize);
 
 	// Build geometry
 	m_Application->GetSDFFactory()->BakeSDFSync(L"Default", m_Geometry.get(), m_CurrentDemo->BuildEditList(0.0f));

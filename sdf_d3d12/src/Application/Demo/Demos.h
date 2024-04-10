@@ -177,3 +177,23 @@ private:
 	float m_Spacing = 3.0f;
 	float m_Blending = 0.0f;
 };
+
+
+class TestDemo : public BaseDemo
+{
+	TestDemo();
+public:
+	static TestDemo& Get()
+	{
+		static TestDemo instance;
+		return instance;
+	}
+
+	virtual SDFEditList BuildEditList(float deltaTime) override;
+	virtual void DisplayGUI() override;
+
+	virtual inline UINT GetEditCount() const override { return 0; }
+
+private:
+
+};

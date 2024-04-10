@@ -414,7 +414,7 @@ void SDFClosestHitShader(inout RadianceRayPayload payload, in SDFIntersectAttrib
 void PrimaryMissShader(inout RadianceRayPayload payload)
 {
 	payload.radiance = g_PassCB.Flags & RENDER_FLAG_DISABLE_SKYBOX
-					? float3(0.0f, 0.0f, 0.2f)
+					? float3(0.0f, 0.0f, 0.03f)
 					: g_EnvironmentMap.SampleLevel(g_EnvironmentSampler, WorldRayDirection(), 0).rgb;
 }
 
