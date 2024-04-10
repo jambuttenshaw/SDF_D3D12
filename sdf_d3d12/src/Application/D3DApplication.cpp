@@ -157,10 +157,15 @@ void D3DApplication::OnInit()
 		m_DisableGUI = true;
 		m_ToggleFullscreen = true;
 
+		m_PassCB.Flags |= RENDER_FLAG_DISPLAY_NORMALS;
+		m_PassCB.Flags |= RENDER_FLAG_DISABLE_IBL;
+		m_PassCB.Flags |= RENDER_FLAG_DISABLE_SKYBOX;
+
 		// Load config from command line
 		const auto& demo = m_ProfilingDataCollector->GetDemoConfig(0);
 		DemoScene* demoScene = static_cast<DemoScene*>(m_Scene.get());
 		demoScene->LoadDemo(demo.DemoName, demo.InitialBrickSize);
+		demoScene->SetEditCullingEnabled(demo.EnableEditCulling);
 
 		// Setup camera
 		const auto orbitalCamera = static_cast<OrbitalCameraController*>(m_CameraController.get());
@@ -171,6 +176,7 @@ void D3DApplication::OnInit()
 	{
 		// Load default demo
 		m_Scene = std::make_unique<DemoScene>(this);
+		m_PassCB.Flags = RENDER_FLAG_NONE;
 	}
 
 	m_Raytracer->Setup(*m_Scene);
@@ -189,7 +195,6 @@ void D3DApplication::OnInit()
 	}
 
 	// Set default pass buffer values
-	m_PassCB.Flags = RENDER_FLAG_NONE;
 	m_PassCB.HeatmapQuantization = 16;
 	m_PassCB.HeatmapHueRange = 0.33f;
 

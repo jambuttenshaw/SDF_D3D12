@@ -49,7 +49,7 @@ void ProfilingDataCollector::ParseCommandLineArgs(args::Subparser& subparser)
 			{
 				// Build iteration data string
 				std::stringstream stream;
-				stream << std::fixed << std::setprecision(4) << demoConfig.DemoName << "," << demoConfig.InitialBrickSize << ",";
+				stream << std::fixed << std::setprecision(4) << demoConfig.DemoName << "," << demoConfig.InitialBrickSize << "," << demoConfig.EnableEditCulling << ",";
 				m_ConfigData = std::move(stream.str());
 			}
 		}
@@ -103,7 +103,7 @@ bool ProfilingDataCollector::InitProfiler()
 		std::ofstream outFile(m_ProfileConfig.OutputFile);
 		if (outFile.good())
 		{
-			outFile << "Demo Name,Brick Size,BrickCount,EditCount,Range Name";
+			outFile << "DemoName,BrickSize,EditCulling,BrickCount,EditCount,Range Name";
 			for (const auto& header : m_GPUProfilerArgs.Headers)
 			{
 				outFile << "," << header;
@@ -206,7 +206,7 @@ void ProfilingDataCollector::UpdateProfiling(Scene* scene, GameTimer* timer, Cam
 		{
 			// Build iteration data string
 			std::stringstream stream;
-			stream << std::fixed << std::setprecision(4) << demoConfig.DemoName << "," << currentBrickSize << ",";
+			stream << std::fixed << std::setprecision(4) << demoConfig.DemoName << "," << currentBrickSize << "," << demoConfig.EnableEditCulling << ",";
 			m_ConfigData = std::move(stream.str());
 		}
 
@@ -228,6 +228,7 @@ void ProfilingDataCollector::UpdateProfiling(Scene* scene, GameTimer* timer, Cam
 		const DemoConfig& demoConfig = m_ProfileConfig.DemoConfigs[m_DemoConfigIndex];
 
 		demoScene->LoadDemo(demoConfig.DemoName, demoConfig.InitialBrickSize);
+		demoScene->SetEditCullingEnabled(demoConfig.EnableEditCulling);
 
 		if (const auto orbitalCamera = dynamic_cast<OrbitalCameraController*>(cameraController))
 		{
@@ -242,7 +243,7 @@ void ProfilingDataCollector::UpdateProfiling(Scene* scene, GameTimer* timer, Cam
 		{
 			// Build iteration data string
 			std::stringstream stream;
-			stream << std::fixed << std::setprecision(4) << demoConfig.DemoName << "," << demoConfig.InitialBrickSize << ",";
+			stream << std::fixed << std::setprecision(4) << demoConfig.DemoName << "," << demoConfig.InitialBrickSize << "," << demoConfig.EnableEditCulling << ",";
 			m_ConfigData = std::move(stream.str());
 		}
 

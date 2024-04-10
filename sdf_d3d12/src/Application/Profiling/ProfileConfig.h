@@ -27,6 +27,8 @@ struct DemoConfig
 		XMFLOAT3 FocalPoint;
 		float OrbitRadius;
 	} CameraConfig;
+
+	bool EnableEditCulling;
 };
 
 

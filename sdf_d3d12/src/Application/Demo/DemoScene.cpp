@@ -12,7 +12,7 @@ DemoScene::DemoScene(D3DApplication* application)
 	LoadDemo("test", m_BrickSize);
 
 	// Build geometry
-	m_Application->GetSDFFactory()->BakeSDFSync(L"Default", m_Geometry.get(), m_CurrentDemo->BuildEditList(0.0f));
+	m_Application->GetSDFFactory()->BakeSDFSync(m_BakePipeline, m_Geometry.get(), m_CurrentDemo->BuildEditList(0.0f));
 	m_Geometry->FlipResources();
 
 	AddGeometry(L"DemoGeometry", m_Geometry.get());
@@ -40,9 +40,9 @@ void DemoScene::OnUpdate(float deltaTime)
 	{
 		SDFFactoryHierarchicalAsync* factory = m_Application->GetSDFFactory();
 		if (m_AsyncConstruction)
-			factory->BakeSDFAsync(L"Default", m_Geometry.get(), m_CurrentDemo->BuildEditList(deltaTime));
+			factory->BakeSDFAsync(m_BakePipeline, m_Geometry.get(), m_CurrentDemo->BuildEditList(deltaTime));
 		else
-			factory->BakeSDFSync(L"Default", m_Geometry.get(), m_CurrentDemo->BuildEditList(deltaTime));
+			factory->BakeSDFSync(m_BakePipeline, m_Geometry.get(), m_CurrentDemo->BuildEditList(deltaTime));
 	}
 }
 
@@ -61,6 +61,10 @@ bool DemoScene::DisplayGui()
 
 		ImGui::Checkbox("Rebuild", &m_Rebuild);
 		ImGui::Checkbox("Async Build", &m_AsyncConstruction);
+		if (ImGui::Checkbox("Edit Culling", &m_EnableEditCulling))
+		{
+			m_BakePipeline = m_EnableEditCulling ? L"Default" : L"NoEditCulling";
+		}
 
 		ImGui::Separator();
 

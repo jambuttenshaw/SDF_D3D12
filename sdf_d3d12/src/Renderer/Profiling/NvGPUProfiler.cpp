@@ -109,7 +109,6 @@ void NvGPUProfiler::BeginPassImpl(const char* name)
 	if (!m_Profiler.AllPassesSubmitted())
 	{
 		THROW_IF_FALSE(m_Profiler.BeginPass(), "Failed to begin a pass.");
-		PushRangeImpl(name);
 	}
 }
 
@@ -117,7 +116,6 @@ void NvGPUProfiler::EndPassImpl()
 {
 	if (!m_Profiler.AllPassesSubmitted() && m_Profiler.IsInPass())
 	{
-		PopRangeImpl();
 		THROW_IF_FALSE(m_Profiler.EndPass(), "Failed to end a pass.");
 
 		m_DataReady = true;

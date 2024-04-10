@@ -2,15 +2,8 @@
   "queue": "direct",
   "metrics": [
     [ "Duration", "gpu__time_duration.sum" ],
-    [ "Rays Cast", "rtcore__rays_cast_api.sum" ],
     [ "RT Throughput", "rtcore__throughput.avg.pct_of_peak_sustained_elapsed" ],
     [ "SM Throughput", "sm__throughput.avg.pct_of_peak_sustained_elapsed" ],
-    [ "L1 Throughput", "l1tex__throughput.avg.pct_of_peak_sustained_elapsed" ],
-    [ "L1 Hit Rate", "SM_B.TriageSCG.l1tex__t_sector_hit_rate.pct" ],
-    [ "L2 Throughput", "lts__t_sector_throughput.avg.pct_of_peak_sustained_elapsed" ],
-    [ "L2 Hit Rate", "lts__average_t_sector_hit_rate_realtime.pct" ],
-    [ "SM Instruction Execution Activity", "sm__inst_executed_realtime.avg.pct_of_peak_sustained_elapsed" ],
-    [ "ALU Instruction Execution Activity", "sm__inst_executed_pipe_alu_realtime.avg.pct_of_peak_sustained_elapsed" ],
-    [ "LSU Instruction Execution Activity", "sm__inst_executed_pipe_lsu.avg.pct_of_peak_sustained_elapsed" ]
+    [ "L2 Hit Rate", "lts__average_t_sector_hit_rate_realtime.pct" ]
   ]
 }

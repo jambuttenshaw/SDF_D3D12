@@ -107,6 +107,12 @@ bool ParseProfileConfigFromJSON(const std::string& path, ProfileConfig& profileC
 			}
 
 		}
+
+		demoConfig.EnableEditCulling = true;
+		if (demoJSON.contains("edit_culling"))
+		{
+			demoConfig.EnableEditCulling = demoJSON["edit_culling"];
+		}
 	}
 
 	// Load run parameters
