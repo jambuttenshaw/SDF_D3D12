@@ -13,7 +13,8 @@ void BaseDemo::CreateAllDemos()
 	s_Demos["cubes"] = &CubesDemo::Get();
 	s_Demos["rain"] = &RainDemo::Get();
 	s_Demos["fractal"] = &FractalDemo::Get();
-	s_Demos["test"] = &TestDemo::Get();
+	s_Demos["lavalamp"] = &LavaLampDemo::Get();
+	s_Demos["spheres"] = &SphereDemo::Get();
 }
 
 BaseDemo* BaseDemo::GetDemoFromName(const std::string& demoName)
@@ -263,13 +264,13 @@ SDFEditList RainDemo::BuildEditList(float deltaTime)
 	SDFEditList editList(m_RainDropCount + m_CloudCount + 1, 10.0f);
 
 	// Create floor
-	editList.AddEdit(SDFEdit::CreateBox({ 0.0f, m_FloorHeight, 0.0f }, { m_Dimensions, 0.5f, m_Dimensions }));
+	editList.AddEdit(SDFEdit::CreateBox({ 0.0f, m_FloorHeight, 0.0f }, { m_Dimensions, 0.5f, m_Dimensions }, SDF_OP_UNION, 0, 0));
 
 	// Create clouds
 	for (const auto& cloud : m_Clouds)
 	{
 		const float r = cloud.Radius + cloud.Scale * sinf(cloud.Frequency * m_Time + cloud.Offset);
-		editList.AddEdit(SDFEdit::CreateSphere(cloud.Position, r, SDF_OP_SMOOTH_UNION, m_CloudBlend));
+		editList.AddEdit(SDFEdit::CreateSphere(cloud.Position, r, SDF_OP_SMOOTH_UNION, m_CloudBlend, 1));
 	}
 
 	// Each rain drop should move under gravity
@@ -292,7 +293,7 @@ SDFEditList RainDemo::BuildEditList(float deltaTime)
 		}
 
 		// Create the drop
-		editList.AddEdit(SDFEdit::CreateSphere(drop.Position, drop.Radius, SDF_OP_SMOOTH_UNION, m_RainDropBlend * drop.BlendFactor));
+		editList.AddEdit(SDFEdit::CreateSphere(drop.Position, drop.Radius, SDF_OP_SMOOTH_UNION, m_RainDropBlend * drop.BlendFactor, 2));
 	}
 
 	return editList;
@@ -390,21 +391,73 @@ void FractalDemo::DisplayGUI()
 
 
 
-TestDemo::TestDemo()
+LavaLampDemo::LavaLampDemo()
+	: m_EditList(1024, 10.0f)
+{
+	/*
+	for (UINT i = 0; i < 128; i++)
+	{
+		Transform transform{
+			Random::Float(-3.0f, 3.0f),
+			Random::Float(-3.0f, 3.0f),
+			Random::Float(-3.0f, 3.0f)
+		};
+		const float r = Random::Float(0.25f, 1.0f);
+		m_EditList.AddEdit(SDFEdit::CreateSphere(transform, r, i % 2 == 0 ? SDF_OP_SMOOTH_UNION : SDF_OP_SMOOTH_SUBTRACTION, 0.3f, 0));
+	}
+	*/
+	for (UINT i = 0; i < 16; i++)
+	{
+		SphereData sphere;
+		sphere.Position = {
+			0.0f,					 
+			Random::Float(-1.0f, 1.0f),
+			Random::Float(-1.0f, 1.0f)
+		};
+		sphere.Radius = Random::Float(0.25f, 1.0f);
+		sphere.Phase = Random::Float(XM_2PI);
+		m_Spheres.push_back(sphere);
+		
+	}
+}
+
+SDFEditList LavaLampDemo::BuildEditList(float deltaTime)
+{
+	m_Timer += deltaTime;
+	m_EditList.Reset();
+
+	for (auto& sphere : m_Spheres)
+	{
+		sphere.Position.x = 6.0f * sinf(0.5f * m_Timer + sphere.Phase);
+
+		m_EditList.AddEdit(SDFEdit::CreateSphere(sphere.Position, sphere.Radius, SDF_OP_SMOOTH_UNION, m_SphereBlend, 0));
+	}
+
+	return m_EditList;
+}
+
+void LavaLampDemo::DisplayGUI()
+{
+	ImGui::SliderFloat("Blend", &m_SphereBlend, 0.0f, 1.0f);
+}
+
+
+
+SphereDemo::SphereDemo()
 {
 	
 }
 
-SDFEditList TestDemo::BuildEditList(float deltaTime)
+
+SDFEditList SphereDemo::BuildEditList(float deltaTime)
 {
-	SDFEditList editList(1024, 10.0f);
-
-	editList.AddEdit(SDFEdit::CreateBox({}, { 1.0f, 1.0f, 1.0f }));
-
+	SDFEditList editList(2, 4.0f);
+	editList.AddEdit(SDFEdit::CreateSphere({-1.0f, 0.0f, 0.0f}, 1.0f, SDF_OP_SMOOTH_UNION, 1.0f, 0));
+	editList.AddEdit(SDFEdit::CreateSphere({ 1.0f, 0.0f, 0.0f}, 1.0f, SDF_OP_SMOOTH_UNION, 1.0f, 0));
 	return editList;
 }
 
-void TestDemo::DisplayGUI()
+void SphereDemo::DisplayGUI()
 {
 	
 }

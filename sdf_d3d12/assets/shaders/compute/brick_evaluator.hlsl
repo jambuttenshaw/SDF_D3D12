@@ -88,7 +88,7 @@ float EvaluateEditList(float3 p, uint GI, out float4 materials)
 
 			// Blend material
 			const float4 matContribution = s_BaseMatContributions[GetMaterialTableIndex(gs_Edits[edit].EditParams)];
-			materials = opPrimitive_Material(nearest, dist, materials, matContribution, GetOperation(gs_Edits[edit].EditParams), gs_Edits[edit].BlendingRange);
+			materials = opPrimitive_Material(nearest, dist, materials, matContribution, GetOperation(gs_Edits[edit].EditParams), gs_Edits[edit].BlendingRange * 0.5f);
 
 			// combine with scene
 			nearest = opPrimitive(nearest, dist, GetOperation(gs_Edits[edit].EditParams), gs_Edits[edit].BlendingRange);

@@ -179,21 +179,49 @@ private:
 };
 
 
-class TestDemo : public BaseDemo
+class LavaLampDemo : public BaseDemo
 {
-	TestDemo();
+	LavaLampDemo();
 public:
-	static TestDemo& Get()
+	static LavaLampDemo& Get()
 	{
-		static TestDemo instance;
+		static LavaLampDemo instance;
 		return instance;
 	}
 
 	virtual SDFEditList BuildEditList(float deltaTime) override;
 	virtual void DisplayGUI() override;
 
-	virtual inline UINT GetEditCount() const override { return 0; }
+	virtual inline UINT GetEditCount() const override { return 16; }
 
 private:
+	struct SphereData
+	{
+		XMFLOAT3 Position;
+		float Radius;
+		float Phase;
+	};
+	std::vector<SphereData> m_Spheres;
 
+	SDFEditList m_EditList;
+	float m_SphereBlend = 0.5f;
+
+	float m_Timer = 0.0f;
+};
+
+
+class SphereDemo : public BaseDemo
+{
+	SphereDemo();
+public:
+	static SphereDemo& Get()
+	{
+		static SphereDemo instance;
+		return instance;
+	}
+
+	virtual SDFEditList BuildEditList(float deltaTime) override;
+	virtual void DisplayGUI() override;
+
+	virtual inline UINT GetEditCount() const override { return 2; }
 };

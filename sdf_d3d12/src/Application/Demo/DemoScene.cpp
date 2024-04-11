@@ -9,7 +9,7 @@ DemoScene::DemoScene(D3DApplication* application)
 	: Scene(application, 1)
 {
 	m_Geometry = std::make_unique<SDFObject>(m_BrickSize, 500'000);
-	LoadDemo("test", m_BrickSize);
+	LoadDemo("spheres", m_BrickSize);
 
 	// Build geometry
 	m_Application->GetSDFFactory()->BakeSDFSync(m_BakePipeline, m_Geometry.get(), m_CurrentDemo->BuildEditList(0.0f));
@@ -52,9 +52,14 @@ bool DemoScene::DisplayGui()
 
 	if (ImGui::Begin("Scene Controls", &open))
 	{
-		if (ImGui::SliderFloat("Brick Size", &m_BrickSize, 0.0625f, 1.0f))
+		float brickSize = m_BrickSize;
+		if (ImGui::SliderFloat("Brick Size", &brickSize, 0.0625f, 1.0f, "%.4f"))
 		{
-			m_Geometry->SetNextRebuildBrickSize(m_BrickSize);
+			if (brickSize > 0.0f)
+			{
+				m_BrickSize = brickSize;
+				m_Geometry->SetNextRebuildBrickSize(m_BrickSize);
+			}
 		}
 
 		ImGui::Separator();
