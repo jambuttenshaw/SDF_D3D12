@@ -9,7 +9,7 @@ DemoScene::DemoScene(D3DApplication* application)
 	: Scene(application, 1)
 {
 	m_Geometry = std::make_unique<SDFObject>(m_BrickSize, 500'000);
-	LoadDemo("spheres", m_BrickSize);
+	LoadDemo("drops", m_BrickSize);
 
 	// Build geometry
 	m_Application->GetSDFFactory()->BakeSDFSync(m_BakePipeline, m_Geometry.get(), m_CurrentDemo->BuildEditList(0.0f));
@@ -59,6 +59,18 @@ bool DemoScene::DisplayGui()
 			{
 				m_BrickSize = brickSize;
 				m_Geometry->SetNextRebuildBrickSize(m_BrickSize);
+			}
+		}
+
+		{
+			SDFFactoryHierarchicalAsync* factory = m_Application->GetSDFFactory();
+			int buildIterations = static_cast<int>(factory->GetMaxBrickBuildIterations());
+			if (ImGui::InputInt("Max Build Iterations", &buildIterations))
+			{
+				if (buildIterations < -1)
+					buildIterations = -1;
+				// Build iterations of -1 will just iterate until the desired brick size is reached
+				factory->SetMaxBrickBuildIterations(static_cast<UINT>(buildIterations));
 			}
 		}
 

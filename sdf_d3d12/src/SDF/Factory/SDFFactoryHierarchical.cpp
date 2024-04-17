@@ -424,6 +424,7 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(const std::wstring& pipe
 	}
 
 	PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(40), L"SDF Bake");
+	PROFILE_COMPUTE_PUSH_RANGE("Bake", m_CommandList.Get());
 
 	PIXBeginEvent(PIX_COLOR_INDEX(51), L"Set up resources");
 	{
@@ -480,7 +481,9 @@ void SDFFactoryHierarchical::PerformSDFBake_CPUBlocking(const std::wstring& pipe
 
 	BuildCommandList_BrickEvaluation(pipelineSet, object, m_Resources);
 
+	PROFILE_COMPUTE_POP_RANGE(m_CommandList.Get());
 	PIXEndEvent(m_CommandList.Get()); // SDF Bake
+
 	{
 		// Execute command list
 		THROW_IF_FAIL(m_CommandList->Close());
@@ -607,6 +610,7 @@ void SDFFactoryHierarchical::BuildCommandList_Setup(const PipelineSet& pipeline,
 void SDFFactoryHierarchical::BuildCommandList_HierarchicalBrickBuilding(const PipelineSet& pipeline, SDFObject* object, SDFConstructionResources& resources, UINT maxIterations) const
 {
 	PIXBeginEvent(m_CommandList.Get(), PIX_COLOR_INDEX(42), L"Hierarchical brick building");
+	PROFILE_COMPUTE_PUSH_RANGE("Brick Building", m_CommandList.Get());
 
 	// Multiple iterations will be made until the brick size is small enough
 	UINT iterations = 0;
@@ -830,6 +834,7 @@ void SDFFactoryHierarchical::BuildCommandList_HierarchicalBrickBuilding(const Pi
 	resources.GetIndexCounter().ReadValue(m_CommandList.Get(), resources.GetIndexCounterReadbackBuffer().GetResource(), 
 		D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
+	PROFILE_COMPUTE_POP_RANGE(m_CommandList.Get());
 	PIXEndEvent(m_CommandList.Get());
 }
 

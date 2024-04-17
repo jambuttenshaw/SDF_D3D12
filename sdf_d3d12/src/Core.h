@@ -17,8 +17,7 @@
 
 #define THROW_IF_FAIL(x) (void)(x);
 #define ASSERT(x, msg)
-#define THROW_IF_FALSE(x, msg) if (!(x)) { LOG_ERROR(msg); DebugBreak(); }
-//#define THROW_IF_FALSE(x, msg, ...) (void)(x);
+#define THROW_IF_FALSE(x, msg, ...) (void)(x);
 
 #define NOT_IMPLEMENTED
 #define DEPRECATED
