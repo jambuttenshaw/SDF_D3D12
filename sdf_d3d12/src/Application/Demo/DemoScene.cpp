@@ -15,6 +15,8 @@ DemoScene::DemoScene(D3DApplication* application)
 	m_Application->GetSDFFactory()->BakeSDFSync(m_BakePipeline, m_Geometry.get(), m_CurrentDemo->BuildEditList(0.0f));
 	m_Geometry->FlipResources();
 
+	m_Application->GetCameraController()->SetAllowMouseCapture(true);
+
 	AddGeometry(L"DemoGeometry", m_Geometry.get());
 	CreateGeometryInstance(L"DemoGeometry");
 
