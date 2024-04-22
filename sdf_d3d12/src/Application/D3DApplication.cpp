@@ -42,6 +42,9 @@ static std::string wstring_to_utf8(const std::wstring& str)
 
 bool D3DApplication::ParseCommandLineArgs(LPWSTR argv[], int argc)
 {
+	if (argc <= 1)
+		return true;
+
 	// Hacky horrible wstring to string conversion
 	// because the args library doesn't support wstring
 	// and windows only gives wstring
@@ -387,7 +390,7 @@ void D3DApplication::UpdatePassCB()
 }
 
 
-void D3DApplication::InitImGui() const
+void D3DApplication::InitImGui()
 {
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -409,10 +412,9 @@ void D3DApplication::InitImGui() const
 		style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 	}
 
-	style.ScaleAllSizes(1.5f);
-
-	const auto font = io.Fonts->AddFontFromFileTTF("assets/fonts/Cousine-Regular.ttf", 18);
-	io.FontDefault = font;
+	for (int fontSize = m_MinFontSize; fontSize <= m_MaxFontSize; fontSize++)
+		m_Fonts[fontSize] = io.Fonts->AddFontFromFileTTF("assets/fonts/Cousine-Regular.ttf", static_cast<float>(fontSize));
+	io.FontDefault = m_Fonts[m_FontSize];
 
 	// Setup platform and renderer back-ends
 	ImGui_ImplWin32_Init(Win32Application::GetHwnd());
@@ -425,7 +427,7 @@ void D3DApplication::InitImGui() const
 }
 
 
-void D3DApplication::BeginUpdate()
+void D3DApplication::BeginUpdate() 
 {
 	const float deltaTime = m_Timer.Tick();
 	m_InputManager->Update(deltaTime);
@@ -437,6 +439,10 @@ void D3DApplication::BeginUpdate()
 	m_CameraController->Update(deltaTime);
 
 	// Begin new ImGui frame
+	ImGuiIO& io = ImGui::GetIO();
+	ASSERT(m_Fonts.find(m_FontSize) == m_Fonts.end(), "Font size not loaded!");
+	io.FontDefault = m_Fonts[m_FontSize];
+
 	ImGui_ImplDX12_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
@@ -464,6 +470,11 @@ bool D3DApplication::ImGuiApplicationInfo()
 			bool vsync = m_GraphicsContext->GetVSyncEnabled();
 			if (ImGui::Checkbox("VSync", &vsync))
 				m_GraphicsContext->SetVSyncEnabled(vsync);
+
+			if (ImGui::InputInt("Font Size", &m_FontSize))
+			{
+				m_FontSize = min(max(m_FontSize, m_MinFontSize), m_MaxFontSize);
+			}
 		}
 		ImGui::Separator();
 		{

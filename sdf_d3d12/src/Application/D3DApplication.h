@@ -61,7 +61,7 @@ private:
 
 	void UpdatePassCB();
 
-	void InitImGui() const;
+	void InitImGui();
 
 	void BeginUpdate();
 	void EndUpdate();
@@ -107,6 +107,11 @@ private:
 
 
 	// GUI
+	inline static constexpr int m_MinFontSize = 12;
+	inline static constexpr int m_MaxFontSize = 20;
+	int m_FontSize = 18;
+	std::map<int, struct ImFont*> m_Fonts;
+
 	bool m_DisableGUI = false;
 	bool m_ShowMainMenuBar = true;
 	bool m_ShowApplicationInfo = true;
