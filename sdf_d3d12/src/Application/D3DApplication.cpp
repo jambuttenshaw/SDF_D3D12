@@ -440,7 +440,7 @@ void D3DApplication::BeginUpdate()
 
 	// Begin new ImGui frame
 	ImGuiIO& io = ImGui::GetIO();
-	ASSERT(m_Fonts.find(m_FontSize) == m_Fonts.end(), "Font size not loaded!");
+	ASSERT(m_Fonts.find(m_FontSize) != m_Fonts.end(), "Font size not loaded!");
 	io.FontDefault = m_Fonts[m_FontSize];
 
 	ImGui_ImplDX12_NewFrame();
